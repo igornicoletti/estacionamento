@@ -21,7 +21,7 @@ export function AuthCard({ children, description, title }: AuthCardProps) {
       <div className="rounded-lg border bg-card p-6 text-card-foreground shadow-sm">
         <div className="mb-6 grid gap-1 text-center">
           <h1 className="text-lg font-semibold tracking-normal">{title}</h1>
-          <p className="text-sm text-balance text-muted-foreground">{description}</p>
+          <p className="text-sm text-pretty text-muted-foreground">{description}</p>
         </div>
         {children}
       </div>

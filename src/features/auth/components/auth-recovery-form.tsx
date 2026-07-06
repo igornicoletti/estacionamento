@@ -31,7 +31,11 @@ import { getAuthErrorMessage, requestAccessRecovery } from "../services"
 import { AuthCpfField } from "./auth-cpf-field"
 import { AuthSubmitButton } from "./auth-submit-button"
 
-export function AuthRecoveryForm() {
+interface AuthRecoveryFormProps {
+  onSuccess?: () => void
+}
+
+export function AuthRecoveryForm({ onSuccess }: AuthRecoveryFormProps) {
   const guard = useAttemptGuard()
   const recoverySubmitInFlight = React.useRef(false)
   const form = useForm<AuthRecoveryFormValues>({
@@ -59,6 +63,7 @@ export function AuthRecoveryForm() {
       await requestAccessRecovery(values)
       notify.success(authCopy.feedback.genericRecoveryResponse)
       form.reset()
+      onSuccess?.()
     } catch (caughtError) {
       guard.recordAttempt()
 

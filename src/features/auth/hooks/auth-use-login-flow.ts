@@ -83,6 +83,7 @@ export function useLoginFlow() {
         notify.error(authCopy.feedback.genericAuthError)
       }
 
+      credentialsSubmitInFlight.current = false
       return
     }
 
