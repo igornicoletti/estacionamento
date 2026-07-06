@@ -1,0 +1,50 @@
+project_id = "shadcn-data-table-generic"
+
+[api]
+enabled = true
+schemas = ["public"]
+extra_search_path = ["public"]
+max_rows = 1000
+
+[auth]
+enabled = true
+site_url = "https://estacionamento.redemontecarlo.com.br"
+additional_redirect_urls = ["http://localhost:5173"]
+jwt_expiry = 3600
+enable_refresh_token_rotation = true
+
+[functions.auth-start]
+verify_jwt = false
+
+[functions.auth-password]
+verify_jwt = false
+
+[functions.auth-recovery-request]
+verify_jwt = false
+
+[functions.auth-complete-passkey]
+verify_jwt = true
+
+[functions.auth-register-passkey]
+verify_jwt = true
+
+[functions.admin-user-create]
+verify_jwt = true
+
+[functions.admin-user-reset-password]
+verify_jwt = true
+
+[functions.admin-user-reset-passkey]
+verify_jwt = true
+
+[functions.admin-user-clear-lock]
+verify_jwt = true
+
+[functions.admin-user-revoke-sessions]
+verify_jwt = true
+
+[functions.profile-change-password]
+verify_jwt = true
+
+[functions.profile-request-phone-change]
+verify_jwt = true

@@ -1,0 +1,87 @@
+export const usersCopy = {
+  page: {
+    title: "Usuários",
+    subtitle: "Gerencie os usuários com acesso ao sistema.",
+  },
+  actions: {
+    create: "Cadastrar",
+    save: "Salvar",
+    edit: "Editar",
+    resetPassword: "Redefinir senha",
+    blockUser: "Bloquear usuário",
+  },
+  dialogs: {
+    createTitle: "Novo usuário",
+    editTitle: "Editar usuário",
+    createDescription: "Cadastre um novo usuário para acesso ao sistema.",
+    editDescription: "Atualize os dados de acesso do usuário.",
+    cancel: "Cancelar",
+    blockTitle: "Bloquear usuário",
+    blockDescription:
+      "Tem certeza que deseja bloquear {{name}}? O acesso ao sistema será interrompido imediatamente.",
+    blockDescriptionFallback: "Tem certeza que deseja bloquear este usuário?",
+    blockConfirm: "Bloquear",
+  },
+  filters: {
+    role: "Perfis",
+    status: "Status",
+    searchPlaceholder: "Buscar usuários...",
+  },
+  form: {
+    requiredMark: "*",
+    roleLabel: "Perfil",
+    unitLabel: "Unidade",
+    globalScopeHint: "Este perfil possui escopo global.",
+    unitPlaceholder: "Buscar unidade...",
+    globalUnitPlaceholder: "Global (todas as unidades)",
+    unitEmpty: "Nenhuma unidade encontrada.",
+    passwordLabel: "Senha de primeiro acesso",
+    passwordDescription:
+      "A senha de primeiro acesso é usada apenas no primeiro login. Após acessar, o usuário deverá criar uma nova senha.",
+    fields: {
+      name: "Nome",
+      email: "E-mail",
+      phone: "Telefone",
+      cpf: "CPF",
+    },
+  },
+  details: {
+    noEmail: "Sem e-mail",
+    noAccess: "Sem acesso",
+    globalUnit: "Global",
+    mfaActive: "Ativo",
+    mfaInactive: "Inativo",
+  },
+  feedback: {
+    create: {
+      loading: "Cadastrando usuário...",
+      success: "Usuário cadastrado.",
+      error: "Não foi possível salvar o usuário.",
+    },
+    update: {
+      loading: "Atualizando usuário...",
+      success: "Usuário atualizado.",
+      error: "Não foi possível salvar o usuário.",
+    },
+    block: {
+      loading: "Bloqueando usuário...",
+      success: "Usuário bloqueado.",
+      error: "Não foi possível bloquear o usuário.",
+    },
+    reset: {
+      loading: "Redefinindo autenticação...",
+      success: "Autenticação redefinida.",
+      error: "Não foi possível redefinir a autenticação.",
+    },
+  },
+  errors: {
+    load: "Não foi possível carregar os usuários.",
+    create: "Não foi possível criar o usuário.",
+    update: "Não foi possível atualizar o usuário.",
+    userNotFound: "Usuário não encontrado.",
+    requiredUnit: "Selecione uma unidade para o perfil informado.",
+    requiredFirstAccessPassword: "Informe a senha de primeiro acesso.",
+    requiredCpf: "Informe o CPF do usuário.",
+    invalidPassword: "Senha inválida.",
+  },
+} as const
