@@ -1,5 +1,5 @@
 import { shouldBypassAuthInDev } from "@/config"
-import { getSupabaseBrowserClient } from "@/lib"
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import { type UserRecord } from "@/features/users/types/users-types"
 import {
@@ -7,6 +7,7 @@ import {
   isUserRole,
 } from "../authorization"
 import { type AppUserProfile } from "../types"
+import { reportAuthInternalError } from "./auth-error"
 
 type UnknownRecord = Record<PropertyKey, unknown>
 type ProfileSyncListener = () => void
@@ -14,6 +15,9 @@ type UnitLinkRecord = {
   unit_id?: unknown
 }
 
+function shouldUseDevelopmentProfile() {
+  return shouldBypassAuthInDev()
+}
 const profileSyncListeners = new Set<ProfileSyncListener>()
 
 function notifyProfileSyncListeners() {
@@ -44,18 +48,16 @@ const developmentProfile: AppUserProfile = {
   unitName: null,
 }
 
-
-
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null
 }
 
 function getDevelopmentProfile() {
-  return shouldBypassAuthInDev() ? developmentProfile : null
+  return shouldUseDevelopmentProfile() ? developmentProfile : null
 }
 
 export function syncDevelopmentSessionProfileFromUser(user: UserRecord) {
-  if (!import.meta.env.DEV || !shouldBypassAuthInDev()) {
+  if (!shouldUseDevelopmentProfile()) {
     return
   }
 
@@ -104,10 +106,15 @@ function resolveMfaStatus(data: UnknownRecord): "active" | "inactive" {
 
 function mapAppUserProfile(data: unknown): AppUserProfile | null {
   if (!isRecord(data)) {
+    reportAuthInternalError("mapAppUserProfile:not-record", data)
     return null
   }
 
   if (!isUserRole(data.role) || !isAppUserStatus(data.status)) {
+    reportAuthInternalError("mapAppUserProfile:invalid-role-or-status", {
+      role: data.role,
+      status: data.status,
+    })
     return null
   }
 
@@ -117,6 +124,12 @@ function mapAppUserProfile(data: unknown): AppUserProfile | null {
   const phoneMasked = getStringValue(data.phone_masked)
 
   if (!id || !authUserId || !name || !phoneMasked) {
+    reportAuthInternalError("mapAppUserProfile:missing-required-fields", {
+      hasId: Boolean(id),
+      hasAuthUserId: Boolean(authUserId),
+      hasName: Boolean(name),
+      hasPhoneMasked: Boolean(phoneMasked),
+    })
     return null
   }
 
@@ -136,6 +149,10 @@ function mapAppUserProfile(data: unknown): AppUserProfile | null {
 }
 
 export async function getCurrentSessionProfile(): Promise<AppUserProfile | null> {
+  if (shouldBypassAuthInDev()) {
+    return getDevelopmentProfile()
+  }
+
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {

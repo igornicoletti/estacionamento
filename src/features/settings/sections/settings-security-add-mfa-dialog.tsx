@@ -79,7 +79,7 @@ export function SettingsSecurityAddMfaDialog({
           <FieldLabel htmlFor="mfa-app-name">{settingsCopy.dialogs.addMfaApp.inputLabel}</FieldLabel>
           <Input
             id="mfa-app-name"
-            className="w-full"
+            className="h-9 w-full"
             placeholder={settingsCopy.dialogs.addMfaApp.inputPlaceholder}
             value={appName}
             onChange={(event) => {

@@ -1,12 +1,13 @@
 import {
   adminActionSchema,
+  clearRateLimitByKeyHash,
   createAdminClient,
   genericAuthError,
   getAuthenticatedActor,
   handleCors,
   jsonResponse,
   requireAdminActor,
-  writeAuditEvent,
+  writeAuditEvent
 } from "../_shared/index.ts"
 
 Deno.serve(async (req) => {
@@ -18,6 +19,12 @@ Deno.serve(async (req) => {
     const input = adminActionSchema.parse(await req.json())
     const supabase = createAdminClient()
 
+    const { data: appUser } = await supabase
+      .from("app_users")
+      .select("cpf_hmac")
+      .eq("auth_user_id", input.targetUserId)
+      .maybeSingle()
+
     await supabase
       .from("app_users")
       .update({
@@ -27,6 +34,14 @@ Deno.serve(async (req) => {
         updated_by: actor.authUserId,
       })
       .eq("auth_user_id", input.targetUserId)
+
+    // Also clear the rate limiter so the user is not re-blocked immediately
+    if (appUser?.cpf_hmac) {
+      await clearRateLimitByKeyHash({
+        bucket: "auth-password",
+        keyHash: String(appUser.cpf_hmac),
+      })
+    }
 
     await writeAuditEvent({
       actor: actor.name,

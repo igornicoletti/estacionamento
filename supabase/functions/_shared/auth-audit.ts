@@ -19,7 +19,7 @@ interface AuditEventInput {
 export async function writeAuditEvent(input: AuditEventInput) {
   const supabase = createAdminClient()
 
-  await supabase.from("audit_events").insert({
+  const { error } = await supabase.from("audit_events").insert({
     actor: input.actor,
     actor_user_id: input.actorUserId,
     event: input.event,
@@ -34,4 +34,11 @@ export async function writeAuditEvent(input: AuditEventInput) {
     target_user_id: input.targetUserId,
     user_agent_hash: input.userAgentHash,
   })
+
+  if (error) {
+    console.error("[audit:write-failed]", {
+      event: input.event,
+      error: error.message,
+    })
+  }
 }

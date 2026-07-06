@@ -326,7 +326,7 @@ export function UsersRoute() {
                       </FieldLabel>
                       <Input
                         id="user-name"
-                        className="w-full"
+                        className="h-9 w-full"
                         value={field.value}
                         onChange={field.onChange}
                         disabled={isSaving}
@@ -362,7 +362,7 @@ export function UsersRoute() {
                       <Input
                         id="user-email"
                         type="email"
-                        className="w-full"
+                        className="h-9 w-full"
                         value={field.value}
                         onChange={field.onChange}
                         disabled={isSaving}
@@ -383,7 +383,7 @@ export function UsersRoute() {
                       <FieldLabel htmlFor="user-phone">{usersCopy.form.fields.phone}</FieldLabel>
                       <Input
                         id="user-phone"
-                        className="w-full"
+                        className="h-9 w-full"
                         value={field.value}
                         onChange={(event) => {
                           field.onChange(formatPhone(onlyDigits(event.target.value)))
@@ -426,7 +426,7 @@ export function UsersRoute() {
                         disabled={isSaving}
                       >
                         <SelectTrigger
-                          className="w-full"
+                          className="w-full data-[size=default]:h-9"
                           aria-invalid={Boolean(fieldState.error)}
                         >
                           <SelectValue placeholder="Selecione" />

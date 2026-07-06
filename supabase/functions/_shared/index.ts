@@ -1,19 +1,18 @@
 export { writeAuditEvent } from "./auth-audit.ts"
 export { getAuthenticatedActor, requireAdminActor } from "./auth-context.ts"
-export { corsHeaders, handleCors } from "./auth-cors.ts"
+export { getCorsHeaders, handleCors } from "./auth-cors.ts"
 export {
   getRequestFingerprint,
   hashSensitiveValue,
   maskCpf,
   maskPhone,
-  normalizeCpf,
+  normalizeCpf
 } from "./auth-cpf.ts"
-export { AuthFunctionError } from "./auth-errors.ts"
-export { registerRateLimitAttempt } from "./auth-rate-limit.ts"
+export { clearRateLimitByKeyHash, registerRateLimitAttempt } from "./auth-rate-limit.ts"
 export { genericAuthError, genericAuthMessage, jsonResponse } from "./auth-responses.ts"
 export {
   createAdminClient,
-  createPasswordAuthClient,
+  createPasswordAuthClient
 } from "./auth-supabase-admin.ts"
 export {
   adminActionSchema,
@@ -23,5 +22,5 @@ export {
   flowCpfSchema,
   profilePasswordSchema,
   profilePhoneSchema,
-  recoveryRequestSchema,
+  recoveryRequestSchema
 } from "./auth-validation.ts"

@@ -1,5 +1,5 @@
 import { shouldBypassAuthInDev } from "@/config"
-import { getSupabaseBrowserClient } from "@/lib"
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import { createAuthPublicError } from "./auth-error"
 
@@ -38,6 +38,11 @@ async function invokePasskeyMethod(
     return
   }
 
+  // Supabase SDK passkey API migration path:
+  // v2.x stable: auth.passkey.signInWithPasskey / auth.passkey.registerPasskey
+  // v2.x experimental: auth.experimental.signInWithPasskey / auth.experimental.registerPasskey
+  // v1.x legacy: auth.signInWithPasskey / auth.registerPasskey
+  // This fallback chain ensures compatibility across SDK versions.
   const passkey = auth.passkey ?? (auth as Record<string, unknown>).experimental as SupabasePasskeyClient["passkey"]
   const method = passkey?.[methodName] ?? auth[methodName]
 

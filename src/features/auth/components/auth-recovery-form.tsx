@@ -1,10 +1,8 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { Loader2Icon } from "lucide-react"
 import * as React from "react"
 import { Controller, useForm } from "react-hook-form"
 
 import { notify } from "@/components/toast"
-import { Button } from "@/components/ui/button"
 import {
   Field,
   FieldDescription,
@@ -31,6 +29,7 @@ import {
 } from "../schemas"
 import { getAuthErrorMessage, requestAccessRecovery } from "../services"
 import { AuthCpfField } from "./auth-cpf-field"
+import { AuthSubmitButton } from "./auth-submit-button"
 
 export function AuthRecoveryForm() {
   const guard = useAttemptGuard()
@@ -195,18 +194,13 @@ export function AuthRecoveryForm() {
           </p>
         ) : null}
 
-        <Button
-          type="submit"
-          size="lg"
+        <AuthSubmitButton
+          isLoading={form.formState.isSubmitting}
+          loadingText="Enviando"
           disabled={isBusy}
-          aria-busy={form.formState.isSubmitting || undefined}
-          className="w-full"
         >
-          {form.formState.isSubmitting ? (
-            <Loader2Icon className="animate-spin" aria-hidden="true" />
-          ) : null}
           {authCopy.recovery.submit}
-        </Button>
+        </AuthSubmitButton>
       </FieldGroup>
     </form>
   )

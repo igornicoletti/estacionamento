@@ -10,7 +10,7 @@ import { formatCpf, formatPhone, onlyDigits } from "@/lib"
 import { settingsCopy } from "../settings-copy"
 import { type SettingsProfile } from "../types/settings-types"
 
-const FIELD_WIDTH_CLASS = "w-full lg:w-80"
+const FIELD_WIDTH_CLASS = "h-9 w-full lg:w-80"
 
 function getNameFallback(name: string) {
   return (

@@ -8,9 +8,14 @@ describe("config/env", () => {
   beforeEach(() => {
     vi.resetModules()
     vi.unstubAllEnvs()
+    vi.stubEnv("VITE_SUPABASE_URL", "")
+    vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "")
+    vi.stubEnv("VITE_APP_ORIGIN", window.location.origin)
+    vi.stubEnv("VITE_WEBAUTHN_RP_ID", window.location.hostname)
   })
 
   it("rejects partial Supabase config to avoid ambiguous local behavior", async () => {
+    vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "")
     vi.stubEnv("VITE_SUPABASE_URL", "https://project.supabase.co")
 
     await expect(loadEnvModule()).rejects.toThrow("ENV_SUPABASE_CONFIG_PARTIAL")

@@ -95,7 +95,7 @@ export function DataTablePagination<TData>({
               }))
             }}
           >
-            <SelectTrigger className="w-20">
+            <SelectTrigger className="w-20 data-[size=default]:h-9">
               <SelectValue placeholder={`${pagination.pageSize}`} />
             </SelectTrigger>
             <SelectContent side="top" position="popper">

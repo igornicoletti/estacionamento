@@ -11,12 +11,10 @@ export function AuthRecoveryRoute() {
       title={authCopy.recovery.title}
       description={authCopy.recovery.description}
     >
-      <div className="grid gap-4">
-        <AuthRecoveryForm />
-        <Button variant="link" asChild className="justify-center">
-          <Link to="/login">{authCopy.recovery.backToLogin}</Link>
-        </Button>
-      </div>
+      <AuthRecoveryForm />
+      <Button variant="link" asChild className="mt-4 w-full justify-center">
+        <Link to="/login">{authCopy.recovery.backToLogin}</Link>
+      </Button>
     </AuthCard>
   )
 }

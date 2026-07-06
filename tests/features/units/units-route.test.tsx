@@ -14,7 +14,7 @@ describe("UnitsRoute", () => {
 
     expect(screen.getByRole("heading", { name: "Unidades" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Histórico" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Atualizar lista" })).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Sincronizar" })).toBeInTheDocument()
 
     await waitFor(() => {
       expect(screen.getByText("Monte Carlo Centro")).toBeInTheDocument()

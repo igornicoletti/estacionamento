@@ -33,7 +33,7 @@ Deno.serve(async (req) => {
     }
 
     const authClient = createPasswordAuthClient()
-    const { error: verifyError } = await authClient.auth.signInWithPassword({
+    const { data: verifyData, error: verifyError } = await authClient.auth.signInWithPassword({
       email: String(appUser.technical_email),
       password: input.currentPassword,
     })
@@ -42,21 +42,25 @@ Deno.serve(async (req) => {
       return genericAuthError()
     }
 
-    await supabase.auth.admin.updateUserById(actor.authUserId, {
-      password: input.newPassword,
-    })
-    await writeAuditEvent({
-      actor: actor.name,
-      actorUserId: actor.authUserId,
-      event: "password_changed",
-      scope: "system",
-      success: true,
-      target: actor.name,
-      targetUserId: actor.authUserId,
-    })
+    // Revoke the session created by password verification to prevent orphan sessions
+    if (verifyData?.session?.access_token) {
+      await authClient.auth.signOut()
 
-    return jsonResponse({ message: "Senha alterada." })
-  } catch {
-    return genericAuthError()
-  }
-})
+      await supabase.auth.admin.updateUserById(actor.authUserId, {
+        password: input.newPassword,
+      })
+      await writeAuditEvent({
+        actor: actor.name,
+        actorUserId: actor.authUserId,
+        event: "password_changed",
+        scope: "system",
+        success: true,
+        target: actor.name,
+        targetUserId: actor.authUserId,
+      })
+
+      return jsonResponse({ message: "Senha alterada." })
+    } catch {
+      return genericAuthError()
+    }
+  })

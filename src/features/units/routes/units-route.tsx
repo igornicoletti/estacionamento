@@ -284,7 +284,7 @@ export function UnitsRoute() {
                 }}
                 disabled={isSavingYard}
               >
-                <SelectTrigger className="w-full">
+                <SelectTrigger className="w-full data-[size=default]:h-9">
                   <SelectValue placeholder="Selecione" />
                 </SelectTrigger>
                 <SelectContent position="popper">
@@ -298,6 +298,7 @@ export function UnitsRoute() {
               <FieldLabel htmlFor="unit-yard-spots">{unitsCopy.yard.spotsLabel}</FieldLabel>
               <Input
                 id="unit-yard-spots"
+                className="h-9"
                 type="number"
                 min={0}
                 step={1}

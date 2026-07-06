@@ -1,6 +1,5 @@
 export {
-  authCpfSchema,
-  normalizedCpfSchema
+  authCpfSchema
 } from "./auth-cpf-schema"
 export {
   authLoginSchema,

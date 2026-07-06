@@ -1,5 +1,6 @@
 import { shouldBypassAuthInDev } from "@/config"
-import { getSupabaseBrowserClient, onlyDigits } from "@/lib"
+import { onlyDigits } from "@/lib/cpf"
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import { authCopy } from "../auth-copy"
 import {
@@ -63,10 +64,10 @@ export function submitPasswordCredentials(input: {
   flowId?: string
   newPassword?: string
 }) {
-  if (import.meta.env.DEV && !getSupabaseBrowserClient() && shouldBypassAuthInDev()) {
+  if (shouldBypassAuthInDev()) {
     return Promise.resolve({
       flowId: input.flowId ?? "dev-auth-flow",
-      message: authCopy.feedback.genericRecoveryResponse,
+      message: authCopy.feedback.genericAuthError,
       nextAction: input.newPassword ? "register_passkey" : "set_new_password",
     } satisfies AuthPasswordResponse)
   }
@@ -102,7 +103,7 @@ export function requestAccessRecovery(input: {
   reason: string
   description?: string
 }) {
-  if (import.meta.env.DEV && !getSupabaseBrowserClient() && shouldBypassAuthInDev()) {
+  if (shouldBypassAuthInDev()) {
     return Promise.resolve({
       message: authCopy.feedback.genericRecoveryResponse,
     } satisfies RecoveryRequestResponse)

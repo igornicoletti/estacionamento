@@ -1,4 +1,4 @@
 export {
   AuthSessionProvider,
-  useAuthSessionContext,
+  useAuthSession
 } from "./auth-session-context"

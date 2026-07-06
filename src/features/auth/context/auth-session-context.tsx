@@ -47,30 +47,30 @@ export function AuthSessionProvider({
   }, [])
 
   React.useEffect(() => {
-    let isMounted = true
+    let isCancelled = false
 
-    async function loadProfileIfMounted() {
+    async function loadSessionProfile() {
       const nextProfile = await getCurrentSessionProfile()
 
-      if (isMounted) {
+      if (!isCancelled) {
         setProfile(nextProfile)
         setIsLoading(false)
       }
     }
 
-    void loadProfileIfMounted()
+    void loadSessionProfile()
 
-    const unsubscribe = subscribeToAuthSessionChanges(() => {
-      void loadProfileIfMounted()
+    const unsubscribeAuth = subscribeToAuthSessionChanges(() => {
+      void loadSessionProfile()
     })
-    const unsubscribeProfileSync = subscribeToProfileSyncChanges(() => {
-      void loadProfileIfMounted()
+    const unsubscribeSync = subscribeToProfileSyncChanges(() => {
+      void loadSessionProfile()
     })
 
     return () => {
-      isMounted = false
-      unsubscribe()
-      unsubscribeProfileSync()
+      isCancelled = true
+      unsubscribeAuth()
+      unsubscribeSync()
     }
   }, [])
 
@@ -92,7 +92,7 @@ export function AuthSessionProvider({
   )
 }
 
-export function useAuthSessionContext() {
+export function useAuthSession() {
   const context = React.useContext(AuthSessionContext)
 
   if (!context) {

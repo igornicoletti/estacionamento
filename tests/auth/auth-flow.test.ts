@@ -1,5 +1,60 @@
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
+type AuthPasswordRequestInput = {
+  cpf: string
+  password: string
+  flowId?: string
+  newPassword?: string
+}
+
+type AuthPasswordResponse = {
+  flowId: string
+  message: string
+  nextAction: "set_new_password" | "register_passkey"
+}
+
+type RecoveryRequestResponse = {
+  message: string
+}
+
+type SessionProfile = {
+  authUserId: string
+  avatarUrl: null
+  email: string
+  id: string
+  mfaStatus: "active" | "inactive"
+  name: string
+  phoneMasked: string
+  role: "owner"
+  status: "active"
+  unitId: null
+  unitName: null
+}
+
+const { submitPasswordCredentialsMock, requestAccessRecoveryMock, getCurrentSessionProfileMock } = vi.hoisted(() => ({
+  submitPasswordCredentialsMock: vi.fn((input: AuthPasswordRequestInput): Promise<AuthPasswordResponse> => Promise.resolve({
+    flowId: input.newPassword ? "flow-2" : "flow-1",
+    message: input.newPassword ? "Senha atualizada." : "Senha temporária aceita.",
+    nextAction: input.newPassword ? "register_passkey" : "set_new_password",
+  })),
+  requestAccessRecoveryMock: vi.fn((): Promise<RecoveryRequestResponse> => Promise.resolve({
+    message: "Se os dados puderem ser validados, a solicitação será analisada pela administração.",
+  })),
+  getCurrentSessionProfileMock: vi.fn((): Promise<SessionProfile | null> => Promise.resolve({
+    authUserId: "test-auth-user",
+    avatarUrl: null,
+    email: "igor.nicoletti@redemontecarlo.com",
+    id: "USR-001",
+    mfaStatus: "active",
+    name: "Igor Nicoletti",
+    phoneMasked: "(17) 99130-4197",
+    role: "owner",
+    status: "active",
+    unitId: null,
+    unitName: null,
+  })),
+}))
+
 // The auth services branch on `getSupabaseBrowserClient()` and
 // `shouldBypassAuthInDev()`. We force those seams so the whole progressive
 // authentication flow can be simulated deterministically without a backend,
@@ -21,6 +76,26 @@ vi.mock("@/config", async (importOriginal) => {
   }
 })
 
+vi.mock("@/features/auth/services/auth-api", () => ({
+  requestAccessRecovery: requestAccessRecoveryMock,
+  submitPasswordCredentials: submitPasswordCredentialsMock,
+}))
+
+vi.mock("@/features/auth/services/auth-session", () => ({
+  getCurrentSessionProfile: getCurrentSessionProfileMock,
+}))
+
+vi.mock("@/features/auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/auth")>()
+
+  return {
+    ...actual,
+    getCurrentSessionProfile: getCurrentSessionProfileMock,
+    requestAccessRecovery: requestAccessRecoveryMock,
+    submitPasswordCredentials: submitPasswordCredentialsMock,
+  }
+})
+
 import {
   canAccessProtectedApp,
   canReadAudit,
@@ -36,6 +111,53 @@ const validCpf = "529.982.247-25"
 
 beforeEach(() => {
   bypassMock.mockReturnValue(true)
+  submitPasswordCredentialsMock.mockReset()
+  requestAccessRecoveryMock.mockReset()
+  getCurrentSessionProfileMock.mockReset()
+
+  submitPasswordCredentialsMock.mockImplementation((input: AuthPasswordRequestInput) => {
+    if (!bypassMock()) {
+      return Promise.reject(new Error("AUTH_SUPABASE_NOT_CONFIGURED"))
+    }
+
+    if (input.newPassword) {
+      return Promise.resolve({
+        flowId: "flow-2",
+        message: "Senha atualizada.",
+        nextAction: "register_passkey",
+      })
+    }
+
+    return Promise.resolve({
+      flowId: "flow-1",
+      message: "Senha temporária aceita.",
+      nextAction: "set_new_password",
+    })
+  })
+
+  requestAccessRecoveryMock.mockResolvedValue({
+    message: "Se os dados puderem ser validados, a solicitação será analisada pela administração.",
+  })
+
+  getCurrentSessionProfileMock.mockImplementation(() => {
+    if (!bypassMock()) {
+      return Promise.resolve(null)
+    }
+
+    return Promise.resolve({
+      authUserId: "test-auth-user",
+      avatarUrl: null,
+      email: "igor.nicoletti@redemontecarlo.com",
+      id: "USR-001",
+      mfaStatus: "active",
+      name: "Igor Nicoletti",
+      phoneMasked: "(17) 99130-4197",
+      role: "owner",
+      status: "active",
+      unitId: null,
+      unitName: null,
+    })
+  })
 })
 
 describe("progressive authentication flow (simulated)", () => {
