@@ -3,16 +3,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import { createAuthPublicError } from "./auth-error"
 
-type SupabasePasskeyClient = {
-  passkey?: {
-    signInWithPasskey?: () => Promise<{ error: unknown }>
-    registerPasskey?: () => Promise<{ error: unknown }>
-  }
-  signInWithPasskey?: () => Promise<{ error: unknown }>
-  registerPasskey?: () => Promise<{ error: unknown }>
-}
-
-function getPasskeyClient() {
+function getPasskeyAuthClient() {
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {
@@ -22,31 +13,27 @@ function getPasskeyClient() {
 
     throw createAuthPublicError(
       "AUTH_SUPABASE_NOT_CONFIGURED",
-      "getPasskeyClient"
+      "getPasskeyAuthClient"
     )
   }
 
-  return supabase.auth as SupabasePasskeyClient
+  return supabase.auth
 }
 
 async function invokePasskeyMethod(
   methodName: "signInWithPasskey" | "registerPasskey"
 ) {
-  const auth = getPasskeyClient()
+  const auth = getPasskeyAuthClient()
 
   if (!auth) {
     return
   }
 
-  // Supabase SDK passkey API migration path:
-  // v2.x stable: auth.passkey.signInWithPasskey / auth.passkey.registerPasskey
-  // v2.x experimental: auth.experimental.signInWithPasskey / auth.experimental.registerPasskey
-  // v1.x legacy: auth.signInWithPasskey / auth.registerPasskey
-  // This fallback chain ensures compatibility across SDK versions.
-  const passkey = auth.passkey ?? (auth as Record<string, unknown>).experimental as SupabasePasskeyClient["passkey"]
-  const method = passkey?.[methodName] ?? auth[methodName]
+  // Supabase JS v2.108+ exposes passkey methods directly on auth:
+  // auth.signInWithPasskey() / auth.registerPasskey()
+  const method = (auth as unknown as Record<string, unknown>)[methodName]
 
-  if (!method) {
+  if (typeof method !== "function") {
     throw createAuthPublicError(
       "AUTH_PASSKEY",
       `invokePasskeyMethod:${methodName}:missing-method`
@@ -56,7 +43,7 @@ async function invokePasskeyMethod(
   let result: { error: unknown }
 
   try {
-    result = await method.call(passkey ?? auth)
+    result = await (method as () => Promise<{ error: unknown }>).call(auth)
   } catch (caughtError) {
     throw createAuthPublicError(
       "AUTH_PASSKEY",
