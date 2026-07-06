@@ -3,6 +3,7 @@ export {
 } from "./auth-cpf-schema"
 export {
   authLoginSchema,
+  authLoginWithNewPasswordSchema,
   validateAuthLoginSubmission,
   type AuthLoginFormValues
 } from "./auth-login-schema"

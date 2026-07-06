@@ -171,16 +171,33 @@ export async function getCurrentSessionProfile(): Promise<AppUserProfile | null>
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, auth_user_id, name, role, status, phone_masked, email, phone_verified_at, email_verified_at, app_user_units(unit_id)"
+      "id, auth_user_id, name, role, status, phone_masked, email, phone_verified_at, email_verified_at"
     )
     .eq("auth_user_id", user.id)
     .maybeSingle()
 
   if (error) {
+    reportAuthInternalError("getCurrentSessionProfile:app_users", error)
     return getDevelopmentProfile()
   }
 
-  return mapAppUserProfile(data) ?? getDevelopmentProfile()
+  if (!data) {
+    return getDevelopmentProfile()
+  }
+
+  // Fetch unit link separately to avoid PostgREST embedded resource 500
+  const { data: unitLink } = await supabase
+    .from("app_user_units")
+    .select("unit_id")
+    .eq("app_user_id", data.id)
+    .maybeSingle()
+
+  const profileData = {
+    ...data,
+    app_user_units: unitLink ?? null,
+  }
+
+  return mapAppUserProfile(profileData) ?? getDevelopmentProfile()
 }
 
 export async function signOutCurrentSession() {

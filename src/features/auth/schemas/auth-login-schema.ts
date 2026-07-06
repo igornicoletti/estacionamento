@@ -21,6 +21,25 @@ export const authLoginSchema = z
     }
   })
 
+export const authLoginWithNewPasswordSchema = z
+  .object({
+    cpf: authCpfSchema,
+    password: z.string().min(1, authCopy.login.passwordRequired),
+    newPassword: newPasswordSchema,
+    confirmNewPassword: z
+      .string()
+      .min(1, authCopy.login.confirmNewPasswordRequired),
+  })
+  .superRefine((value, ctx) => {
+    if (value.newPassword !== value.confirmNewPassword) {
+      ctx.addIssue({
+        code: "custom",
+        message: authCopy.login.confirmNewPasswordMismatch,
+        path: ["confirmNewPassword"],
+      })
+    }
+  })
+
 const authLoginCredentialsSchema = z.object({
   cpf: authCpfSchema,
   password: authPasswordSchema,

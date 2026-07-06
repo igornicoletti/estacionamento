@@ -1,4 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod"
+import * as React from "react"
 import { Controller, useForm } from "react-hook-form"
 import { Link } from "react-router"
 
@@ -17,6 +18,7 @@ import {
 import { useLoginFlow } from "../hooks"
 import {
   authLoginSchema,
+  authLoginWithNewPasswordSchema,
   type AuthLoginFormValues,
 } from "../schemas"
 
@@ -30,8 +32,13 @@ export function AuthLoginRoute() {
     handlePasskeyRegistration,
   } = useLoginFlow()
 
+  const shouldShowNewPassword = flow.step === "new_password"
+  const activeSchema = shouldShowNewPassword
+    ? authLoginWithNewPasswordSchema
+    : authLoginSchema
+
   const form = useForm<AuthLoginFormValues>({
-    resolver: zodResolver(authLoginSchema),
+    resolver: zodResolver(activeSchema),
     mode: "onSubmit",
     defaultValues: {
       confirmNewPassword: "",
@@ -40,6 +47,15 @@ export function AuthLoginRoute() {
       password: "",
     },
   })
+
+  React.useEffect(() => {
+    if (shouldShowNewPassword) {
+      form.setValue("newPassword", "", {
+        shouldDirty: false,
+        shouldValidate: false,
+      })
+    }
+  }, [shouldShowNewPassword, form])
 
   const cpf = form.watch("cpf")
   const newPassword = form.watch("newPassword") ?? ""
@@ -55,7 +71,6 @@ export function AuthLoginRoute() {
   const cpfIsValid = isValidCpf(cpf)
   const isBusy =
     form.formState.isSubmitting || passkey.isPending || guard.isBlocked
-  const shouldShowNewPassword = cpfIsValid && flow.step === "new_password"
   const shouldShowPasskeyRegistration =
     cpfIsValid && flow.step === "passkey_registration"
   const submitButtonLabel = shouldShowNewPassword
@@ -65,8 +80,8 @@ export function AuthLoginRoute() {
     ? authCopy.login.firstAccessLoading
     : authCopy.login.submitLoading
 
-  const onSubmit = form.handleSubmit((values) => {
-    void handleCredentialsSubmit(values, (field, error) => {
+  const onSubmit = form.handleSubmit(async (values) => {
+    await handleCredentialsSubmit(values, (field, error) => {
       form.setError(field, error)
     })
   })
