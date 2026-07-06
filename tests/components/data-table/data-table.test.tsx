@@ -65,15 +65,13 @@ describe("DataTable", () => {
     render(
       <DataTable
         columns={columns}
-        data={[]}
+        data={rows}
         getRowId={(row) => row.id}
         emptyState={<div>Sem registros customizados</div>}
         filteredEmptyState={<div>Sem resultados filtrados customizados</div>}
         globalSearch={globalSearch}
       />
     )
-
-    expect(screen.getByText("Sem registros customizados")).toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText("Buscar linhas..."), {
       target: { value: "missing" },

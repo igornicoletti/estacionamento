@@ -604,6 +604,7 @@ export function DataTable<TData extends RowData, TValue>({
     [paginationPageSize]
   )
   const shouldRenderStatePanel = !shouldRenderInitialSkeleton && !visibleRows.length
+  const shouldRenderTableControls = hasSourceRows || isLoading
   const currentRowCount = manualPagination
     ? rowCount ?? tableData.length
     : manualFiltering
@@ -637,21 +638,25 @@ export function DataTable<TData extends RowData, TValue>({
         </div>
       ) : null}
 
-      <Separator />
+      {shouldRenderTableControls ? (
+        <>
+          <Separator />
 
-      <DataTableToolbar
-        table={table}
-        globalSearch={normalizedGlobalSearch}
-        searchFields={normalizedSearchFields}
-        filterFields={normalizedFilterFields}
-        actions={toolbarActions}
-        enableViewOptions={enableViewOptions}
-        manualFiltering={manualFiltering}
-        isLoading={isLoading}
-        globalFilterValue={globalFilter}
-        onGlobalFilterChange={handleGlobalFilterChange}
-        onClearFilters={handleClearFilters}
-      />
+          <DataTableToolbar
+            table={table}
+            globalSearch={normalizedGlobalSearch}
+            searchFields={normalizedSearchFields}
+            filterFields={normalizedFilterFields}
+            actions={toolbarActions}
+            enableViewOptions={enableViewOptions}
+            manualFiltering={manualFiltering}
+            isLoading={isLoading}
+            globalFilterValue={globalFilter}
+            onGlobalFilterChange={handleGlobalFilterChange}
+            onClearFilters={handleClearFilters}
+          />
+        </>
+      ) : null}
 
       {isLoading && !loadingState ? (
         <span className="sr-only" role="status" aria-live="polite">
@@ -742,7 +747,7 @@ export function DataTable<TData extends RowData, TValue>({
         </DataTableScrollContainer>
       )}
 
-      {enablePagination ? (
+      {enablePagination && shouldRenderTableControls ? (
         <DataTablePagination
           table={table}
           pageSizeOptions={normalizedPageSizeOptions}

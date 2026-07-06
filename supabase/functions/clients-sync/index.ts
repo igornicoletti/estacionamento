@@ -295,9 +295,16 @@ async function fetchErpResource(options: {
   const endpoint = Deno.env.get(options.endpointEnvName) || options.defaultEndpoint
   const updatedSinceParam =
     Deno.env.get(options.updatedSinceParamEnvName) || options.defaultUpdatedSinceParam
-  const bearerToken = Deno.env.get("ERP_BEARER_TOKEN")?.trim() || null
-  const username = bearerToken ? null : requireEnv("ERP_BASIC_USERNAME")
-  const password = bearerToken ? null : requireEnv("ERP_BASIC_PASSWORD")
+  const apiToken = Deno.env.get("ERP_API_TOKEN")?.trim() || null
+  const bearerToken = apiToken
+    ? null
+    : Deno.env.get("ERP_BEARER_TOKEN")?.trim() || null
+  const username = apiToken || bearerToken
+    ? null
+    : requireEnv("ERP_BASIC_USERNAME")
+  const password = apiToken || bearerToken
+    ? null
+    : requireEnv("ERP_BASIC_PASSWORD")
   const timeoutMs = Number(Deno.env.get("ERP_REQUEST_TIMEOUT_MS") || "30000")
 
   const url = new URL(endpoint, baseUrl)
@@ -310,14 +317,21 @@ async function fetchErpResource(options: {
   const timeout = setTimeout(() => controller.abort(), timeoutMs)
 
   try {
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+    }
+
+    if (apiToken) {
+      headers["X-API-Token"] = apiToken
+    } else {
+      headers.Authorization = bearerToken
+        ? `Bearer ${bearerToken}`
+        : `Basic ${btoa(`${username}:${password}`)}`
+    }
+
     const response = await fetch(url, {
       method: "GET",
-      headers: {
-        Accept: "application/json",
-        Authorization: bearerToken
-          ? `Bearer ${bearerToken}`
-          : `Basic ${btoa(`${username}:${password}`)}`,
-      },
+      headers,
       signal: controller.signal,
     })
 
