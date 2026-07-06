@@ -21,7 +21,7 @@ export function AuthPasskeyAction({
   return (
     <Button
       type="button"
-
+      size="lg"
       variant={variant}
       className="w-full"
       disabled={disabled || isLoading}

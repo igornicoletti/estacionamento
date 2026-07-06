@@ -38,7 +38,8 @@ async function invokePasskeyMethod(
     return
   }
 
-  const method = auth.passkey?.[methodName] ?? auth[methodName]
+  const passkey = auth.passkey ?? (auth as Record<string, unknown>).experimental as SupabasePasskeyClient["passkey"]
+  const method = passkey?.[methodName] ?? auth[methodName]
 
   if (!method) {
     throw createAuthPublicError(
@@ -50,7 +51,7 @@ async function invokePasskeyMethod(
   let result: { error: unknown }
 
   try {
-    result = await method()
+    result = await method.call(passkey ?? auth)
   } catch (caughtError) {
     throw createAuthPublicError(
       "AUTH_PASSKEY",

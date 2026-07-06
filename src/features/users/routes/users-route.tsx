@@ -6,6 +6,7 @@ import {
 import * as React from "react"
 import { Controller, useForm } from "react-hook-form"
 
+import { shouldBypassAuthInDev } from "@/config"
 import {
   appUserStatusLabels,
   AuthCpfField,
@@ -17,6 +18,7 @@ import {
 import { useUnits } from "@/features/units"
 import {
   formatPhone,
+  getSupabaseBrowserClient,
   onlyDigits,
 } from "@/lib"
 import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
@@ -112,6 +114,7 @@ function mapUserToFormValues(user: UserRecord): UsersFormValues {
 }
 
 export function UsersRoute() {
+  const remoteMode = Boolean(getSupabaseBrowserClient()) && !shouldBypassAuthInDev()
   const {
     data,
     error,
@@ -216,8 +219,9 @@ export function UsersRoute() {
         },
         onEditUser: handleOpenEditDialog,
         onResetAccess: handleResetAccess,
+        remoteMode,
       }),
-    [handleOpenEditDialog, handleResetAccess]
+    [handleOpenEditDialog, handleResetAccess, remoteMode]
   )
 
   async function handleSubmit(values: UsersFormValues) {
@@ -286,7 +290,7 @@ export function UsersRoute() {
         )}
       />
 
-      <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
+      <Dialog open={isDialogOpen && (!remoteMode || !isEditMode)} onOpenChange={handleDialogOpenChange}>
         <DialogContent
           onInteractOutside={(event) => {
             preventDialogCloseOnFloatingLayerInteraction(event)

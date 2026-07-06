@@ -22,6 +22,7 @@ interface AuthPasswordFieldProps {
   id: string
   label: string
   labelAction?: React.ReactNode
+  placeholder?: string
   required?: boolean
   value: string
   onValueChange: (value: string) => void
@@ -36,6 +37,7 @@ export function AuthPasswordField({
   label,
   labelAction,
   onValueChange,
+  placeholder = "••••••••••••",
   required = true,
   value,
 }: AuthPasswordFieldProps) {
@@ -58,11 +60,13 @@ export function AuthPasswordField({
       <InputGroup>
         <InputGroupInput
           id={id}
+          className="h-9"
           type={showPassword ? "text" : "password"}
           value={value}
           onChange={(event) => onValueChange(event.target.value)}
           autoComplete={autoComplete}
           disabled={disabled}
+          placeholder={placeholder}
           aria-invalid={Boolean(error)}
           aria-describedby={descriptionId}
         />
@@ -84,6 +88,6 @@ export function AuthPasswordField({
         ) : null
       }
       {error ? <FieldError>{error}</FieldError> : null}
-    </Field >
+    </Field>
   )
 }

@@ -27,6 +27,7 @@ interface CreateUsersColumnsOptions {
   onEditUser?: (user: UserRecord) => void
   onBlockUser?: (user: UserRecord) => void
   onResetAccess?: (user: UserRecord) => void
+  remoteMode?: boolean
 }
 
 function resolveStatusBadgeVariant(status: UserRecord["status"]) {
@@ -163,13 +164,17 @@ export function createUsersColumns(
     },
     createActionsColumn<UserRecord>([
       detailsAction,
-      {
-        id: "edit",
-        label: usersCopy.actions.edit,
-        onSelect: (row) => {
-          options.onEditUser?.(row.original)
-        },
-      },
+      ...(options.remoteMode
+        ? []
+        : [
+          {
+            id: "edit" as const,
+            label: usersCopy.actions.edit,
+            onSelect: (row: { original: UserRecord }) => {
+              options.onEditUser?.(row.original)
+            },
+          },
+        ]),
       {
         id: "reset-access",
         label: usersCopy.actions.resetPassword,
@@ -177,15 +182,18 @@ export function createUsersColumns(
           options.onResetAccess?.(row.original)
         },
       },
-      {
-        id: "block",
-        label: usersCopy.actions.blockUser,
-        variant: "destructive",
-        disabled: false,
-        onSelect: (row) => {
-          options.onBlockUser?.(row.original)
-        },
-      },
+      ...(options.remoteMode
+        ? []
+        : [
+          {
+            id: "block" as const,
+            label: usersCopy.actions.blockUser,
+            variant: "destructive" as const,
+            onSelect: (row: { original: UserRecord }) => {
+              options.onBlockUser?.(row.original)
+            },
+          },
+        ]),
     ]),
   ]
 }

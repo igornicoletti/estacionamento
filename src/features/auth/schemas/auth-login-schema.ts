@@ -7,7 +7,7 @@ import { authPasswordSchema, newPasswordSchema } from "./auth-password-schema"
 export const authLoginSchema = z
   .object({
     cpf: authCpfSchema,
-    password: authPasswordSchema.optional(),
+    password: z.string().min(1, authCopy.login.passwordRequired),
     newPassword: newPasswordSchema.optional(),
     confirmNewPassword: z.string().optional(),
   })
@@ -52,4 +52,9 @@ export function validateAuthLoginSubmission(
     : authLoginCredentialsSchema.safeParse(values)
 }
 
-export type AuthLoginFormValues = z.input<typeof authLoginSchema>
+export interface AuthLoginFormValues {
+  confirmNewPassword?: string
+  cpf: string
+  newPassword?: string
+  password: string
+}

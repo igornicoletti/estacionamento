@@ -11,6 +11,9 @@ import {
   writeAuditEvent,
 } from "../_shared/index.ts"
 
+const MAX_FAILED_ATTEMPTS = 5
+const ACCOUNT_LOCK_MINUTES = 30
+
 Deno.serve(async (req) => {
   const cors = handleCors(req)
   if (cors) return cors
@@ -55,19 +58,41 @@ Deno.serve(async (req) => {
       })
 
     if (error || !sessionData.session) {
+      const nextFailedAttempts = Number(appUser.failed_attempts ?? 0) + 1
+      const shouldLockAccount = nextFailedAttempts >= MAX_FAILED_ATTEMPTS
+      const lockedUntil = shouldLockAccount
+        ? new Date(Date.now() + ACCOUNT_LOCK_MINUTES * 60_000).toISOString()
+        : null
+
       await supabase
         .from("app_users")
         .update({
-          failed_attempts: Number(appUser.failed_attempts ?? 0) + 1,
+          failed_attempts: nextFailedAttempts,
           last_failed_at: new Date().toISOString(),
+          locked_until: lockedUntil,
         })
         .eq("id", appUser.id)
+
+      if (shouldLockAccount) {
+        await writeAuditEvent({
+          actor: String(appUser.name),
+          event: "account_locked",
+          scope: "login",
+          severity: "warning",
+          success: false,
+          target: String(appUser.name),
+          targetUserId: String(appUser.auth_user_id),
+        })
+
+        return genericAuthError(429)
+      }
+
       return genericAuthError()
     }
 
     await supabase
       .from("app_users")
-      .update({ failed_attempts: 0, last_failed_at: null })
+      .update({ failed_attempts: 0, last_failed_at: null, locked_until: null })
       .eq("id", appUser.id)
 
     if (input.newPassword) {

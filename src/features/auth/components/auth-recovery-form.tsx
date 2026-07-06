@@ -1,5 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod"
 import { Loader2Icon } from "lucide-react"
+import * as React from "react"
 import { Controller, useForm } from "react-hook-form"
 
 import { notify } from "@/components/toast"
@@ -23,6 +24,7 @@ import { Textarea } from "@/components/ui/textarea"
 import { formatPhone } from "@/lib"
 
 import { authCopy, recoveryReasonOptions } from "../auth-copy"
+import { useAttemptGuard } from "../hooks"
 import {
   authRecoverySchema,
   type AuthRecoveryFormValues,
@@ -31,6 +33,8 @@ import { getAuthErrorMessage, requestAccessRecovery } from "../services"
 import { AuthCpfField } from "./auth-cpf-field"
 
 export function AuthRecoveryForm() {
+  const guard = useAttemptGuard()
+  const recoverySubmitInFlight = React.useRef(false)
   const form = useForm<AuthRecoveryFormValues>({
     resolver: zodResolver(authRecoverySchema),
     mode: "onSubmit",
@@ -43,22 +47,39 @@ export function AuthRecoveryForm() {
   })
 
   const selectedReason = form.watch("reason")
+  const isBusy = form.formState.isSubmitting || guard.isBlocked
 
   async function handleSubmit(values: AuthRecoveryFormValues) {
+    if (guard.isBlocked || recoverySubmitInFlight.current) {
+      return
+    }
+
+    recoverySubmitInFlight.current = true
+
     try {
       await requestAccessRecovery(values)
       notify.success(authCopy.feedback.genericRecoveryResponse)
       form.reset()
     } catch (caughtError) {
+      guard.recordAttempt()
+
       notify.error(
         getAuthErrorMessage(caughtError, authCopy.feedback.genericAuthError)
       )
+    } finally {
+      recoverySubmitInFlight.current = false
     }
   }
 
   return (
     <form
       onSubmit={(event) => {
+        event.preventDefault()
+
+        if (isBusy) {
+          return
+        }
+
         void form.handleSubmit(handleSubmit)(event)
       }}
     >
@@ -71,7 +92,7 @@ export function AuthRecoveryForm() {
               id="recovery-cpf"
               value={field.value}
               onValueChange={field.onChange}
-              disabled={form.formState.isSubmitting}
+              disabled={isBusy}
               error={fieldState.error?.message}
             />
           )}
@@ -94,7 +115,8 @@ export function AuthRecoveryForm() {
                 }
                 inputMode="tel"
                 autoComplete="tel"
-                disabled={form.formState.isSubmitting}
+                placeholder="(00) 00000-0000"
+                disabled={isBusy}
                 aria-invalid={Boolean(form.formState.errors.phone)}
               />
             )}
@@ -119,11 +141,11 @@ export function AuthRecoveryForm() {
               <Select
                 value={field.value}
                 onValueChange={field.onChange}
-                disabled={form.formState.isSubmitting}
+                disabled={isBusy}
               >
                 <SelectTrigger
                   id="recovery-reason"
-                  className="w-full"
+                  className="w-full data-[size=default]:h-9"
                   aria-invalid={Boolean(form.formState.errors.reason)}
                 >
                   <SelectValue
@@ -152,7 +174,7 @@ export function AuthRecoveryForm() {
             </FieldLabel>
             <Textarea
               id="recovery-description"
-              disabled={form.formState.isSubmitting}
+              disabled={isBusy}
               aria-invalid={Boolean(form.formState.errors.description)}
               {...form.register("description")}
             />
@@ -164,11 +186,21 @@ export function AuthRecoveryForm() {
           </Field>
         ) : null}
 
+        {guard.isLocked ? (
+          <p
+            role="alert"
+            className="text-center text-sm font-medium text-destructive"
+          >
+            {`Muitas tentativas. Aguarde ${String(guard.remainingSeconds)}s para tentar novamente.`}
+          </p>
+        ) : null}
+
         <Button
           type="submit"
-
-          disabled={form.formState.isSubmitting}
+          size="lg"
+          disabled={isBusy}
           aria-busy={form.formState.isSubmitting || undefined}
+          className="w-full"
         >
           {form.formState.isSubmitting ? (
             <Loader2Icon className="animate-spin" aria-hidden="true" />
