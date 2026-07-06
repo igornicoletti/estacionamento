@@ -70,9 +70,7 @@ function resolveSessionUserRoleLabel(profile: unknown, users: readonly UserRecor
 export function SidebarProfile() {
   const { profile } = useAuthSession()
   const { data: users } = useUsers()
-  const label = import.meta.env.DEV
-    ? userRoleLabels.owner
-    : (resolveSessionUserRoleLabel(profile, users) ?? getProfileRoleLabel(profile))
+  const label = resolveSessionUserRoleLabel(profile, users) ?? getProfileRoleLabel(profile)
 
   return (
     <SidebarMenu className="mb-4 px-2 pt-4">

@@ -32,7 +32,7 @@ function canAccessNavigationItem(
   item: SidebarNavigationItem,
   role: UserRole | null
 ) {
-  if (shouldBypassAuthInDev() || (import.meta.env.DEV && !role)) {
+  if (shouldBypassAuthInDev()) {
     return true
   }
 

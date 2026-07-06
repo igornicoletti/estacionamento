@@ -7,7 +7,7 @@ Data da auditoria: 2026-07-05
 ## Arquitetura Geral
 
 | Camada | Tecnologia |
-|--------|-----------|
+| -------- | ----------- |
 | Frontend | React 19 + TypeScript 6 + Vite |
 | UI | shadcn/ui (Base UI + Radix UI) + Tailwind CSS 4 |
 | Tabelas | @tanstack/react-table 8 |
@@ -20,7 +20,7 @@ Data da auditoria: 2026-07-05
 ## Estrutura de Features
 
 | Feature | Diretório | Gateway | Hooks | Rotas | Testes |
-|---------|-----------|---------|-------|-------|--------|
+| --------- | ----------- | --------- | ------- | ------- | -------- |
 | Unidades | `src/features/units` | `units-gateway.ts`, `unit-yard-gateway.ts` | `use-units`, `use-unit-users`, `use-unit-yard-configs`, `use-unit-sync-history` | `units-route`, `unit-users-route` | Sim |
 | Clientes | `src/features/clients` | `clients-gateway.ts` | `use-clients`, `use-client-vehicles` | `clients-route`, `client-vehicles-route` | Sim |
 | Usuários | `src/features/users` | `users-gateway.ts` | `use-users` | `users-route` | Sim |
@@ -47,7 +47,7 @@ Todas as features de dados ERP seguem o padrão:
 ### Gateways que precisam de implementação Supabase real
 
 | Gateway | Arquivo atual | Tabela Supabase esperada |
-|---------|--------------|-------------------------|
+| --------- | -------------- | ------------------------- |
 | `UnitsGateway` | `src/features/units/services/units-gateway.ts` | View de API ERP ou tabela `units` |
 | `ClientsGateway` | `src/features/clients/services/clients-gateway.ts` | View de API ERP ou tabela `clients` + `client_vehicles` |
 | `UsersGateway` | `src/features/users/services/users-gateway.ts` | `app_users` (já existe na migration 0001) |
@@ -64,7 +64,7 @@ Todas as features de dados ERP seguem o padrão:
 ### Papéis (UserRole)
 
 | Papel | Escopo | Capacidades principais |
-|-------|--------|----------------------|
+| ------- | -------- | ---------------------- |
 | `owner` | Global | Tudo (admin + audit + commercial + security) |
 | `admin` | Global | Tudo (igual a owner) |
 | `auditor` | Global | Leitura (audit, commercial, security, admin read) |
@@ -74,7 +74,7 @@ Todas as features de dados ERP seguem o padrão:
 ### Capacidades por rota
 
 | Rota | Capacidade requerida |
-|------|---------------------|
+| ------ | --------------------- |
 | `/unidades` | `admin.units.read` |
 | `/clientes` | `admin.clients.read` |
 | `/usuarios` | `admin.users.read` |
@@ -94,7 +94,7 @@ Arquivo de referência: `src/features/auth/authorization/authorization-policy.ts
 ### Migrations aplicadas
 
 | Migration | Descrição |
-|-----------|-----------|
+| ----------- | ----------- |
 | `0001_auth_domain_schema.sql` | Schema base: `app_users`, enums de role/status |
 | `0002_auth_rls_policies.sql` | Políticas RLS para users, units e audit |
 | `0003_auth_audit_rate_limit.sql` | Tabela `audit_events` com indexação |
@@ -104,7 +104,7 @@ Arquivo de referência: `src/features/auth/authorization/authorization-policy.ts
 ### Edge Functions
 
 | Função | Autenticação | Descrição |
-|--------|-------------|-----------|
+| -------- | ------------- | ----------- |
 | `auth-start` | Pública | Iniciar fluxo de autenticação |
 | `auth-password` | Pública | Login com senha |
 | `auth-recovery-request` | Pública | Solicitar recuperação de acesso |

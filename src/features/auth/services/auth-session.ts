@@ -10,6 +10,9 @@ import { type AppUserProfile } from "../types"
 
 type UnknownRecord = Record<PropertyKey, unknown>
 type ProfileSyncListener = () => void
+type UnitLinkRecord = {
+  unit_id?: unknown
+}
 
 const profileSyncListeners = new Set<ProfileSyncListener>()
 
@@ -78,6 +81,27 @@ function getStringValue(value: unknown) {
   return typeof value === "string" ? value : null
 }
 
+function getFirstUnitIdFromRelation(value: unknown) {
+  if (Array.isArray(value) && value.length > 0) {
+    const firstValue = value[0] as UnitLinkRecord
+    return getStringValue(firstValue?.unit_id)
+  }
+
+  if (isRecord(value)) {
+    return getStringValue((value as UnitLinkRecord).unit_id)
+  }
+
+  return null
+}
+
+function resolveMfaStatus(data: UnknownRecord): "active" | "inactive" {
+  const hasVerifiedContact =
+    Boolean(getStringValue(data.phone_verified_at)) ||
+    Boolean(getStringValue(data.email_verified_at))
+
+  return hasVerifiedContact ? "active" : "inactive"
+}
+
 function mapAppUserProfile(data: unknown): AppUserProfile | null {
   if (!isRecord(data)) {
     return null
@@ -99,15 +123,15 @@ function mapAppUserProfile(data: unknown): AppUserProfile | null {
   return {
     id,
     authUserId,
-    avatarUrl: getStringValue(data.avatar_url),
+    avatarUrl: null,
     name,
     role: data.role,
     status: data.status,
-    unitId: getStringValue(data.unit_id),
-    unitName: getStringValue(data.unit_name),
+    unitId: getFirstUnitIdFromRelation(data.app_user_units),
+    unitName: null,
     phoneMasked,
     email: getStringValue(data.email),
-    mfaStatus: data.mfa_status === "active" ? "active" : "inactive",
+    mfaStatus: resolveMfaStatus(data),
   }
 }
 
@@ -130,7 +154,7 @@ export async function getCurrentSessionProfile(): Promise<AppUserProfile | null>
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, auth_user_id, avatar_url, name, role, status, unit_id, unit_name, phone_masked, email, mfa_status"
+      "id, auth_user_id, name, role, status, phone_masked, email, phone_verified_at, email_verified_at, app_user_units(unit_id)"
     )
     .eq("auth_user_id", user.id)
     .maybeSingle()

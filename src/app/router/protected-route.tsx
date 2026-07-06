@@ -6,11 +6,11 @@ import { hasAllCapabilities, type AuthCapability } from "@/features/auth"
 import { useAuthSession } from "@/features/auth/hooks"
 
 import { RouteAccessDenied } from "./route-access-denied"
-import { RouteLoading } from "./route-loading"
 import {
   canProfileAccessProtectedApp,
   getAuthProfileRole,
 } from "./route-auth-utils"
+import { RouteLoading } from "./route-loading"
 
 interface ProtectedRouteProps {
   children?: React.ReactNode
@@ -27,10 +27,8 @@ export function ProtectedRoute({
 }: ProtectedRouteProps) {
   const location = useLocation()
   const { isAuthenticated, isLoading, profile } = useAuthSession()
-  const isDevelopmentWithoutProfile =
-    import.meta.env.DEV && !isLoading && !isAuthenticated && !profile
 
-  if (shouldBypassAuthInDev() || isDevelopmentWithoutProfile) {
+  if (shouldBypassAuthInDev()) {
     return children ?? <Outlet />
   }
 

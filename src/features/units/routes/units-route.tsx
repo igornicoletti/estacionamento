@@ -85,9 +85,7 @@ export function UnitsRoute() {
   const [yardError, setYardError] = React.useState<string | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
 
-  const role = import.meta.env.DEV
-    ? "owner"
-    : (isUserRole(profile?.role) ? profile.role : null)
+  const role = isUserRole(profile?.role) ? profile.role : null
   const canSyncUnits = hasCapability(role, "admin.units.manage")
 
 

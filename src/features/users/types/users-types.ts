@@ -2,6 +2,7 @@ import { type AppUserStatus, type UserRole } from "@/features/auth"
 
 export interface UserRecord {
   id: string
+  authUserId?: string
   name: string
   cpf: string
   email: string | null

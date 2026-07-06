@@ -82,6 +82,7 @@ export const usersCopy = {
     requiredUnit: "Selecione uma unidade para o perfil informado.",
     requiredFirstAccessPassword: "Informe a senha de primeiro acesso.",
     requiredCpf: "Informe o CPF do usuário.",
+    requiredPhone: "Informe o telefone do usuário.",
     invalidPassword: "Senha inválida.",
   },
 } as const

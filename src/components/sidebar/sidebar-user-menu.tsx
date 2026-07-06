@@ -108,11 +108,9 @@ export function UserMenu() {
   const profileMeta = isRecord(profile) && isUserRole(profile.role)
     ? userRoleLabels[profile.role]
     : null
-  const displayMeta = import.meta.env.DEV
-    ? userRoleLabels.owner
-    : (profileMeta ?? (sessionUser
-      ? userRoleLabels[sessionUser.role]
-      : getProfileMeta(profile)))
+  const displayMeta = profileMeta ?? (sessionUser
+    ? userRoleLabels[sessionUser.role]
+    : getProfileMeta(profile))
   const fallback = getFallback(displayName)
 
   async function handleSignOut() {

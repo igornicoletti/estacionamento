@@ -36,6 +36,14 @@ export const usersFormSchema = z
     unitName: z.string().trim().optional(),
   })
   .superRefine((values, context) => {
+    if (!values.phone.trim()) {
+      context.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: usersCopy.errors.requiredPhone,
+        path: ["phone"],
+      })
+    }
+
     if (requiresSingleUnit(values.role) && !values.unitId?.trim()) {
       context.addIssue({
         code: z.ZodIssueCode.custom,
