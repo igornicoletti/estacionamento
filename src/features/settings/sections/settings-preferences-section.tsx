@@ -52,7 +52,8 @@ export function SettingsPreferencesSection({
               </div>
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
+                size="lg"
                 onClick={() => {
                   setIsPasswordDialogOpen(true)
                 }}

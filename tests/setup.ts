@@ -18,6 +18,7 @@ const testAuthSession = {
   profile: {
     authUserId: "test-auth-user",
     avatarUrl: null,
+    cpfMasked: "***.***.***-25",
     email: "igor.nicoletti@redemontecarlo.com",
     id: "USR-001",
     mfaStatus: "active",

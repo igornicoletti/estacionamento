@@ -1,9 +1,16 @@
-import { CameraIcon, UserIcon } from "lucide-react"
+import { ImageUpIcon, SaveIcon, UserIcon } from "lucide-react"
 import * as React from "react"
 
 import { notify } from "@/components/toast"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { Input } from "@/components/ui/input"
 import { formatPhone, onlyDigits } from "@/lib"
 
@@ -11,6 +18,8 @@ import { settingsCopy } from "../settings-copy"
 import { type SettingsProfile } from "../types/settings-types"
 
 const FIELD_WIDTH_CLASS = "h-9 w-full lg:w-80"
+const ALLOWED_AVATAR_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"]
+const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024
 
 function getNameFallback(name: string) {
   return (
@@ -23,70 +32,143 @@ function getNameFallback(name: string) {
   )
 }
 
-interface AvatarUploadProps {
+interface AvatarUploadZoneProps {
   name: string
 }
 
-function AvatarUpload({ name }: AvatarUploadProps) {
+function AvatarUploadZone({ name }: AvatarUploadZoneProps) {
   const [preview, setPreview] = React.useState<string | null>(null)
+  const [error, setError] = React.useState<string | null>(null)
+  const [isDragging, setIsDragging] = React.useState(false)
   const inputRef = React.useRef<HTMLInputElement>(null)
   const previousUrlRef = React.useRef<string | null>(null)
+
+  function revokePreview() {
+    if (previousUrlRef.current) {
+      URL.revokeObjectURL(previousUrlRef.current)
+      previousUrlRef.current = null
+    }
+  }
+
+  function applyFile(file: File | undefined) {
+    if (!file) {
+      return
+    }
+
+    if (!ALLOWED_AVATAR_MIME_TYPES.includes(file.type)) {
+      setError(settingsCopy.profile.avatar.invalidFormat)
+      return
+    }
+
+    if (file.size > MAX_AVATAR_SIZE_BYTES) {
+      setError(settingsCopy.profile.avatar.tooLarge)
+      return
+    }
+
+    setError(null)
+    revokePreview()
+    const url = URL.createObjectURL(file)
+    previousUrlRef.current = url
+    setPreview(url)
+  }
 
   function handleClick() {
     inputRef.current?.click()
   }
 
   function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    const file = event.target.files?.[0]
-    if (!file) {
-      return
-    }
+    applyFile(event.target.files?.[0])
+    event.target.value = ""
+  }
 
-    if (previousUrlRef.current) {
-      URL.revokeObjectURL(previousUrlRef.current)
-    }
+  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
+    event.preventDefault()
+    setIsDragging(false)
+    applyFile(event.dataTransfer.files?.[0])
+  }
 
-    const url = URL.createObjectURL(file)
-    previousUrlRef.current = url
-    setPreview(url)
+  function handleRemove(event: React.MouseEvent) {
+    event.stopPropagation()
+    revokePreview()
+    setPreview(null)
+    setError(null)
   }
 
   React.useEffect(() => {
     return () => {
-      if (!previousUrlRef.current) {
-        return
-      }
-
-      URL.revokeObjectURL(previousUrlRef.current)
-      previousUrlRef.current = null
+      revokePreview()
     }
   }, [])
 
   return (
-    <div className="flex flex-col items-center gap-2">
-      <div className="relative">
-        <Avatar className="size-16">
-          {preview ? <AvatarImage src={preview} alt="Foto de perfil" /> : null}
-          <AvatarFallback className="text-base">{getNameFallback(name)}</AvatarFallback>
-        </Avatar>
-        <button
-          type="button"
+    <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
+      <Avatar className="size-16 shrink-0">
+        {preview ? <AvatarImage src={preview} alt="Foto de perfil" /> : null}
+        <AvatarFallback className="text-base">{getNameFallback(name)}</AvatarFallback>
+      </Avatar>
+
+      <div className="flex w-full flex-col gap-2">
+        <Empty
+          role="button"
+          tabIndex={0}
+          aria-label={settingsCopy.profile.avatar.dropzoneLabel}
+          data-dragging={isDragging ? "" : undefined}
           onClick={handleClick}
-          aria-label={settingsCopy.profile.avatarButtonLabel}
-          className="absolute right-0 bottom-0 flex size-5 items-center justify-center rounded-full bg-primary text-primary-foreground shadow transition-colors hover:bg-primary/80"
+          onKeyDown={(event) => {
+            if (event.key === "Enter" || event.key === " ") {
+              event.preventDefault()
+              handleClick()
+            }
+          }}
+          onDragOver={(event) => {
+            event.preventDefault()
+            setIsDragging(true)
+          }}
+          onDragLeave={() => {
+            setIsDragging(false)
+          }}
+          onDrop={handleDrop}
+          className="cursor-pointer border border-dashed p-4 transition-colors hover:bg-muted/50 data-[dragging]:border-primary data-[dragging]:bg-muted/50"
         >
-          <CameraIcon className="size-3" />
-        </button>
+          <EmptyHeader>
+            <EmptyMedia variant="icon">
+              <ImageUpIcon aria-hidden="true" />
+            </EmptyMedia>
+            <EmptyTitle>{settingsCopy.profile.avatar.title}</EmptyTitle>
+            <EmptyDescription>
+              {settingsCopy.profile.avatar.description}
+              <br />
+              {settingsCopy.profile.avatar.allowedFormats} · {settingsCopy.profile.avatar.maxSize}
+            </EmptyDescription>
+          </EmptyHeader>
+        </Empty>
+
+        {error ? (
+          <p className="text-xs text-destructive">{error}</p>
+        ) : null}
+
+        {preview ? (
+          <Button
+            type="button"
+            variant="outline"
+            size="sm"
+            className="self-start"
+            onClick={handleRemove}
+          >
+            {settingsCopy.profile.avatar.removeButton}
+          </Button>
+        ) : null}
       </div>
+
       <input
         ref={inputRef}
         type="file"
-        accept="image/*"
+        accept={ALLOWED_AVATAR_MIME_TYPES.join(",")}
         className="sr-only"
-        aria-label={settingsCopy.profile.avatarInputLabel}
+        tabIndex={-1}
+        aria-hidden="true"
         onChange={handleFileChange}
       />
-      <p className="text-xs text-muted-foreground">{settingsCopy.profile.avatarActionLabel}</p>
     </div>
   )
 }
@@ -96,6 +178,7 @@ interface ProfileFieldDefinition {
   key: keyof SettingsProfile
   label: string
   description: string
+  helper?: string
   placeholder: string
   type?: React.ComponentProps<typeof Input>["type"]
   inputMode?: React.ComponentProps<typeof Input>["inputMode"]
@@ -109,7 +192,17 @@ const profileFields: readonly ProfileFieldDefinition[] = [
     key: "name",
     label: settingsCopy.profile.fields.name.label,
     description: settingsCopy.profile.fields.name.description,
+    helper: settingsCopy.profile.fields.name.helper,
     placeholder: settingsCopy.profile.fields.name.placeholder,
+    readOnly: true,
+  },
+  {
+    id: "settings-cpf",
+    key: "cpf",
+    label: settingsCopy.profile.fields.cpf.label,
+    description: settingsCopy.profile.fields.cpf.description,
+    helper: settingsCopy.profile.fields.cpf.helper,
+    placeholder: settingsCopy.profile.fields.cpf.placeholder,
     readOnly: true,
   },
   {
@@ -117,6 +210,7 @@ const profileFields: readonly ProfileFieldDefinition[] = [
     key: "phone",
     label: settingsCopy.profile.fields.phone.label,
     description: settingsCopy.profile.fields.phone.description,
+    helper: settingsCopy.profile.fields.phone.helper,
     placeholder: settingsCopy.profile.fields.phone.placeholder,
     inputMode: "tel",
     normalize: (value) => formatPhone(onlyDigits(value)),
@@ -126,6 +220,7 @@ const profileFields: readonly ProfileFieldDefinition[] = [
     key: "email",
     label: settingsCopy.profile.fields.email.label,
     description: settingsCopy.profile.fields.email.description,
+    helper: settingsCopy.profile.fields.email.helper,
     placeholder: settingsCopy.profile.fields.email.placeholder,
     type: "email",
     readOnly: true,
@@ -179,14 +274,12 @@ export function SettingsPreferencesProfileForm({
             </span>
           </div>
 
-          <div className="flex flex-col gap-3 px-4 py-4">
+          <div className="flex flex-col gap-4 px-4 py-4">
             <p className="text-sm text-muted-foreground">
               {settingsCopy.profile.sectionDescription}
             </p>
 
-            <div className="flex justify-center py-2">
-              <AvatarUpload name={form.name} />
-            </div>
+            <AvatarUploadZone name={form.name} />
 
             <div className="flex flex-col gap-3">
               {profileFields.map((field) => (
@@ -197,6 +290,9 @@ export function SettingsPreferencesProfileForm({
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium">{field.label}</p>
                     <p className="text-xs text-muted-foreground">{field.description}</p>
+                    {field.helper ? (
+                      <p className="text-xs text-muted-foreground/70 italic">{field.helper}</p>
+                    ) : null}
                   </div>
                   <div className="lg:ml-auto">
                     <Input
@@ -224,7 +320,13 @@ export function SettingsPreferencesProfileForm({
           </div>
 
           <div className="flex justify-end border-t px-4 py-3">
-            <Button type="submit" disabled={isSaving}>
+            <Button
+              type="submit"
+              variant="secondary"
+              size="lg"
+              disabled={isSaving}
+            >
+              <SaveIcon aria-hidden="true" />
               {settingsCopy.profile.saveButton}
             </Button>
           </div>

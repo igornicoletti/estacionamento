@@ -13,16 +13,14 @@ describe("SettingsRoute", () => {
       expect(screen.getByText("Informações de perfil")).toBeInTheDocument()
     })
 
-    expect(screen.getByText("Identidades da conta")).toBeInTheDocument()
+    expect(screen.getByText("Credenciais de acesso")).toBeInTheDocument()
     expect(
       screen.getByRole("button", { name: "Alterar senha" })
     ).toBeInTheDocument()
 
     expect(
-      screen.getByText("Autenticação multifatorial (MFA)")
+      screen.getByText("Autenticação multifator (MFA)")
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "Adicionar novo aplicativo" })
-    ).toBeInTheDocument()
+    expect(screen.getByText("Ativo")).toBeInTheDocument()
   })
 })

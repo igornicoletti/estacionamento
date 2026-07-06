@@ -50,6 +50,7 @@ export interface AppUserProfile {
   unitId: string | null
   unitName: string | null
   phoneMasked: string
+  cpfMasked: string | null
   email: string | null
   mfaStatus?: "active" | "inactive"
 }

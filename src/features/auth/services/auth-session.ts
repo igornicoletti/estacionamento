@@ -37,6 +37,7 @@ export function subscribeToProfileSyncChanges(listener: ProfileSyncListener) {
 const developmentProfile: AppUserProfile = {
   authUserId: "dev-auth-user",
   avatarUrl: null,
+  cpfMasked: "***.***.***-00",
   email: "igor.nicoletti@redemontecarlo.com",
   id: "USR-001",
   mfaStatus: "inactive",
@@ -71,6 +72,7 @@ export function syncDevelopmentSessionProfileFromUser(user: UserRecord) {
     status: user.status,
     email: user.email,
     phoneMasked: user.phoneMasked || developmentProfile.phoneMasked,
+    cpfMasked: user.cpf || developmentProfile.cpfMasked,
     unitId: user.unitId,
     unitName: user.unitName,
     mfaStatus: user.mfaStatus,
@@ -143,6 +145,7 @@ function mapAppUserProfile(data: unknown): AppUserProfile | null {
     unitId: getFirstUnitIdFromRelation(data.app_user_units),
     unitName: null,
     phoneMasked,
+    cpfMasked: getStringValue(data.cpf_masked),
     email: getStringValue(data.email),
     mfaStatus: resolveMfaStatus(data),
   }
@@ -171,7 +174,7 @@ export async function getCurrentSessionProfile(): Promise<AppUserProfile | null>
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, auth_user_id, name, role, status, phone_masked, email, phone_verified_at, email_verified_at"
+      "id, auth_user_id, name, role, status, phone_masked, cpf_masked, email, phone_verified_at, email_verified_at"
     )
     .eq("auth_user_id", user.id)
     .maybeSingle()

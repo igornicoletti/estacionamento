@@ -1,48 +1,60 @@
 export const settingsCopy = {
   page: {
     title: "Configurações",
-    subtitle: "Gerencie o perfil da sua conta, segurança e preferências do painel.",
+    subtitle: "Gerencie o perfil, a segurança e as credenciais da sua conta.",
   },
   profile: {
     sectionTitle: "Informações de perfil",
     sectionDescription:
-      "Gerencie os dados do seu perfil e mantenha suas informações atualizadas.",
-    avatarButtonLabel: "Alterar foto de perfil",
-    avatarInputLabel: "Selecionar foto de perfil",
-    avatarActionLabel: "Alterar foto",
-    saveButton: "Salvar",
+      "Dados da sua conta. Alguns campos exigem validação e não são aplicados imediatamente.",
+    avatar: {
+      title: "Foto de perfil",
+      description: "Arraste uma imagem ou selecione um arquivo do seu dispositivo.",
+      dropzoneLabel: "Área para envio da foto de perfil",
+      allowedFormats: "Formatos aceitos: PNG, JPG ou WEBP",
+      maxSize: "Tamanho máximo: 2 MB",
+      invalidFormat: "Formato de arquivo não permitido.",
+      tooLarge: "O arquivo excede o tamanho máximo permitido.",
+      removeButton: "Remover foto",
+    },
+    saveButton: "Salvar alterações",
     saveFeedback: {
       loading: "Enviando solicitação...",
-      success: "Solicitação de alteração de telefone enviada.",
+      success: "Solicitação de alteração de telefone enviada para validação.",
       error: "Não foi possível enviar a solicitação.",
     },
     fields: {
       name: {
         label: "Nome",
-        description:
-          "Nome completo exibido no sistema, em relatórios e em interações internas da plataforma. Não pode ser alterado por aqui.",
+        description: "Nome completo exibido no sistema e em relatórios.",
+        helper: "Gerenciado pela administração. Entre em contato com o suporte para alterar.",
         placeholder: "Nome completo",
+      },
+      cpf: {
+        label: "CPF",
+        description: "Documento utilizado para validação de identidade e auditoria de acesso.",
+        helper: "O CPF não pode ser exibido por completo nem alterado por segurança.",
+        placeholder: "000.000.000-00",
       },
       phone: {
         label: "Telefone",
-        description:
-          "Número de contato usado para comunicação operacional e recuperação de acesso quando necessário. A alteração passa por validação antes de ser aplicada.",
+        description: "Número de contato usado para recuperação de acesso e verificação em duas etapas.",
+        helper: "A alteração exige validação do novo número antes de ser aplicada.",
         placeholder: "(00) 00000-0000",
       },
       email: {
         label: "Email",
-        description:
-          "Endereço principal para notificações da conta, alertas de segurança e confirmações importantes. Não pode ser alterado por aqui.",
+        description: "Endereço usado para notificações da conta e alertas de segurança.",
+        helper: "Gerenciado pela administração. Entre em contato com o suporte para alterar.",
         placeholder: "seu.email@exemplo.com",
       },
     },
   },
   identity: {
-    sectionTitle: "Identidades da conta",
-    sectionDescription:
-      "Gerencie suas credenciais de acesso e altere sua senha sempre que necessário.",
-    credentialsTitle: "Credenciais",
-    credentialsDescription: "Login com CPF e senha",
+    sectionTitle: "Credenciais de acesso",
+    sectionDescription: "Gerencie a senha utilizada para entrar com seu CPF.",
+    credentialsTitle: "Senha de acesso",
+    credentialsDescription: "Login realizado com CPF e senha.",
     changePasswordButton: "Alterar senha",
   },
   dialogs: {
@@ -69,48 +81,16 @@ export const settingsCopy = {
         error: "Não foi possível alterar a senha.",
       },
     },
-    addMfaApp: {
-      title: "Adicionar aplicativo autenticador",
-      description:
-        "Informe um nome para identificar este aplicativo autenticador.",
-      inputLabel: "Nome do aplicativo",
-      inputPlaceholder: "Ex: 1Password, Authy...",
-      confirmButton: "Adicionar",
-      validation: {
-        required: "Informe um nome para o aplicativo.",
-      },
-      feedback: {
-        loading: "Adicionando aplicativo...",
-        success: "Aplicativo adicionado.",
-        error: "Não foi possível adicionar o aplicativo.",
-      },
-    },
   },
   mfa: {
-    sectionTitle: "Autenticação multifatorial (MFA)",
+    sectionTitle: "Autenticação multifator (MFA)",
     sectionDescription:
-      "Use um aplicativo autenticador (como 1Password ou Authy) para verificar sua identidade no login.",
-    addButton: "Adicionar novo aplicativo",
-    removeButton: "Remover",
-    configuredLabelSingle: "aplicativo configurado",
-    configuredLabelPlural: "aplicativos configurados",
-    deviceLabel: "Dispositivo",
-    addedAtLabel: "Adicionado em",
-    removeDialog: {
-      title: "Remover aplicativo autenticador",
-      description:
-        "Tem certeza que deseja remover o dispositivo {{name}}? Você poderá ficar sem acesso em logins protegidos por MFA.",
-      confirmLabel: "Remover",
-    },
-    removeFeedback: {
-      loading: "Removendo aplicativo...",
-      success: "Aplicativo removido.",
-      error: "Não foi possível remover o aplicativo.",
-    },
-  },
-  alert: {
-    title: "Evite ficar bloqueado",
-    description:
-      "Adicione um método de login de backup agora. Caso contrário, perder o acesso ao seu aplicativo autenticador bloqueará permanentemente sua conta.",
+      "Verificamos sua identidade a partir dos canais de contato confirmados (telefone ou email).",
+    statusLabel: "Status",
+    statusActive: "Ativo",
+    statusInactive: "Inativo",
+    statusActiveDescription: "Você possui ao menos um canal de contato verificado.",
+    statusInactiveDescription:
+      "Nenhum canal de contato foi verificado ainda. Confirme seu telefone ou email para ativar.",
   },
 } as const
