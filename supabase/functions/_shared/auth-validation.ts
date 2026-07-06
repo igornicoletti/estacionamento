@@ -1,6 +1,40 @@
 import { z } from "npm:zod@4.4.3"
 
-const cpfSchema = z.string().regex(/^\d{11}$|^\d{3}\.\d{3}\.\d{3}-\d{2}$/)
+const cpfFormatSchema = z
+  .string()
+  .regex(/^\d{11}$|^\d{3}\.\d{3}\.\d{3}-\d{2}$/)
+
+function isValidCpfChecksum(value: string) {
+  const digits = value.replace(/\D/g, "")
+
+  if (digits.length !== 11 || /^(\d)\1{10}$/.test(digits)) {
+    return false
+  }
+
+  const numbers = Array.from(digits, Number)
+
+  const firstCheck = numbers
+    .slice(0, 9)
+    .reduce((sum, digit, index) => sum + digit * (10 - index), 0)
+  const firstDigit = (firstCheck * 10) % 11
+  const normalizedFirstDigit = firstDigit === 10 ? 0 : firstDigit
+
+  const secondCheck = numbers
+    .slice(0, 10)
+    .reduce((sum, digit, index) => sum + digit * (11 - index), 0)
+  const secondDigit = (secondCheck * 10) % 11
+  const normalizedSecondDigit = secondDigit === 10 ? 0 : secondDigit
+
+  return (
+    numbers[9] === normalizedFirstDigit &&
+    numbers[10] === normalizedSecondDigit
+  )
+}
+
+const cpfSchema = cpfFormatSchema.refine(
+  isValidCpfChecksum,
+  "CPF inválido."
+)
 const passwordSchema = z.string().min(8).max(128)
 const newPasswordSchema = z
   .string()
