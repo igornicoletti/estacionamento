@@ -16,6 +16,23 @@ export const clientsCopy = {
     toggleClientVip: "Cliente VIP",
     toggleVehicleVip: "Veículo VIP",
   },
+  sync: {
+    historyLoadError: "Não foi possível carregar o histórico de sincronização.",
+    confirmTitle: "Confirmar sincronização de clientes",
+    confirmDescription:
+      "Deseja iniciar a sincronização incremental de clientes e veículos com o ERP agora?",
+    confirmButton: "Confirmar",
+    cancelButton: "Cancelar",
+    runningTitle: "Sincronização em andamento",
+    runningDescription:
+      "Aguarde alguns instantes. A tela será liberada automaticamente ao finalizar.",
+    timeoutError: "A sincronização demorou mais do que o esperado. Tente novamente.",
+    feedback: {
+      success: "Sincronização concluída.",
+      error: "Não foi possível sincronizar os clientes.",
+      inProgress: "Já existe uma sincronização de clientes em andamento.",
+    },
+  },
   feedback: {
     clientVip: {
       loading: "Atualizando status VIP do cliente...",

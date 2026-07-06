@@ -7,6 +7,7 @@ import {
   DataTable,
 } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
+import { ManualSyncDialog } from "@/components/sync"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -40,12 +41,16 @@ import {
 import { useUsers } from "@/features/users"
 
 import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
+import { withTimeout } from "@/lib/promise"
 import { createUnitsColumns } from "../columns/units-columns"
 import { UnitsSyncHistoryDialog } from "../components/units-sync-history-dialog"
 import { useUnitSyncHistory } from "../hooks/use-unit-sync-history"
 import { useUnitYardConfigs } from "../hooks/use-unit-yard-configs"
 import { useUnits } from "../hooks/use-units"
-import { triggerUnitsSync } from "../services/unit-sync-service"
+import {
+  isUnitSyncInProgressError,
+  triggerUnitsSync,
+} from "../services/unit-sync-service"
 import { type Unit } from "../types/units-types"
 import { unitsCopy } from "../units-copy"
 import {
@@ -56,6 +61,7 @@ import {
 } from "../utils/units-models"
 
 const UNITS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.units.table-column-visibility.v2"
+const unitsSyncTimeoutMs = 90_000
 
 const defaultUnitsColumnVisibility = {
   des_coordenada_empresa: false,
@@ -85,9 +91,11 @@ export function UnitsRoute() {
   const [yardSpots, setYardSpots] = React.useState("0")
   const [yardError, setYardError] = React.useState<string | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
+  const [syncDialogPhase, setSyncDialogPhase] = React.useState<"confirm" | "running" | null>(null)
 
   const role = isUserRole(profile?.role) ? profile.role : null
   const canSyncUnits = hasCapability(role, "admin.units.manage")
+  const isSyncing = syncDialogPhase === "running"
 
 
   const yardConfigByUnitId = React.useMemo(() => {
@@ -180,6 +188,45 @@ export function UnitsRoute() {
     }
   }
 
+  async function handleConfirmSync() {
+    if (isSyncing) {
+      return
+    }
+
+    setSyncDialogPhase("running")
+
+    try {
+      const result = await withTimeout(
+        triggerUnitsSync("incremental").then(async (syncResult) => {
+          await Promise.all([refetch(), refetchSyncHistory()])
+          return syncResult
+        }),
+        unitsSyncTimeoutMs,
+        new Error(unitsCopy.sync.timeoutError)
+      )
+
+      if (result.status === "failed") {
+        notify.error(unitsCopy.sync.feedback.error)
+        return
+      }
+
+      if (result.status === "warning") {
+        notify.warning(unitsCopy.sync.feedback.inProgress)
+        return
+      }
+
+      notify.success(unitsCopy.sync.feedback.success)
+    } catch (caughtError) {
+      if (isUnitSyncInProgressError(caughtError)) {
+        notify.warning(unitsCopy.sync.feedback.inProgress)
+      } else {
+        notify.error(unitsCopy.sync.feedback.error)
+      }
+    } finally {
+      setSyncDialogPhase(null)
+    }
+  }
+
   return (
     <PageSection>
       <PageHeader
@@ -192,7 +239,7 @@ export function UnitsRoute() {
               variant="secondary"
               onClick={() => {
                 if (syncHistoryError && !isLoadingSyncHistory) {
-                  notify.error("Nao foi possivel carregar o historico de sincronizacao.")
+                  notify.error(unitsCopy.sync.historyLoadError)
                   return
                 }
 
@@ -206,19 +253,9 @@ export function UnitsRoute() {
               <Button
                 type="button"
                 variant="secondary"
-                disabled={isLoading}
+                disabled={isLoading || isSyncing}
                 onClick={() => {
-                  void notify.track(
-                    triggerUnitsSync("incremental").then(async (result) => {
-                      await Promise.all([refetch(), refetchSyncHistory()])
-                      return result
-                    }),
-                    {
-                      loading: "Sincronizando unidades com o ERP...",
-                      success: "Sincronização concluída.",
-                      error: "Não foi possível sincronizar as unidades.",
-                    }
-                  )
+                  setSyncDialogPhase("confirm")
                 }}
               >
                 <RefreshCcwIcon aria-hidden="true" />
@@ -355,6 +392,25 @@ export function UnitsRoute() {
         onOpenChange={setIsHistoryOpen}
         entries={syncHistory}
         isLoading={isLoadingSyncHistory}
+      />
+
+      <ManualSyncDialog
+        open={syncDialogPhase !== null}
+        phase={syncDialogPhase === "running" ? "running" : "confirm"}
+        confirmTitle={unitsCopy.sync.confirmTitle}
+        confirmDescription={unitsCopy.sync.confirmDescription}
+        runningTitle={unitsCopy.sync.runningTitle}
+        runningDescription={unitsCopy.sync.runningDescription}
+        confirmLabel={unitsCopy.sync.confirmButton}
+        cancelLabel={unitsCopy.sync.cancelButton}
+        onConfirm={() => {
+          void handleConfirmSync()
+        }}
+        onOpenChange={(open) => {
+          if (!open && !isSyncing) {
+            setSyncDialogPhase(null)
+          }
+        }}
       />
     </PageSection>
   )

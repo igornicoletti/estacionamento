@@ -12,6 +12,9 @@ type SyncMode = "full" | "incremental"
 type SyncTrigger = "automatic" | "manual"
 type SyncStatus = "success" | "warning" | "failed"
 
+const unitsSyncLockResource = "units-sync"
+const unitsSyncLockTtlSeconds = 300
+
 interface NormalizedUnitRow {
   cod_empresa: number
   nom_razao_social: string
@@ -47,6 +50,36 @@ function requireEnv(name: string) {
   }
 
   return value
+}
+
+async function tryAcquireSyncLock(mode: SyncMode, trigger: SyncTrigger, requestedBy: string | null) {
+  const supabase = createAdminClient()
+  const { data, error } = await supabase.rpc("acquire_sync_lock", {
+    p_resource: unitsSyncLockResource,
+    p_ttl_seconds: unitsSyncLockTtlSeconds,
+    p_metadata: {
+      mode,
+      trigger,
+      requestedBy,
+    },
+  })
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return Boolean(data)
+}
+
+async function releaseSyncLock() {
+  const supabase = createAdminClient()
+  const { error } = await supabase.rpc("release_sync_lock", {
+    p_resource: unitsSyncLockResource,
+  })
+
+  if (error) {
+    console.error("[units-sync:release-lock-error]", error.message)
+  }
 }
 
 function normalizeText(value: unknown) {
@@ -514,6 +547,7 @@ Deno.serve(async (req) => {
   let requestedTrigger: SyncTrigger = "manual"
   let trigger: SyncTrigger = "manual"
   let requestedBy: string | null = null
+  let lockAcquired = false
 
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>
@@ -538,6 +572,20 @@ Deno.serve(async (req) => {
       trigger = "automatic"
     }
 
+    lockAcquired = await tryAcquireSyncLock(mode, trigger, requestedBy)
+
+    if (!lockAcquired) {
+      return jsonResponse(
+        {
+          runId: null,
+          status: "warning",
+          message: "Já existe uma sincronização em andamento.",
+        },
+        200,
+        req
+      )
+    }
+
     const result = await runSync(mode, trigger, requestedBy)
 
     return jsonResponse(result, 200, req)
@@ -558,5 +606,9 @@ Deno.serve(async (req) => {
       500,
       req
     )
+  } finally {
+    if (lockAcquired) {
+      await releaseSyncLock()
+    }
   }
 })

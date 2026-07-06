@@ -11,10 +11,7 @@ describe("AuditRoute", () => {
       screen.getByRole("heading", { name: "Auditoria" })
     ).toBeInTheDocument()
     expect(
-      screen.getByRole("button", { name: "Exportar filtrados" })
-    ).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "Exportar tudo" })
+      screen.getByRole("button", { name: "Exportar" })
     ).toBeInTheDocument()
 
     await waitFor(() => {

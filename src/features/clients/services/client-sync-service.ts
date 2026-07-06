@@ -8,6 +8,11 @@ interface TriggerClientsSyncResult {
   message: string
 }
 
+const syncInProgressErrorCode = "sync_in_progress"
+const syncGenericErrorMessage = "Não foi possível sincronizar os clientes."
+
+let activeClientSyncPromise: Promise<TriggerClientsSyncResult> | null = null
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object") {
     return null
@@ -26,13 +31,34 @@ function readMessageFromUnknownError(error: unknown) {
   return typeof record.message === "string" ? record.message : null
 }
 
+export function isClientSyncInProgressError(error: unknown) {
+  return error instanceof Error && error.message === syncInProgressErrorCode
+}
+
 export async function triggerClientsSync(
+  mode: ClientSyncMode = "incremental"
+): Promise<TriggerClientsSyncResult> {
+  if (activeClientSyncPromise) {
+    throw new Error(syncInProgressErrorCode)
+  }
+
+  const runPromise = executeClientSync(mode)
+  activeClientSyncPromise = runPromise
+
+  try {
+    return await runPromise
+  } finally {
+    activeClientSyncPromise = null
+  }
+}
+
+async function executeClientSync(
   mode: ClientSyncMode = "incremental"
 ): Promise<TriggerClientsSyncResult> {
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {
-    throw new Error("Supabase nao esta configurado para sincronizacao.")
+    throw new Error(syncGenericErrorMessage)
   }
 
   const rawResponse: unknown = await supabase.functions.invoke("clients-sync", {
@@ -45,13 +71,13 @@ export async function triggerClientsSync(
   const response = asRecord(rawResponse)
 
   if (!response) {
-    throw new Error("Falha ao sincronizar clientes.")
+    throw new Error(syncGenericErrorMessage)
   }
 
   const error = response.error
 
   if (error) {
-    const message = readMessageFromUnknownError(error) ?? "Falha ao sincronizar clientes."
+    const message = readMessageFromUnknownError(error) ?? syncGenericErrorMessage
 
     throw new Error(message)
   }

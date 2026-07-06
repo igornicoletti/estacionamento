@@ -7,6 +7,7 @@ import {
   DataTable,
 } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
+import { ManualSyncDialog } from "@/components/sync"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -14,6 +15,7 @@ import {
   isUserRole,
   useAuthSession,
 } from "@/features/auth"
+import { withTimeout } from "@/lib/promise"
 
 import {
   getClientVipStatus,
@@ -26,11 +28,15 @@ import {
 import { ClientsSyncHistoryDialog } from "../components/clients-sync-history-dialog"
 import { useClientSyncHistory } from "../hooks/use-client-sync-history"
 import { useClients } from "../hooks/use-clients"
-import { triggerClientsSync } from "../services/client-sync-service"
+import {
+  isClientSyncInProgressError,
+  triggerClientsSync,
+} from "../services/client-sync-service"
 import { type ClientTableRow } from "../types/clients-types"
 import { mapClientToTableRow } from "../utils/clients-table-mappers"
 
 const CLIENTS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.clients.columns.v1"
+const clientsSyncTimeoutMs = 90_000
 
 export function ClientsRoute() {
   const navigate = useNavigate()
@@ -44,9 +50,11 @@ export function ClientsRoute() {
   } = useClientSyncHistory()
   const { data: vipRules, toggleClientVip } = useVipRules()
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
+  const [syncDialogPhase, setSyncDialogPhase] = React.useState<"confirm" | "running" | null>(null)
 
   const role = isUserRole(profile?.role) ? profile.role : null
   const canSyncClients = hasCapability(role, "admin.clients.manage")
+  const isSyncing = syncDialogPhase === "running"
   const tableData = React.useMemo<ClientTableRow[]>(() => {
     return clients.map((client) => {
       return mapClientToTableRow(client, {
@@ -94,6 +102,45 @@ export function ClientsRoute() {
     [tableData]
   )
 
+  async function handleConfirmSync() {
+    if (isSyncing) {
+      return
+    }
+
+    setSyncDialogPhase("running")
+
+    try {
+      const result = await withTimeout(
+        triggerClientsSync("incremental").then(async (syncResult) => {
+          await Promise.all([refetch(), refetchSyncHistory()])
+          return syncResult
+        }),
+        clientsSyncTimeoutMs,
+        new Error(clientsCopy.sync.timeoutError)
+      )
+
+      if (result.status === "failed") {
+        notify.error(clientsCopy.sync.feedback.error)
+        return
+      }
+
+      if (result.status === "warning") {
+        notify.warning(clientsCopy.sync.feedback.inProgress)
+        return
+      }
+
+      notify.success(clientsCopy.sync.feedback.success)
+    } catch (caughtError) {
+      if (isClientSyncInProgressError(caughtError)) {
+        notify.warning(clientsCopy.sync.feedback.inProgress)
+      } else {
+        notify.error(clientsCopy.sync.feedback.error)
+      }
+    } finally {
+      setSyncDialogPhase(null)
+    }
+  }
+
   return (
     <PageSection>
       <PageHeader
@@ -106,7 +153,7 @@ export function ClientsRoute() {
               variant="secondary"
               onClick={() => {
                 if (syncHistoryError && !isLoadingSyncHistory) {
-                  notify.error("Nao foi possivel carregar o historico de sincronizacao.")
+                  notify.error(clientsCopy.sync.historyLoadError)
                   return
                 }
 
@@ -120,19 +167,9 @@ export function ClientsRoute() {
               <Button
                 type="button"
                 variant="secondary"
-                disabled={isLoading}
+                disabled={isLoading || isSyncing}
                 onClick={() => {
-                  void notify.track(
-                    triggerClientsSync("incremental").then(async (result) => {
-                      await Promise.all([refetch(), refetchSyncHistory()])
-                      return result
-                    }),
-                    {
-                      loading: "Sincronizando clientes com o ERP...",
-                      success: "Sincronizacao concluida.",
-                      error: "Nao foi possivel sincronizar os clientes.",
-                    }
-                  )
+                  setSyncDialogPhase("confirm")
                 }}
               >
                 <RefreshCcwIcon aria-hidden="true" />
@@ -184,6 +221,25 @@ export function ClientsRoute() {
         onOpenChange={setIsHistoryOpen}
         entries={syncHistory}
         isLoading={isLoadingSyncHistory}
+      />
+
+      <ManualSyncDialog
+        open={syncDialogPhase !== null}
+        phase={syncDialogPhase === "running" ? "running" : "confirm"}
+        confirmTitle={clientsCopy.sync.confirmTitle}
+        confirmDescription={clientsCopy.sync.confirmDescription}
+        runningTitle={clientsCopy.sync.runningTitle}
+        runningDescription={clientsCopy.sync.runningDescription}
+        confirmLabel={clientsCopy.sync.confirmButton}
+        cancelLabel={clientsCopy.sync.cancelButton}
+        onConfirm={() => {
+          void handleConfirmSync()
+        }}
+        onOpenChange={(open) => {
+          if (!open && !isSyncing) {
+            setSyncDialogPhase(null)
+          }
+        }}
       />
     </PageSection>
   )

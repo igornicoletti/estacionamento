@@ -15,5 +15,6 @@ export {
   formatPhone,
   isValidPhone
 } from "./phone"
+export { withTimeout } from "./promise"
 export { getSupabaseBrowserClient } from "./supabase-browser"
 export { cn } from "./utils"

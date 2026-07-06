@@ -8,6 +8,11 @@ interface TriggerUnitsSyncResult {
   message: string
 }
 
+const syncInProgressErrorCode = "sync_in_progress"
+const syncGenericErrorMessage = "Não foi possível sincronizar as unidades."
+
+let activeUnitSyncPromise: Promise<TriggerUnitsSyncResult> | null = null
+
 function asRecord(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object") {
     return null
@@ -26,13 +31,34 @@ function readMessageFromUnknownError(error: unknown) {
   return typeof record.message === "string" ? record.message : null
 }
 
+export function isUnitSyncInProgressError(error: unknown) {
+  return error instanceof Error && error.message === syncInProgressErrorCode
+}
+
 export async function triggerUnitsSync(
+  mode: UnitSyncMode = "incremental"
+): Promise<TriggerUnitsSyncResult> {
+  if (activeUnitSyncPromise) {
+    throw new Error(syncInProgressErrorCode)
+  }
+
+  const runPromise = executeUnitSync(mode)
+  activeUnitSyncPromise = runPromise
+
+  try {
+    return await runPromise
+  } finally {
+    activeUnitSyncPromise = null
+  }
+}
+
+async function executeUnitSync(
   mode: UnitSyncMode = "incremental"
 ): Promise<TriggerUnitsSyncResult> {
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {
-    throw new Error("Supabase não está configurado para sincronização.")
+    throw new Error(syncGenericErrorMessage)
   }
 
   const rawResponse: unknown = await supabase.functions.invoke("units-sync", {
@@ -45,13 +71,13 @@ export async function triggerUnitsSync(
   const response = asRecord(rawResponse)
 
   if (!response) {
-    throw new Error("Falha ao sincronizar unidades.")
+    throw new Error(syncGenericErrorMessage)
   }
 
   const error = response.error
 
   if (error) {
-    const message = readMessageFromUnknownError(error) ?? "Falha ao sincronizar unidades."
+    const message = readMessageFromUnknownError(error) ?? syncGenericErrorMessage
 
     throw new Error(message)
   }

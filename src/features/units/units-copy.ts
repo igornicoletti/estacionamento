@@ -16,6 +16,23 @@ export const unitsCopy = {
     users: "Usuários",
     configureYard: "Configurar pátio",
   },
+  sync: {
+    historyLoadError: "Não foi possível carregar o histórico de sincronização.",
+    confirmTitle: "Confirmar sincronização de unidades",
+    confirmDescription:
+      "Deseja iniciar a sincronização incremental das unidades com o ERP agora?",
+    confirmButton: "Confirmar",
+    cancelButton: "Cancelar",
+    runningTitle: "Sincronização em andamento",
+    runningDescription:
+      "Aguarde alguns instantes. A tela será liberada automaticamente ao finalizar.",
+    timeoutError: "A sincronização demorou mais do que o esperado. Tente novamente.",
+    feedback: {
+      success: "Sincronização concluída.",
+      error: "Não foi possível sincronizar as unidades.",
+      inProgress: "Já existe uma sincronização de unidades em andamento.",
+    },
+  },
   filters: {
     brands: "Bandeiras",
     states: "Estados",

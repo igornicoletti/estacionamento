@@ -1,10 +1,15 @@
 import {
+  afterEach,
   beforeEach,
   describe,
   expect,
   it,
 } from "vitest"
 
+import {
+  configureUnitsGateway,
+  resetUnitsGateway,
+} from "@/features/units"
 import {
   resetUsersGateway,
   resetUsersInMemoryState,
@@ -16,8 +21,33 @@ import {
 
 describe("users service", () => {
   beforeEach(() => {
+    configureUnitsGateway({
+      listUnitsPayload() {
+        return Promise.resolve([
+          {
+            cod_empresa: 2,
+            nom_razao_social: "Posto Monte Carlo Norte Ltda",
+            nom_fantasia: "Monte Carlo Norte",
+            num_cnpj: "12.345.678/0001-90",
+            cod_bandeira: 1,
+            des_bandeira: "Monte Carlo",
+            cod_cidade: 3550308,
+            nom_cidade: "Sao Paulo",
+            nom_estado: "Sao Paulo",
+            sgl_estado: "SP",
+            des_coordenada_empresa: "",
+            ip_rede: "",
+            nom_banco_dados: "",
+          },
+        ])
+      },
+    })
     resetUsersGateway()
     resetUsersInMemoryState()
+  })
+
+  afterEach(() => {
+    resetUnitsGateway()
   })
 
   it("creates a unit-scoped active user using canonical unitId", async () => {
