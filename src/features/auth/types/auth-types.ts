@@ -24,6 +24,18 @@ export interface AuthPasswordResponse {
   }
 }
 
+export interface AuthStartResponse {
+  flowId: string
+  nextAction: "use_password"
+  message: string
+}
+
+export interface AuthFlowActionResponse {
+  flowId: string
+  nextAction: "authenticated"
+  message: string
+}
+
 export interface AppUserProfile {
   id: string
   authUserId: string

@@ -38,7 +38,7 @@ export function DestructiveConfirmDialog({
   onOpenChange,
   onConfirm,
   isConfirming = false,
-  size = "sm",
+  size = "default",
   icon,
 }: DestructiveConfirmDialogProps) {
   const [internalOpen, setInternalOpen] = React.useState(false)
@@ -57,7 +57,7 @@ export function DestructiveConfirmDialog({
     <AlertDialog open={resolvedOpen} onOpenChange={handleOpenChange}>
       {trigger ? <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger> : null}
 
-      <AlertDialogContent size={size} className="items-center text-center">
+      <AlertDialogContent size={size}>
         <AlertDialogHeader>
           <AlertDialogMedia className="mx-auto">
             {icon ?? <TriangleAlertIcon />}
@@ -66,9 +66,10 @@ export function DestructiveConfirmDialog({
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
 
-        <AlertDialogFooter className="grid grid-cols-2 gap-2">
-          <AlertDialogCancel disabled={isConfirming}>{cancelLabel}</AlertDialogCancel>
+        <AlertDialogFooter>
+          <AlertDialogCancel size="lg" disabled={isConfirming}>{cancelLabel}</AlertDialogCancel>
           <AlertDialogAction
+            size="lg"
             disabled={isConfirming}
             onClick={() => {
               void onConfirm()

@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const input = adminActionSchema.parse(await req.json())
     const supabase = createAdminClient()
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("app_users")
       .update({
         failed_attempts: 0,
@@ -28,9 +28,18 @@ Deno.serve(async (req) => {
       })
       .eq("auth_user_id", input.targetUserId)
 
-    await supabase
+    if (updateError) {
+      return genericAuthError(undefined, req)
+    }
+
+    const { error: revokeError } = await supabase
       .schema("private")
       .rpc("revoke_auth_sessions", { target_user_id: input.targetUserId })
+
+    if (revokeError) {
+      return genericAuthError(undefined, req)
+    }
+
     await writeAuditEvent({
       actor: actor.name,
       actorUserId: actor.authUserId,
@@ -42,8 +51,8 @@ Deno.serve(async (req) => {
       targetUserId: input.targetUserId,
     })
 
-    return jsonResponse({ message: "Reset de senha aplicado." })
+    return jsonResponse({ message: "Reset de senha aplicado." }, 200, req)
   } catch {
-    return genericAuthError()
+    return genericAuthError(400, req)
   }
 })

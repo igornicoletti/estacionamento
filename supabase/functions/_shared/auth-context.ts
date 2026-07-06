@@ -1,5 +1,22 @@
 import { createAdminClient } from "./auth-supabase-admin.ts"
 
+function decodeJwtPayload(token: string): Record<string, unknown> | null {
+  const parts = token.split(".")
+
+  if (parts.length !== 3) {
+    return null
+  }
+
+  try {
+    const base64 = parts[1].replace(/-/g, "+").replace(/_/g, "/")
+    const padded = base64 + "=".repeat((4 - (base64.length % 4)) % 4)
+
+    return JSON.parse(atob(padded)) as Record<string, unknown>
+  } catch {
+    return null
+  }
+}
+
 export async function getAuthenticatedActor(req: Request) {
   const authorization = req.headers.get("authorization")
 
@@ -13,6 +30,27 @@ export async function getAuthenticatedActor(req: Request) {
 
   if (error || !data.user) {
     return null
+  }
+
+  // Reject tokens whose underlying session row was revoked (e.g. by an
+  // admin action), even if the JWT itself has not expired yet.
+  const payload = decodeJwtPayload(token)
+  const sessionId =
+    payload && typeof payload.session_id === "string"
+      ? payload.session_id
+      : null
+
+  if (sessionId) {
+    const { data: session } = await supabase
+      .schema("auth")
+      .from("sessions")
+      .select("id")
+      .eq("id", sessionId)
+      .maybeSingle()
+
+    if (!session) {
+      return null
+    }
   }
 
   const { data: profile } = await supabase

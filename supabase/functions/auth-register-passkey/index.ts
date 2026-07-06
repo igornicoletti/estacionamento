@@ -4,7 +4,9 @@ import {
   genericAuthError,
   getAuthenticatedActor,
   handleCors,
+  hashSensitiveValue,
   jsonResponse,
+  normalizeCpf,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
@@ -17,15 +19,35 @@ Deno.serve(async (req) => {
     const input = flowCpfSchema.parse(await req.json())
 
     if (!actor) {
-      return genericAuthError(401)
+      return genericAuthError(401, req)
     }
 
+    const cpfHash = await hashSensitiveValue(normalizeCpf(input.cpf))
     const supabase = createAdminClient()
-    await supabase
+    const { data: flow } = await supabase
+      .from("auth_flow_attempts")
+      .select("flow_id, cpf_hmac, expires_at, consumed_at")
+      .eq("flow_id", input.flowId)
+      .maybeSingle()
+
+    if (
+      !flow ||
+      flow.consumed_at ||
+      flow.cpf_hmac !== cpfHash ||
+      new Date(flow.expires_at).getTime() < Date.now()
+    ) {
+      return genericAuthError(400, req)
+    }
+
+    const { error: statusError } = await supabase
       .from("app_users")
       .update({ status: "active" })
       .eq("auth_user_id", actor.authUserId)
       .in("status", ["pending", "passkey_reset"])
+
+    if (statusError) {
+      return genericAuthError(undefined, req)
+    }
 
     await supabase
       .from("auth_flow_attempts")
@@ -46,8 +68,8 @@ Deno.serve(async (req) => {
       flowId: input.flowId,
       message: "Passkey cadastrada.",
       nextAction: "authenticated",
-    })
+    }, 200, req)
   } catch {
-    return genericAuthError()
+    return genericAuthError(400, req)
   }
 })

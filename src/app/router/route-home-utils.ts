@@ -5,14 +5,14 @@ import {
 } from "@/features/auth"
 
 import {
-  appRouteDefinitions,
+  searchableRouteDefinitions,
   type SearchableRouteDefinition,
 } from "./route-definitions"
 
-const fallbackRouteId = "units"
+const fallbackRouteId = "settings"
 
 function getFallbackRoute() {
-  const route = appRouteDefinitions.find((routeDefinition) => {
+  const route = searchableRouteDefinitions.find((routeDefinition) => {
     return routeDefinition.id === fallbackRouteId
   })
 
@@ -40,7 +40,7 @@ function canAccessRoute(
 
 export function getDefaultRouteHrefForRole(role: UserRole | null | undefined) {
   return (
-    appRouteDefinitions.find((route) => canAccessRoute(route, role)) ??
+    searchableRouteDefinitions.find((route) => canAccessRoute(route, role)) ??
     getFallbackRoute()
   ).href
 }

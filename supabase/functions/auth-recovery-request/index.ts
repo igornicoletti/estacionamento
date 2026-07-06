@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     })
 
     if (!allowed) {
-      return genericAuthError(429)
+      return genericAuthError(429, req)
     }
 
     const supabase = createAdminClient()
@@ -53,8 +53,8 @@ Deno.serve(async (req) => {
     return jsonResponse({
       message:
         "Se os dados puderem ser validados, a solicitação será analisada pela administração.",
-    })
+    }, 200, req)
   } catch {
-    return genericAuthError()
+    return genericAuthError(400, req)
   }
 })

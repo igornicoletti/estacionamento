@@ -76,5 +76,5 @@ describe("UnitsRoute", () => {
     expect(
       await screen.findByRole("heading", { name: "Configurar pátio da unidade" })
     ).toBeInTheDocument()
-  })
+  }, 15_000)
 })

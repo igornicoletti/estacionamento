@@ -1,5 +1,8 @@
 export {
+  completePasskeyLogin,
+  completePasskeyRegistration,
   requestAccessRecovery,
+  startAuthFlow,
   submitPasswordCredentials
 } from "./auth-api"
 export {

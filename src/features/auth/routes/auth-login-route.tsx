@@ -190,7 +190,7 @@ export function AuthLoginRoute() {
               isLoading={passkey.isPending}
               disabled={form.formState.isSubmitting || guard.isBlocked}
               onClick={() => {
-                void handlePasskeyRegistration()
+                void handlePasskeyRegistration(cpf)
               }}
             />
           ) : (
@@ -213,7 +213,7 @@ export function AuthLoginRoute() {
                     return
                   }
 
-                  void handlePasskeyLogin()
+                  void handlePasskeyLogin(cpf)
                 }}
               />
             </>

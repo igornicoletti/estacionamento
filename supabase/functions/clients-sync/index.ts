@@ -14,6 +14,9 @@ type SyncStatus = "success" | "warning" | "failed"
 
 const clientsSyncLockResource = "clients-sync"
 const clientsSyncLockTtlSeconds = 300
+const erpDefaultTimeoutMs = 30_000
+const erpMinTimeoutMs = 5_000
+const erpMaxTimeoutMs = 180_000
 
 interface NormalizedClientRow {
   cod_pessoa: number
@@ -66,6 +69,91 @@ function requireEnv(name: string) {
   }
 
   return value
+}
+
+function isHostedRuntime() {
+  return Boolean(Deno.env.get("DENO_DEPLOYMENT_ID"))
+}
+
+function resolveErpBaseUrl() {
+  const rawBaseUrl = requireEnv("ERP_BASE_URL").trim()
+
+  let url: URL
+
+  try {
+    url = new URL(rawBaseUrl)
+  } catch {
+    throw new Error("ERP_BASE_URL inválida. Informe uma URL HTTP(S) absoluta.")
+  }
+
+  if (url.protocol !== "http:" && url.protocol !== "https:") {
+    throw new Error("ERP_BASE_URL inválida. Apenas HTTP(S) é permitido.")
+  }
+
+  const hostname = url.hostname.toLowerCase()
+
+  if (isHostedRuntime()) {
+    if (url.protocol !== "https:") {
+      throw new Error("ERP_BASE_URL deve usar HTTPS em produção.")
+    }
+
+    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
+      throw new Error("ERP_BASE_URL não pode apontar para localhost em produção.")
+    }
+  }
+
+  return url
+}
+
+function resolveErpTimeoutMs() {
+  const rawTimeout = Deno.env.get("ERP_REQUEST_TIMEOUT_MS")?.trim()
+
+  if (!rawTimeout) {
+    return erpDefaultTimeoutMs
+  }
+
+  const parsed = Number(rawTimeout)
+
+  if (!Number.isFinite(parsed)) {
+    throw new Error("ERP_REQUEST_TIMEOUT_MS inválido. Informe um número em milissegundos.")
+  }
+
+  return Math.min(erpMaxTimeoutMs, Math.max(erpMinTimeoutMs, Math.trunc(parsed)))
+}
+
+function resolveSyncErrorResponse(message: string) {
+  if (message === "erp_timeout") {
+    return {
+      status: 504,
+      message: "O ERP não respondeu a tempo. Tente novamente em instantes.",
+    }
+  }
+
+  if (message === "erp_http_401" || message === "erp_http_403") {
+    return {
+      status: 502,
+      message: "Falha de autenticação no ERP. Verifique os tokens da integração.",
+    }
+  }
+
+  if (message.startsWith("erp_http_")) {
+    return {
+      status: 502,
+      message: "O ERP retornou erro durante a sincronização. Tente novamente mais tarde.",
+    }
+  }
+
+  if (message.startsWith("Missing required env ERP_") || message.startsWith("ERP_")) {
+    return {
+      status: 500,
+      message: "Configuração da integração ERP inválida. Contate o suporte.",
+    }
+  }
+
+  return {
+    status: 500,
+    message: "Não foi possível sincronizar os clientes agora.",
+  }
 }
 
 async function tryAcquireSyncLock(mode: SyncMode, trigger: SyncTrigger, requestedBy: string | null) {
@@ -324,7 +412,7 @@ async function fetchErpResource(options: {
   lastSuccessfulSyncAt: string | null
   payloadAliases: readonly string[]
 }) {
-  const baseUrl = requireEnv("ERP_BASE_URL")
+  const baseUrl = resolveErpBaseUrl()
   const endpoint = Deno.env.get(options.endpointEnvName) || options.defaultEndpoint
   const updatedSinceParam =
     Deno.env.get(options.updatedSinceParamEnvName) || options.defaultUpdatedSinceParam
@@ -338,7 +426,7 @@ async function fetchErpResource(options: {
   const password = apiToken || bearerToken
     ? null
     : requireEnv("ERP_BASIC_PASSWORD")
-  const timeoutMs = Number(Deno.env.get("ERP_REQUEST_TIMEOUT_MS") || "30000")
+  const timeoutMs = resolveErpTimeoutMs()
 
   const url = new URL(endpoint, baseUrl)
 
@@ -369,13 +457,18 @@ async function fetchErpResource(options: {
     })
 
     if (!response.ok) {
-      const bodyPreview = (await response.text()).slice(0, 300)
-      throw new Error(`ERP request failed (${response.status}): ${bodyPreview}`)
+      throw new Error(`erp_http_${response.status}`)
     }
 
     const data = await response.json()
 
     return coercePayloadArray(data, options.payloadAliases)
+  } catch (error) {
+    if (error instanceof DOMException && error.name === "AbortError") {
+      throw new Error("erp_timeout")
+    }
+
+    throw error
   } finally {
     clearTimeout(timeout)
   }
@@ -842,11 +935,13 @@ Deno.serve(async (req) => {
 
     await registerFailedSyncRun(mode, trigger || requestedTrigger, requestedBy, message)
 
+    const errorResponse = resolveSyncErrorResponse(message)
+
     return jsonResponse(
       {
-        message: "Não foi possível sincronizar os clientes agora.",
+        message: errorResponse.message,
       },
-      500,
+      errorResponse.status,
       req
     )
   } finally {

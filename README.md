@@ -128,19 +128,38 @@ pnpm build
 
 1. Confirmar credenciais Basic Auth válidas do Hub API (usuário e senha).
 2. Configurar secrets no Supabase para Edge Functions:
- - ERP_BASE_URL
- - ERP_UNITS_ENDPOINT
- - ERP_BASIC_USERNAME
- - ERP_BASIC_PASSWORD
- - UNITS_SYNC_SECRET
+
+- ERP_BASE_URL
+- ERP_UNITS_ENDPOINT
+- ERP_CLIENTS_ENDPOINT
+- ERP_CLIENT_VEHICLES_ENDPOINT
+- ERP_REQUEST_TIMEOUT_MS
+- ERP_API_TOKEN (preferencial)
+- ERP_BEARER_TOKEN (alternativa)
+- ERP_BASIC_USERNAME
+- ERP_BASIC_PASSWORD
+- UNITS_SYNC_SECRET
+- CLIENTS_SYNC_SECRET
+
+3. Regras de segurança para URL e ambiente:
+
+- Em produção, `ERP_BASE_URL` deve ser HTTPS e nunca apontar para `localhost`.
+- Em desenvolvimento local, use `http://localhost:5173` para o frontend e mantenha `VITE_APP_ORIGIN` consistente com a URL aberta no navegador.
+- Não versionar tokens/senhas em arquivos `.env` rastreados no Git.
+
 3. Publicar a função units-sync no projeto remoto.
-4. Executar migrations 0007 e 0008 no banco remoto.
-5. Configurar os crons chamando a função SQL:
- - select public.configure_units_sync_cron('https://<project-ref>.supabase.co', '<UNITS_SYNC_SECRET>', '*/30* ** *', '0 3* **');
+2. Executar migrations 0007 e 0008 no banco remoto.
+3. Configurar os crons chamando a função SQL:
+
+- select public.configure_units_sync_cron('https://<project-ref>.supabase.co', '<UNITS_SYNC_SECRET>', '*/30* ***', '0 3***');
+
 6. Validar execução manual na UI de Unidades pelo botão Sincronizar.
+
+- Em caso de timeout do ERP, a API retorna 504 e o usuário deve tentar novamente.
+
 7. Validar histórico na modal Histórico e conferência dos contadores.
-8. Validar trilha de auditoria para eventos unit.synced e unit.yard_updated.
-9. Não versionar tokens/senhas em arquivos .env versionados.
+2. Validar trilha de auditoria para eventos unit.synced e unit.yard_updated.
+3. Não versionar tokens/senhas em arquivos .env versionados.
 
 ## Decisões
 

@@ -4,7 +4,9 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import { authCopy } from "../auth-copy"
 import {
+  type AuthFlowActionResponse,
   type AuthPasswordResponse,
+  type AuthStartResponse,
   type RecoveryRequestResponse,
 } from "../types"
 import { createAuthPublicError } from "./auth-error"
@@ -116,4 +118,51 @@ export function requestAccessRecovery(input: {
       cpf: normalizeCpfForAuth(input.cpf),
     }
   )
+}
+
+export function startAuthFlow(cpf: string) {
+  if (shouldBypassAuthInDev()) {
+    return Promise.resolve({
+      flowId: "dev-auth-flow",
+      message: authCopy.feedback.genericAuthError,
+      nextAction: "use_password",
+    } satisfies AuthStartResponse)
+  }
+
+  return invokeAuthFunction<AuthStartResponse>("auth-start", {
+    cpf: normalizeCpfForAuth(cpf),
+  })
+}
+
+export function completePasskeyRegistration(input: {
+  cpf: string
+  flowId: string
+}) {
+  if (shouldBypassAuthInDev()) {
+    return Promise.resolve({
+      flowId: input.flowId,
+      message: authCopy.feedback.genericAuthError,
+      nextAction: "authenticated",
+    } satisfies AuthFlowActionResponse)
+  }
+
+  return invokeAuthFunction<AuthFlowActionResponse>("auth-register-passkey", {
+    cpf: normalizeCpfForAuth(input.cpf),
+    flowId: input.flowId,
+  })
+}
+
+export function completePasskeyLogin(input: { cpf: string; flowId: string }) {
+  if (shouldBypassAuthInDev()) {
+    return Promise.resolve({
+      flowId: input.flowId,
+      message: authCopy.feedback.genericAuthError,
+      nextAction: "authenticated",
+    } satisfies AuthFlowActionResponse)
+  }
+
+  return invokeAuthFunction<AuthFlowActionResponse>("auth-complete-passkey", {
+    cpf: normalizeCpfForAuth(input.cpf),
+    flowId: input.flowId,
+  })
 }

@@ -73,13 +73,13 @@ export function SidebarProfile() {
   const label = resolveSessionUserRoleLabel(profile, users) ?? getProfileRoleLabel(profile)
 
   return (
-    <SidebarMenu className="mb-4 px-2 pt-4">
+    <SidebarMenu className="px-4 py-3">
       <SidebarMenuItem>
         <SidebarMenuButton
           tabIndex={-1}
-          className="cursor-default rounded-lg border border-primary bg-primary/10 py-1.5 text-xs font-bold uppercase text-primary hover:bg-primary/10 hover:text-primary active:bg-primary/10 active:text-primary data-open:hover:bg-primary/10 data-open:hover:text-primary"
+          className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 border border-primary/20 text-primary text-xs font-bold cursor-default uppercase"
         >
-          <ShieldIcon className="size-4 shrink-0 text-primary" />
+          <ShieldIcon className="size-4 shrink-0" />
           <span className="truncate group-data-[collapsible=icon]:hidden">{label}</span>
         </SidebarMenuButton>
       </SidebarMenuItem>

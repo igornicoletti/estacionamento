@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
     })
 
     if (!allowed) {
-      return genericAuthError(429)
+      return genericAuthError(429, req)
     }
 
     const supabase = createAdminClient()
@@ -40,14 +40,14 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (!appUser || appUser.status === "inactive") {
-      return genericAuthError()
+      return genericAuthError(400, req)
     }
 
     if (
       appUser.locked_until &&
       new Date(appUser.locked_until).getTime() > Date.now()
     ) {
-      return genericAuthError(429)
+      return genericAuthError(429, req)
     }
 
     const authClient = createPasswordAuthClient()
@@ -84,10 +84,10 @@ Deno.serve(async (req) => {
           targetUserId: String(appUser.auth_user_id),
         })
 
-        return genericAuthError(429)
+        return genericAuthError(429, req)
       }
 
-      return genericAuthError()
+      return genericAuthError(400, req)
     }
 
     await supabase
@@ -116,7 +116,7 @@ Deno.serve(async (req) => {
         message: "Cadastre sua passkey.",
         nextAction: "register_passkey",
         session: sessionData.session,
-      })
+      }, 200, req)
     }
 
     if (appUser.status === "pending" || appUser.status === "password_reset") {
@@ -125,7 +125,7 @@ Deno.serve(async (req) => {
         message: "Defina uma nova senha.",
         nextAction: "set_new_password",
         session: sessionData.session,
-      })
+      }, 200, req)
     }
 
     if (appUser.status === "passkey_reset") {
@@ -134,7 +134,7 @@ Deno.serve(async (req) => {
         message: "Cadastre sua passkey.",
         nextAction: "register_passkey",
         session: sessionData.session,
-      })
+      }, 200, req)
     }
 
     return jsonResponse({
@@ -142,8 +142,8 @@ Deno.serve(async (req) => {
       message: "Autenticado.",
       nextAction: "authenticated",
       session: sessionData.session,
-    })
+    }, 200, req)
   } catch {
-    return genericAuthError()
+    return genericAuthError(400, req)
   }
 })

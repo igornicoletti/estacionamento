@@ -11,7 +11,11 @@ import {
   type AuthLoginFormValues,
   validateAuthLoginSubmission,
 } from "../schemas"
-import { getAuthErrorMessage, submitPasswordCredentials } from "../services"
+import {
+  getAuthErrorMessage,
+  startAuthFlow,
+  submitPasswordCredentials,
+} from "../services"
 import { useAttemptGuard } from "./auth-use-attempt-guard"
 import { useAuthFlow } from "./auth-use-flow"
 import { usePasskey } from "./auth-use-passkey"
@@ -132,13 +136,24 @@ export function useLoginFlow() {
     }
   }
 
-  async function handlePasskeyLogin() {
+  async function ensureFlowId(cpf: string) {
+    if (flow.flowId) {
+      return flow.flowId
+    }
+
+    const response = await startAuthFlow(cpf)
+    flow.setFlowId(response.flowId)
+    return response.flowId
+  }
+
+  async function handlePasskeyLogin(cpf: string) {
     if (guard.isBlocked) {
       return
     }
 
     try {
-      await passkey.authenticate()
+      const flowId = await ensureFlowId(cpf)
+      await passkey.authenticate({ cpf, flowId })
       await handleAuthenticatedRedirect()
     } catch (caughtError) {
       guard.recordAttempt()
@@ -149,9 +164,10 @@ export function useLoginFlow() {
     }
   }
 
-  async function handlePasskeyRegistration() {
+  async function handlePasskeyRegistration(cpf: string) {
     try {
-      await passkey.createPasskey()
+      const flowId = await ensureFlowId(cpf)
+      await passkey.createPasskey({ cpf, flowId })
       await handleAuthenticatedRedirect()
     } catch (caughtError) {
       notify.error(

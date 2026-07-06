@@ -28,7 +28,7 @@ Deno.serve(async (req) => {
     })
 
     if (!allowed) {
-      return genericAuthError(429)
+      return genericAuthError(429, req)
     }
 
     const supabase = createAdminClient()
@@ -63,8 +63,8 @@ Deno.serve(async (req) => {
       flowId: flow?.flow_id,
       message: "Continue a autenticação.",
       nextAction: "use_password",
-    })
+    }, 200, req)
   } catch {
-    return genericAuthError()
+    return genericAuthError(400, req)
   }
 })

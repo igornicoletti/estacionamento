@@ -26,11 +26,11 @@ Deno.serve(async (req) => {
     const input = adminCreateUserSchema.parse(await req.json())
 
     if (isGlobalRole(input.role) && input.unitId) {
-      return genericAuthError()
+      return genericAuthError(400, req)
     }
 
     if (!isGlobalRole(input.role) && !input.unitId) {
-      return genericAuthError()
+      return genericAuthError(400, req)
     }
 
     const supabase = createAdminClient()
@@ -47,7 +47,7 @@ Deno.serve(async (req) => {
       })
 
     if (createError || !authUser.user) {
-      return genericAuthError()
+      return genericAuthError(400, req)
     }
 
     const { data: appUser, error: appUserError } = await supabase
@@ -69,7 +69,7 @@ Deno.serve(async (req) => {
 
     if (appUserError || !appUser) {
       await supabase.auth.admin.deleteUser(authUser.user.id)
-      return genericAuthError()
+      return genericAuthError(400, req)
     }
 
     if (input.unitId) {
@@ -89,8 +89,8 @@ Deno.serve(async (req) => {
       targetUserId: authUser.user.id,
     })
 
-    return jsonResponse({ id: appUser.id, message: "Usuário criado." })
+    return jsonResponse({ id: appUser.id, message: "Usuário criado." }, 200, req)
   } catch {
-    return genericAuthError()
+    return genericAuthError(400, req)
   }
 })

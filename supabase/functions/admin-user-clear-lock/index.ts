@@ -54,8 +54,8 @@ Deno.serve(async (req) => {
       targetUserId: input.targetUserId,
     })
 
-    return jsonResponse({ message: "Bloqueio limpo." })
+    return jsonResponse({ message: "Bloqueio limpo." }, 200, req)
   } catch {
-    return genericAuthError()
+    return genericAuthError(400, req)
   }
 })

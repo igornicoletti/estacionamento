@@ -18,7 +18,7 @@ Deno.serve(async (req) => {
     const input = profilePasswordSchema.parse(await req.json())
 
     if (!actor || actor.status !== "active") {
-      return genericAuthError(401)
+      return genericAuthError(401, req)
     }
 
     const supabase = createAdminClient()
@@ -29,7 +29,7 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (!appUser) {
-      return genericAuthError()
+      return genericAuthError(400, req)
     }
 
     const authClient = createPasswordAuthClient()
@@ -38,29 +38,34 @@ Deno.serve(async (req) => {
       password: input.currentPassword,
     })
 
-    if (verifyError) {
-      return genericAuthError()
+    if (verifyError || !verifyData?.session?.access_token) {
+      return genericAuthError(401, req)
     }
 
     // Revoke the session created by password verification to prevent orphan sessions
-    if (verifyData?.session?.access_token) {
-      await authClient.auth.signOut()
+    await authClient.auth.signOut()
 
-      await supabase.auth.admin.updateUserById(actor.authUserId, {
-        password: input.newPassword,
-      })
-      await writeAuditEvent({
-        actor: actor.name,
-        actorUserId: actor.authUserId,
-        event: "password_changed",
-        scope: "system",
-        success: true,
-        target: actor.name,
-        targetUserId: actor.authUserId,
-      })
+    const { error: updateError } = await supabase.auth.admin.updateUserById(
+      actor.authUserId,
+      { password: input.newPassword }
+    )
 
-      return jsonResponse({ message: "Senha alterada." })
-    } catch {
-      return genericAuthError()
+    if (updateError) {
+      return genericAuthError(undefined, req)
     }
-  })
+
+    await writeAuditEvent({
+      actor: actor.name,
+      actorUserId: actor.authUserId,
+      event: "password_changed",
+      scope: "system",
+      success: true,
+      target: actor.name,
+      targetUserId: actor.authUserId,
+    })
+
+    return jsonResponse({ message: "Senha alterada." }, 200, req)
+  } catch {
+    return genericAuthError(400, req)
+  }
+})

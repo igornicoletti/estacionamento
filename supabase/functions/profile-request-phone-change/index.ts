@@ -18,17 +18,22 @@ Deno.serve(async (req) => {
     const input = profilePhoneSchema.parse(await req.json())
 
     if (!actor || actor.status !== "active") {
-      return genericAuthError(401)
+      return genericAuthError(401, req)
     }
 
     const supabase = createAdminClient()
-    await supabase
+    const { error: updateError } = await supabase
       .from("app_users")
       .update({
         pending_phone_masked: maskPhone(input.phone),
         updated_by: actor.authUserId,
       })
       .eq("auth_user_id", actor.authUserId)
+
+    if (updateError) {
+      return genericAuthError(undefined, req)
+    }
+
     await writeAuditEvent({
       actor: actor.name,
       actorUserId: actor.authUserId,
@@ -39,8 +44,8 @@ Deno.serve(async (req) => {
       targetUserId: actor.authUserId,
     })
 
-    return jsonResponse({ message: "Solicitação registrada." })
+    return jsonResponse({ message: "Solicitação registrada." }, 200, req)
   } catch {
-    return genericAuthError()
+    return genericAuthError(400, req)
   }
 })
