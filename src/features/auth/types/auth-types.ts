@@ -36,6 +36,10 @@ export interface AuthFlowActionResponse {
   message: string
 }
 
+export interface ProfileActionResponse {
+  message: string
+}
+
 export interface AppUserProfile {
   id: string
   authUserId: string

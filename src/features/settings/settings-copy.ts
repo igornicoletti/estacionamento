@@ -12,33 +12,27 @@ export const settingsCopy = {
     avatarActionLabel: "Alterar foto",
     saveButton: "Salvar",
     saveFeedback: {
-      loading: "Salvando informações...",
-      success: "Informações salvas.",
-      error: "Não foi possível salvar as informações.",
+      loading: "Enviando solicitação...",
+      success: "Solicitação de alteração de telefone enviada.",
+      error: "Não foi possível enviar a solicitação.",
     },
     fields: {
       name: {
         label: "Nome",
         description:
-          "Nome completo exibido no sistema, em relatórios e em interações internas da plataforma.",
+          "Nome completo exibido no sistema, em relatórios e em interações internas da plataforma. Não pode ser alterado por aqui.",
         placeholder: "Nome completo",
-      },
-      cpf: {
-        label: "CPF",
-        description:
-          "Cadastro de Pessoa Física utilizado para validação de identidade e auditoria de acesso.",
-        placeholder: "000.000.000-00",
       },
       phone: {
         label: "Telefone",
         description:
-          "Número de contato usado para comunicação operacional e recuperação de acesso quando necessário.",
+          "Número de contato usado para comunicação operacional e recuperação de acesso quando necessário. A alteração passa por validação antes de ser aplicada.",
         placeholder: "(00) 00000-0000",
       },
       email: {
         label: "Email",
         description:
-          "Endereço principal para notificações da conta, alertas de segurança e confirmações importantes.",
+          "Endereço principal para notificações da conta, alertas de segurança e confirmações importantes. Não pode ser alterado por aqui.",
         placeholder: "seu.email@exemplo.com",
       },
     },

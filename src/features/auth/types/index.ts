@@ -5,5 +5,6 @@ export type {
   AuthPasswordNextAction,
   AuthPasswordResponse,
   AuthStartResponse,
+  ProfileActionResponse,
   RecoveryRequestResponse,
 } from "./auth-types"

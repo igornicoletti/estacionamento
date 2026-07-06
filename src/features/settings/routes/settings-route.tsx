@@ -32,7 +32,7 @@ export function SettingsRoute() {
       {profile ? (
         <>
           <SettingsPreferencesSection
-            key={`${profile.cpf}-${profile.email}-${profile.name}-${profile.phone}`}
+            key={`${profile.email}-${profile.name}-${profile.phone}`}
             profile={profile}
             isSaving={isSaving}
             onSave={saveProfile}

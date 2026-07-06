@@ -5,7 +5,7 @@ import { notify } from "@/components/toast"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
-import { formatCpf, formatPhone, onlyDigits } from "@/lib"
+import { formatPhone, onlyDigits } from "@/lib"
 
 import { settingsCopy } from "../settings-copy"
 import { type SettingsProfile } from "../types/settings-types"
@@ -100,6 +100,7 @@ interface ProfileFieldDefinition {
   type?: React.ComponentProps<typeof Input>["type"]
   inputMode?: React.ComponentProps<typeof Input>["inputMode"]
   normalize?: (value: string) => string
+  readOnly?: boolean
 }
 
 const profileFields: readonly ProfileFieldDefinition[] = [
@@ -109,15 +110,7 @@ const profileFields: readonly ProfileFieldDefinition[] = [
     label: settingsCopy.profile.fields.name.label,
     description: settingsCopy.profile.fields.name.description,
     placeholder: settingsCopy.profile.fields.name.placeholder,
-  },
-  {
-    id: "settings-cpf",
-    key: "cpf",
-    label: settingsCopy.profile.fields.cpf.label,
-    description: settingsCopy.profile.fields.cpf.description,
-    placeholder: settingsCopy.profile.fields.cpf.placeholder,
-    inputMode: "numeric",
-    normalize: formatCpf,
+    readOnly: true,
   },
   {
     id: "settings-phone",
@@ -135,6 +128,7 @@ const profileFields: readonly ProfileFieldDefinition[] = [
     description: settingsCopy.profile.fields.email.description,
     placeholder: settingsCopy.profile.fields.email.placeholder,
     type: "email",
+    readOnly: true,
   },
 ]
 
@@ -158,11 +152,18 @@ export function SettingsPreferencesProfileForm({
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
 
-    await notify.track(onSave(form), {
-      loading: settingsCopy.profile.saveFeedback.loading,
-      success: settingsCopy.profile.saveFeedback.success,
-      error: settingsCopy.profile.saveFeedback.error,
-    })
+    try {
+      await notify.track(onSave(form), {
+        loading: settingsCopy.profile.saveFeedback.loading,
+        success: settingsCopy.profile.saveFeedback.success,
+        error: (error) =>
+          error instanceof Error
+            ? error.message
+            : settingsCopy.profile.saveFeedback.error,
+      })
+    } catch {
+      // Error feedback already surfaced via notify.track above.
+    }
   }
 
   return (
@@ -213,7 +214,8 @@ export function SettingsPreferencesProfileForm({
 
                         handleChange(field.key, nextValue)
                       }}
-                      disabled={isSaving}
+                      readOnly={field.readOnly}
+                      disabled={isSaving || field.readOnly}
                     />
                   </div>
                 </div>

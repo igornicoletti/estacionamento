@@ -1,19 +1,11 @@
 import {
   type SettingsMfaApp,
-  type SettingsProfile,
   type SidebarBehavior,
 } from "../types/settings-types"
 
 // ---------------------------------------------------------------------------
 // In-memory state
 // ---------------------------------------------------------------------------
-
-let _profile: SettingsProfile = {
-  name: "Igor Nicoletti",
-  cpf: "000.000.000-00",
-  phone: "(11) 99999-9999",
-  email: "igor.nicoletti@redemontecarlo.com",
-}
 
 let _mfaApps: SettingsMfaApp[] = [
   {
@@ -24,21 +16,6 @@ let _mfaApps: SettingsMfaApp[] = [
 ]
 
 let _sidebarBehavior: SidebarBehavior = "expanded"
-
-// ---------------------------------------------------------------------------
-// Profile
-// ---------------------------------------------------------------------------
-
-export function getSettingsProfile(): Promise<SettingsProfile> {
-  return Promise.resolve({ ..._profile })
-}
-
-export function updateSettingsProfile(
-  profile: SettingsProfile
-): Promise<SettingsProfile> {
-  _profile = { ...profile }
-  return Promise.resolve({ ..._profile })
-}
 
 // ---------------------------------------------------------------------------
 // MFA

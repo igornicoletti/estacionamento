@@ -12,7 +12,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { FieldGroup } from "@/components/ui/field"
-import { AuthPasswordField } from "@/features/auth"
+import {
+  AuthPasswordField,
+  changeProfilePassword,
+  getAuthErrorMessage,
+} from "@/features/auth"
 
 import { settingsCopy } from "../settings-copy"
 
@@ -81,12 +85,24 @@ export function SettingsPreferencesPasswordDialog({
     setIsSaving(true)
 
     try {
-      await notify.track(Promise.resolve(), {
-        loading: settingsCopy.dialogs.changePassword.feedback.loading,
-        success: settingsCopy.dialogs.changePassword.feedback.success,
-        error: settingsCopy.dialogs.changePassword.feedback.error,
-      })
+      await notify.track(
+        changeProfilePassword({
+          currentPassword: current,
+          newPassword: newPwd,
+        }),
+        {
+          loading: settingsCopy.dialogs.changePassword.feedback.loading,
+          success: settingsCopy.dialogs.changePassword.feedback.success,
+          error: (error) =>
+            getAuthErrorMessage(
+              error,
+              settingsCopy.dialogs.changePassword.feedback.error
+            ),
+        }
+      )
       handleOpenChange(false)
+    } catch {
+      // Error feedback already surfaced via notify.track above.
     } finally {
       setIsSaving(false)
     }

@@ -1,12 +1,16 @@
 import * as React from "react"
 
 import {
+  getAuthErrorMessage,
+  requestProfilePhoneChange,
+  useAuthSession,
+} from "@/features/auth"
+
+import {
   addMfaApp,
   getSidebarBehavior,
-  getSettingsProfile,
   listMfaApps,
   removeMfaApp,
-  updateSettingsProfile,
   updateSidebarBehavior,
 } from "../services/settings-service"
 import {
@@ -18,7 +22,7 @@ import {
 const loadError = "Não foi possível carregar as configurações."
 
 export function useSettings() {
-  const [profile, setProfile] = React.useState<SettingsProfile | null>(null)
+  const { profile: sessionProfile, refresh: refreshSession } = useAuthSession()
   const [mfaApps, setMfaApps] = React.useState<SettingsMfaApp[]>([])
   const [sidebarBehavior, setSidebarBehavior] =
     React.useState<SidebarBehavior>("expanded")
@@ -26,20 +30,25 @@ export function useSettings() {
   const [isSaving, setIsSaving] = React.useState(false)
   const [error, setError] = React.useState<Error | null>(null)
 
+  const profile: SettingsProfile | null = sessionProfile
+    ? {
+        name: sessionProfile.name,
+        phone: sessionProfile.phoneMasked,
+        email: sessionProfile.email ?? "",
+      }
+    : null
+
   React.useEffect(() => {
     let isMounted = true
 
     async function load() {
       try {
-        const [fetchedProfile, fetchedApps, fetchedBehavior] =
-          await Promise.all([
-            getSettingsProfile(),
-            listMfaApps(),
-            getSidebarBehavior(),
-          ])
+        const [fetchedApps, fetchedBehavior] = await Promise.all([
+          listMfaApps(),
+          getSidebarBehavior(),
+        ])
 
         if (isMounted) {
-          setProfile(fetchedProfile)
           setMfaApps(fetchedApps)
           setSidebarBehavior(fetchedBehavior)
           setError(null)
@@ -71,13 +80,20 @@ export function useSettings() {
       setIsSaving(true)
 
       try {
-        const saved = await updateSettingsProfile(values)
-        setProfile(saved)
+        if (values.phone !== sessionProfile?.phoneMasked) {
+          await requestProfilePhoneChange({ phone: values.phone })
+          await refreshSession()
+        }
+      } catch (caughtError) {
+        throw new Error(
+          getAuthErrorMessage(caughtError, loadError),
+          { cause: caughtError }
+        )
       } finally {
         setIsSaving(false)
       }
     },
-    []
+    [refreshSession, sessionProfile]
   )
 
   const addApp = React.useCallback(async (name: string) => {

@@ -7,6 +7,7 @@ import {
   type AuthFlowActionResponse,
   type AuthPasswordResponse,
   type AuthStartResponse,
+  type ProfileActionResponse,
   type RecoveryRequestResponse,
 } from "../types"
 import { createAuthPublicError } from "./auth-error"
@@ -165,4 +166,33 @@ export function completePasskeyLogin(input: { cpf: string; flowId: string }) {
     cpf: normalizeCpfForAuth(input.cpf),
     flowId: input.flowId,
   })
+}
+
+export function changeProfilePassword(input: {
+  currentPassword: string
+  newPassword: string
+}) {
+  if (shouldBypassAuthInDev()) {
+    return Promise.resolve({
+      message: authCopy.feedback.genericAuthError,
+    } satisfies ProfileActionResponse)
+  }
+
+  return invokeAuthFunction<ProfileActionResponse>(
+    "profile-change-password",
+    input
+  )
+}
+
+export function requestProfilePhoneChange(input: { phone: string }) {
+  if (shouldBypassAuthInDev()) {
+    return Promise.resolve({
+      message: authCopy.feedback.genericAuthError,
+    } satisfies ProfileActionResponse)
+  }
+
+  return invokeAuthFunction<ProfileActionResponse>(
+    "profile-request-phone-change",
+    input
+  )
 }

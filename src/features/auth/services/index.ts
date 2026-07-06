@@ -1,7 +1,9 @@
 export {
+  changeProfilePassword,
   completePasskeyLogin,
   completePasskeyRegistration,
   requestAccessRecovery,
+  requestProfilePhoneChange,
   startAuthFlow,
   submitPasswordCredentials
 } from "./auth-api"
