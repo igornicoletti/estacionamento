@@ -15,7 +15,9 @@ export function resolveVipFlag(isEnabled: boolean): VipFlag {
 }
 
 export function resolveClientStatus(client: Client): ClientTableRow["status"] {
-  return resolveYesNoFlag(client.ind_pessoa_ativa) ? "ativo" : "inativo"
+  return resolveYesNoFlag(client.ind_pessoa_ativa) && client.is_active_120d
+    ? "ativo"
+    : "inativo"
 }
 
 export function mapClientToTableRow(

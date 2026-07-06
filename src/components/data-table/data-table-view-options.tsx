@@ -54,7 +54,7 @@ export function DataTableViewOptions<TData>({
               data-no-drag-scroll="true"
               type="button"
               variant="outline"
-              size="icon"
+              size="icon-lg"
               className="ml-auto hidden lg:flex"
               aria-label={dataTableCopy.viewOptions.trigger}
             >

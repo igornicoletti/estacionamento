@@ -117,7 +117,7 @@ export function DataTablePagination<TData>({
             data-no-drag-scroll="true"
             type="button"
             variant="outline"
-            size="icon"
+            size="icon-lg"
             className="hidden lg:flex"
             onClick={() => table.setPageIndex(0)}
             disabled={!table.getCanPreviousPage()}
@@ -131,7 +131,7 @@ export function DataTablePagination<TData>({
             data-no-drag-scroll="true"
             type="button"
             variant="outline"
-            size="icon"
+            size="icon-lg"
             onClick={() => table.previousPage()}
             disabled={!table.getCanPreviousPage()}
           >
@@ -144,7 +144,7 @@ export function DataTablePagination<TData>({
             data-no-drag-scroll="true"
             type="button"
             variant="outline"
-            size="icon"
+            size="icon-lg"
             onClick={() => table.nextPage()}
             disabled={!table.getCanNextPage()}
           >
@@ -157,7 +157,7 @@ export function DataTablePagination<TData>({
             data-no-drag-scroll="true"
             type="button"
             variant="outline"
-            size="icon"
+            size="icon-lg"
             className="hidden lg:flex"
             onClick={() => {
               if (isPageCountKnown) {

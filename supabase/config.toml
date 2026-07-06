@@ -51,3 +51,6 @@ verify_jwt = true
 
 [functions.units-sync]
 verify_jwt = false
+
+[functions.clients-sync]
+verify_jwt = false

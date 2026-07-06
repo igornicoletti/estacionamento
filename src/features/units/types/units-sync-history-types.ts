@@ -1,8 +1,16 @@
-export type UnitSyncRunMode = "full" | "incremental"
+import {
+  type SyncCounters,
+  type SyncHistoryEntry,
+  type SyncRunMode,
+  type SyncRunStatus,
+  type SyncRunTrigger,
+} from "@/components/sync-history/sync-history-types"
 
-export type UnitSyncTrigger = "automatic" | "manual"
+export type UnitSyncRunMode = SyncRunMode
 
-export type UnitSyncRunStatus = "success" | "warning" | "failed"
+export type UnitSyncTrigger = SyncRunTrigger
+
+export type UnitSyncRunStatus = SyncRunStatus
 
 export interface UnitSyncCounters {
   received: number
@@ -12,15 +20,6 @@ export interface UnitSyncCounters {
   failed: number
 }
 
-export interface UnitSyncHistoryEntry {
-  id: string
-  mode: UnitSyncRunMode
-  trigger: UnitSyncTrigger
-  status: UnitSyncRunStatus
-  startedAt: string
-  finishedAt: string | null
-  durationSeconds: number | null
-  message: string
-  counters: UnitSyncCounters
-  consecutiveFailures: number
+export interface UnitSyncHistoryEntry extends Omit<SyncHistoryEntry, "counters"> {
+  counters: SyncCounters & UnitSyncCounters
 }

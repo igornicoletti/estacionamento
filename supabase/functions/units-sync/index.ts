@@ -179,8 +179,9 @@ async function fetchErpUnits(mode: SyncMode, lastSuccessfulSyncAt: string | null
   const baseUrl = requireEnv("ERP_BASE_URL")
   const endpoint = Deno.env.get("ERP_UNITS_ENDPOINT") || "/units"
   const updatedSinceParam = Deno.env.get("ERP_UNITS_UPDATED_SINCE_PARAM") || "updated_since"
-  const username = requireEnv("ERP_BASIC_USERNAME")
-  const password = requireEnv("ERP_BASIC_PASSWORD")
+  const bearerToken = Deno.env.get("ERP_BEARER_TOKEN")?.trim() || null
+  const username = bearerToken ? null : requireEnv("ERP_BASIC_USERNAME")
+  const password = bearerToken ? null : requireEnv("ERP_BASIC_PASSWORD")
   const timeoutMs = Number(Deno.env.get("ERP_REQUEST_TIMEOUT_MS") || "30000")
 
   const url = new URL(endpoint, baseUrl)
@@ -197,7 +198,9 @@ async function fetchErpUnits(mode: SyncMode, lastSuccessfulSyncAt: string | null
       method: "GET",
       headers: {
         Accept: "application/json",
-        Authorization: `Basic ${btoa(`${username}:${password}`)}`,
+        Authorization: bearerToken
+          ? `Bearer ${bearerToken}`
+          : `Basic ${btoa(`${username}:${password}`)}`,
       },
       signal: controller.signal,
     })

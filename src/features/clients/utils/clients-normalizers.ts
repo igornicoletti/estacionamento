@@ -35,6 +35,30 @@ function sanitizeStateCode(value: unknown) {
   return sanitizeText(value).slice(0, 2).toUpperCase()
 }
 
+function sanitizeBoolean(value: unknown) {
+  if (typeof value === "boolean") {
+    return value
+  }
+
+  if (typeof value === "string") {
+    const normalized = value.trim().toLowerCase()
+
+    if (normalized === "true" || normalized === "t" || normalized === "1" || normalized === "s") {
+      return true
+    }
+
+    if (normalized === "false" || normalized === "f" || normalized === "0" || normalized === "n") {
+      return false
+    }
+  }
+
+  if (typeof value === "number") {
+    return value === 1
+  }
+
+  return false
+}
+
 export function sanitizeErpClientPayload(payload: ErpClientPayload): Client {
   return {
     cod_pessoa: sanitizeInteger(payload.cod_pessoa),
@@ -50,6 +74,7 @@ export function sanitizeErpClientPayload(payload: ErpClientPayload): Client {
     bloqueio_financeiro: sanitizeText(payload.bloqueio_financeiro),
     qtd_veiculos: sanitizeInteger(payload.qtd_veiculos),
     dta_ultima_compra: sanitizeText(payload.dta_ultima_compra),
+    is_active_120d: sanitizeBoolean(payload.is_active_120d),
   }
 }
 

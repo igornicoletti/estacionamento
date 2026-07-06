@@ -12,6 +12,7 @@ export interface ErpClientPayload {
   bloqueio_financeiro: unknown
   qtd_veiculos: unknown
   dta_ultima_compra: unknown
+  is_active_120d?: unknown
 }
 
 export interface Client {
@@ -28,6 +29,7 @@ export interface Client {
   bloqueio_financeiro: string
   qtd_veiculos: number
   dta_ultima_compra: string
+  is_active_120d: boolean
 }
 
 export interface ClientTableRow extends Client {

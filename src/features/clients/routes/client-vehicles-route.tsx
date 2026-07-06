@@ -9,6 +9,11 @@ import {
 import { PageHeader, PageSection } from "@/components/page"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
+import {
+  hasCapability,
+  isUserRole,
+  useAuthSession,
+} from "@/features/auth"
 
 import {
   getVehicleVipStatus,
@@ -18,7 +23,10 @@ import { clientsCopy } from "../clients-copy"
 import {
   createClientVehiclesColumns,
 } from "../columns/client-vehicles-columns"
+import { ClientsSyncHistoryDialog } from "../components/clients-sync-history-dialog"
+import { useClientSyncHistory } from "../hooks/use-client-sync-history"
 import { useClientVehicles } from "../hooks/use-client-vehicles"
+import { triggerClientsSync } from "../services/client-sync-service"
 import { type ClientVehicleTableRow } from "../types/clients-types"
 import { mapClientVehicleToTableRow } from "../utils/clients-table-mappers"
 
@@ -41,13 +49,24 @@ function normalizeDisplayText(value: string) {
 
 export function ClientVehiclesRoute() {
   const navigate = useNavigate()
+  const { profile } = useAuthSession()
   const { cod_pessoa: codPessoaParam } = useParams<{ cod_pessoa: string }>()
   const codPessoa = React.useMemo(
     () => parseCodPessoa(codPessoaParam),
     [codPessoaParam]
   )
   const { client, data, error, isLoading, refetch } = useClientVehicles(codPessoa)
+  const {
+    data: syncHistory,
+    error: syncHistoryError,
+    isLoading: isLoadingSyncHistory,
+    refetch: refetchSyncHistory,
+  } = useClientSyncHistory()
   const { data: vipRules, toggleVehicleVip } = useVipRules()
+  const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
+
+  const role = isUserRole(profile?.role) ? profile.role : null
+  const canSyncClients = hasCapability(role, "admin.clients.manage")
   const tableData = React.useMemo<ClientVehicleTableRow[]>(() => {
     return data.map((vehicle) =>
       mapClientVehicleToTableRow(vehicle, {
@@ -124,22 +143,44 @@ export function ClientVehiclesRoute() {
         )}
         actions={(
           <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center">
-            <Button type="button" variant="secondary" >
-              <HistoryIcon aria-hidden="true" />
-              {clientsCopy.actions.history}
-            </Button>
             <Button
               type="button"
               variant="secondary"
-
-              disabled={isLoading}
               onClick={() => {
-                void refetch()
+                if (syncHistoryError && !isLoadingSyncHistory) {
+                  notify.error("Nao foi possivel carregar o historico de sincronizacao.")
+                  return
+                }
+
+                setIsHistoryOpen(true)
               }}
             >
-              <RefreshCcwIcon aria-hidden="true" />
-              {clientsCopy.actions.sync}
+              <HistoryIcon aria-hidden="true" />
+              {clientsCopy.actions.history}
             </Button>
+            {canSyncClients ? (
+              <Button
+                type="button"
+                variant="secondary"
+                disabled={isLoading}
+                onClick={() => {
+                  void notify.track(
+                    triggerClientsSync("incremental").then(async (result) => {
+                      await Promise.all([refetch(), refetchSyncHistory()])
+                      return result
+                    }),
+                    {
+                      loading: "Sincronizando clientes com o ERP...",
+                      success: "Sincronizacao concluida.",
+                      error: "Nao foi possivel sincronizar os clientes.",
+                    }
+                  )
+                }}
+              >
+                <RefreshCcwIcon aria-hidden="true" />
+                {clientsCopy.actions.sync}
+              </Button>
+            ) : null}
           </div>
         )}
       />
@@ -179,6 +220,13 @@ export function ClientVehiclesRoute() {
         }}
         enablePagination
         enableViewOptions
+      />
+
+      <ClientsSyncHistoryDialog
+        open={isHistoryOpen}
+        onOpenChange={setIsHistoryOpen}
+        entries={syncHistory}
+        isLoading={isLoadingSyncHistory}
       />
     </PageSection>
   )

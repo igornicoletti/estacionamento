@@ -1,3 +1,5 @@
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
+
 import {
   type ErpClientPayload,
   type ErpClientVehiclePayload,
@@ -8,111 +10,111 @@ export interface ClientsGateway {
   listClientVehiclesPayload: () => Promise<readonly ErpClientVehiclePayload[]>
 }
 
-const mockClientsPayload: ErpClientPayload[] = [
-  {
-    cod_pessoa: 1001,
-    nom_pessoa: "Auto Center Alfa Ltda",
-    nom_fantasia: "Auto Center Alfa",
-    num_cnpj_cpf: "12.345.678/0001-10",
-    des_email_1: "contato@alfa.com.br",
-    num_telefone_1: "(11) 3333-4444",
-    nom_cidade: "Sao Paulo",
-    sgl_estado: "sp",
-    dta_cadastro: "2024-01-15",
-    ind_pessoa_ativa: "S",
-    bloqueio_financeiro: "N",
-    qtd_veiculos: 2,
-    dta_ultima_compra: "2026-06-20",
-  },
-  {
-    cod_pessoa: "1002",
-    nom_pessoa: "Transportes Beta S/A",
-    nom_fantasia: "Transportes Beta",
-    num_cnpj_cpf: "98.765.432/0001-77",
-    des_email_1: "financeiro@beta.com.br",
-    num_telefone_1: "(21) 2222-1111",
-    nom_cidade: "Rio de Janeiro",
-    sgl_estado: "rj",
-    dta_cadastro: "2023-11-01",
-    ind_pessoa_ativa: "S",
-    bloqueio_financeiro: "S",
-    qtd_veiculos: 1,
-    dta_ultima_compra: "2026-05-12",
-  },
-  {
-    cod_pessoa: 1003,
-    nom_pessoa: "Marcos da Silva",
-    nom_fantasia: "",
-    num_cnpj_cpf: "123.456.789-00",
-    des_email_1: "",
-    num_telefone_1: "(41) 98888-7777",
-    nom_cidade: "Curitiba",
-    sgl_estado: "pr",
-    dta_cadastro: "2022-08-10",
-    ind_pessoa_ativa: "N",
-    bloqueio_financeiro: "N",
-    qtd_veiculos: 1,
-    dta_ultima_compra: "2025-12-02",
-  },
-]
+const DEFAULT_BATCH_SIZE = 500
+const MAX_BATCHES = 20
 
-const mockClientVehiclesPayload: ErpClientVehiclePayload[] = [
-  {
-    cod_veiculo: 5001,
-    cod_pessoa: 1001,
-    nom_pessoa: "Auto Center Alfa Ltda",
-    nom_fantasia: "Auto Center Alfa",
-    num_cnpj_cpf: "12.345.678/0001-10",
-    num_placa: "ABC1D23",
-    des_veiculo: "Fiat Strada 1.4",
-    nom_motorista: "Joao Carlos",
-  },
-  {
-    cod_veiculo: 5002,
-    cod_pessoa: 1001,
-    nom_pessoa: "Auto Center Alfa Ltda",
-    nom_fantasia: "Auto Center Alfa",
-    num_cnpj_cpf: "12.345.678/0001-10",
-    num_placa: "EFG4H56",
-    des_veiculo: "Vw Saveiro 1.6",
-    nom_motorista: "Pedro Alves",
-  },
-  {
-    cod_veiculo: "5003",
-    cod_pessoa: "1002",
-    nom_pessoa: "Transportes Beta S/A",
-    nom_fantasia: "Transportes Beta",
-    num_cnpj_cpf: "98.765.432/0001-77",
-    num_placa: "IJK7L89",
-    des_veiculo: "Volvo Fh 540",
-    nom_motorista: "Ricardo Souza",
-  },
-  {
-    cod_veiculo: 5004,
-    cod_pessoa: 1003,
-    nom_pessoa: "Marcos da Silva",
-    nom_fantasia: "",
-    num_cnpj_cpf: "123.456.789-00",
-    num_placa: "MNO0P12",
-    des_veiculo: "Honda Civic 2.0",
-    nom_motorista: "Marcos da Silva",
-  },
-]
+async function fetchAllBatches<TRow>(
+  loader: (from: number, to: number) => Promise<TRow[]>
+) {
+  const rows: TRow[] = []
 
-function createMockClientsGateway(): ClientsGateway {
+  for (let batch = 0; batch < MAX_BATCHES; batch += 1) {
+    const from = batch * DEFAULT_BATCH_SIZE
+    const to = from + DEFAULT_BATCH_SIZE - 1
+    const chunk = await loader(from, to)
+
+    rows.push(...chunk)
+
+    if (chunk.length < DEFAULT_BATCH_SIZE) {
+      return rows
+    }
+  }
+
+  throw new Error("A busca de clientes excedeu o limite seguro de paginas.")
+}
+
+function createSupabaseClientsGateway(): ClientsGateway {
   return {
     async listClientsPayload() {
-      await Promise.resolve()
-      return mockClientsPayload
+      const supabase = getSupabaseBrowserClient()
+
+      if (!supabase) {
+        return []
+      }
+
+      const data = await fetchAllBatches<ErpClientPayload>(async (from, to) => {
+        const { data, error } = await supabase
+          .from("erp_clients")
+          .select(
+            [
+              "cod_pessoa",
+              "nom_pessoa",
+              "nom_fantasia",
+              "num_cnpj_cpf",
+              "des_email_1",
+              "num_telefone_1",
+              "nom_cidade",
+              "sgl_estado",
+              "dta_cadastro",
+              "ind_pessoa_ativa",
+              "bloqueio_financeiro",
+              "qtd_veiculos",
+              "dta_ultima_compra",
+              "is_active_120d",
+            ].join(",")
+          )
+          .eq("is_active_120d", true)
+          .order("cod_pessoa", { ascending: true })
+          .range(from, to)
+
+        if (error) {
+          throw new Error(error.message)
+        }
+
+        return (data ?? []) as unknown as ErpClientPayload[]
+      })
+
+      return data
     },
     async listClientVehiclesPayload() {
-      await Promise.resolve()
-      return mockClientVehiclesPayload
+      const supabase = getSupabaseBrowserClient()
+
+      if (!supabase) {
+        return []
+      }
+
+      const data = await fetchAllBatches<ErpClientVehiclePayload>(async (from, to) => {
+        const { data, error } = await supabase
+          .from("erp_client_vehicles")
+          .select(
+            [
+              "cod_veiculo",
+              "cod_pessoa",
+              "nom_pessoa",
+              "nom_fantasia",
+              "num_cnpj_cpf",
+              "num_placa",
+              "des_veiculo",
+              "nom_motorista",
+            ].join(",")
+          )
+          .eq("client_is_active_120d", true)
+          .order("cod_veiculo", { ascending: true })
+          .range(from, to)
+
+        if (error) {
+          throw new Error(error.message)
+        }
+
+        return (data ?? []) as unknown as ErpClientVehiclePayload[]
+      })
+
+      return data
     },
   }
 }
 
-let clientsGateway: ClientsGateway = createMockClientsGateway()
+let clientsGateway: ClientsGateway = createSupabaseClientsGateway()
 
 export function getClientsGateway() {
   return clientsGateway
@@ -123,5 +125,5 @@ export function configureClientsGateway(gateway: ClientsGateway) {
 }
 
 export function resetClientsGateway() {
-  clientsGateway = createMockClientsGateway()
+  clientsGateway = createSupabaseClientsGateway()
 }

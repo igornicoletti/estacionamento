@@ -275,7 +275,7 @@ function DataTableToolbarActions<TData>({
             data-no-drag-scroll="true"
             type="button"
             variant="outline"
-            size="icon"
+            size="icon-lg"
             className="hidden lg:flex"
             onClick={handleExport}
           >
