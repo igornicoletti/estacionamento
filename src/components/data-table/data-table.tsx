@@ -620,7 +620,7 @@ export function DataTable<TData extends RowData, TValue>({
 
   if (hasBlockingError) {
     return (
-      <div className="rounded-md border p-6" role="alert" aria-live="assertive">
+      <div className="flex min-h-0 flex-1 rounded-md border p-6" role="alert" aria-live="assertive">
         {errorState ?? defaultErrorState}
       </div>
     )
@@ -667,36 +667,37 @@ export function DataTable<TData extends RowData, TValue>({
       ) : null}
 
       {shouldRenderStatePanel ? (
-        <div className="rounded-md border p-6">
+        <div className="flex min-h-0 flex-1 rounded-md border p-6">
           {stateKind === "loading" ? (
             <div
               role="status"
               aria-live="polite"
-              className="mx-auto flex min-h-44 w-full max-w-md items-center justify-center"
+              className="mx-auto flex min-h-0 w-full flex-1 items-center justify-center"
             >
               {stateContent}
             </div>
           ) : (
-            <div className="mx-auto flex min-h-44 w-full max-w-md items-center justify-center">
+            <div className="mx-auto flex min-h-0 w-full flex-1 items-center justify-center">
               {stateContent}
             </div>
           )}
         </div>
       ) : (
-        <DataTableScrollContainer>
+        <DataTableScrollContainer className="min-h-0 flex-1">
           <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
             <caption className="sr-only">
               {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
               {isFiltered ? " (filtrado)" : ""}
             </caption>
-            <TableHeader>
+            <TableHeader className="sticky top-0 z-20 bg-background">
               {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
+                <TableRow key={headerGroup.id} className="bg-background">
                   {headerGroup.headers.map((header) => (
                     <TableHead
                       key={header.id}
                       colSpan={header.colSpan}
                       style={{ width: header.getSize() }}
+                      className="bg-background"
                       aria-sort={getHeaderAriaSort(header)}
                     >
                       {header.isPlaceholder
@@ -761,11 +762,11 @@ export function DataTable<TData extends RowData, TValue>({
 
   if (isLoading) {
     return (
-      <div className="flex flex-col gap-4" aria-busy="true">
+      <div className="flex min-h-0 flex-1 flex-col gap-4" aria-busy="true">
         {tableContent}
       </div>
     )
   }
 
-  return <div className="flex flex-col gap-4">{tableContent}</div>
+  return <div className="flex min-h-0 flex-1 flex-col gap-4">{tableContent}</div>
 }

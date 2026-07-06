@@ -22,11 +22,11 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between",
+        "flex min-h-24 flex-col gap-4 lg:min-h-28 lg:flex-row lg:items-end lg:justify-between",
         className
       )}
     >
-      <div className={cn("max-w-2xl space-y-2", contentClassName)}>
+      <div className={cn("min-w-0 max-w-3xl space-y-1.5", contentClassName)}>
         {headingContent ? (
           headingContent
         ) : (
@@ -35,7 +35,7 @@ export function PageHeader({
               {title}
             </h1>
             {subtitle ? (
-              <p className="text-sm text-balance text-muted-foreground">
+              <p className="text-sm/relaxed text-muted-foreground">
                 {subtitle}
               </p>
             ) : null}
@@ -44,7 +44,7 @@ export function PageHeader({
       </div>
 
       {actions ? (
-        <div className="flex flex-wrap items-center justify-end gap-2">
+        <div className="w-full shrink-0 lg:w-auto">
           {actions}
         </div>
       ) : null}

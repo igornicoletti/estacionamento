@@ -27,7 +27,7 @@ import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
-import { PageHeader, PageSection } from "@/components/page"
+import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -279,14 +279,17 @@ export function UsersRoute() {
         title={usersCopy.page.title}
         subtitle={usersCopy.page.subtitle}
         actions={(
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleOpenCreateDialog}
-          >
-            <PlusIcon aria-hidden="true" />
-            {usersCopy.actions.create}
-          </Button>
+          <PageHeaderActions>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              onClick={handleOpenCreateDialog}
+            >
+              <PlusIcon aria-hidden="true" />
+              {usersCopy.actions.create}
+            </Button>
+          </PageHeaderActions>
         )}
       />
 

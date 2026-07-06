@@ -6,7 +6,7 @@ import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
-import { PageHeader, PageSection } from "@/components/page"
+import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { ManualSyncDialog } from "@/components/sync"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
@@ -189,10 +189,11 @@ export function ClientVehiclesRoute() {
           </>
         )}
         actions={(
-          <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center">
+          <PageHeaderActions>
             <Button
               type="button"
               variant="secondary"
+              size="lg"
               onClick={() => {
                 if (syncHistoryError && !isLoadingSyncHistory) {
                   notify.error(clientsCopy.sync.historyLoadError)
@@ -209,6 +210,7 @@ export function ClientVehiclesRoute() {
               <Button
                 type="button"
                 variant="secondary"
+                size="lg"
                 disabled={isLoading || isSyncing}
                 onClick={() => {
                   setSyncDialogPhase("confirm")
@@ -218,7 +220,7 @@ export function ClientVehiclesRoute() {
                 {clientsCopy.actions.sync}
               </Button>
             ) : null}
-          </div>
+          </PageHeaderActions>
         )}
       />
 

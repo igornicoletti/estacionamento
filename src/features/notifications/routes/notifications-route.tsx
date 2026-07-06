@@ -4,7 +4,7 @@ import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
-import { PageHeader, PageSection } from "@/components/page"
+import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 
@@ -76,18 +76,21 @@ export function NotificationsRoute() {
         title={notificationsCopy.page.title}
         subtitle={`${notificationsCopy.page.subtitle} Não lidas: ${unreadCount}.`}
         actions={(
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={isLoading || isUpdatingBatch || unreadCount === 0}
-            onClick={() => {
-              void handleMarkAllAsRead()
-            }}
-          >
-            {isUpdatingBatch
-              ? notificationsCopy.actions.updatingAll
-              : notificationsCopy.actions.markAllAsRead}
-          </Button>
+          <PageHeaderActions>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              disabled={isLoading || isUpdatingBatch || unreadCount === 0}
+              onClick={() => {
+                void handleMarkAllAsRead()
+              }}
+            >
+              {isUpdatingBatch
+                ? notificationsCopy.actions.updatingAll
+                : notificationsCopy.actions.markAllAsRead}
+            </Button>
+          </PageHeaderActions>
         )}
       />
 
