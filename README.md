@@ -114,6 +114,34 @@ pnpm test
 pnpm build
 ```
 
+## Checklist de habilitação de passkey
+
+1. Ative Passkeys no Supabase Dashboard em Authentication > Providers > Passkey.
+2. Em desenvolvimento, use uma origin HTTP local consistente (`http://localhost:5173` ou `http://localhost:5174`).
+3. Ajuste `VITE_APP_ORIGIN` para a origin real usada no navegador.
+4. Mantenha `VITE_WEBAUTHN_RP_ID=localhost` no ambiente local.
+5. Garanta que a URL local esteja permitida em `additional_redirect_urls` no `supabase/config.toml`.
+6. Valide login: clicar em Entrar com passkey deve abrir o prompt WebAuthn, sem erro `Passkeys are disabled`.
+7. Se aparecer `Passkeys are disabled`, o problema e de configuracao do projeto Supabase, nao do frontend.
+
+## Checklist de integração ERP de unidades
+
+1. Confirmar credenciais Basic Auth válidas do Hub API (usuário e senha).
+2. Configurar secrets no Supabase para Edge Functions:
+ - ERP_BASE_URL
+ - ERP_UNITS_ENDPOINT
+ - ERP_BASIC_USERNAME
+ - ERP_BASIC_PASSWORD
+ - UNITS_SYNC_SECRET
+3. Publicar a função units-sync no projeto remoto.
+4. Executar migrations 0007 e 0008 no banco remoto.
+5. Configurar os crons chamando a função SQL:
+ - select public.configure_units_sync_cron('https://<project-ref>.supabase.co', '<UNITS_SYNC_SECRET>', '*/30* ** *', '0 3* **');
+6. Validar execução manual na UI de Unidades pelo botão Sincronizar.
+7. Validar histórico na modal Histórico e conferência dos contadores.
+8. Validar trilha de auditoria para eventos unit.synced e unit.yard_updated.
+9. Não versionar tokens/senhas em arquivos .env versionados.
+
 ## Decisões
 
 - Imports shadcn usam `@/components/ui/*`.

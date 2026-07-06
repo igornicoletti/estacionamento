@@ -6,6 +6,10 @@ export { useUnits } from "./hooks/use-units"
 export { UnitUsersRoute } from "./routes/unit-users-route"
 export { UnitsRoute } from "./routes/units-route"
 export {
+  triggerUnitsSync,
+  type UnitSyncMode
+} from "./services/unit-sync-service"
+export {
   configureUnitYardGateway,
   getUnitYardGateway,
   resetUnitYardGateway,

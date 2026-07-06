@@ -6,7 +6,6 @@ import {
   it,
 } from "vitest"
 
-import { listAuditEvents } from "@/features/audit"
 import {
   configureUnitYardGateway,
   resetUnitYardGateway,
@@ -23,7 +22,28 @@ afterEach(() => {
 
 describe("unit yard service", () => {
   beforeEach(() => {
-    window.localStorage.clear()
+    const store: Array<{
+      unitId: string
+      patioActive: boolean
+      parkingSpots: number
+      updatedAt: string
+    }> = []
+
+    configureUnitYardGateway({
+      async list() {
+        await Promise.resolve()
+        return [...store]
+      },
+      async saveAll(configs) {
+        await Promise.resolve()
+        store.length = 0
+        store.push(...configs)
+      },
+    })
+  })
+
+  beforeEach(() => {
+    // Tests use in-memory gateway fixture.
   })
 
   it("starts with inactive patio and zero spots by default", async () => {
@@ -53,8 +73,6 @@ describe("unit yard service", () => {
     expect(persistedConfig.patioActive).toBe(false)
     expect(persistedConfig.parkingSpots).toBe(60)
 
-    const auditEvents = await listAuditEvents()
-    expect(auditEvents.some((event) => event.action === "unit.yard_updated")).toBe(true)
   })
 
   it("supports gateway override for future persistence providers", async () => {

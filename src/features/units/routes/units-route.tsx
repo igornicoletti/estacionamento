@@ -45,6 +45,7 @@ import { UnitsSyncHistoryDialog } from "../components/units-sync-history-dialog"
 import { useUnitSyncHistory } from "../hooks/use-unit-sync-history"
 import { useUnitYardConfigs } from "../hooks/use-unit-yard-configs"
 import { useUnits } from "../hooks/use-units"
+import { triggerUnitsSync } from "../services/unit-sync-service"
 import { type Unit } from "../types/units-types"
 import { unitsCopy } from "../units-copy"
 import {
@@ -190,6 +191,11 @@ export function UnitsRoute() {
               type="button"
               variant="secondary"
               onClick={() => {
+                if (syncHistoryError && !isLoadingSyncHistory) {
+                  notify.error("Nao foi possivel carregar o historico de sincronizacao.")
+                  return
+                }
+
                 setIsHistoryOpen(true)
               }}
             >
@@ -202,7 +208,17 @@ export function UnitsRoute() {
                 variant="secondary"
                 disabled={isLoading}
                 onClick={() => {
-                  void refetch()
+                  void notify.track(
+                    triggerUnitsSync("incremental").then(async (result) => {
+                      await Promise.all([refetch(), refetchSyncHistory()])
+                      return result
+                    }),
+                    {
+                      loading: "Sincronizando unidades com o ERP...",
+                      success: "Sincronização concluída.",
+                      error: "Não foi possível sincronizar as unidades.",
+                    }
+                  )
                 }}
               >
                 <RefreshCcwIcon aria-hidden="true" />
@@ -339,10 +355,6 @@ export function UnitsRoute() {
         onOpenChange={setIsHistoryOpen}
         entries={syncHistory}
         isLoading={isLoadingSyncHistory}
-        error={syncHistoryError}
-        onRetry={() => {
-          void refetchSyncHistory()
-        }}
       />
     </PageSection>
   )

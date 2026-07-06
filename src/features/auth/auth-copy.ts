@@ -5,6 +5,8 @@ export const authCopy = {
     genericAuthError: "Não foi possível continuar com os dados informados.",
     passkeyAuthError:
       "Não foi possível autenticar com passkey. Use CPF e senha ou recupere o acesso.",
+    passkeyDisabled:
+      "Passkey está desativada na configuração do projeto. Contate o suporte ou use CPF e senha.",
     genericRecoveryResponse:
       "Se os dados puderem ser validados, a solicitação será analisada pela administração.",
     supabaseNotConfigured:

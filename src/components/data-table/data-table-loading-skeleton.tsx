@@ -50,11 +50,11 @@ export function DataTableLoadingSkeleton({
   return (
     <>
       {Array.from({ length: safeRowCount }).map((_, rowIndex) => (
-        <TableRow key={`loading-row-${rowIndex}`} aria-hidden="true">
+        <TableRow key={`loading-row-${rowIndex}`} aria-hidden="true" className="h-11">
           {Array.from({ length: safeColumnCount }).map((__, columnIndex) => (
             <TableCell key={`loading-cell-${rowIndex}-${columnIndex}`}>
               <Skeleton
-                className={`h-4 ${getSkeletonWidthClass(
+                className={`h-5 ${getSkeletonWidthClass(
                   columnIndex,
                   safeColumnCount
                 )}`}

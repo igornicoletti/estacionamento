@@ -7,7 +7,6 @@ import {
 } from "lucide-react"
 import * as React from "react"
 
-import { Button } from "@/components/ui/button"
 import {
   Collapsible,
   CollapsibleContent,
@@ -20,6 +19,12 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty"
 import { cn } from "@/lib/utils"
 
 import {
@@ -34,8 +39,6 @@ interface UnitsSyncHistoryDialogProps {
   onOpenChange: (open: boolean) => void
   entries: readonly UnitSyncHistoryEntry[]
   isLoading: boolean
-  error: Error | null
-  onRetry: () => void
 }
 
 const statusIconByType: Record<UnitSyncRunStatus, React.ComponentType<{ className?: string }>> = {
@@ -141,8 +144,6 @@ export function UnitsSyncHistoryDialog({
   onOpenChange,
   entries,
   isLoading,
-  error,
-  onRetry,
 }: UnitsSyncHistoryDialogProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -161,24 +162,18 @@ export function UnitsSyncHistoryDialog({
             </div>
           ) : null}
 
-          {!isLoading && error ? (
-            <div className="space-y-3 rounded-md border border-destructive/20 bg-destructive/5 p-4">
-              <p className="text-sm text-destructive">
-                Nao foi possivel carregar o historico agora.
-              </p>
-              <Button type="button" variant="outline" onClick={onRetry}>
-                Tentar novamente
-              </Button>
-            </div>
+          {!isLoading && entries.length === 0 ? (
+            <Empty className="min-h-32 rounded-md border border-dashed p-4">
+              <EmptyHeader>
+                <EmptyTitle>Ainda nao ha execucoes registradas</EmptyTitle>
+                <EmptyDescription>
+                  Nenhuma execução de sincronização foi registrada até o momento.
+                </EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           ) : null}
 
-          {!isLoading && !error && entries.length === 0 ? (
-            <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-              Ainda nao ha execucoes registradas para exibicao.
-            </div>
-          ) : null}
-
-          {!isLoading && !error && entries.length > 0 ? (
+          {!isLoading && entries.length > 0 ? (
             <ol className="relative ml-3 space-y-3 border-l border-border pl-4">
               {entries.map((entry) => {
                 const StatusIcon = statusIconByType[entry.status]

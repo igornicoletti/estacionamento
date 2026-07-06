@@ -1,51 +1,84 @@
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 import { type UnitYardConfig } from "../types/units-types"
-
-const STORAGE_KEY = "rmc.units.yard-config.v1"
 
 export interface UnitYardGateway {
   list(): Promise<UnitYardConfig[]>
   saveAll(configs: readonly UnitYardConfig[]): Promise<void>
 }
 
-function canUseStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined"
+type RawUnitYardRow = {
+  unit_id: number | string
+  patio_active: boolean
+  parking_spots: number
+  updated_at: string
 }
 
-function createLocalStorageUnitYardGateway(): UnitYardGateway {
+function createSupabaseUnitYardGateway(): UnitYardGateway {
   return {
     async list() {
-      await Promise.resolve()
+      const supabase = getSupabaseBrowserClient()
 
-      if (!canUseStorage()) {
+      if (!supabase) {
         return []
       }
 
-      const raw = window.localStorage.getItem(STORAGE_KEY)
+      const { data, error } = await supabase
+        .from("unit_yard_configs")
+        .select("unit_id, patio_active, parking_spots, updated_at")
 
-      if (!raw) {
-        return []
+      if (error) {
+        throw new Error(error.message)
       }
 
-      try {
-        const parsed: unknown = JSON.parse(raw)
-        return Array.isArray(parsed) ? (parsed as UnitYardConfig[]) : []
-      } catch {
-        return []
-      }
+      return ((data ?? []) as RawUnitYardRow[]).map((row) => ({
+        unitId: String(row.unit_id),
+        patioActive: Boolean(row.patio_active),
+        parkingSpots: Number(row.parking_spots),
+        updatedAt: row.updated_at,
+      }))
     },
     async saveAll(configs) {
-      await Promise.resolve()
+      const supabase = getSupabaseBrowserClient()
 
-      if (!canUseStorage()) {
+      if (!supabase) {
+        throw new Error("Supabase indisponível para salvar pátio.")
+      }
+
+      const unitIds = configs.map((config) => Number(config.unitId)).filter(Number.isFinite)
+
+      if (unitIds.length === 0) {
+        await supabase.from("unit_yard_configs").delete().gt("unit_id", 0)
         return
       }
 
-      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(configs))
+      const rows = configs.map((config) => ({
+        unit_id: Number(config.unitId),
+        patio_active: config.patioActive,
+        parking_spots: config.parkingSpots,
+        updated_at: config.updatedAt,
+      }))
+
+      const { error: upsertError } = await supabase
+        .from("unit_yard_configs")
+        .upsert(rows, { onConflict: "unit_id" })
+
+      if (upsertError) {
+        throw new Error(upsertError.message)
+      }
+
+      const { error: deleteError } = await supabase
+        .from("unit_yard_configs")
+        .delete()
+        .not("unit_id", "in", `(${unitIds.join(",")})`)
+
+      if (deleteError) {
+        throw new Error(deleteError.message)
+      }
     },
   }
 }
 
-let unitYardGateway: UnitYardGateway = createLocalStorageUnitYardGateway()
+let unitYardGateway: UnitYardGateway = createSupabaseUnitYardGateway()
 
 export function getUnitYardGateway() {
   return unitYardGateway
@@ -56,5 +89,5 @@ export function configureUnitYardGateway(gateway: UnitYardGateway) {
 }
 
 export function resetUnitYardGateway() {
-  unitYardGateway = createLocalStorageUnitYardGateway()
+  unitYardGateway = createSupabaseUnitYardGateway()
 }

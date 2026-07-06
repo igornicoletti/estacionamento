@@ -1,7 +1,3 @@
-import {
-  appendAuditEvent,
-} from "@/features/audit"
-
 import { toError } from "@/lib"
 
 import {
@@ -68,20 +64,6 @@ export async function upsertUnitYardConfig(
     await getUnitYardGateway().saveAll([nextConfig, ...current])
   } catch (caughtError) {
     throw toError(caughtError, unitsCopy.errors.unitYardSave)
-  }
-
-  try {
-    await appendAuditEvent({
-      action: "unit.yard_updated",
-      description: `Pátio da unidade ${input.unitName ?? normalizedUnitId} ${input.patioActive ? "ativado" : "desativado"
-        } com ${nextConfig.parkingSpots} vagas configuradas.`,
-      entity: "Pátio da unidade",
-      entityId: normalizedUnitId,
-      unitName: input.unitName ?? null,
-      outcome: "success",
-    })
-  } catch {
-    // Audit persistence failure must not block the main operation.
   }
 
   return nextConfig

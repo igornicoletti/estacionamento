@@ -3,6 +3,19 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import { createAuthPublicError } from "./auth-error"
 
+function isPasskeyDisabledProviderError(caughtError: unknown) {
+  if (!caughtError || typeof caughtError !== "object") {
+    return false
+  }
+
+  const message =
+    "message" in caughtError && typeof caughtError.message === "string"
+      ? caughtError.message
+      : ""
+
+  return message.toLowerCase().includes("passkeys are disabled")
+}
+
 function getPasskeyAuthClient() {
   const supabase = getSupabaseBrowserClient()
 
@@ -53,6 +66,14 @@ async function invokePasskeyMethod(
   }
 
   if (result.error) {
+    if (isPasskeyDisabledProviderError(result.error)) {
+      throw createAuthPublicError(
+        "AUTH_PASSKEY_DISABLED",
+        `invokePasskeyMethod:${methodName}:provider-disabled`,
+        result.error
+      )
+    }
+
     throw createAuthPublicError(
       "AUTH_PASSKEY",
       `invokePasskeyMethod:${methodName}:provider-error`,

@@ -3,11 +3,13 @@ import { authCopy } from "../auth-copy"
 type AuthPublicErrorCode =
   | "AUTH_GENERIC"
   | "AUTH_PASSKEY"
+  | "AUTH_PASSKEY_DISABLED"
   | "AUTH_SUPABASE_NOT_CONFIGURED"
 
 const authPublicMessagesByCode: Record<AuthPublicErrorCode, string> = {
   AUTH_GENERIC: authCopy.feedback.genericAuthError,
   AUTH_PASSKEY: authCopy.feedback.passkeyAuthError,
+  AUTH_PASSKEY_DISABLED: authCopy.feedback.passkeyDisabled,
   AUTH_SUPABASE_NOT_CONFIGURED: authCopy.feedback.supabaseNotConfigured,
 }
 
