@@ -195,11 +195,6 @@ export function ClientVehiclesRoute() {
               variant="secondary"
               size="lg"
               onClick={() => {
-                if (syncHistoryError && !isLoadingSyncHistory) {
-                  notify.error(clientsCopy.sync.historyLoadError)
-                  return
-                }
-
                 setIsHistoryOpen(true)
               }}
             >
@@ -266,6 +261,10 @@ export function ClientVehiclesRoute() {
         onOpenChange={setIsHistoryOpen}
         entries={syncHistory}
         isLoading={isLoadingSyncHistory}
+        error={syncHistoryError}
+        onRetry={() => {
+          void refetchSyncHistory()
+        }}
       />
 
       <ManualSyncDialog

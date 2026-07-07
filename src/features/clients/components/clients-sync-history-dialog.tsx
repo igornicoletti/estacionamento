@@ -7,6 +7,8 @@ interface ClientsSyncHistoryDialogProps {
   onOpenChange: (open: boolean) => void
   entries: readonly ClientSyncHistoryEntry[]
   isLoading: boolean
+  error?: Error | string | null
+  onRetry?: () => void
 }
 
 function renderCounters(entry: ClientSyncHistoryEntry) {
@@ -59,6 +61,8 @@ export function ClientsSyncHistoryDialog({
   onOpenChange,
   entries,
   isLoading,
+  error,
+  onRetry,
 }: ClientsSyncHistoryDialogProps) {
   return (
     <SyncHistoryDialog
@@ -66,6 +70,8 @@ export function ClientsSyncHistoryDialog({
       onOpenChange={onOpenChange}
       entries={entries}
       isLoading={isLoading}
+      error={error}
+      onRetry={onRetry}
       title="Historico de sincronizacao"
       description="Acompanhe as ultimas execucoes de sincronizacao de clientes e veiculos."
       emptyTitle="Ainda nao ha execucoes registradas"
