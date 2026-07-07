@@ -125,6 +125,9 @@ export function UsersRoute() {
     inactivateUser,
     refetch,
     resetAccess,
+    resetPasskey,
+    clearLock,
+    revokeSessions,
   } = useUsers()
   const { data: units } = useUnits()
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
@@ -211,17 +214,60 @@ export function UsersRoute() {
     })
   }, [resetAccess])
 
+  const handleResetPasskey = React.useCallback((user: UserRecord) => {
+    void notify.track(resetPasskey(user.id), {
+      loading: usersCopy.feedback.resetPasskey.loading,
+      success: usersCopy.feedback.resetPasskey.success,
+      error: (caughtError) =>
+        caughtError instanceof Error
+          ? caughtError.message
+          : usersCopy.feedback.resetPasskey.error,
+    })
+  }, [resetPasskey])
+
+  const handleClearLock = React.useCallback((user: UserRecord) => {
+    void notify.track(clearLock(user.id), {
+      loading: usersCopy.feedback.clearLock.loading,
+      success: usersCopy.feedback.clearLock.success,
+      error: (caughtError) =>
+        caughtError instanceof Error
+          ? caughtError.message
+          : usersCopy.feedback.clearLock.error,
+    })
+  }, [clearLock])
+
+  const handleRevokeSessions = React.useCallback((user: UserRecord) => {
+    void notify.track(revokeSessions(user.id), {
+      loading: usersCopy.feedback.revokeSessions.loading,
+      success: usersCopy.feedback.revokeSessions.success,
+      error: (caughtError) =>
+        caughtError instanceof Error
+          ? caughtError.message
+          : usersCopy.feedback.revokeSessions.error,
+    })
+  }, [revokeSessions])
+
   const columns = React.useMemo(
     () =>
       createUsersColumns({
         onBlockUser: (user) => {
           setBlockingUser(user)
         },
+        onClearLock: handleClearLock,
         onEditUser: handleOpenEditDialog,
         onResetAccess: handleResetAccess,
+        onResetPasskey: handleResetPasskey,
+        onRevokeSessions: handleRevokeSessions,
         remoteMode,
       }),
-    [handleOpenEditDialog, handleResetAccess, remoteMode]
+    [
+      handleClearLock,
+      handleOpenEditDialog,
+      handleResetAccess,
+      handleResetPasskey,
+      handleRevokeSessions,
+      remoteMode,
+    ]
   )
 
   async function handleSubmit(values: UsersFormValues) {

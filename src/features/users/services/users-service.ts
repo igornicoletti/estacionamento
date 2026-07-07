@@ -45,10 +45,15 @@ type RawAppUserRow = {
 }
 
 const RESET_ACCESS_REASON = "Reset solicitado pelo painel administrativo."
+const RESET_PASSKEY_REASON = "Reset de passkey solicitado pelo painel administrativo."
+const CLEAR_LOCK_REASON = "Bloqueio removido pelo painel administrativo."
+const REVOKE_SESSIONS_REASON = "Sessões revogadas pelo painel administrativo."
 const REMOTE_UPDATE_UNAVAILABLE_MESSAGE =
   "Edição de usuário ainda não está disponível no backend remoto."
 const REMOTE_BLOCK_UNAVAILABLE_MESSAGE =
   "Bloqueio de usuário ainda não está disponível no backend remoto."
+const LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE =
+  "Esta ação só está disponível com o backend remoto configurado."
 
 async function listUnitsCatalog(): Promise<UnitCatalogItem[]> {
   const units = await listUnits()
@@ -245,6 +250,75 @@ async function resetUserAccessInSupabase(userId: string): Promise<UserRecord> {
   return updatedUser
 }
 
+async function invokeAdminUserAction(
+  functionName: string,
+  userId: string,
+  reason: string,
+  errorMessage: string
+): Promise<UserRecord> {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    throw new Error(errorMessage)
+  }
+
+  const users = await listUsersFromSupabase()
+  const targetUser = users.find((user) => user.id === userId)
+
+  if (!targetUser?.authUserId) {
+    throw new Error(usersCopy.errors.userNotFound)
+  }
+
+  const actionResponse = await supabase.functions.invoke(functionName, {
+    body: {
+      reason,
+      targetUserId: targetUser.authUserId,
+    },
+  })
+
+  const { error } = actionResponse as { error: unknown }
+
+  if (error) {
+    throw new Error(errorMessage)
+  }
+
+  const refreshedUsers = await listUsersFromSupabase()
+  const updatedUser = refreshedUsers.find((user) => user.id === userId)
+
+  if (!updatedUser) {
+    throw new Error(usersCopy.errors.userNotFound)
+  }
+
+  return updatedUser
+}
+
+async function resetUserPasskeyInSupabase(userId: string): Promise<UserRecord> {
+  return invokeAdminUserAction(
+    "admin-user-reset-passkey",
+    userId,
+    RESET_PASSKEY_REASON,
+    usersCopy.feedback.resetPasskey.error
+  )
+}
+
+async function clearUserLockInSupabase(userId: string): Promise<UserRecord> {
+  return invokeAdminUserAction(
+    "admin-user-clear-lock",
+    userId,
+    CLEAR_LOCK_REASON,
+    usersCopy.feedback.clearLock.error
+  )
+}
+
+async function revokeUserSessionsInSupabase(userId: string): Promise<UserRecord> {
+  return invokeAdminUserAction(
+    "admin-user-revoke-sessions",
+    userId,
+    REVOKE_SESSIONS_REASON,
+    usersCopy.feedback.revokeSessions.error
+  )
+}
+
 async function createUserInMemory(input: CreateUserInput): Promise<UserRecord> {
   const usersGateway = getUsersGateway()
   const currentUsers = await usersGateway.list()
@@ -424,4 +498,28 @@ export async function resetUserAccess(userId: string): Promise<UserRecord> {
   }
 
   return resetUserAccessInMemory(userId)
+}
+
+export async function resetUserPasskey(userId: string): Promise<UserRecord> {
+  if (isRemoteUsersEnabled()) {
+    return resetUserPasskeyInSupabase(userId)
+  }
+
+  throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)
+}
+
+export async function clearUserLock(userId: string): Promise<UserRecord> {
+  if (isRemoteUsersEnabled()) {
+    return clearUserLockInSupabase(userId)
+  }
+
+  throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)
+}
+
+export async function revokeUserSessions(userId: string): Promise<UserRecord> {
+  if (isRemoteUsersEnabled()) {
+    return revokeUserSessionsInSupabase(userId)
+  }
+
+  throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)
 }

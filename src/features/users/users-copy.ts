@@ -8,6 +8,9 @@ export const usersCopy = {
     save: "Salvar",
     edit: "Editar",
     resetPassword: "Redefinir senha",
+    resetPasskey: "Resetar passkey",
+    clearLock: "Remover bloqueio",
+    revokeSessions: "Revogar sessões",
     blockUser: "Bloquear usuário",
   },
   dialogs: {
@@ -72,6 +75,21 @@ export const usersCopy = {
       loading: "Redefinindo autenticação...",
       success: "Autenticação redefinida.",
       error: "Não foi possível redefinir a autenticação.",
+    },
+    resetPasskey: {
+      loading: "Resetando passkey...",
+      success: "Passkey resetada. O usuário deverá cadastrar uma nova.",
+      error: "Não foi possível resetar a passkey.",
+    },
+    clearLock: {
+      loading: "Removendo bloqueio...",
+      success: "Bloqueio removido.",
+      error: "Não foi possível remover o bloqueio.",
+    },
+    revokeSessions: {
+      loading: "Revogando sessões...",
+      success: "Sessões revogadas.",
+      error: "Não foi possível revogar as sessões.",
     },
   },
   errors: {

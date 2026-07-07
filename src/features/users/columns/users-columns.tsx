@@ -27,6 +27,9 @@ interface CreateUsersColumnsOptions {
   onEditUser?: (user: UserRecord) => void
   onBlockUser?: (user: UserRecord) => void
   onResetAccess?: (user: UserRecord) => void
+  onResetPasskey?: (user: UserRecord) => void
+  onClearLock?: (user: UserRecord) => void
+  onRevokeSessions?: (user: UserRecord) => void
   remoteMode?: boolean
 }
 
@@ -182,6 +185,31 @@ export function createUsersColumns(
           options.onResetAccess?.(row.original)
         },
       },
+      ...(options.remoteMode
+        ? [
+          {
+            id: "reset-passkey" as const,
+            label: usersCopy.actions.resetPasskey,
+            onSelect: (row: { original: UserRecord }) => {
+              options.onResetPasskey?.(row.original)
+            },
+          },
+          {
+            id: "clear-lock" as const,
+            label: usersCopy.actions.clearLock,
+            onSelect: (row: { original: UserRecord }) => {
+              options.onClearLock?.(row.original)
+            },
+          },
+          {
+            id: "revoke-sessions" as const,
+            label: usersCopy.actions.revokeSessions,
+            onSelect: (row: { original: UserRecord }) => {
+              options.onRevokeSessions?.(row.original)
+            },
+          },
+        ]
+        : []),
       ...(options.remoteMode
         ? []
         : [

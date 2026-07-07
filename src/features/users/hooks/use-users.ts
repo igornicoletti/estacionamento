@@ -7,9 +7,12 @@ import { toError } from "@/lib"
 
 import {
   blockUser,
+  clearUserLock,
   createUser,
   listUsers,
   resetUserAccess,
+  resetUserPasskey,
+  revokeUserSessions,
   updateUser,
 } from "../services/users-service"
 import {
@@ -130,6 +133,51 @@ export function useUsers() {
     }
   }, [])
 
+  const resetPasskey = React.useCallback(async (userId: string) => {
+    setError(null)
+    try {
+      const updatedUser = await resetUserPasskey(userId)
+      setData((current) =>
+        current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+      )
+      return updatedUser
+    } catch (caughtError) {
+      const nextError = toError(caughtError, usersCopy.feedback.resetPasskey.error)
+      setError(nextError)
+      throw nextError
+    }
+  }, [])
+
+  const clearLock = React.useCallback(async (userId: string) => {
+    setError(null)
+    try {
+      const updatedUser = await clearUserLock(userId)
+      setData((current) =>
+        current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+      )
+      return updatedUser
+    } catch (caughtError) {
+      const nextError = toError(caughtError, usersCopy.feedback.clearLock.error)
+      setError(nextError)
+      throw nextError
+    }
+  }, [])
+
+  const revokeSessions = React.useCallback(async (userId: string) => {
+    setError(null)
+    try {
+      const updatedUser = await revokeUserSessions(userId)
+      setData((current) =>
+        current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+      )
+      return updatedUser
+    } catch (caughtError) {
+      const nextError = toError(caughtError, usersCopy.feedback.revokeSessions.error)
+      setError(nextError)
+      throw nextError
+    }
+  }, [])
+
   React.useEffect(() => {
     let isMounted = true
 
@@ -169,5 +217,8 @@ export function useUsers() {
     refetch,
     inactivateUser,
     resetAccess,
+    resetPasskey,
+    clearLock,
+    revokeSessions,
   }
 }
