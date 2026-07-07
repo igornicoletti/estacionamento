@@ -26,7 +26,7 @@ export function PageHeader({
         className
       )}
     >
-      <div className={cn("min-w-0 max-w-3xl space-y-1", contentClassName)}>
+      <div className={cn("min-w-0 space-y-1", contentClassName)}>
         {headingContent ? (
           headingContent
         ) : (

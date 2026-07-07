@@ -27,6 +27,7 @@ import {
   EmptyHeader,
   EmptyTitle,
 } from "@/components/ui/empty"
+import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
 import {
@@ -153,10 +154,25 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="-mx-4 no-scrollbar max-h-[50vh] overflow-y-auto px-4">
+        <div className="-mx-4 no-scrollbar max-h-[60vh] overflow-y-auto px-4">
           {isLoading ? (
-            <div className="rounded-md border border-dashed p-4 text-sm text-muted-foreground">
-              Carregando historico...
+            <div className="space-y-3" aria-hidden="true">
+              {[0, 1, 2].map((index) => (
+                <div
+                  key={index}
+                  className="rounded-lg border border-dashed p-3"
+                  style={{ opacity: Math.max(0.4, 1 - index * 0.25) }}
+                >
+                  <div className="flex items-center justify-between gap-2">
+                    <Skeleton className="h-4 w-28 bg-muted/60" />
+                    <Skeleton className="h-5 w-20 rounded-full bg-muted/60" />
+                  </div>
+                  <div className="mt-2.5 flex gap-2">
+                    <Skeleton className="h-4 w-16 rounded-full bg-muted/60" />
+                    <Skeleton className="h-4 w-16 rounded-full bg-muted/60" />
+                  </div>
+                </div>
+              ))}
             </div>
           ) : null}
 
@@ -199,14 +215,14 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
                     />
 
                     <Collapsible defaultOpen={false} className="group/timeline-item">
-                      <div className="rounded-lg bg-card p-3">
+                      <div className="rounded-lg border bg-card p-3">
                         <CollapsibleTrigger asChild>
                           <button
                             type="button"
                             className="flex w-full items-start justify-between gap-3 text-left"
                           >
-                            <div className="space-y-2.5">
-                              <div className="flex items-center justify-between gap-2">
+                            <div className="min-w-0 space-y-2.5">
+                              <div className="flex flex-wrap items-center gap-2">
                                 <p className="text-sm font-medium text-foreground">
                                   {formatDateTime(entry.startedAt)}
                                 </p>
@@ -228,6 +244,17 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
                                 <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
                                   {triggerLabelByType[entry.trigger]}
                                 </span>
+                                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                                  {formatDuration(entry.durationSeconds)}
+                                </span>
+                              </div>
+
+                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                                {counters.map((counter) => (
+                                  <span key={`${entry.id}-summary-${counter.label}`}>
+                                    {counter.label}: <span className="font-medium text-foreground">{counter.value}</span>
+                                  </span>
+                                ))}
                               </div>
                             </div>
 
@@ -235,19 +262,12 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
                           </button>
                         </CollapsibleTrigger>
 
-                        <CollapsibleContent className="mt-3 space-y-3 pt-3">
-                          <dl className="grid grid-cols-1 gap-4">
+                        <CollapsibleContent className="mt-3 space-y-3 border-t pt-3">
+                          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
                             {details.map((detail) => (
                               <div key={`${entry.id}-${detail.key}-${detail.value}`} className="flex flex-col gap-0.5">
                                 <dt className="text-xs text-muted-foreground">{detail.key}</dt>
                                 <dd className="text-sm font-medium text-foreground">{detail.value}</dd>
-                              </div>
-                            ))}
-
-                            {counters.map((counter) => (
-                              <div key={`${entry.id}-${counter.label}`} className="flex flex-col gap-0.5">
-                                <dt className="text-xs text-muted-foreground">{counter.label}</dt>
-                                <dd className="text-sm font-medium text-foreground">{counter.value}</dd>
                               </div>
                             ))}
                           </dl>

@@ -13,6 +13,16 @@ export const settingsCopy = {
       success: "Solicitação de alteração de telefone enviada para validação.",
       error: "Não foi possível enviar a solicitação.",
     },
+    avatar: {
+      dropzoneLabel: "Enviar foto de perfil",
+      title: "Envie uma foto de perfil",
+      description: "Arraste e solte uma imagem aqui ou clique para selecionar.",
+      allowedFormats: "PNG, JPEG ou WEBP",
+      maxSize: "até 2MB",
+      invalidFormat: "Formato de imagem não suportado.",
+      tooLarge: "A imagem excede o tamanho máximo permitido.",
+      removeButton: "Remover imagem",
+    },
     fields: {
       name: {
         label: "Nome",
@@ -82,7 +92,7 @@ export const settingsCopy = {
     statusActiveDescription: "Você possui ao menos um canal de contato verificado.",
     statusInactiveDescription:
       "Nenhum canal de contato foi verificado ainda. Habilite a autenticação multifator para proteger sua conta.",
-    enableButton: "Habilitar autenticação multifator",
+    enableButton: "Habilitar MFA",
     enableFeedback: {
       loading: "Enviando solicitação de verificação...",
       success: "Solicitação enviada. Aguarde a validação do seu telefone.",
