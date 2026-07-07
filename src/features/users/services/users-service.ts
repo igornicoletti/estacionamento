@@ -48,10 +48,7 @@ const RESET_ACCESS_REASON = "Reset solicitado pelo painel administrativo."
 const RESET_PASSKEY_REASON = "Reset de passkey solicitado pelo painel administrativo."
 const CLEAR_LOCK_REASON = "Bloqueio removido pelo painel administrativo."
 const REVOKE_SESSIONS_REASON = "Sessões revogadas pelo painel administrativo."
-const REMOTE_UPDATE_UNAVAILABLE_MESSAGE =
-  "Edição de usuário ainda não está disponível no backend remoto."
-const REMOTE_BLOCK_UNAVAILABLE_MESSAGE =
-  "Bloqueio de usuário ainda não está disponível no backend remoto."
+const BLOCK_USER_REASON = "Bloqueio aplicado pelo painel administrativo."
 const LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE =
   "Esta ação só está disponível com o backend remoto configurado."
 
@@ -211,6 +208,59 @@ async function createUserInSupabase(input: CreateUserInput): Promise<UserRecord>
   }
 }
 
+async function updateUserInSupabase(input: UpdateUserInput): Promise<UserRecord> {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    throw new Error(usersCopy.errors.update)
+  }
+
+  const unitsCatalog = await listUnitsCatalog()
+  const normalizedUnitScope = normalizeUnitScope(input, unitsCatalog)
+  const normalizedEmail = input.email?.trim() || ""
+  const normalizedPhoneDigits = onlyDigits(input.phone ?? "")
+
+  if (!normalizedPhoneDigits) {
+    throw new Error(usersCopy.errors.requiredPhone)
+  }
+
+  const users = await listUsersFromSupabase()
+  const targetUser = users.find((user) => user.id === input.id)
+
+  if (!targetUser?.authUserId) {
+    throw new Error(usersCopy.errors.userNotFound)
+  }
+
+  const updateResponse = await supabase.functions.invoke("admin-user-update", {
+    body: {
+      cpf: onlyDigits(input.cpf),
+      email: normalizedEmail || undefined,
+      name: input.name.trim(),
+      phone: normalizedPhoneDigits,
+      role: input.role,
+      targetUserId: targetUser.authUserId,
+      unitId: normalizedUnitScope.unitId ?? undefined,
+    },
+  })
+
+  const { error } = updateResponse as {
+    error: unknown
+  }
+
+  if (error) {
+    throw new Error(usersCopy.errors.update)
+  }
+
+  const refreshedUsers = await listUsersFromSupabase()
+  const updatedUser = refreshedUsers.find((user) => user.id === input.id)
+
+  if (!updatedUser) {
+    throw new Error(usersCopy.errors.userNotFound)
+  }
+
+  return updatedUser
+}
+
 async function resetUserAccessInSupabase(userId: string): Promise<UserRecord> {
   const supabase = getSupabaseBrowserClient()
 
@@ -316,6 +366,15 @@ async function revokeUserSessionsInSupabase(userId: string): Promise<UserRecord>
     userId,
     REVOKE_SESSIONS_REASON,
     usersCopy.feedback.revokeSessions.error
+  )
+}
+
+async function blockUserInSupabase(userId: string): Promise<UserRecord> {
+  return invokeAdminUserAction(
+    "admin-user-block",
+    userId,
+    BLOCK_USER_REASON,
+    usersCopy.feedback.block.error
   )
 }
 
@@ -478,7 +537,7 @@ export async function updateUser(input: UpdateUserInput): Promise<UserRecord> {
   }
 
   if (isRemoteUsersEnabled()) {
-    throw new Error(REMOTE_UPDATE_UNAVAILABLE_MESSAGE)
+    return updateUserInSupabase(input)
   }
 
   return updateUserInMemory(input)
@@ -486,7 +545,7 @@ export async function updateUser(input: UpdateUserInput): Promise<UserRecord> {
 
 export async function blockUser(userId: string): Promise<UserRecord> {
   if (isRemoteUsersEnabled()) {
-    throw new Error(REMOTE_BLOCK_UNAVAILABLE_MESSAGE)
+    return blockUserInSupabase(userId)
   }
 
   return blockUserInMemory(userId)

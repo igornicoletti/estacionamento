@@ -27,6 +27,7 @@ export const auditSeverityLabels: Record<AuditSeverity, string> = {
 export const auditEventLabels: Record<string, string> = {
   account_locked: "Conta bloqueada",
   access_recovery_requested: "Recuperação de acesso solicitada",
+  access_recovery_reviewed: "Recuperação de acesso revisada",
   "client.synced": "Cliente sincronizado",
   login_passkey_success: "Login com passkey",
   passkey_registered: "Passkey registrada",
@@ -34,10 +35,13 @@ export const auditEventLabels: Record<string, string> = {
   password_changed: "Senha alterada",
   password_reset_requested: "Redefinição de senha solicitada",
   phone_change_requested: "Alteração de telefone solicitada",
+  phone_change_reviewed: "Alteração de telefone revisada",
   sessions_revoked: "Sessões revogadas",
   temporary_lock_cleared: "Bloqueio temporário removido",
   "unit.synced": "Unidade sincronizada",
+  user_blocked: "Usuário bloqueado",
   user_created: "Usuário criado",
+  user_updated: "Usuário atualizado",
 }
 
 export function getAuditEventLabel(event: string): string {

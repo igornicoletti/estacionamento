@@ -167,17 +167,13 @@ export function createUsersColumns(
     },
     createActionsColumn<UserRecord>([
       detailsAction,
-      ...(options.remoteMode
-        ? []
-        : [
-          {
-            id: "edit" as const,
-            label: usersCopy.actions.edit,
-            onSelect: (row: { original: UserRecord }) => {
-              options.onEditUser?.(row.original)
-            },
-          },
-        ]),
+      {
+        id: "edit" as const,
+        label: usersCopy.actions.edit,
+        onSelect: (row: { original: UserRecord }) => {
+          options.onEditUser?.(row.original)
+        },
+      },
       {
         id: "reset-access",
         label: usersCopy.actions.resetPassword,
@@ -210,18 +206,14 @@ export function createUsersColumns(
           },
         ]
         : []),
-      ...(options.remoteMode
-        ? []
-        : [
-          {
-            id: "block" as const,
-            label: usersCopy.actions.blockUser,
-            variant: "destructive" as const,
-            onSelect: (row: { original: UserRecord }) => {
-              options.onBlockUser?.(row.original)
-            },
-          },
-        ]),
+      {
+        id: "block" as const,
+        label: usersCopy.actions.blockUser,
+        variant: "destructive" as const,
+        onSelect: (row: { original: UserRecord }) => {
+          options.onBlockUser?.(row.original)
+        },
+      },
     ]),
   ]
 }

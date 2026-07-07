@@ -18,7 +18,11 @@ export {
 export {
   adminActionSchema,
   adminCreateUserSchema,
+  adminPhoneChangeReviewSchema,
+  adminRecoveryReviewSchema,
+  adminUpdateUserSchema,
   authPasswordSchema,
+  cpfSchema,
   authStartSchema,
   flowCpfSchema,
   profilePasswordSchema,

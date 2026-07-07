@@ -31,7 +31,7 @@ function isValidCpfChecksum(value: string) {
   )
 }
 
-const cpfSchema = cpfFormatSchema.refine(
+export const cpfSchema = cpfFormatSchema.refine(
   isValidCpfChecksum,
   "CPF inválido."
 )
@@ -75,8 +75,29 @@ export const adminCreateUserSchema = z.object({
   unitId: z.string().optional(),
 })
 
+export const adminUpdateUserSchema = z.object({
+  cpf: cpfSchema,
+  email: z.string().email().optional(),
+  name: z.string().min(3),
+  phone: z.string().min(10).max(20),
+  role: z.enum(["owner", "admin", "auditor", "manager", "operator"]),
+  targetUserId: z.string().uuid(),
+  unitId: z.string().optional(),
+})
+
 export const adminActionSchema = z.object({
   reason: z.string().min(10),
+  targetUserId: z.string().uuid(),
+})
+
+export const adminRecoveryReviewSchema = z.object({
+  decision: z.enum(["approved", "denied"]),
+  requestId: z.string().uuid(),
+  reviewReason: z.string().min(10),
+})
+
+export const adminPhoneChangeReviewSchema = z.object({
+  decision: z.enum(["approved", "denied"]),
   targetUserId: z.string().uuid(),
 })
 

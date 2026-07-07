@@ -3,6 +3,7 @@ import {
   BellIcon,
   Building2Icon,
   ClipboardListIcon,
+  KeyRoundIcon,
   ScrollTextIcon,
   ShieldCheckIcon,
   TruckIcon,
@@ -76,6 +77,7 @@ export const sidebarBrand = {
 }
 
 export const routeIconById: Partial<Record<string, LucideIcon>> = {
+  accessRequests: KeyRoundIcon,
   audit: ScrollTextIcon,
   prices: BadgeDollarSignIcon,
   rules: ClipboardListIcon,
@@ -109,6 +111,7 @@ export const navigationGroups = [
     label: "Acesso",
     items: [
       findRouteDefinition(appRouteDefinitions, "users"),
+      findRouteDefinition(appSecurityRouteDefinitions, "accessRequests"),
       findRouteDefinition(appSecurityRouteDefinitions, "permissions"),
     ],
   },

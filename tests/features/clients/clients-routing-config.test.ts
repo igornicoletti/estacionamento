@@ -44,6 +44,7 @@ describe("clients route and sidebar integration", () => {
     ])
     expect(navigationGroups[2]?.items.map((item) => item.id)).toEqual([
       "users",
+      "accessRequests",
       "permissions",
     ])
     expect(navigationGroups[3]?.items.map((item) => item.id)).toEqual([

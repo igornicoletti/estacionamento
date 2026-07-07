@@ -69,6 +69,7 @@ export const roleCapabilities = {
 } as const satisfies Record<UserRole, readonly AuthCapability[]>
 
 export const routeCapabilities = {
+  accessRequests: ["admin.users.update"],
   audit: ["audit.read"],
   clients: ["admin.clients.read"],
   clientVehicles: ["admin.vehicles.read"],

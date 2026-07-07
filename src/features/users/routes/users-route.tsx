@@ -339,7 +339,7 @@ export function UsersRoute() {
         )}
       />
 
-      <Dialog open={isDialogOpen && (!remoteMode || !isEditMode)} onOpenChange={handleDialogOpenChange}>
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent
           onInteractOutside={(event) => {
             preventDialogCloseOnFloatingLayerInteraction(event)

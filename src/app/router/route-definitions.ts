@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import { accessRequestsCopy } from "@/features/access-requests/access-requests-copy"
 import {
   routeCapabilities,
   type AuthCapability,
@@ -61,6 +62,18 @@ export const appRouteDefinitions = [
 ] as const satisfies readonly AppRouteDefinition[]
 
 export const appSecurityRouteDefinitions = [
+  {
+    id: "accessRequests",
+    path: "solicitacoes-acesso",
+    href: "/solicitacoes-acesso",
+    label: accessRequestsCopy.page.title,
+    description: accessRequestsCopy.page.subtitle,
+    requiredCapabilities: routeCapabilities.accessRequests,
+    load: () =>
+      import("@/features/access-requests").then((module) => ({
+        default: module.AccessRequestsRoute,
+      })),
+  },
   {
     id: "audit",
     path: "auditoria",
