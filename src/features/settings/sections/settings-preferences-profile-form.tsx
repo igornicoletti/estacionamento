@@ -106,7 +106,7 @@ function AvatarUploadZone() {
           setIsDragging(false)
         }}
         onDrop={handleDrop}
-        className="cursor-pointer border border-dashed p-4 transition-colors hover:bg-muted/50 data-[dragging]:border-primary data-[dragging]:bg-muted/50"
+        className="cursor-pointer border border-dashed p-4 transition-colors hover:bg-muted/50 data-dragging:border-primary data-dragging:bg-muted/50"
       >
         <EmptyHeader>
           <EmptyMedia variant="icon">

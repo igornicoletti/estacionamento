@@ -715,7 +715,7 @@ export function DataTable<TData extends RowData, TValue>({
               />
             ) : shouldRenderTableEmptyRow ? (
               <TableRow>
-                <TableCell colSpan={visibleColumnCount} className="h-[320px] p-6 align-middle">
+                <TableCell colSpan={visibleColumnCount} className="p-6 align-middle">
                   <div
                     role={stateKind === "loading" ? "status" : undefined}
                     aria-live={stateKind === "loading" ? "polite" : undefined}
