@@ -8,9 +8,11 @@ import { settingsCopy } from "../settings-copy"
 export function SettingsRoute() {
   const {
     mfaStatus,
+    isEnablingMfa,
     profile,
     isSaving,
     saveProfile,
+    enableMfa,
   } = useSettings()
 
   return (
@@ -28,7 +30,11 @@ export function SettingsRoute() {
             isSaving={isSaving}
             onSave={saveProfile}
           />
-          <SettingsSecuritySection mfaStatus={mfaStatus} />
+          <SettingsSecuritySection
+            mfaStatus={mfaStatus}
+            isEnablingMfa={isEnablingMfa}
+            onEnableMfa={enableMfa}
+          />
         </>
       ) : null}
     </PageSection>

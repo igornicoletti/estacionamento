@@ -7,16 +7,6 @@ export const settingsCopy = {
     sectionTitle: "Informações de perfil",
     sectionDescription:
       "Dados da sua conta. Alguns campos exigem validação e não são aplicados imediatamente.",
-    avatar: {
-      title: "Foto de perfil",
-      description: "Arraste uma imagem ou selecione um arquivo do seu dispositivo.",
-      dropzoneLabel: "Área para envio da foto de perfil",
-      allowedFormats: "Formatos aceitos: PNG, JPG ou WEBP",
-      maxSize: "Tamanho máximo: 2 MB",
-      invalidFormat: "Formato de arquivo não permitido.",
-      tooLarge: "O arquivo excede o tamanho máximo permitido.",
-      removeButton: "Remover foto",
-    },
     saveButton: "Salvar alterações",
     saveFeedback: {
       loading: "Enviando solicitação...",
@@ -91,6 +81,12 @@ export const settingsCopy = {
     statusInactive: "Inativo",
     statusActiveDescription: "Você possui ao menos um canal de contato verificado.",
     statusInactiveDescription:
-      "Nenhum canal de contato foi verificado ainda. Confirme seu telefone ou email para ativar.",
+      "Nenhum canal de contato foi verificado ainda. Habilite a autenticação multifator para proteger sua conta.",
+    enableButton: "Habilitar autenticação multifator",
+    enableFeedback: {
+      loading: "Enviando solicitação de verificação...",
+      success: "Solicitação enviada. Aguarde a validação do seu telefone.",
+      error: "Não foi possível habilitar a autenticação multifator.",
+    },
   },
 } as const

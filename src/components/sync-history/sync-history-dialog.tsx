@@ -3,10 +3,12 @@ import {
   CheckCircle2Icon,
   ChevronDownIcon,
   CircleDotIcon,
+  RefreshCcwIcon,
   XCircleIcon,
 } from "lucide-react"
 import * as React from "react"
 
+import { Button } from "@/components/ui/button"
 import {
   Collapsible,
   CollapsibleContent,
@@ -40,6 +42,9 @@ interface SyncHistoryDialogProps<TEntry extends SyncHistoryEntry> {
   onOpenChange: (open: boolean) => void
   entries: readonly TEntry[]
   isLoading: boolean
+  error?: Error | string | null
+  onRetry?: () => void
+  retryLabel?: string
   title: string
   description: string
   emptyTitle: string
@@ -129,12 +134,17 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
   onOpenChange,
   entries,
   isLoading,
+  error = null,
+  onRetry,
+  retryLabel = "Tentar novamente",
   title,
   description,
   emptyTitle,
   emptyDescription,
   getCounters,
 }: SyncHistoryDialogProps<TEntry>) {
+  const errorMessage = error instanceof Error ? error.message : error
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent>
@@ -150,7 +160,22 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
             </div>
           ) : null}
 
-          {!isLoading && entries.length === 0 ? (
+          {!isLoading && errorMessage ? (
+            <Empty className="min-h-32 rounded-md border border-dashed p-4">
+              <EmptyHeader>
+                <EmptyTitle>Não foi possível carregar o histórico</EmptyTitle>
+                <EmptyDescription>{errorMessage}</EmptyDescription>
+              </EmptyHeader>
+              {onRetry ? (
+                <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+                  <RefreshCcwIcon aria-hidden="true" />
+                  {retryLabel}
+                </Button>
+              ) : null}
+            </Empty>
+          ) : null}
+
+          {!isLoading && !errorMessage && entries.length === 0 ? (
             <Empty className="min-h-32 rounded-md border border-dashed p-4">
               <EmptyHeader>
                 <EmptyTitle>{emptyTitle}</EmptyTitle>
@@ -159,7 +184,7 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
             </Empty>
           ) : null}
 
-          {!isLoading && entries.length > 0 ? (
+          {!isLoading && !errorMessage && entries.length > 0 ? (
             <ol className="relative ml-3 space-y-3 border-l border-border pl-4">
               {entries.map((entry) => {
                 const StatusIcon = statusIconByType[entry.status]

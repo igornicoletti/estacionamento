@@ -49,21 +49,30 @@ export function DataTableLoadingSkeleton({
 
   return (
     <>
-      {Array.from({ length: safeRowCount }).map((_, rowIndex) => (
-        <TableRow key={`loading-row-${rowIndex}`} aria-hidden="true" className="h-11">
-          {Array.from({ length: safeColumnCount }).map((__, columnIndex) => (
-            <TableCell key={`loading-cell-${rowIndex}-${columnIndex}`}>
-              <Skeleton
-                className={`h-5 ${getSkeletonWidthClass(
-                  columnIndex,
-                  safeColumnCount
-                )}`}
-                style={getSkeletonWidthStyle(columnIndex, columnSizes)}
-              />
-            </TableCell>
-          ))}
-        </TableRow>
-      ))}
+      {Array.from({ length: safeRowCount }).map((_, rowIndex) => {
+        const fadeOpacity = Math.max(0.35, 1 - rowIndex * 0.08)
+
+        return (
+          <TableRow
+            key={`loading-row-${rowIndex}`}
+            aria-hidden="true"
+            className="h-11"
+            style={{ opacity: fadeOpacity }}
+          >
+            {Array.from({ length: safeColumnCount }).map((__, columnIndex) => (
+              <TableCell key={`loading-cell-${rowIndex}-${columnIndex}`}>
+                <Skeleton
+                  className={`h-5 bg-muted/60 ${getSkeletonWidthClass(
+                    columnIndex,
+                    safeColumnCount
+                  )}`}
+                  style={getSkeletonWidthStyle(columnIndex, columnSizes)}
+                />
+              </TableCell>
+            ))}
+          </TableRow>
+        )
+      })}
     </>
   )
 }

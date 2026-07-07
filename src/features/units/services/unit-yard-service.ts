@@ -41,8 +41,6 @@ export async function getUnitYardConfig(unitId: string): Promise<UnitYardConfig>
 export async function upsertUnitYardConfig(
   input: UpsertUnitYardConfigInput
 ): Promise<UnitYardConfig> {
-  await Promise.resolve()
-
   const normalizedUnitId = input.unitId.trim()
 
   if (!normalizedUnitId) {
@@ -56,12 +54,8 @@ export async function upsertUnitYardConfig(
     updatedAt: new Date().toISOString(),
   }
 
-  const current = (await listSanitizedConfigs()).filter(
-    (config) => config.unitId !== normalizedUnitId
-  )
-
   try {
-    await getUnitYardGateway().saveAll([nextConfig, ...current])
+    await getUnitYardGateway().upsertOne(nextConfig)
   } catch (caughtError) {
     throw toError(caughtError, unitsCopy.errors.unitYardSave)
   }

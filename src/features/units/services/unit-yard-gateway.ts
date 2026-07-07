@@ -3,7 +3,7 @@ import { type UnitYardConfig } from "../types/units-types"
 
 export interface UnitYardGateway {
   list(): Promise<UnitYardConfig[]>
-  saveAll(configs: readonly UnitYardConfig[]): Promise<void>
+  upsertOne(config: UnitYardConfig): Promise<void>
 }
 
 type RawUnitYardRow = {
@@ -37,42 +37,33 @@ function createSupabaseUnitYardGateway(): UnitYardGateway {
         updatedAt: row.updated_at,
       }))
     },
-    async saveAll(configs) {
+    async upsertOne(config) {
       const supabase = getSupabaseBrowserClient()
 
       if (!supabase) {
         throw new Error("Supabase indisponível para salvar pátio.")
       }
 
-      const unitIds = configs.map((config) => Number(config.unitId)).filter(Number.isFinite)
+      const unitId = Number(config.unitId)
 
-      if (unitIds.length === 0) {
-        await supabase.from("unit_yard_configs").delete().gt("unit_id", 0)
-        return
+      if (!Number.isFinite(unitId)) {
+        throw new Error("Identificador de unidade inválido para salvar pátio.")
       }
-
-      const rows = configs.map((config) => ({
-        unit_id: Number(config.unitId),
-        patio_active: config.patioActive,
-        parking_spots: config.parkingSpots,
-        updated_at: config.updatedAt,
-      }))
 
       const { error: upsertError } = await supabase
         .from("unit_yard_configs")
-        .upsert(rows, { onConflict: "unit_id" })
+        .upsert(
+          [{
+            unit_id: unitId,
+            patio_active: config.patioActive,
+            parking_spots: config.parkingSpots,
+            updated_at: config.updatedAt,
+          }],
+          { onConflict: "unit_id" }
+        )
 
       if (upsertError) {
         throw new Error(upsertError.message)
-      }
-
-      const { error: deleteError } = await supabase
-        .from("unit_yard_configs")
-        .delete()
-        .not("unit_id", "in", `(${unitIds.join(",")})`)
-
-      if (deleteError) {
-        throw new Error(deleteError.message)
       }
     },
   }

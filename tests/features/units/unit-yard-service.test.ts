@@ -34,10 +34,15 @@ describe("unit yard service", () => {
         await Promise.resolve()
         return [...store]
       },
-      async saveAll(configs) {
+      async upsertOne(config) {
         await Promise.resolve()
-        store.length = 0
-        store.push(...configs)
+        const index = store.findIndex((item) => item.unitId === config.unitId)
+
+        if (index >= 0) {
+          store[index] = config
+        } else {
+          store.push(config)
+        }
       },
     })
   })
@@ -96,10 +101,15 @@ describe("unit yard service", () => {
         await Promise.resolve()
         return store as never[]
       },
-      async saveAll(configs) {
+      async upsertOne(config) {
         await Promise.resolve()
-        store.length = 0
-        store.push(...(configs as never[]))
+        const index = store.findIndex((item) => item.unitId === config.unitId)
+
+        if (index >= 0) {
+          store[index] = config
+        } else {
+          store.push(config)
+        }
       },
     })
 

@@ -1,16 +1,8 @@
-import { ImageUpIcon, SaveIcon, UserIcon } from "lucide-react"
+import { SaveIcon, UserIcon } from "lucide-react"
 import * as React from "react"
 
 import { notify } from "@/components/toast"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Input } from "@/components/ui/input"
 import { formatPhone, onlyDigits } from "@/lib"
 
@@ -18,160 +10,6 @@ import { settingsCopy } from "../settings-copy"
 import { type SettingsProfile } from "../types/settings-types"
 
 const FIELD_WIDTH_CLASS = "h-9 w-full lg:w-80"
-const ALLOWED_AVATAR_MIME_TYPES = ["image/png", "image/jpeg", "image/webp"]
-const MAX_AVATAR_SIZE_BYTES = 2 * 1024 * 1024
-
-function getNameFallback(name: string) {
-  return (
-    name
-      .split(/\s+/)
-      .filter(Boolean)
-      .slice(0, 2)
-      .map((part) => part[0]?.toUpperCase())
-      .join("") || "U"
-  )
-}
-
-interface AvatarUploadZoneProps {
-  name: string
-}
-
-function AvatarUploadZone({ name }: AvatarUploadZoneProps) {
-  const [preview, setPreview] = React.useState<string | null>(null)
-  const [error, setError] = React.useState<string | null>(null)
-  const [isDragging, setIsDragging] = React.useState(false)
-  const inputRef = React.useRef<HTMLInputElement>(null)
-  const previousUrlRef = React.useRef<string | null>(null)
-
-  function revokePreview() {
-    if (previousUrlRef.current) {
-      URL.revokeObjectURL(previousUrlRef.current)
-      previousUrlRef.current = null
-    }
-  }
-
-  function applyFile(file: File | undefined) {
-    if (!file) {
-      return
-    }
-
-    if (!ALLOWED_AVATAR_MIME_TYPES.includes(file.type)) {
-      setError(settingsCopy.profile.avatar.invalidFormat)
-      return
-    }
-
-    if (file.size > MAX_AVATAR_SIZE_BYTES) {
-      setError(settingsCopy.profile.avatar.tooLarge)
-      return
-    }
-
-    setError(null)
-    revokePreview()
-    const url = URL.createObjectURL(file)
-    previousUrlRef.current = url
-    setPreview(url)
-  }
-
-  function handleClick() {
-    inputRef.current?.click()
-  }
-
-  function handleFileChange(event: React.ChangeEvent<HTMLInputElement>) {
-    applyFile(event.target.files?.[0])
-    event.target.value = ""
-  }
-
-  function handleDrop(event: React.DragEvent<HTMLDivElement>) {
-    event.preventDefault()
-    setIsDragging(false)
-    applyFile(event.dataTransfer.files?.[0])
-  }
-
-  function handleRemove(event: React.MouseEvent) {
-    event.stopPropagation()
-    revokePreview()
-    setPreview(null)
-    setError(null)
-  }
-
-  React.useEffect(() => {
-    return () => {
-      revokePreview()
-    }
-  }, [])
-
-  return (
-    <div className="flex flex-col items-center gap-3 sm:flex-row sm:items-start">
-      <Avatar className="size-16 shrink-0">
-        {preview ? <AvatarImage src={preview} alt="Foto de perfil" /> : null}
-        <AvatarFallback className="text-base">{getNameFallback(name)}</AvatarFallback>
-      </Avatar>
-
-      <div className="flex w-full flex-col gap-2">
-        <Empty
-          role="button"
-          tabIndex={0}
-          aria-label={settingsCopy.profile.avatar.dropzoneLabel}
-          data-dragging={isDragging ? "" : undefined}
-          onClick={handleClick}
-          onKeyDown={(event) => {
-            if (event.key === "Enter" || event.key === " ") {
-              event.preventDefault()
-              handleClick()
-            }
-          }}
-          onDragOver={(event) => {
-            event.preventDefault()
-            setIsDragging(true)
-          }}
-          onDragLeave={() => {
-            setIsDragging(false)
-          }}
-          onDrop={handleDrop}
-          className="cursor-pointer border border-dashed p-4 transition-colors hover:bg-muted/50 data-[dragging]:border-primary data-[dragging]:bg-muted/50"
-        >
-          <EmptyHeader>
-            <EmptyMedia variant="icon">
-              <ImageUpIcon aria-hidden="true" />
-            </EmptyMedia>
-            <EmptyTitle>{settingsCopy.profile.avatar.title}</EmptyTitle>
-            <EmptyDescription>
-              {settingsCopy.profile.avatar.description}
-              <br />
-              {settingsCopy.profile.avatar.allowedFormats} · {settingsCopy.profile.avatar.maxSize}
-            </EmptyDescription>
-          </EmptyHeader>
-        </Empty>
-
-        {error ? (
-          <p className="text-xs text-destructive">{error}</p>
-        ) : null}
-
-        {preview ? (
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            className="self-start"
-            onClick={handleRemove}
-          >
-            {settingsCopy.profile.avatar.removeButton}
-          </Button>
-        ) : null}
-      </div>
-
-      <input
-        ref={inputRef}
-        type="file"
-        accept={ALLOWED_AVATAR_MIME_TYPES.join(",")}
-        className="sr-only"
-        tabIndex={-1}
-        aria-hidden="true"
-        onChange={handleFileChange}
-      />
-    </div>
-  )
-}
 
 interface ProfileFieldDefinition {
   id: string
@@ -278,8 +116,6 @@ export function SettingsPreferencesProfileForm({
             <p className="text-sm text-muted-foreground">
               {settingsCopy.profile.sectionDescription}
             </p>
-
-            <AvatarUploadZone name={form.name} />
 
             <div className="flex flex-col gap-3">
               {profileFields.map((field) => (

@@ -239,11 +239,6 @@ export function UnitsRoute() {
               variant="secondary"
               size="lg"
               onClick={() => {
-                if (syncHistoryError && !isLoadingSyncHistory) {
-                  notify.error(unitsCopy.sync.historyLoadError)
-                  return
-                }
-
                 setIsHistoryOpen(true)
               }}
             >
@@ -394,6 +389,10 @@ export function UnitsRoute() {
         onOpenChange={setIsHistoryOpen}
         entries={syncHistory}
         isLoading={isLoadingSyncHistory}
+        error={syncHistoryError}
+        onRetry={() => {
+          void refetchSyncHistory()
+        }}
       />
 
       <ManualSyncDialog

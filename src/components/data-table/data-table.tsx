@@ -604,7 +604,7 @@ export function DataTable<TData extends RowData, TValue>({
     [paginationPageSize]
   )
   const shouldRenderStatePanel = !shouldRenderInitialSkeleton && !visibleRows.length
-  const shouldRenderTableControls = hasSourceRows || isLoading
+  const shouldRenderTableControls = true
   const currentRowCount = manualPagination
     ? rowCount ?? tableData.length
     : manualFiltering

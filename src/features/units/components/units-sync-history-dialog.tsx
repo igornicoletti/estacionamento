@@ -7,6 +7,8 @@ interface UnitsSyncHistoryDialogProps {
   onOpenChange: (open: boolean) => void
   entries: readonly UnitSyncHistoryEntry[]
   isLoading: boolean
+  error?: Error | string | null
+  onRetry?: () => void
 }
 
 function renderCounters(entry: UnitSyncHistoryEntry) {
@@ -39,6 +41,8 @@ export function UnitsSyncHistoryDialog({
   onOpenChange,
   entries,
   isLoading,
+  error,
+  onRetry,
 }: UnitsSyncHistoryDialogProps) {
   return (
     <SyncHistoryDialog
@@ -46,6 +50,8 @@ export function UnitsSyncHistoryDialog({
       onOpenChange={onOpenChange}
       entries={entries}
       isLoading={isLoading}
+      error={error}
+      onRetry={onRetry}
       title="Historico de sincronizacao"
       description="Acompanhe as ultimas execucoes de sincronizacao das unidades."
       emptyTitle="Ainda nao ha execucoes registradas"
