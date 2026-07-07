@@ -28,6 +28,7 @@ export const usersCopy = {
   filters: {
     role: "Perfis",
     status: "Status",
+    unit: "Unidades",
     searchPlaceholder: "Buscar usuários...",
   },
   form: {
@@ -46,6 +47,12 @@ export const usersCopy = {
       email: "E-mail",
       phone: "Telefone",
       cpf: "CPF",
+    },
+    placeholders: {
+      name: "Digite o nome completo",
+      email: "nome@empresa.com",
+      phone: "(00) 00000-0000",
+      role: "Selecione o perfil",
     },
   },
   details: {

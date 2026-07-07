@@ -12,6 +12,7 @@ import {
   AuthCpfField,
   AuthPasswordField,
   isGlobalRole,
+  useAuthSession,
   userRoleLabels,
   userRoleValues,
 } from "@/features/auth"
@@ -130,6 +131,7 @@ export function UsersRoute() {
     revokeSessions,
   } = useUsers()
   const { data: units } = useUnits()
+  const { profile } = useAuthSession()
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [editingUser, setEditingUser] = React.useState<UserRecord | null>(null)
   const [blockingUser, setBlockingUser] = React.useState<UserRecord | null>(null)
@@ -144,14 +146,25 @@ export function UsersRoute() {
   const selectedRole = form.watch("role")
   const isGlobalScopeRole = isGlobalRole(selectedRole)
 
+  // Only owners can assign or see the "owner" role — everyone else works
+  // with a restricted role list, both in the assignment form and filters.
+  const canAssignOwnerRole = profile?.role === "owner"
+  const assignableRoleValues = React.useMemo(
+    () =>
+      canAssignOwnerRole
+        ? userRoleValues
+        : userRoleValues.filter((role) => role !== "owner"),
+    [canAssignOwnerRole]
+  )
+
   const roleOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
-        data,
+        data.filter((user) => canAssignOwnerRole || user.role !== "owner"),
         (user) => user.role,
         (user) => userRoleLabels[user.role]
       ),
-    [data]
+    [canAssignOwnerRole, data]
   )
 
   const statusOptions = React.useMemo(
@@ -160,6 +173,16 @@ export function UsersRoute() {
         data,
         (user) => user.status,
         (user) => appUserStatusLabels[user.status]
+      ),
+    [data]
+  )
+
+  const unitFilterOptions = React.useMemo(
+    () =>
+      createDataTableFilterOptions(
+        data,
+        (user) => user.unitName ?? "",
+        (user) => user.unitName ?? ""
       ),
     [data]
   )
@@ -376,6 +399,7 @@ export function UsersRoute() {
                       <Input
                         id="user-name"
                         className="h-9 w-full"
+                        placeholder={usersCopy.form.placeholders.name}
                         value={field.value}
                         onChange={field.onChange}
                         disabled={isSaving}
@@ -412,6 +436,7 @@ export function UsersRoute() {
                         id="user-email"
                         type="email"
                         className="h-9 w-full"
+                        placeholder={usersCopy.form.placeholders.email}
                         value={field.value}
                         onChange={field.onChange}
                         disabled={isSaving}
@@ -429,10 +454,14 @@ export function UsersRoute() {
                   name="phone"
                   render={({ field, fieldState }) => (
                     <Field data-invalid={Boolean(fieldState.error)}>
-                      <FieldLabel htmlFor="user-phone">{usersCopy.form.fields.phone}</FieldLabel>
+                      <FieldLabel htmlFor="user-phone">
+                        {usersCopy.form.fields.phone}{" "}
+                        <span className="text-destructive">{usersCopy.form.requiredMark}</span>
+                      </FieldLabel>
                       <Input
                         id="user-phone"
                         className="h-9 w-full"
+                        placeholder={usersCopy.form.placeholders.phone}
                         value={field.value}
                         onChange={(event) => {
                           field.onChange(formatPhone(onlyDigits(event.target.value)))
@@ -478,10 +507,10 @@ export function UsersRoute() {
                           className="w-full data-[size=default]:h-9"
                           aria-invalid={Boolean(fieldState.error)}
                         >
-                          <SelectValue placeholder="Selecione" />
+                          <SelectValue placeholder={usersCopy.form.placeholders.role} />
                         </SelectTrigger>
                         <SelectContent position="popper">
-                          {userRoleValues.map((role) => (
+                          {assignableRoleValues.map((role) => (
                             <SelectItem key={role} value={role}>
                               {userRoleLabels[role]}
                             </SelectItem>
@@ -527,7 +556,7 @@ export function UsersRoute() {
                       >
                         <ComboboxInput
                           id="user-unit"
-                          className="w-full"
+                          className="h-9 w-full"
                           placeholder={
                             isGlobalScopeRole
                               ? usersCopy.form.globalUnitPlaceholder
@@ -587,13 +616,14 @@ export function UsersRoute() {
           </div>
           <DialogFooter className="grid grid-cols-2 sm:grid-cols-2">
             <DialogClose asChild>
-              <Button type="button" variant="outline" className="w-full">
+              <Button type="button" variant="outline" size="lg" className="w-full">
                 {usersCopy.dialogs.cancel}
               </Button>
             </DialogClose>
             <Button
               type="submit"
               form={USERS_DIALOG_FORM_ID}
+              size="lg"
               className="w-full"
               disabled={isSaving}
             >
@@ -631,6 +661,11 @@ export function UsersRoute() {
             id: "status",
             title: usersCopy.filters.status,
             options: statusOptions,
+          },
+          {
+            id: "unitName",
+            title: usersCopy.filters.unit,
+            options: unitFilterOptions,
           },
         ]}
         isLoading={isLoading}

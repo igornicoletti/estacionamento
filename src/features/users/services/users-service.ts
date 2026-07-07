@@ -81,6 +81,34 @@ function getRelatedUnitId(value: RawAppUserRow["app_user_units"]) {
   return null
 }
 
+type RawLastAccessRow = {
+  auth_user_id: string
+  last_sign_in_at: string | null
+}
+
+async function listLastAccessByAuthUserId(): Promise<Map<string, string | null>> {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    return new Map()
+  }
+
+  const response = await supabase.rpc("list_app_user_last_access")
+
+  const { data, error } = response as {
+    data: RawLastAccessRow[] | null
+    error: unknown
+  }
+
+  if (error) {
+    return new Map()
+  }
+
+  const rows = data ?? []
+
+  return new Map(rows.map((row) => [row.auth_user_id, row.last_sign_in_at]))
+}
+
 async function listUsersFromSupabase(): Promise<UserRecord[]> {
   const supabase = getSupabaseBrowserClient()
 
@@ -110,6 +138,7 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
   const unitsCatalog = await listUnitsCatalog().catch(
     (): UnitCatalogItem[] => []
   )
+  const lastAccessByAuthUserId = await listLastAccessByAuthUserId()
 
   const unitNameById = new Map(unitsCatalog.map((unit) => [unit.id, unit.name]))
 
@@ -134,7 +163,7 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
         unitId,
         unitName: unitId ? (unitNameById.get(unitId) ?? null) : null,
         mfaStatus: hasVerifiedContact ? "active" : "inactive",
-        lastAccessAt: null,
+        lastAccessAt: lastAccessByAuthUserId.get(appUser.auth_user_id) ?? null,
       } satisfies UserRecord,
     ]
   })
