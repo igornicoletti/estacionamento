@@ -534,6 +534,10 @@ export function DataTable<TData extends RowData, TValue>({
 
   const tableRows = table.getRowModel().rows
   const hasSourceRows = normalizedData.length > 0
+  const datasetRowCount = manualPagination
+    ? rowCount ?? normalizedData.length
+    : normalizedData.length
+  const hasDatasetRows = datasetRowCount > 0
   const hasVisibleRows = tableRows.length > 0
   const hasError = Boolean(error)
   const hasBlockingError = hasError && !isLoading && !hasSourceRows
@@ -584,7 +588,7 @@ export function DataTable<TData extends RowData, TValue>({
   const stateKind = isLoading ? "loading" : "empty"
   const stateContent = resolveDataTableStateContent({
     isLoading,
-    isFiltered,
+    isFiltered: hasDatasetRows && isFiltered,
     loadingState,
     emptyState,
     filteredEmptyState,
@@ -603,8 +607,9 @@ export function DataTable<TData extends RowData, TValue>({
     () => resolveInitialSkeletonRowCount(paginationPageSize),
     [paginationPageSize]
   )
-  const shouldRenderStatePanel = !shouldRenderInitialSkeleton && !visibleRows.length
   const shouldRenderTableControls = true
+  const shouldRenderTableEmptyRow =
+    !shouldRenderInitialSkeleton && !visibleRows.length
   const currentRowCount = manualPagination
     ? rowCount ?? tableData.length
     : manualFiltering
@@ -666,87 +671,81 @@ export function DataTable<TData extends RowData, TValue>({
         </span>
       ) : null}
 
-      {shouldRenderStatePanel ? (
-        <div className="flex min-h-0 flex-1 rounded-md border p-6">
-          {stateKind === "loading" ? (
-            <div
-              role="status"
-              aria-live="polite"
-              className="mx-auto flex min-h-0 w-full flex-1 items-center justify-center"
-            >
-              {stateContent}
-            </div>
-          ) : (
-            <div className="mx-auto flex min-h-0 w-full flex-1 items-center justify-center">
-              {stateContent}
-            </div>
-          )}
-        </div>
-      ) : (
-        <DataTableScrollContainer className="min-h-0 flex-1">
-          <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
-            <caption className="sr-only">
-              {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
-              {isFiltered ? " (filtrado)" : ""}
-            </caption>
-            <TableHeader className="sticky top-0 z-20 bg-background">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="bg-background">
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      style={{ width: header.getSize() }}
-                      className="bg-background"
-                      aria-sort={getHeaderAriaSort(header)}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : typeof header.column.columnDef.header === "string"
-                          ? (
-                            <DataTableColumnHeader
-                              column={header.column}
-                              title={header.column.columnDef.header}
-                            />
-                          )
-                          : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
+      <DataTableScrollContainer className="min-h-0 flex-1">
+        <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
+          <caption className="sr-only">
+            {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
+            {isFiltered ? " (filtrado)" : ""}
+          </caption>
+          <TableHeader className="sticky top-0 z-20 bg-background">
+            {table.getHeaderGroups().map((headerGroup) => (
+              <TableRow key={headerGroup.id} className="bg-background">
+                {headerGroup.headers.map((header) => (
+                  <TableHead
+                    key={header.id}
+                    colSpan={header.colSpan}
+                    style={{ width: header.getSize() }}
+                    className="bg-background"
+                    aria-sort={getHeaderAriaSort(header)}
+                  >
+                    {header.isPlaceholder
+                      ? null
+                      : typeof header.column.columnDef.header === "string"
+                        ? (
+                          <DataTableColumnHeader
+                            column={header.column}
+                            title={header.column.columnDef.header}
+                          />
+                        )
+                        : flexRender(
+                          header.column.columnDef.header,
+                          header.getContext()
+                        )}
+                  </TableHead>
+                ))}
+              </TableRow>
+            ))}
+          </TableHeader>
+          <TableBody>
+            {shouldRenderInitialSkeleton ? (
+              <DataTableLoadingSkeleton
+                columnCount={visibleColumnCount}
+                rowCount={skeletonRowCount}
+                columnSizes={skeletonColumnSizes}
+              />
+            ) : shouldRenderTableEmptyRow ? (
+              <TableRow>
+                <TableCell colSpan={visibleColumnCount} className="h-[320px] p-6 align-middle">
+                  <div
+                    role={stateKind === "loading" ? "status" : undefined}
+                    aria-live={stateKind === "loading" ? "polite" : undefined}
+                    className="mx-auto flex h-full w-full max-w-md items-center justify-center"
+                  >
+                    {stateContent}
+                  </div>
+                </TableCell>
+              </TableRow>
+            ) : (
+              visibleRows.map((row) => (
+                <TableRow
+                  key={row.id}
+                  data-state={row.getIsSelected() ? "selected" : undefined}
+                  className={isLoading ? "opacity-60" : undefined}
+                >
+                  {row.getVisibleCells().map((cell) => (
+                    <TableCell key={cell.id}>
+                      {flexRender(
+                        cell.column.columnDef.cell,
+                        cell.getContext()
+                      )}
+                    </TableCell>
                   ))}
                 </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {shouldRenderInitialSkeleton ? (
-                <DataTableLoadingSkeleton
-                  columnCount={visibleColumnCount}
-                  rowCount={skeletonRowCount}
-                  columnSizes={skeletonColumnSizes}
-                />
-              ) : (
-                visibleRows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() ? "selected" : undefined}
-                    className={isLoading ? "opacity-60" : undefined}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
-                    ))}
-                  </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </DataTableScrollContainer>
-      )}
+              ))
+            )}
+          </TableBody>
+        </Table>
+      </DataTableScrollContainer>
 
       {enablePagination && shouldRenderTableControls ? (
         <DataTablePagination

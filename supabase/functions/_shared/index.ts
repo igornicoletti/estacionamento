@@ -10,6 +10,7 @@ export {
 } from "./auth-cpf.ts"
 export { clearRateLimitByKeyHash, registerRateLimitAttempt } from "./auth-rate-limit.ts"
 export { genericAuthError, genericAuthMessage, jsonResponse } from "./auth-responses.ts"
+export { fetchWithErpRetry } from "./erp-fetch-retry.ts"
 export {
   createAdminClient,
   createPasswordAuthClient

@@ -1,5 +1,6 @@
 import {
   createAdminClient,
+  fetchWithErpRetry,
   getAuthenticatedActor,
   getCorsHeaders,
   handleCors,
@@ -318,44 +319,26 @@ async function fetchErpUnits(mode: SyncMode, lastSuccessfulSyncAt: string | null
     url.searchParams.set(updatedSinceParam, lastSuccessfulSyncAt)
   }
 
-  const controller = new AbortController()
-  const timeout = setTimeout(() => controller.abort(), timeoutMs)
-
-  try {
-    const headers: Record<string, string> = {
-      Accept: "application/json",
-    }
-
-    if (apiToken) {
-      headers["X-API-Token"] = apiToken
-    } else {
-      headers.Authorization = bearerToken
-        ? `Bearer ${bearerToken}`
-        : `Basic ${btoa(`${username}:${password}`)}`
-    }
-
-    const response = await fetch(url, {
-      method: "GET",
-      headers,
-      signal: controller.signal,
-    })
-
-    if (!response.ok) {
-      throw new Error(`erp_http_${response.status}`)
-    }
-
-    const data = await response.json()
-
-    return coerceUnitsPayload(data)
-  } catch (error) {
-    if (error instanceof DOMException && error.name === "AbortError") {
-      throw new Error("erp_timeout")
-    }
-
-    throw error
-  } finally {
-    clearTimeout(timeout)
+  const headers: Record<string, string> = {
+    Accept: "application/json",
   }
+
+  if (apiToken) {
+    headers["X-API-Token"] = apiToken
+  } else {
+    headers.Authorization = bearerToken
+      ? `Bearer ${bearerToken}`
+      : `Basic ${btoa(`${username}:${password}`)}`
+  }
+
+  const response = await fetchWithErpRetry(
+    (signal) => fetch(url, { method: "GET", headers, signal }),
+    timeoutMs
+  )
+
+  const data = await response.json()
+
+  return coerceUnitsPayload(data)
 }
 
 async function getSyncState() {
