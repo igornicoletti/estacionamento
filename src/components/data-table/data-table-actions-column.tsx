@@ -1,4 +1,4 @@
-import { type ColumnDef } from "@tanstack/react-table"
+import { type ColumnDef, type Row } from "@tanstack/react-table"
 
 import { dataTableCopy } from "./data-table-copy"
 import {
@@ -7,7 +7,9 @@ import {
 } from "./data-table-row-actions"
 
 export function createActionsColumn<TData>(
-  actions: readonly DataTableRowAction<TData>[]
+  actions:
+    | readonly DataTableRowAction<TData>[]
+    | ((row: Row<TData>) => readonly DataTableRowAction<TData>[])
 ): ColumnDef<TData> {
   return {
     id: "actions",
@@ -18,7 +20,10 @@ export function createActionsColumn<TData>(
     ),
     cell: ({ row }) => (
       <div className="flex justify-end">
-        <DataTableRowActions row={row} actions={actions} />
+        <DataTableRowActions
+          row={row}
+          actions={typeof actions === "function" ? actions(row) : actions}
+        />
       </div>
     ),
     enableSorting: false,

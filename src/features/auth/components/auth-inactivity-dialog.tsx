@@ -33,7 +33,7 @@ export function AuthInactivityDialog({
     <AlertDialog open={open}>
       <AlertDialogContent>
         <AlertDialogHeader>
-          <AlertDialogMedia className="mx-auto">
+          <AlertDialogMedia>
             <ClockIcon />
           </AlertDialogMedia>
           <AlertDialogTitle>{copy.title}</AlertDialogTitle>

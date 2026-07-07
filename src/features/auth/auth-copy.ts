@@ -33,7 +33,7 @@ export const authCopy = {
   },
   recovery: {
     title: "Recuperar acesso",
-    description: "Solicite análise administrativa para senha, passkey ou bloqueio.",
+    description: "Solicite análise para recuperar o acesso à sua conta.",
     phoneDescription: "Usaremos apenas para análise da solicitação.",
     reasonPlaceholder: "Selecione o motivo",
     otherDescriptionLabel: "Descrição",

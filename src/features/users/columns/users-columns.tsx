@@ -165,55 +165,70 @@ export function createUsersColumns(
       header: "Último acesso",
       cell: ({ row }) => resolveLastAccessLabel(row.original.lastAccessAt),
     },
-    createActionsColumn<UserRecord>([
-      detailsAction,
-      {
-        id: "edit" as const,
-        label: usersCopy.actions.edit,
-        onSelect: (row: { original: UserRecord }) => {
-          options.onEditUser?.(row.original)
-        },
-      },
-      {
-        id: "reset-access",
-        label: usersCopy.actions.resetPassword,
-        onSelect: (row) => {
-          options.onResetAccess?.(row.original)
-        },
-      },
-      ...(options.remoteMode
-        ? [
-          {
-            id: "reset-passkey" as const,
-            label: usersCopy.actions.resetPasskey,
-            onSelect: (row: { original: UserRecord }) => {
-              options.onResetPasskey?.(row.original)
-            },
+    createActionsColumn<UserRecord>((row) => {
+      const isActive = row.original.status === "active"
+      const isBlocked = row.original.status === "inactive"
+
+      return [
+        detailsAction,
+        {
+          id: "edit" as const,
+          label: usersCopy.actions.edit,
+          onSelect: (row: { original: UserRecord }) => {
+            options.onEditUser?.(row.original)
           },
-          {
-            id: "clear-lock" as const,
-            label: usersCopy.actions.clearLock,
-            onSelect: (row: { original: UserRecord }) => {
-              options.onClearLock?.(row.original)
-            },
-          },
-          {
-            id: "revoke-sessions" as const,
-            label: usersCopy.actions.revokeSessions,
-            onSelect: (row: { original: UserRecord }) => {
-              options.onRevokeSessions?.(row.original)
-            },
-          },
-        ]
-        : []),
-      {
-        id: "block" as const,
-        label: usersCopy.actions.blockUser,
-        variant: "destructive" as const,
-        onSelect: (row: { original: UserRecord }) => {
-          options.onBlockUser?.(row.original)
         },
-      },
-    ]),
+        {
+          id: "reset-access",
+          label: usersCopy.actions.resetPassword,
+          onSelect: (row) => {
+            options.onResetAccess?.(row.original)
+          },
+        },
+        ...(options.remoteMode
+          ? [
+            {
+              id: "reset-passkey" as const,
+              label: usersCopy.actions.resetPasskey,
+              onSelect: (row: { original: UserRecord }) => {
+                options.onResetPasskey?.(row.original)
+              },
+            },
+            // "Remover bloqueio" only makes sense for users currently
+            // blocked; it toggles back to "block" for active users.
+            ...(isBlocked
+              ? [
+                {
+                  id: "clear-lock" as const,
+                  label: usersCopy.actions.clearLock,
+                  onSelect: (row: { original: UserRecord }) => {
+                    options.onClearLock?.(row.original)
+                  },
+                },
+              ]
+              : []),
+            {
+              id: "revoke-sessions" as const,
+              label: usersCopy.actions.revokeSessions,
+              onSelect: (row: { original: UserRecord }) => {
+                options.onRevokeSessions?.(row.original)
+              },
+            },
+          ]
+          : []),
+        ...(isActive
+          ? [
+            {
+              id: "block" as const,
+              label: usersCopy.actions.blockUser,
+              variant: "destructive" as const,
+              onSelect: (row: { original: UserRecord }) => {
+                options.onBlockUser?.(row.original)
+              },
+            },
+          ]
+          : []),
+      ]
+    }),
   ]
 }

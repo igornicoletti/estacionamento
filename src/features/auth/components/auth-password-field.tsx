@@ -51,16 +51,15 @@ export function AuthPasswordField({
       <div className="flex items-center justify-between gap-3">
         <FieldLabel htmlFor={id}>
           {label}
-          {required ? <span className="text-destructive"> *</span> : null}
+          {required ? <span className="text-destructive">*</span> : null}
         </FieldLabel>
         {labelAction ? (
           <div className="shrink-0 text-sm">{labelAction}</div>
         ) : null}
       </div>
-      <InputGroup>
+      <InputGroup className="h-9">
         <InputGroupInput
           id={id}
-          className="h-9"
           type={showPassword ? "text" : "password"}
           value={value}
           onChange={(event) => onValueChange(event.target.value)}
@@ -72,7 +71,6 @@ export function AuthPasswordField({
         />
         <InputGroupAddon align="inline-end">
           <InputGroupButton
-            size="icon-sm"
             type="button"
             aria-label={visibilityLabel}
             aria-pressed={showPassword}

@@ -174,7 +174,7 @@ export function AuthRecoveryForm({ onSuccess }: AuthRecoveryFormProps) {
         {selectedReason === "other" ? (
           <Field data-invalid={Boolean(form.formState.errors.description)}>
             <FieldLabel htmlFor="recovery-description">
-              {authCopy.recovery.otherDescriptionLabel}
+              {authCopy.recovery.otherDescriptionLabel} <span className="text-destructive">*</span>
             </FieldLabel>
             <Textarea
               id="recovery-description"

@@ -14,7 +14,7 @@ interface AuthNewPasswordFieldsProps {
 export function AuthNewPasswordFields({
   confirmError,
   confirmValue,
-  description = "8 caracteres, incluindo letras maiúsculas, minúsculas e números",
+  description,
   disabled,
   onConfirmValueChange,
   onPasswordValueChange,

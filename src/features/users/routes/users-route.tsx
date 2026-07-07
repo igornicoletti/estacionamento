@@ -134,7 +134,10 @@ export function UsersRoute() {
   const { profile } = useAuthSession()
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [editingUser, setEditingUser] = React.useState<UserRecord | null>(null)
-  const [blockingUser, setBlockingUser] = React.useState<UserRecord | null>(null)
+  const [pendingAction, setPendingAction] = React.useState<{
+    type: "block" | "reset" | "resetPasskey" | "clearLock" | "revokeSessions"
+    user: UserRecord
+  } | null>(null)
 
   const form = useForm<UsersFormValues>({
     resolver: zodResolver(usersFormSchema),
@@ -270,27 +273,96 @@ export function UsersRoute() {
     })
   }, [revokeSessions])
 
+  const pendingActionConfig = React.useMemo(() => {
+    if (!pendingAction) {
+      return null
+    }
+
+    const { type, user } = pendingAction
+
+    if (type === "block") {
+      return {
+        title: usersCopy.dialogs.blockTitle,
+        description: interpolateUserCopy(usersCopy.dialogs.blockDescription, {
+          name: user.name,
+        }),
+        confirmLabel: usersCopy.dialogs.blockConfirm,
+        onConfirm: () => handleBlockUser(user),
+      }
+    }
+
+    if (type === "reset") {
+      return {
+        title: usersCopy.dialogs.resetTitle,
+        description: interpolateUserCopy(usersCopy.dialogs.resetDescription, {
+          name: user.name,
+        }),
+        confirmLabel: usersCopy.dialogs.resetConfirm,
+        onConfirm: () => handleResetAccess(user),
+      }
+    }
+
+    if (type === "resetPasskey") {
+      return {
+        title: usersCopy.dialogs.resetPasskeyTitle,
+        description: interpolateUserCopy(usersCopy.dialogs.resetPasskeyDescription, {
+          name: user.name,
+        }),
+        confirmLabel: usersCopy.dialogs.resetPasskeyConfirm,
+        onConfirm: () => handleResetPasskey(user),
+      }
+    }
+
+    if (type === "clearLock") {
+      return {
+        title: usersCopy.dialogs.clearLockTitle,
+        description: interpolateUserCopy(usersCopy.dialogs.clearLockDescription, {
+          name: user.name,
+        }),
+        confirmLabel: usersCopy.dialogs.clearLockConfirm,
+        onConfirm: () => handleClearLock(user),
+      }
+    }
+
+    return {
+      title: usersCopy.dialogs.revokeSessionsTitle,
+      description: interpolateUserCopy(usersCopy.dialogs.revokeSessionsDescription, {
+        name: user.name,
+      }),
+      confirmLabel: usersCopy.dialogs.revokeSessionsConfirm,
+      onConfirm: () => handleRevokeSessions(user),
+    }
+  }, [
+    handleBlockUser,
+    handleClearLock,
+    handleResetAccess,
+    handleResetPasskey,
+    handleRevokeSessions,
+    pendingAction,
+  ])
+
   const columns = React.useMemo(
     () =>
       createUsersColumns({
         onBlockUser: (user) => {
-          setBlockingUser(user)
+          setPendingAction({ type: "block", user })
         },
-        onClearLock: handleClearLock,
+        onClearLock: (user) => {
+          setPendingAction({ type: "clearLock", user })
+        },
         onEditUser: handleOpenEditDialog,
-        onResetAccess: handleResetAccess,
-        onResetPasskey: handleResetPasskey,
-        onRevokeSessions: handleRevokeSessions,
+        onResetAccess: (user) => {
+          setPendingAction({ type: "reset", user })
+        },
+        onResetPasskey: (user) => {
+          setPendingAction({ type: "resetPasskey", user })
+        },
+        onRevokeSessions: (user) => {
+          setPendingAction({ type: "revokeSessions", user })
+        },
         remoteMode,
       }),
-    [
-      handleClearLock,
-      handleOpenEditDialog,
-      handleResetAccess,
-      handleResetPasskey,
-      handleRevokeSessions,
-      remoteMode,
-    ]
+    [handleOpenEditDialog, remoteMode]
   )
 
   async function handleSubmit(values: UsersFormValues) {
@@ -532,7 +604,7 @@ export function UsersRoute() {
                       <FieldLabel htmlFor="user-unit">
                         {usersCopy.form.unitLabel}
                         {!isGlobalScopeRole ? (
-                          <span className="text-destructive"> *</span>
+                          <span className="text-destructive">*</span>
                         ) : null}
                       </FieldLabel>
                       <Combobox<UnitOption>
@@ -679,26 +751,18 @@ export function UsersRoute() {
 
       <DestructiveConfirmDialog
         size="sm"
-        open={Boolean(blockingUser)}
+        open={Boolean(pendingAction)}
         onOpenChange={(open) => {
           if (!open) {
-            setBlockingUser(null)
+            setPendingAction(null)
           }
         }}
-        title={usersCopy.dialogs.blockTitle}
-        description={blockingUser
-          ? interpolateUserCopy(usersCopy.dialogs.blockDescription, {
-            name: blockingUser.name,
-          })
-          : usersCopy.dialogs.blockDescriptionFallback}
-        confirmLabel={usersCopy.dialogs.blockConfirm}
+        title={pendingActionConfig?.title ?? ""}
+        description={pendingActionConfig?.description ?? ""}
+        confirmLabel={pendingActionConfig?.confirmLabel}
         onConfirm={() => {
-          if (!blockingUser) {
-            return
-          }
-
-          handleBlockUser(blockingUser)
-          setBlockingUser(null)
+          pendingActionConfig?.onConfirm()
+          setPendingAction(null)
         }}
       />
     </PageSection>

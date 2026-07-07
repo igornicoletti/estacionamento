@@ -24,6 +24,26 @@ export const usersCopy = {
       "Tem certeza que deseja bloquear {{name}}? O acesso ao sistema será interrompido imediatamente.",
     blockDescriptionFallback: "Tem certeza que deseja bloquear este usuário?",
     blockConfirm: "Bloquear",
+    resetTitle: "Redefinir senha",
+    resetDescription:
+      "Tem certeza que deseja redefinir a senha de {{name}}? Uma nova senha de primeiro acesso será exigida no próximo login.",
+    resetDescriptionFallback: "Tem certeza que deseja redefinir a senha deste usuário?",
+    resetConfirm: "Redefinir",
+    resetPasskeyTitle: "Resetar passkey",
+    resetPasskeyDescription:
+      "Tem certeza que deseja resetar a passkey de {{name}}? O usuário deverá cadastrar uma nova no próximo acesso.",
+    resetPasskeyDescriptionFallback: "Tem certeza que deseja resetar a passkey deste usuário?",
+    resetPasskeyConfirm: "Resetar",
+    clearLockTitle: "Remover bloqueio",
+    clearLockDescription:
+      "Tem certeza que deseja remover o bloqueio de {{name}}? O acesso será reativado imediatamente.",
+    clearLockDescriptionFallback: "Tem certeza que deseja remover o bloqueio deste usuário?",
+    clearLockConfirm: "Remover bloqueio",
+    revokeSessionsTitle: "Revogar sessões",
+    revokeSessionsDescription:
+      "Tem certeza que deseja revogar todas as sessões ativas de {{name}}? O usuário será desconectado imediatamente.",
+    revokeSessionsDescriptionFallback: "Tem certeza que deseja revogar as sessões deste usuário?",
+    revokeSessionsConfirm: "Revogar",
   },
   filters: {
     role: "Perfis",

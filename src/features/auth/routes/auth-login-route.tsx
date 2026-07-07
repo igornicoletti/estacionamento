@@ -171,7 +171,6 @@ export function AuthLoginRoute() {
               passwordError={newPasswordError}
               confirmError={confirmNewPasswordError}
               disabled={isBusy}
-              description={authCopy.login.newPasswordDescription}
             />
           ) : null}
 

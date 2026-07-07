@@ -21,18 +21,26 @@ Deno.serve(async (req) => {
 
     const { data: appUser } = await supabase
       .from("app_users")
-      .select("cpf_hmac")
+      .select("cpf_hmac, status")
       .eq("auth_user_id", input.targetUserId)
       .maybeSingle()
 
+    const updatePayload: Record<string, unknown> = {
+      failed_attempts: 0,
+      last_failed_at: null,
+      locked_until: null,
+      updated_by: actor.authUserId,
+    }
+
+    // "Remover bloqueio" also reactivates a user previously blocked via
+    // admin-user-block, in addition to clearing any temporary lockout.
+    if (appUser?.status === "inactive") {
+      updatePayload.status = "active"
+    }
+
     await supabase
       .from("app_users")
-      .update({
-        failed_attempts: 0,
-        last_failed_at: null,
-        locked_until: null,
-        updated_by: actor.authUserId,
-      })
+      .update(updatePayload)
       .eq("auth_user_id", input.targetUserId)
 
     // Also clear the rate limiter so the user is not re-blocked immediately

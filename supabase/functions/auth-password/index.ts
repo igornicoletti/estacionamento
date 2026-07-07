@@ -19,7 +19,21 @@ Deno.serve(async (req) => {
   if (cors) return cors
 
   try {
-    const input = authPasswordSchema.parse(await req.json())
+    const rawBody = await req.json()
+    const parsed = authPasswordSchema.safeParse(rawBody)
+
+    if (!parsed.success) {
+      console.error("[auth-password] invalid_payload", {
+        hasNewPassword: typeof (rawBody as Record<string, unknown>)?.newPassword === "string",
+        issues: parsed.error.issues.map((issue) => ({
+          code: issue.code,
+          path: issue.path,
+        })),
+      })
+      return genericAuthError(400, req)
+    }
+
+    const input = parsed.data
     const cpfHash = await hashSensitiveValue(normalizeCpf(input.cpf))
     const allowed = await registerRateLimitAttempt({
       bucket: "auth-password",
@@ -40,6 +54,10 @@ Deno.serve(async (req) => {
       .maybeSingle()
 
     if (!appUser || appUser.status === "inactive") {
+      console.error("[auth-password] user_not_found_or_inactive", {
+        found: Boolean(appUser),
+        status: appUser?.status ?? null,
+      })
       return genericAuthError(400, req)
     }
 
@@ -87,6 +105,13 @@ Deno.serve(async (req) => {
         return genericAuthError(429, req)
       }
 
+      console.error("[auth-password] sign_in_failed", {
+        errorMessage: error?.message ?? null,
+        errorStatus: error?.status ?? null,
+        hasNewPassword: Boolean(input.newPassword),
+        status: appUser.status,
+      })
+
       return genericAuthError(400, req)
     }
 
@@ -96,9 +121,19 @@ Deno.serve(async (req) => {
       .eq("id", appUser.id)
 
     if (input.newPassword) {
-      await supabase.auth.admin.updateUserById(String(appUser.auth_user_id), {
-        password: input.newPassword,
-      })
+      const { error: updateError } =
+        await supabase.auth.admin.updateUserById(String(appUser.auth_user_id), {
+          password: input.newPassword,
+        })
+
+      if (updateError) {
+        console.error("[auth-password] update_password_failed", {
+          errorMessage: updateError.message,
+          status: updateError.status ?? null,
+        })
+        return genericAuthError(400, req)
+      }
+
       await supabase
         .from("app_users")
         .update({ status: "passkey_reset" })
@@ -143,7 +178,10 @@ Deno.serve(async (req) => {
       nextAction: "authenticated",
       session: sessionData.session,
     }, 200, req)
-  } catch {
+  } catch (caughtError) {
+    console.error("[auth-password] unexpected_error", {
+      message: caughtError instanceof Error ? caughtError.message : String(caughtError),
+    })
     return genericAuthError(400, req)
   }
 })

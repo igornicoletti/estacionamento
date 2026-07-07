@@ -104,7 +104,6 @@ export function useUsers() {
   }, [])
 
   const inactivateUser = React.useCallback(async (userId: string) => {
-    setError(null)
     try {
       const updatedUser = await blockUser(userId)
       setData((current) =>
@@ -112,14 +111,11 @@ export function useUsers() {
       )
       return updatedUser
     } catch (caughtError) {
-      const nextError = toError(caughtError, usersCopy.feedback.block.error)
-      setError(nextError)
-      throw nextError
+      throw toError(caughtError, usersCopy.feedback.block.error)
     }
   }, [])
 
   const resetAccess = React.useCallback(async (userId: string) => {
-    setError(null)
     try {
       const updatedUser = await resetUserAccess(userId)
       setData((current) =>
@@ -127,14 +123,11 @@ export function useUsers() {
       )
       return updatedUser
     } catch (caughtError) {
-      const nextError = toError(caughtError, usersCopy.feedback.reset.error)
-      setError(nextError)
-      throw nextError
+      throw toError(caughtError, usersCopy.feedback.reset.error)
     }
   }, [])
 
   const resetPasskey = React.useCallback(async (userId: string) => {
-    setError(null)
     try {
       const updatedUser = await resetUserPasskey(userId)
       setData((current) =>
@@ -142,14 +135,11 @@ export function useUsers() {
       )
       return updatedUser
     } catch (caughtError) {
-      const nextError = toError(caughtError, usersCopy.feedback.resetPasskey.error)
-      setError(nextError)
-      throw nextError
+      throw toError(caughtError, usersCopy.feedback.resetPasskey.error)
     }
   }, [])
 
   const clearLock = React.useCallback(async (userId: string) => {
-    setError(null)
     try {
       const updatedUser = await clearUserLock(userId)
       setData((current) =>
@@ -157,14 +147,11 @@ export function useUsers() {
       )
       return updatedUser
     } catch (caughtError) {
-      const nextError = toError(caughtError, usersCopy.feedback.clearLock.error)
-      setError(nextError)
-      throw nextError
+      throw toError(caughtError, usersCopy.feedback.clearLock.error)
     }
   }, [])
 
   const revokeSessions = React.useCallback(async (userId: string) => {
-    setError(null)
     try {
       const updatedUser = await revokeUserSessions(userId)
       setData((current) =>
@@ -172,9 +159,7 @@ export function useUsers() {
       )
       return updatedUser
     } catch (caughtError) {
-      const nextError = toError(caughtError, usersCopy.feedback.revokeSessions.error)
-      setError(nextError)
-      throw nextError
+      throw toError(caughtError, usersCopy.feedback.revokeSessions.error)
     }
   }, [])
 
