@@ -64,6 +64,7 @@ export function AuditRoute() {
       <DataTable
         columns={columns}
         data={filteredEvents}
+        sourceRowCount={events.length}
         columnVisibilityStorageKey={AUDIT_TABLE_COLUMN_VISIBILITY_KEY}
         tableStateStorageKey="rmc.table.audit.state.v1"
         getRowId={(event) => event.id}

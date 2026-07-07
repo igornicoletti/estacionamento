@@ -54,6 +54,7 @@ export function ClientsRoute() {
 
   const role = isUserRole(profile?.role) ? profile.role : null
   const canSyncClients = hasCapability(role, "admin.clients.manage")
+  const canManageClients = hasCapability(role, "admin.clients.manage")
   const isSyncing = syncDialogPhase === "running"
   const tableData = React.useMemo<ClientTableRow[]>(() => {
     return clients.map((client) => {
@@ -70,18 +71,20 @@ export function ClientsRoute() {
           void navigate(`/clientes/${client.cod_pessoa}`)
         },
         vipActionLabel: clientsCopy.actions.toggleClientVip,
-        onToggleVip: (client) => {
-          void notify.promise(
-            toggleClientVip({
-              clientId: client.cod_pessoa,
-              clientName: client.nom_pessoa,
-              enabled: client.vip !== "sim",
-            }),
-            clientsCopy.feedback.clientVip
-          )
-        },
+        onToggleVip: canManageClients
+          ? (client) => {
+            void notify.promise(
+              toggleClientVip({
+                clientId: client.cod_pessoa,
+                clientName: client.nom_pessoa,
+                enabled: client.vip !== "sim",
+              }),
+              clientsCopy.feedback.clientVip
+            )
+          }
+          : undefined,
       }),
-    [navigate, toggleClientVip]
+    [canManageClients, navigate, toggleClientVip]
   )
   const statusOptions = React.useMemo(
     () =>

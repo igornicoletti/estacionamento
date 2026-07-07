@@ -24,6 +24,12 @@ import {
 } from "../utils/users-models"
 
 interface CreateUsersColumnsOptions {
+  canEditUser?: boolean
+  canBlockUser?: boolean
+  canResetPassword?: boolean
+  canResetPasskey?: boolean
+  canClearLock?: boolean
+  canRevokeSessions?: boolean
   onEditUser?: (user: UserRecord) => void
   onBlockUser?: (user: UserRecord) => void
   onResetAccess?: (user: UserRecord) => void
@@ -117,7 +123,7 @@ export function createUsersColumns(
       accessorKey: "status",
       meta: { label: usersCopy.filters.status },
       header: () => (
-        <div className="text-center text-[0.8rem] font-medium">
+        <div className="text-center">
           {usersCopy.filters.status}
         </div>
       ),
@@ -142,7 +148,7 @@ export function createUsersColumns(
     {
       accessorKey: "mfaStatus",
       meta: { label: "MFA" },
-      header: () => <div className="text-center text-[0.8rem] font-medium">MFA</div>,
+      header: () => <div className="text-center">MFA</div>,
       enableSorting: false,
       cell: ({ row }) => {
         const isActive = row.original.mfaStatus === "active"
@@ -171,32 +177,42 @@ export function createUsersColumns(
 
       return [
         detailsAction,
-        {
-          id: "edit" as const,
-          label: usersCopy.actions.edit,
-          onSelect: (row: { original: UserRecord }) => {
-            options.onEditUser?.(row.original)
-          },
-        },
-        {
-          id: "reset-access",
-          label: usersCopy.actions.resetPassword,
-          onSelect: (row) => {
-            options.onResetAccess?.(row.original)
-          },
-        },
-        ...(options.remoteMode
+        ...(options.canEditUser && options.onEditUser
           ? [
             {
-              id: "reset-passkey" as const,
-              label: usersCopy.actions.resetPasskey,
+              id: "edit" as const,
+              label: usersCopy.actions.edit,
               onSelect: (row: { original: UserRecord }) => {
-                options.onResetPasskey?.(row.original)
+                options.onEditUser?.(row.original)
               },
             },
-            // "Remover bloqueio" only makes sense for users currently
-            // blocked; it toggles back to "block" for active users.
-            ...(isBlocked
+          ]
+          : []),
+        ...(options.canResetPassword && options.onResetAccess
+          ? [
+            {
+              id: "reset-access" as const,
+              label: usersCopy.actions.resetPassword,
+              onSelect: (row: { original: UserRecord }) => {
+                options.onResetAccess?.(row.original)
+              },
+            },
+          ]
+          : []),
+        ...(options.remoteMode
+          ? [
+            ...(options.canResetPasskey && options.onResetPasskey
+              ? [
+                {
+                  id: "reset-passkey" as const,
+                  label: usersCopy.actions.resetPasskey,
+                  onSelect: (row: { original: UserRecord }) => {
+                    options.onResetPasskey?.(row.original)
+                  },
+                },
+              ]
+              : []),
+            ...(isBlocked && options.canClearLock && options.onClearLock
               ? [
                 {
                   id: "clear-lock" as const,
@@ -207,16 +223,20 @@ export function createUsersColumns(
                 },
               ]
               : []),
-            {
-              id: "revoke-sessions" as const,
-              label: usersCopy.actions.revokeSessions,
-              onSelect: (row: { original: UserRecord }) => {
-                options.onRevokeSessions?.(row.original)
-              },
-            },
+            ...(options.canRevokeSessions && options.onRevokeSessions
+              ? [
+                {
+                  id: "revoke-sessions" as const,
+                  label: usersCopy.actions.revokeSessions,
+                  onSelect: (row: { original: UserRecord }) => {
+                    options.onRevokeSessions?.(row.original)
+                  },
+                },
+              ]
+              : []),
           ]
           : []),
-        ...(isActive
+        ...(isActive && options.canBlockUser && options.onBlockUser
           ? [
             {
               id: "block" as const,

@@ -45,17 +45,11 @@ function isInteractiveElement(target: EventTarget | null) {
   )
 }
 
-function getScrollableElement(container: HTMLDivElement | null) {
-  return (
-    container?.querySelector<HTMLElement>("[data-slot='table-container']") ??
-    container
-  )
-}
-
 export function DataTableScrollContainer({
   children,
   className,
   dragThreshold = DEFAULT_DRAG_THRESHOLD,
+  style,
   ...props
 }: DataTableScrollContainerProps) {
   const scrollRef = React.useRef<HTMLDivElement>(null)
@@ -69,6 +63,7 @@ export function DataTableScrollContainer({
   const previousBodyCursor = React.useRef("")
   const previousBodyUserSelect = React.useRef("")
   const [isDragging, setIsDragging] = React.useState(false)
+  const [viewportWidth, setViewportWidth] = React.useState<number | null>(null)
 
   const stopDragging = React.useCallback((pointerId?: number) => {
     const captureElement = scrollRef.current
@@ -107,6 +102,35 @@ export function DataTableScrollContainer({
     }
   }, [])
 
+  React.useEffect(() => {
+    const element = scrollRef.current
+
+    if (!element) {
+      return
+    }
+
+    const updateViewportWidth = () => {
+      setViewportWidth(element.clientWidth)
+    }
+
+    updateViewportWidth()
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updateViewportWidth)
+
+      return () => {
+        window.removeEventListener("resize", updateViewportWidth)
+      }
+    }
+
+    const observer = new ResizeObserver(updateViewportWidth)
+    observer.observe(element)
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
+
   return (
     <div
       ref={scrollRef}
@@ -126,7 +150,7 @@ export function DataTableScrollContainer({
         }
 
         const captureElement = scrollRef.current
-        const scrollElement = getScrollableElement(captureElement)
+        const scrollElement = captureElement
 
         if (
           !captureElement ||
@@ -151,7 +175,7 @@ export function DataTableScrollContainer({
         setIsDragging(true)
       }}
       onPointerMove={(event) => {
-        const scrollElement = getScrollableElement(scrollRef.current)
+        const scrollElement = scrollRef.current
         const current = dragState.current
 
         if (!scrollElement || current.pointerId !== event.pointerId) {
@@ -196,6 +220,12 @@ export function DataTableScrollContainer({
         }
       }}
       {...props}
+      style={{
+        ...style,
+        "--data-table-scroll-viewport-width": viewportWidth
+          ? `${viewportWidth}px`
+          : "100%",
+      } as React.CSSProperties}
     >
       {children}
     </div>

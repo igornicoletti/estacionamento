@@ -1,6 +1,6 @@
 import * as React from "react"
 
-const DEFAULT_IDLE_TIMEOUT_MS = 15 * 60_000
+export const DEFAULT_IDLE_TIMEOUT_MS = 45 * 60_000
 const DEFAULT_WARNING_DURATION_MS = 60_000
 
 const ACTIVITY_EVENTS = [

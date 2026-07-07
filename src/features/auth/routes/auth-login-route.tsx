@@ -13,6 +13,7 @@ import {
   AuthNewPasswordFields,
   AuthPasskeyAction,
   AuthPasswordField,
+  AuthSessionExpiredDialog,
   AuthSubmitButton,
 } from "../components"
 import { useLoginFlow } from "../hooks"
@@ -91,6 +92,7 @@ export function AuthLoginRoute() {
       title={authCopy.login.title}
       description={authCopy.login.description}
     >
+      <AuthSessionExpiredDialog />
       <form
         onSubmit={(event) => {
           void onSubmit(event)

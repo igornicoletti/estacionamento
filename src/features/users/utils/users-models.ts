@@ -1,4 +1,5 @@
 import { isGlobalRole } from "@/features/auth"
+import { formatDateTime } from "@/lib"
 
 import {
   type CreateUserInput,
@@ -27,7 +28,7 @@ export function resolveUnitLabel(unitName: string | null) {
 }
 
 export function resolveLastAccessLabel(lastAccessAt: string | null) {
-  return lastAccessAt || usersCopy.details.noAccess
+  return formatDateTime(lastAccessAt, usersCopy.details.noAccess)
 }
 
 export function resolveEmailLabel(email: string | null) {

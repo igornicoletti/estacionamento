@@ -106,6 +106,14 @@ function resolveMfaStatus(data: UnknownRecord): "active" | "inactive" {
   return hasVerifiedContact ? "active" : "inactive"
 }
 
+function resolveDisplayValue(
+  data: UnknownRecord,
+  displayKey: string,
+  maskedKey: string
+) {
+  return getStringValue(data[displayKey]) ?? getStringValue(data[maskedKey])
+}
+
 function mapAppUserProfile(data: unknown): AppUserProfile | null {
   if (!isRecord(data)) {
     reportAuthInternalError("mapAppUserProfile:not-record", data)
@@ -123,7 +131,7 @@ function mapAppUserProfile(data: unknown): AppUserProfile | null {
   const id = getStringValue(data.id)
   const authUserId = getStringValue(data.auth_user_id)
   const name = getStringValue(data.name)
-  const phoneMasked = getStringValue(data.phone_masked)
+  const phoneMasked = resolveDisplayValue(data, "phone_display", "phone_masked")
 
   if (!id || !authUserId || !name || !phoneMasked) {
     reportAuthInternalError("mapAppUserProfile:missing-required-fields", {
@@ -145,7 +153,7 @@ function mapAppUserProfile(data: unknown): AppUserProfile | null {
     unitId: getFirstUnitIdFromRelation(data.app_user_units),
     unitName: null,
     phoneMasked,
-    cpfMasked: getStringValue(data.cpf_masked),
+    cpfMasked: resolveDisplayValue(data, "cpf_display", "cpf_masked"),
     email: getStringValue(data.email),
     mfaStatus: resolveMfaStatus(data),
   }
@@ -174,7 +182,7 @@ export async function getCurrentSessionProfile(): Promise<AppUserProfile | null>
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, auth_user_id, name, role, status, phone_masked, cpf_masked, email, phone_verified_at, email_verified_at"
+      "id, auth_user_id, name, role, status, phone_display, phone_masked, cpf_display, cpf_masked, email, phone_verified_at, email_verified_at"
     )
     .eq("auth_user_id", user.id)
     .maybeSingle()

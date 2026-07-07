@@ -97,7 +97,7 @@ export function createClientVehiclesColumns(
     {
       accessorKey: "vip",
       meta: { label: "VIP" },
-      header: () => <div className="text-center text-[0.8rem] font-medium">VIP</div>,
+      header: () => <div className="text-center">VIP</div>,
       size: 80,
       enableSorting: false,
       cell: ({ row }) => {
@@ -117,13 +117,17 @@ export function createClientVehiclesColumns(
     },
     createActionsColumn<ClientVehicleTableRow>([
       detailsAction,
-      {
-        id: "vip",
-        label: options.vipActionLabel ?? "Veículo VIP",
-        onSelect: (row) => {
-          options.onToggleVip?.(row.original)
-        },
-      },
+      ...(options.onToggleVip
+        ? [
+          {
+            id: "vip" as const,
+            label: options.vipActionLabel ?? "Veículo VIP",
+            onSelect: (row: { original: ClientVehicleTableRow }) => {
+              options.onToggleVip?.(row.original)
+            },
+          },
+        ]
+        : []),
     ]),
   ]
 }

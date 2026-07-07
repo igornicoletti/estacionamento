@@ -11,6 +11,7 @@ import {
   appUserStatusLabels,
   AuthCpfField,
   AuthPasswordField,
+  hasCapability,
   isGlobalRole,
   useAuthSession,
   userRoleLabels,
@@ -74,7 +75,10 @@ import {
 } from "../schemas/users-form-schema"
 import { type UserRecord } from "../types/users-types"
 import { usersCopy } from "../users-copy"
-import { interpolateUserCopy } from "../utils/users-models"
+import {
+  interpolateUserCopy,
+  resolveUnitLabel,
+} from "../utils/users-models"
 
 const USERS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.users.columns.v1"
 const USERS_DIALOG_FORM_ID = "users-dialog-form"
@@ -152,6 +156,23 @@ export function UsersRoute() {
   // Only owners can assign or see the "owner" role — everyone else works
   // with a restricted role list, both in the assignment form and filters.
   const canAssignOwnerRole = profile?.role === "owner"
+  const canCreateUsers = hasCapability(profile?.role, "admin.users.create")
+  const canEditUsers = hasCapability(profile?.role, "admin.users.update")
+  const canBlockUsers = hasCapability(profile?.role, "admin.users.disable")
+  const canResetPasswords = hasCapability(
+    profile?.role,
+    "admin.users.resetPassword"
+  )
+  const canResetPasskeys = hasCapability(
+    profile?.role,
+    "admin.users.resetPasskey"
+  )
+  const canClearLocks = hasCapability(profile?.role, "admin.users.clearLock")
+  const canRevokeUserSessions = hasCapability(
+    profile?.role,
+    "admin.users.revokeSessions"
+  )
+  const canExportUsers = hasCapability(profile?.role, "admin.users.export")
   const assignableRoleValues = React.useMemo(
     () =>
       canAssignOwnerRole
@@ -185,7 +206,13 @@ export function UsersRoute() {
       createDataTableFilterOptions(
         data,
         (user) => user.unitName ?? "",
-        (user) => user.unitName ?? ""
+        (user) => resolveUnitLabel(user.unitName),
+        {
+          emptyOption: {
+            label: usersCopy.details.globalUnit,
+            value: "",
+          },
+        }
       ),
     [data]
   )
@@ -344,6 +371,12 @@ export function UsersRoute() {
   const columns = React.useMemo(
     () =>
       createUsersColumns({
+        canBlockUser: canBlockUsers,
+        canClearLock: canClearLocks,
+        canEditUser: canEditUsers,
+        canResetPasskey: canResetPasskeys,
+        canResetPassword: canResetPasswords,
+        canRevokeSessions: canRevokeUserSessions,
         onBlockUser: (user) => {
           setPendingAction({ type: "block", user })
         },
@@ -362,7 +395,16 @@ export function UsersRoute() {
         },
         remoteMode,
       }),
-    [handleOpenEditDialog, remoteMode]
+    [
+      canBlockUsers,
+      canClearLocks,
+      canEditUsers,
+      canResetPasskeys,
+      canResetPasswords,
+      canRevokeUserSessions,
+      handleOpenEditDialog,
+      remoteMode,
+    ]
   )
 
   async function handleSubmit(values: UsersFormValues) {
@@ -419,19 +461,23 @@ export function UsersRoute() {
       <PageHeader
         title={usersCopy.page.title}
         subtitle={usersCopy.page.subtitle}
-        actions={(
-          <PageHeaderActions>
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              onClick={handleOpenCreateDialog}
-            >
-              <PlusIcon aria-hidden="true" />
-              {usersCopy.actions.create}
-            </Button>
-          </PageHeaderActions>
-        )}
+        actions={
+          canCreateUsers
+            ? (
+              <PageHeaderActions>
+                <Button
+                  type="button"
+                  variant="secondary"
+                  size="lg"
+                  onClick={handleOpenCreateDialog}
+                >
+                  <PlusIcon aria-hidden="true" />
+                  {usersCopy.actions.create}
+                </Button>
+              </PageHeaderActions>
+            )
+            : null
+        }
       />
 
       <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
@@ -746,6 +792,7 @@ export function UsersRoute() {
           void refetch()
         }}
         enablePagination
+        enableExport={canExportUsers}
         enableViewOptions
       />
 

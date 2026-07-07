@@ -120,17 +120,19 @@ export function UnitsRoute() {
           const unitId = String(unit.cod_empresa)
           return resolveUnitYardConfig(unitId, yardConfigByUnitId)
         },
-        onConfigureYard: (unit) => {
-          const unitId = String(unit.cod_empresa)
-          const currentConfig = resolveUnitYardConfig(unitId, yardConfigByUnitId)
+        onConfigureYard: canSyncUnits
+          ? (unit) => {
+            const unitId = String(unit.cod_empresa)
+            const currentConfig = resolveUnitYardConfig(unitId, yardConfigByUnitId)
 
-          setConfiguringUnit(unit)
-          setYardStatus(currentConfig.patioActive ? "active" : "inactive")
-          setYardSpots(String(currentConfig.parkingSpots))
-          setYardError(null)
-        },
+            setConfiguringUnit(unit)
+            setYardStatus(currentConfig.patioActive ? "active" : "inactive")
+            setYardSpots(String(currentConfig.parkingSpots))
+            setYardError(null)
+          }
+          : undefined,
       }),
-    [navigate, userStatsByUnitId, yardConfigByUnitId]
+    [canSyncUnits, navigate, userStatsByUnitId, yardConfigByUnitId]
   )
   const brandOptions = React.useMemo(
     () =>

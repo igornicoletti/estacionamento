@@ -36,7 +36,7 @@ const testAuthSession = {
 const seedUsers: UserRecord[] = [
   {
     authUserId: "03eb9a74-9507-41b6-9965-b5e106eb8d49",
-    cpf: "***.***.***-25",
+    cpf: "529.982.247-25",
     email: "ana.pereira@redemontecarlo.com",
     id: "USR-001",
     lastAccessAt: "2026-07-01 08:25",
@@ -50,7 +50,7 @@ const seedUsers: UserRecord[] = [
   },
   {
     authUserId: "03eb9a74-9507-41b6-9965-b5e106eb8d49",
-    cpf: "***.***.***-90",
+    cpf: "111.444.777-35",
     email: "carlos.lima@redemontecarlo.com",
     id: "USR-002",
     lastAccessAt: null,
@@ -73,11 +73,8 @@ vi.mock("@/features/auth/context/auth-session-context", async (importOriginal) =
   }
 })
 
-vi.mock("@/features/auth/hooks", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/features/auth/hooks")>()
-
+vi.mock("@/features/auth/hooks", () => {
   return {
-    ...actual,
     useAuthSession: () => testAuthSession,
   }
 })

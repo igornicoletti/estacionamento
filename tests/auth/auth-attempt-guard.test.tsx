@@ -1,7 +1,7 @@
 import { act, renderHook } from "@testing-library/react"
 import { afterEach, describe, expect, it, vi } from "vitest"
 
-import { useAttemptGuard } from "@/features/auth/hooks"
+import { useAttemptGuard } from "@/features/auth/hooks/auth-use-attempt-guard"
 
 afterEach(() => {
   vi.useRealTimers()

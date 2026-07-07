@@ -74,6 +74,7 @@ export function ClientVehiclesRoute() {
 
   const role = isUserRole(profile?.role) ? profile.role : null
   const canSyncClients = hasCapability(role, "admin.clients.manage")
+  const canManageClients = hasCapability(role, "admin.clients.manage")
   const isSyncing = syncDialogPhase === "running"
   const tableData = React.useMemo<ClientVehicleTableRow[]>(() => {
     return data.map((vehicle) =>
@@ -87,20 +88,22 @@ export function ClientVehiclesRoute() {
     () =>
       createClientVehiclesColumns({
         vipActionLabel: clientsCopy.actions.toggleVehicleVip,
-        onToggleVip: (vehicle: ClientVehicleTableRow) => {
-          void notify.promise(
-            toggleVehicleVip({
-              clientId: vehicle.cod_pessoa,
-              clientName: vehicle.nom_pessoa,
-              vehicleId: vehicle.cod_veiculo,
-              vehiclePlate: vehicle.num_placa,
-              enabled: vehicle.vip !== "sim",
-            }),
-            clientsCopy.feedback.vehicleVip
-          )
-        },
+        onToggleVip: canManageClients
+          ? (vehicle: ClientVehicleTableRow) => {
+            void notify.promise(
+              toggleVehicleVip({
+                clientId: vehicle.cod_pessoa,
+                clientName: vehicle.nom_pessoa,
+                vehicleId: vehicle.cod_veiculo,
+                vehiclePlate: vehicle.num_placa,
+                enabled: vehicle.vip !== "sim",
+              }),
+              clientsCopy.feedback.vehicleVip
+            )
+          }
+          : undefined,
       }),
-    [toggleVehicleVip]
+    [canManageClients, toggleVehicleVip]
   )
   const plateOptions = React.useMemo(
     () =>

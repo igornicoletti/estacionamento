@@ -62,7 +62,7 @@ export function DataTableLoadingSkeleton({
             {Array.from({ length: safeColumnCount }).map((__, columnIndex) => (
               <TableCell key={`loading-cell-${rowIndex}-${columnIndex}`}>
                 <Skeleton
-                  className={`h-5 bg-muted/60 ${getSkeletonWidthClass(
+                  className={`h-5 ${getSkeletonWidthClass(
                     columnIndex,
                     safeColumnCount
                   )}`}

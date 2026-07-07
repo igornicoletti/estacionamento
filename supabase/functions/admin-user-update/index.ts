@@ -1,6 +1,8 @@
 import {
   adminUpdateUserSchema,
   createAdminClient,
+  formatCpf,
+  formatPhone,
   genericAuthError,
   getAuthenticatedActor,
   handleCors,
@@ -49,10 +51,12 @@ Deno.serve(async (req) => {
     const { error: updateError } = await supabase
       .from("app_users")
       .update({
+        cpf_display: formatCpf(cpf),
         cpf_hmac: cpfHash,
         cpf_masked: maskCpf(cpf),
         email: input.email ?? null,
         name: input.name,
+        phone_display: formatPhone(input.phone),
         phone_masked: maskPhone(input.phone),
         role: input.role,
         updated_by: actor.authUserId,

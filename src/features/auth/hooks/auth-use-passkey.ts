@@ -3,9 +3,11 @@ import * as React from "react"
 import {
   completePasskeyLogin,
   completePasskeyRegistration,
+} from "../services/auth-api"
+import {
   registerPasskey,
   signInWithPasskey,
-} from "../services"
+} from "../services/auth-passkey-client"
 import { signOutCurrentSession } from "../services/auth-session"
 
 interface PasskeyFlowInput {

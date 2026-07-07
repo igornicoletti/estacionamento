@@ -20,6 +20,11 @@ export const authCapabilities = [
   "admin.users.update",
   "admin.users.disable",
   "admin.users.resetAccess",
+  "admin.users.resetPassword",
+  "admin.users.resetPasskey",
+  "admin.users.clearLock",
+  "admin.users.revokeSessions",
+  "admin.users.export",
 
   "profile.readSelf",
   "profile.updateSelf",
@@ -55,6 +60,11 @@ export const authCapabilityLabels: Record<AuthCapability, string> = {
   "admin.users.update": "Atualizar usuários",
   "admin.users.disable": "Desativar usuários",
   "admin.users.resetAccess": "Redefinir acesso de usuários",
+  "admin.users.resetPassword": "Redefinir senha de usuários",
+  "admin.users.resetPasskey": "Resetar passkeys de usuários",
+  "admin.users.clearLock": "Remover bloqueios de usuários",
+  "admin.users.revokeSessions": "Revogar sessões de usuários",
+  "admin.users.export": "Exportar dados de usuários",
 
   "profile.readSelf": "Visualizar próprio perfil",
   "profile.updateSelf": "Atualizar próprio perfil",

@@ -1,9 +1,33 @@
-import { notify } from "@/components/toast"
-
-import { authCopy } from "../auth-copy"
 import { AuthInactivityDialog } from "../components/auth-inactivity-dialog"
 import { useAuthSession } from "../context/auth-session-context"
 import { useInactivityLogout } from "../hooks/auth-use-inactivity-logout"
+
+export const AUTH_INACTIVITY_EXPIRED_STORAGE_KEY =
+  "rmc.auth.inactivity-expired"
+
+export function markInactivitySessionExpired() {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  window.sessionStorage.setItem(AUTH_INACTIVITY_EXPIRED_STORAGE_KEY, "1")
+}
+
+export function consumeInactivitySessionExpired() {
+  if (typeof window === "undefined") {
+    return false
+  }
+
+  const hasExpired = window.sessionStorage.getItem(
+    AUTH_INACTIVITY_EXPIRED_STORAGE_KEY
+  ) === "1"
+
+  if (hasExpired) {
+    window.sessionStorage.removeItem(AUTH_INACTIVITY_EXPIRED_STORAGE_KEY)
+  }
+
+  return hasExpired
+}
 
 /**
  * Renders nothing visible on its own — mounts the inactivity tracker and
@@ -14,8 +38,8 @@ export function AuthInactivityGuard() {
   const { isAuthenticated, signOut } = useAuthSession()
 
   const handleInactiveTimeout = () => {
+    markInactivitySessionExpired()
     void signOut()
-    notify.info(authCopy.inactivity.loggedOutMessage)
   }
 
   const { isWarningOpen, secondsRemaining, continueSession } =

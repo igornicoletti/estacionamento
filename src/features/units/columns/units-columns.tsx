@@ -209,7 +209,7 @@ export function createUnitsColumns(
       accessorFn: (unit) => resolveYardStatusLabel(getYardConfig(unit).patioActive),
       meta: { label: unitsCopy.table.yard },
       header: () => (
-        <div className="text-center text-[0.8rem] font-medium">
+        <div className="text-center">
           {unitsCopy.table.yard}
         </div>
       ),
@@ -240,26 +240,28 @@ export function createUnitsColumns(
     },
     createActionsColumn<Unit>([
       detailsAction,
-      {
-        id: "users",
-        label: unitsCopy.actions.users,
-        onSelect: (row) => {
-          options.onSelectUsers?.(row.original)
-        },
-      },
-      options.onConfigureYard
-        ? {
-          id: "yard-settings",
-          label: unitsCopy.actions.configureYard,
-          onSelect: (row) => {
-            options.onConfigureYard?.(row.original)
+      ...(options.onSelectUsers
+        ? [
+          {
+            id: "users" as const,
+            label: unitsCopy.actions.users,
+            onSelect: (row: { original: Unit }) => {
+              options.onSelectUsers?.(row.original)
+            },
           },
-        }
-        : {
-          id: "yard-settings",
-          label: unitsCopy.actions.configureYard,
-          disabled: true,
-        },
+        ]
+        : []),
+      ...(options.onConfigureYard
+        ? [
+          {
+            id: "yard-settings" as const,
+            label: unitsCopy.actions.configureYard,
+            onSelect: (row: { original: Unit }) => {
+              options.onConfigureYard?.(row.original)
+            },
+          },
+        ]
+        : []),
     ]),
   ]
 }

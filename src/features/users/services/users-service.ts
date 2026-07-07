@@ -32,9 +32,11 @@ type RawAppUserUnitRow = {
 type RawAppUserRow = {
   id: string
   auth_user_id: string
+  cpf_display: string | null
   cpf_masked: string
   email: string | null
   name: string
+  phone_display: string | null
   phone_masked: string
   role: string
   status: string
@@ -86,6 +88,12 @@ type RawLastAccessRow = {
   last_sign_in_at: string | null
 }
 
+type RawAuthFactorRow = {
+  auth_user_id: string
+  has_verified_mfa_factor: boolean
+  passkey_count: number
+}
+
 async function listLastAccessByAuthUserId(): Promise<Map<string, string | null>> {
   const supabase = getSupabaseBrowserClient()
 
@@ -101,12 +109,37 @@ async function listLastAccessByAuthUserId(): Promise<Map<string, string | null>>
   }
 
   if (error) {
-    return new Map()
+    throw new Error(usersCopy.errors.load)
   }
 
   const rows = data ?? []
 
   return new Map(rows.map((row) => [row.auth_user_id, row.last_sign_in_at]))
+}
+
+async function listAuthFactorsByAuthUserId(): Promise<Map<string, RawAuthFactorRow>> {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    return new Map()
+  }
+
+  const response = await supabase.functions.invoke<{
+    factors?: RawAuthFactorRow[]
+  }>("admin-user-auth-factors")
+
+  const { data, error } = response as {
+    data: { factors?: RawAuthFactorRow[] } | null
+    error: unknown
+  }
+
+  if (error || !data) {
+    throw new Error(usersCopy.errors.load)
+  }
+
+  return new Map(
+    (data.factors ?? []).map((factor) => [factor.auth_user_id, factor])
+  )
 }
 
 async function listUsersFromSupabase(): Promise<UserRecord[]> {
@@ -119,7 +152,7 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
   const response = await supabase
     .from("app_users")
     .select(
-      "id, auth_user_id, cpf_masked, email, name, phone_masked, role, status, phone_verified_at, email_verified_at, created_at, app_user_units(unit_id)"
+      "id, auth_user_id, cpf_display, cpf_masked, email, name, phone_display, phone_masked, role, status, phone_verified_at, email_verified_at, created_at, app_user_units(unit_id)"
     )
     .order("created_at", { ascending: false })
 
@@ -135,10 +168,9 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
     throw new Error(usersCopy.errors.load)
   }
 
-  const unitsCatalog = await listUnitsCatalog().catch(
-    (): UnitCatalogItem[] => []
-  )
+  const unitsCatalog = await listUnitsCatalog()
   const lastAccessByAuthUserId = await listLastAccessByAuthUserId()
+  const authFactorsByAuthUserId = await listAuthFactorsByAuthUserId()
 
   const unitNameById = new Map(unitsCatalog.map((unit) => [unit.id, unit.name]))
 
@@ -149,20 +181,27 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
 
     const unitId = getRelatedUnitId(appUser.app_user_units)
     const hasVerifiedContact = Boolean(appUser.phone_verified_at || appUser.email_verified_at)
+    const authFactors = authFactorsByAuthUserId.get(appUser.auth_user_id)
+    const passkeyCount = authFactors?.passkey_count ?? 0
+    const hasVerifiedAuthFactor =
+      hasVerifiedContact ||
+      Boolean(authFactors?.has_verified_mfa_factor) ||
+      passkeyCount > 0
 
     return [
       {
         id: appUser.id,
         authUserId: appUser.auth_user_id,
         name: appUser.name,
-        cpf: appUser.cpf_masked,
+        cpf: appUser.cpf_display || appUser.cpf_masked,
         email: appUser.email,
-        phoneMasked: appUser.phone_masked,
+        phoneMasked: appUser.phone_display || appUser.phone_masked,
         role: appUser.role,
         status: appUser.status,
         unitId,
         unitName: unitId ? (unitNameById.get(unitId) ?? null) : null,
-        mfaStatus: hasVerifiedContact ? "active" : "inactive",
+        mfaStatus: hasVerifiedAuthFactor ? "active" : "inactive",
+        passkeyCount,
         lastAccessAt: lastAccessByAuthUserId.get(appUser.auth_user_id) ?? null,
       } satisfies UserRecord,
     ]

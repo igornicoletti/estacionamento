@@ -27,6 +27,11 @@ const adminManageCapabilities = [
   "admin.users.update",
   "admin.users.disable",
   "admin.users.resetAccess",
+  "admin.users.resetPassword",
+  "admin.users.resetPasskey",
+  "admin.users.clearLock",
+  "admin.users.revokeSessions",
+  "admin.users.export",
 ] as const satisfies readonly AuthCapability[]
 
 export const roleCapabilities = {

@@ -19,11 +19,15 @@ Deno.serve(async (req) => {
     const input = adminActionSchema.parse(await req.json())
     const supabase = createAdminClient()
 
-    const { data: appUser } = await supabase
+    const { data: appUser, error: appUserError } = await supabase
       .from("app_users")
       .select("cpf_hmac, status")
       .eq("auth_user_id", input.targetUserId)
       .maybeSingle()
+
+    if (appUserError || !appUser) {
+      return genericAuthError(400, req)
+    }
 
     const updatePayload: Record<string, unknown> = {
       failed_attempts: 0,
@@ -38,10 +42,14 @@ Deno.serve(async (req) => {
       updatePayload.status = "active"
     }
 
-    await supabase
+    const { error: updateError } = await supabase
       .from("app_users")
       .update(updatePayload)
       .eq("auth_user_id", input.targetUserId)
+
+    if (updateError) {
+      return genericAuthError(undefined, req)
+    }
 
     // Also clear the rate limiter so the user is not re-blocked immediately
     if (appUser?.cpf_hmac) {

@@ -119,7 +119,7 @@ export function createAuditColumns(): ColumnDef<AuditEvent>[] {
     {
       id: "outcome",
       meta: { label: "Resultado" },
-      header: () => <div className="text-center text-[0.8rem] font-medium">Resultado</div>,
+      header: () => <div className="text-center">Resultado</div>,
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
@@ -135,7 +135,7 @@ export function createAuditColumns(): ColumnDef<AuditEvent>[] {
     {
       accessorKey: "severity",
       meta: { label: "Severidade" },
-      header: () => <div className="text-center text-[0.8rem] font-medium">Severidade</div>,
+      header: () => <div className="text-center">Severidade</div>,
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">

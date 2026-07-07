@@ -12,6 +12,7 @@ export interface UserRecord {
   unitId: string | null
   unitName: string | null
   mfaStatus: "active" | "inactive"
+  passkeyCount?: number
   lastAccessAt: string | null
 }
 

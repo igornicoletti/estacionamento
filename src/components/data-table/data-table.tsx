@@ -116,21 +116,31 @@ function getHeaderAriaSort<TData, TValue>(header: Header<TData, TValue>) {
 
 function resolveDataTableStateContent({
   isLoading,
+  hasError,
   isFiltered,
   loadingState,
+  errorState,
   emptyState,
   filteredEmptyState,
+  defaultErrorState,
   defaultEmptyState,
   defaultFilteredEmptyState,
 }: {
   isLoading: boolean
+  hasError: boolean
   isFiltered: boolean
   loadingState?: React.ReactNode
+  errorState?: React.ReactNode
   emptyState?: React.ReactNode
   filteredEmptyState?: React.ReactNode
+  defaultErrorState: React.ReactNode
   defaultEmptyState: React.ReactNode
   defaultFilteredEmptyState: React.ReactNode
 }) {
+  if (hasError) {
+    return errorState ?? defaultErrorState
+  }
+
   if (isLoading) {
     return loadingState
   }
@@ -140,6 +150,34 @@ function resolveDataTableStateContent({
   }
 
   return emptyState ?? defaultEmptyState
+}
+
+function DataTableStateRow({
+  children,
+  colSpan,
+  kind,
+}: {
+  children: React.ReactNode
+  colSpan: number
+  kind: "empty" | "error" | "loading"
+}) {
+  const isLiveRegion = kind === "loading" || kind === "error"
+
+  return (
+    <TableRow className="hover:bg-transparent">
+      <TableCell colSpan={colSpan} className="h-36 p-0 align-middle">
+        <div
+          role={kind === "error" ? "alert" : kind === "loading" ? "status" : undefined}
+          aria-live={
+            isLiveRegion ? (kind === "error" ? "assertive" : "polite") : undefined
+          }
+          className="sticky left-0 z-10 flex min-h-36 w-[var(--data-table-scroll-viewport-width)] max-w-full items-center justify-center px-4 py-8"
+        >
+          <div className="w-full max-w-md">{children}</div>
+        </div>
+      </TableCell>
+    </TableRow>
+  )
 }
 
 export interface DataTableProps<TData extends RowData, TValue> {
@@ -162,6 +200,7 @@ export interface DataTableProps<TData extends RowData, TValue> {
   initialPageSize?: number
   pageSizeOptions?: readonly number[]
   enablePagination?: boolean
+  enableExport?: boolean
   enableRowSelection?: boolean
   enableViewOptions?: boolean
   manualFiltering?: boolean
@@ -169,6 +208,7 @@ export interface DataTableProps<TData extends RowData, TValue> {
   manualSorting?: boolean
   pageCount?: number
   rowCount?: number
+  sourceRowCount?: number
   selectedRowCount?: number
   rowSelection?: RowSelectionState
   columnVisibility?: VisibilityState
@@ -207,6 +247,7 @@ export function DataTable<TData extends RowData, TValue>({
   initialPageSize = 25,
   pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
   enablePagination = true,
+  enableExport = true,
   enableRowSelection = false,
   enableViewOptions = true,
   manualFiltering = false,
@@ -214,6 +255,7 @@ export function DataTable<TData extends RowData, TValue>({
   manualSorting = false,
   pageCount,
   rowCount,
+  sourceRowCount,
   selectedRowCount: controlledSelectedRowCount,
   rowSelection: controlledRowSelection,
   columnVisibility: controlledColumnVisibility,
@@ -533,10 +575,10 @@ export function DataTable<TData extends RowData, TValue>({
   })
 
   const tableRows = table.getRowModel().rows
-  const hasSourceRows = normalizedData.length > 0
+  const hasSourceRows = (sourceRowCount ?? normalizedData.length) > 0
   const datasetRowCount = manualPagination
     ? rowCount ?? normalizedData.length
-    : normalizedData.length
+    : sourceRowCount ?? normalizedData.length
   const hasDatasetRows = datasetRowCount > 0
   const hasVisibleRows = tableRows.length > 0
   const hasError = Boolean(error)
@@ -585,13 +627,16 @@ export function DataTable<TData extends RowData, TValue>({
       onAction={handleClearFilters}
     />
   )
-  const stateKind = isLoading ? "loading" : "empty"
+  const stateKind = hasBlockingError ? "error" : isLoading ? "loading" : "empty"
   const stateContent = resolveDataTableStateContent({
     isLoading,
+    hasError: hasBlockingError,
     isFiltered: hasDatasetRows && isFiltered,
     loadingState,
+    errorState,
     emptyState,
     filteredEmptyState,
+    defaultErrorState,
     defaultEmptyState,
     defaultFilteredEmptyState,
   })
@@ -623,14 +668,6 @@ export function DataTable<TData extends RowData, TValue>({
         : table.getFilteredSelectedRowModel().rows.length
       : 0)
 
-  if (hasBlockingError) {
-    return (
-      <div className="flex min-h-0 flex-1 rounded-md border p-6" role="alert" aria-live="assertive">
-        {errorState ?? defaultErrorState}
-      </div>
-    )
-  }
-
   const tableContent = (
     <>
       {hasNonBlockingError ? (
@@ -654,6 +691,7 @@ export function DataTable<TData extends RowData, TValue>({
             filterFields={normalizedFilterFields}
             actions={toolbarActions}
             enableViewOptions={enableViewOptions}
+            enableExport={enableExport}
             manualFiltering={manualFiltering}
             isLoading={isLoading}
             globalFilterValue={globalFilter}
@@ -671,7 +709,7 @@ export function DataTable<TData extends RowData, TValue>({
         </span>
       ) : null}
 
-      <DataTableScrollContainer className="min-h-0 flex-1">
+      <DataTableScrollContainer className="max-h-[min(70svh,42rem)]">
         <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
           <caption className="sr-only">
             {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
@@ -714,17 +752,12 @@ export function DataTable<TData extends RowData, TValue>({
                 columnSizes={skeletonColumnSizes}
               />
             ) : shouldRenderTableEmptyRow ? (
-              <TableRow>
-                <TableCell colSpan={visibleColumnCount} className="p-6 align-middle">
-                  <div
-                    role={stateKind === "loading" ? "status" : undefined}
-                    aria-live={stateKind === "loading" ? "polite" : undefined}
-                    className="mx-auto flex h-full w-full max-w-md items-center justify-center"
-                  >
-                    {stateContent}
-                  </div>
-                </TableCell>
-              </TableRow>
+              <DataTableStateRow
+                colSpan={visibleColumnCount}
+                kind={stateKind}
+              >
+                {stateContent}
+              </DataTableStateRow>
             ) : (
               visibleRows.map((row) => (
                 <TableRow
@@ -761,11 +794,11 @@ export function DataTable<TData extends RowData, TValue>({
 
   if (isLoading) {
     return (
-      <div className="flex min-h-0 flex-1 flex-col gap-4" aria-busy="true">
+      <div className="flex min-h-0 flex-col gap-4" aria-busy="true">
         {tableContent}
       </div>
     )
   }
 
-  return <div className="flex min-h-0 flex-1 flex-col gap-4">{tableContent}</div>
+  return <div className="flex min-h-0 flex-col gap-4">{tableContent}</div>
 }

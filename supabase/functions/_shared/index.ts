@@ -3,6 +3,8 @@ export { getAuthenticatedActor, requireAdminActor } from "./auth-context.ts"
 export { getCorsHeaders, handleCors } from "./auth-cors.ts"
 export {
   getRequestFingerprint,
+  formatCpf,
+  formatPhone,
   hashSensitiveValue,
   maskCpf,
   maskPhone,

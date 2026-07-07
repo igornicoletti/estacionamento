@@ -1,6 +1,8 @@
 import {
   adminCreateUserSchema,
   createAdminClient,
+  formatCpf,
+  formatPhone,
   genericAuthError,
   getAuthenticatedActor,
   handleCors,
@@ -54,11 +56,13 @@ Deno.serve(async (req) => {
       .from("app_users")
       .insert({
         auth_user_id: authUser.user.id,
+        cpf_display: formatCpf(cpf),
         cpf_hmac: cpfHash,
         cpf_masked: maskCpf(cpf),
         created_by: actor.authUserId,
         email: input.email ?? null,
         name: input.name,
+        phone_display: formatPhone(input.phone),
         phone_masked: maskPhone(input.phone),
         role: input.role,
         status: "pending",

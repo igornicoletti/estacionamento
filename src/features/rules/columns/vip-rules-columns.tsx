@@ -79,7 +79,7 @@ export function createVipRulesColumns(
     {
       accessorKey: "active",
       meta: { label: "Status" },
-      header: () => <div className="text-center text-[0.8rem] font-medium">Status</div>,
+      header: () => <div className="text-center">Status</div>,
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">

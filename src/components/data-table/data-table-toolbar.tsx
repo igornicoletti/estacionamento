@@ -31,6 +31,7 @@ interface DataTableToolbarProps<TData> {
   filterFields?: readonly DataTableFilterField<TData>[]
   actions?: React.ReactNode
   enableViewOptions?: boolean
+  enableExport?: boolean
   manualFiltering?: boolean
   isLoading?: boolean
   globalFilterValue?: string
@@ -53,6 +54,7 @@ interface DataTableToolbarControlsProps<TData> {
 interface DataTableToolbarActionsProps<TData> {
   table: Table<TData>
   enableViewOptions: boolean
+  enableExport: boolean
   manualFiltering: boolean
   actions?: React.ReactNode
 }
@@ -220,10 +222,11 @@ function DataTableToolbarControls<TData>({
 function DataTableToolbarActions<TData>({
   table,
   enableViewOptions,
+  enableExport,
   manualFiltering,
   actions,
 }: DataTableToolbarActionsProps<TData>) {
-  if (!enableViewOptions && !actions) {
+  if (!enableViewOptions && !enableExport && !actions) {
     return null
   }
 
@@ -269,24 +272,26 @@ function DataTableToolbarActions<TData>({
   return (
     <div className="flex items-center gap-2">
       {enableViewOptions ? <DataTableViewOptions table={table} /> : null}
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <Button
-            data-no-drag-scroll="true"
-            type="button"
-            variant="outline"
-            size="icon-lg"
-            className="hidden lg:flex"
-            onClick={handleExport}
-          >
-            <DownloadIcon aria-hidden="true" />
-            <span className="sr-only">{dataTableCopy.toolbar.export}</span>
-          </Button>
-        </TooltipTrigger>
-        <TooltipContent>
-          <p>{dataTableCopy.toolbar.exportTooltip}</p>
-        </TooltipContent>
-      </Tooltip>
+      {enableExport ? (
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              data-no-drag-scroll="true"
+              type="button"
+              variant="outline"
+              size="icon-lg"
+              className="hidden lg:flex"
+              onClick={handleExport}
+            >
+              <DownloadIcon aria-hidden="true" />
+              <span className="sr-only">{dataTableCopy.toolbar.export}</span>
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>{dataTableCopy.toolbar.exportTooltip}</p>
+          </TooltipContent>
+        </Tooltip>
+      ) : null}
       {actions}
     </div>
   )
@@ -299,6 +304,7 @@ export function DataTableToolbar<TData>({
   filterFields = [],
   actions,
   enableViewOptions = true,
+  enableExport = true,
   manualFiltering = false,
   isLoading = false,
   globalFilterValue = "",
@@ -322,6 +328,7 @@ export function DataTableToolbar<TData>({
       <DataTableToolbarActions<TData>
         table={table}
         enableViewOptions={enableViewOptions}
+        enableExport={enableExport}
         manualFiltering={manualFiltering}
         actions={actions}
       />

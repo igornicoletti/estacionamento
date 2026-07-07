@@ -23,6 +23,8 @@ describe("UsersRoute", () => {
     expect(screen.getByRole("heading", { name: "Ana Pereira" })).toBeInTheDocument()
     expect(screen.queryByText("ID")).not.toBeInTheDocument()
     expect(screen.queryByText("USR-001")).not.toBeInTheDocument()
+    expect(screen.getAllByText("529.982.247-25").length).toBeGreaterThan(0)
+    expect(screen.queryByText("***.***.***-25")).not.toBeInTheDocument()
   })
 
   it("exibe validacoes obrigatorias ao submeter dialogo de cadastro vazio", async () => {

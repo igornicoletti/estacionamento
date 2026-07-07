@@ -64,7 +64,7 @@ export function RulesRoute() {
     () =>
       createDataTableFilterOptions(
         rules,
-        (rule) => (rule.active ? "active" : "inactive"),
+        (rule) => String(rule.active),
         (rule) => (rule.active ? "Ativa" : "Inativa")
       ),
     [rules]

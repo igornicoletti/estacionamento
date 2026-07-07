@@ -9,7 +9,7 @@ import {
   type DataTableRowAction,
 } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { getBadgeToneClassName } from "@/lib"
+import { formatDateTime, getBadgeToneClassName } from "@/lib"
 
 import {
   notificationStatusLabels,
@@ -28,6 +28,10 @@ function resolveNotificationStatusVariant(status: NotificationRecord["status"]) 
     : ("info" as const)
 }
 
+function isInternalHref(href: string) {
+  return href.startsWith("/") && !href.startsWith("//")
+}
+
 function getNotificationDetails(notification: NotificationRecord) {
   return {
     title: notification.title,
@@ -35,7 +39,7 @@ function getNotificationDetails(notification: NotificationRecord) {
     items: [
       { label: "Tipo", value: notificationTypeLabels[notification.type] },
       { label: "Status", value: notificationStatusLabels[notification.status] },
-      { label: "Data", value: notification.occurredAt },
+      { label: "Data", value: formatDateTime(notification.occurredAt) },
       { label: "Destino", value: notification.href || "—" },
     ],
   }
@@ -74,7 +78,7 @@ export function createNotificationsColumns(
     {
       accessorKey: "status",
       meta: { label: "Status" },
-      header: () => <div className="text-center text-[0.8rem] font-medium">Status</div>,
+      header: () => <div className="text-center">Status</div>,
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
@@ -91,6 +95,7 @@ export function createNotificationsColumns(
       accessorKey: "occurredAt",
       meta: { label: "Data" },
       header: "Data",
+      cell: ({ row }) => formatDateTime(row.original.occurredAt),
     },
     {
       accessorKey: "href",
@@ -99,7 +104,7 @@ export function createNotificationsColumns(
       cell: ({ row }) => {
         const href = row.original.href
 
-        if (!href) {
+        if (!href || !isInternalHref(href)) {
           return "—"
         }
 
@@ -149,11 +154,14 @@ export function createNotificationsColumns(
           {
             id: "open-destination",
             label: "Abrir destino",
-            shortcut: row.original.href ? "↗" : undefined,
+            shortcut:
+              row.original.href && isInternalHref(row.original.href)
+                ? "↗"
+                : undefined,
             onSelect: (currentRow) => {
               const href = currentRow.original.href
 
-              if (!href || typeof window === "undefined") {
+              if (!href || !isInternalHref(href) || typeof window === "undefined") {
                 return
               }
 

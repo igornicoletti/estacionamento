@@ -1,31 +1,38 @@
 import { act, renderHook, waitFor } from "@testing-library/react"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
-const completePasskeyLogin = vi.fn()
-const completePasskeyRegistration = vi.fn()
-const registerPasskey = vi.fn()
-const signInWithPasskey = vi.fn()
-const signOutCurrentSession = vi.fn()
-
-vi.mock("../../src/features/auth/services", () => ({
-  completePasskeyLogin: (...args: unknown[]) => completePasskeyLogin(...args),
-  completePasskeyRegistration: (...args: unknown[]) =>
-    completePasskeyRegistration(...args),
-  registerPasskey: (...args: unknown[]) => registerPasskey(...args),
-  signInWithPasskey: (...args: unknown[]) => signInWithPasskey(...args),
+const passkeyMocks = vi.hoisted(() => ({
+  completePasskeyLogin: vi.fn<() => Promise<void>>(),
+  completePasskeyRegistration: vi.fn<() => Promise<void>>(),
+  registerPasskey: vi.fn<() => Promise<void>>(),
+  signInWithPasskey: vi.fn<() => Promise<void>>(),
+  signOutCurrentSession: vi.fn<() => Promise<void>>(),
 }))
 
-vi.mock("../../src/features/auth/services/auth-session", () => ({
-  signOutCurrentSession: (...args: unknown[]) =>
-    signOutCurrentSession(...args),
+vi.mock("@/features/auth/services/auth-api", () => ({
+  completePasskeyLogin: passkeyMocks.completePasskeyLogin,
+  completePasskeyRegistration: passkeyMocks.completePasskeyRegistration,
+}))
+
+vi.mock("@/features/auth/services/auth-passkey-client", () => ({
+  registerPasskey: passkeyMocks.registerPasskey,
+  signInWithPasskey: passkeyMocks.signInWithPasskey,
+}))
+
+vi.mock("@/features/auth/services/auth-session", () => ({
+  signOutCurrentSession: passkeyMocks.signOutCurrentSession,
 }))
 
 import { usePasskey } from "@/features/auth/hooks/auth-use-passkey"
 
 describe("usePasskey", () => {
+  beforeEach(() => {
+    vi.clearAllMocks()
+  })
+
   it("completes login without signing out when the app-side flow succeeds", async () => {
-    signInWithPasskey.mockResolvedValueOnce(undefined)
-    completePasskeyLogin.mockResolvedValueOnce(undefined)
+    passkeyMocks.signInWithPasskey.mockResolvedValueOnce(undefined)
+    passkeyMocks.completePasskeyLogin.mockResolvedValueOnce(undefined)
 
     const { result } = renderHook(() => usePasskey())
 
@@ -33,20 +40,20 @@ describe("usePasskey", () => {
       await result.current.authenticate({ cpf: "12345678900", flowId: "flow-1" })
     })
 
-    expect(signInWithPasskey).toHaveBeenCalledTimes(1)
-    expect(completePasskeyLogin).toHaveBeenCalledWith({
+    expect(passkeyMocks.signInWithPasskey).toHaveBeenCalledTimes(1)
+    expect(passkeyMocks.completePasskeyLogin).toHaveBeenCalledWith({
       cpf: "12345678900",
       flowId: "flow-1",
     })
-    expect(signOutCurrentSession).not.toHaveBeenCalled()
+    expect(passkeyMocks.signOutCurrentSession).not.toHaveBeenCalled()
     expect(result.current.isPending).toBe(false)
   })
 
   it("signs out the stale WebAuthn session when app-side completion is rejected (e.g. inactive/pending account)", async () => {
-    signInWithPasskey.mockResolvedValueOnce(undefined)
+    passkeyMocks.signInWithPasskey.mockResolvedValueOnce(undefined)
     const completionError = new Error("account not active")
-    completePasskeyLogin.mockRejectedValueOnce(completionError)
-    signOutCurrentSession.mockResolvedValueOnce(undefined)
+    passkeyMocks.completePasskeyLogin.mockRejectedValueOnce(completionError)
+    passkeyMocks.signOutCurrentSession.mockResolvedValueOnce(undefined)
 
     const { result } = renderHook(() => usePasskey())
 
@@ -59,9 +66,9 @@ describe("usePasskey", () => {
       })
     ).rejects.toThrow("account not active")
 
-    expect(signInWithPasskey).toHaveBeenCalledTimes(1)
-    expect(completePasskeyLogin).toHaveBeenCalledTimes(1)
-    expect(signOutCurrentSession).toHaveBeenCalledTimes(1)
+    expect(passkeyMocks.signInWithPasskey).toHaveBeenCalledTimes(1)
+    expect(passkeyMocks.completePasskeyLogin).toHaveBeenCalledTimes(1)
+    expect(passkeyMocks.signOutCurrentSession).toHaveBeenCalledTimes(1)
 
     await waitFor(() => {
       expect(result.current.isPending).toBe(false)
@@ -70,7 +77,7 @@ describe("usePasskey", () => {
 
   it("does not attempt sign-out when the WebAuthn ceremony itself fails before any session exists", async () => {
     const webauthnError = new Error("NotAllowedError")
-    signInWithPasskey.mockRejectedValueOnce(webauthnError)
+    passkeyMocks.signInWithPasskey.mockRejectedValueOnce(webauthnError)
 
     const { result } = renderHook(() => usePasskey())
 
@@ -83,7 +90,7 @@ describe("usePasskey", () => {
       })
     ).rejects.toThrow("NotAllowedError")
 
-    expect(completePasskeyLogin).not.toHaveBeenCalled()
-    expect(signOutCurrentSession).not.toHaveBeenCalled()
+    expect(passkeyMocks.completePasskeyLogin).not.toHaveBeenCalled()
+    expect(passkeyMocks.signOutCurrentSession).not.toHaveBeenCalled()
   })
 })

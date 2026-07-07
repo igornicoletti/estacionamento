@@ -50,6 +50,10 @@ export const authCopy = {
     secondsRemaining: (seconds: number) =>
       `Você será desconectado em ${seconds}s.`,
     loggedOutMessage: "Sessão encerrada por inatividade.",
+    expiredTitle: "Sessão encerrada",
+    expiredDescription:
+      "Sua sessão foi encerrada por inatividade. Faça login novamente para continuar.",
+    expiredConfirm: "Entendi",
   },
 } as const
 

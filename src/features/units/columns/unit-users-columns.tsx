@@ -4,6 +4,10 @@ import {
   appUserStatusLabels,
   userRoleLabels,
 } from "@/features/auth"
+import {
+  resolveLastAccessLabel,
+  resolveMfaLabel,
+} from "@/features/users/utils/users-models"
 import { type UserRecord } from "@/features/users"
 
 import {
@@ -16,10 +20,6 @@ import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 import { unitsCopy } from "../units-copy"
 
-function getMfaLabel(value: UserRecord["mfaStatus"]) {
-  return value === "active" ? "Ativo" : "Inativo"
-}
-
 function getUserDetails(user: UserRecord) {
   return {
     title: user.name,
@@ -31,8 +31,8 @@ function getUserDetails(user: UserRecord) {
       { label: unitsCopy.table.phone, value: user.phoneMasked || "-" },
       { label: unitsCopy.table.profile, value: userRoleLabels[user.role] },
       { label: unitsCopy.table.status, value: appUserStatusLabels[user.status] },
-      { label: unitsCopy.table.mfa, value: getMfaLabel(user.mfaStatus) },
-      { label: unitsCopy.table.lastAccess, value: user.lastAccessAt || unitsCopy.table.noAccess },
+      { label: unitsCopy.table.mfa, value: resolveMfaLabel(user.mfaStatus) },
+      { label: unitsCopy.table.lastAccess, value: resolveLastAccessLabel(user.lastAccessAt) },
     ],
   }
 }
@@ -85,7 +85,7 @@ export function createUnitUsersColumns(): ColumnDef<UserRecord>[] {
       accessorKey: "status",
       meta: { label: unitsCopy.table.status },
       header: () => (
-        <div className="text-center text-[0.8rem] font-medium">
+        <div className="text-center">
           {unitsCopy.table.status}
         </div>
       ),
@@ -109,7 +109,7 @@ export function createUnitUsersColumns(): ColumnDef<UserRecord>[] {
       accessorKey: "mfaStatus",
       meta: { label: unitsCopy.table.mfa },
       header: () => (
-        <div className="text-center text-[0.8rem] font-medium">
+        <div className="text-center">
           {unitsCopy.table.mfa}
         </div>
       ),
@@ -123,7 +123,7 @@ export function createUnitUsersColumns(): ColumnDef<UserRecord>[] {
               variant="secondary"
               className={getBadgeToneClassName(isActive ? "success" : undefined)}
             >
-              {getMfaLabel(row.original.mfaStatus)}
+              {resolveMfaLabel(row.original.mfaStatus)}
             </Badge>
           </div>
         )
@@ -133,7 +133,7 @@ export function createUnitUsersColumns(): ColumnDef<UserRecord>[] {
       accessorKey: "lastAccessAt",
       meta: { label: unitsCopy.table.lastAccess },
       header: unitsCopy.table.lastAccess,
-      cell: ({ row }) => row.original.lastAccessAt || unitsCopy.table.noAccess,
+      cell: ({ row }) => resolveLastAccessLabel(row.original.lastAccessAt),
     },
     createActionsColumn<UserRecord>([detailsAction]),
   ]

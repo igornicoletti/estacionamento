@@ -108,7 +108,7 @@ export function createClientsColumns(
     {
       accessorKey: "status",
       meta: { label: "Status" },
-      header: () => <div className="text-center text-[0.8rem] font-medium">Status</div>,
+      header: () => <div className="text-center">Status</div>,
       size: 96,
       enableSorting: false,
       cell: ({ row }) => {
@@ -146,7 +146,7 @@ export function createClientsColumns(
     {
       accessorKey: "vip",
       meta: { label: "VIP" },
-      header: () => <div className="text-center text-[0.8rem] font-medium">VIP</div>,
+      header: () => <div className="text-center">VIP</div>,
       size: 80,
       enableSorting: false,
       cell: ({ row }) => {
@@ -173,13 +173,17 @@ export function createClientsColumns(
           options.onSelectVehicles?.(row.original)
         },
       },
-      {
-        id: "vip",
-        label: options.vipActionLabel ?? "Cliente VIP",
-        onSelect: (row) => {
-          options.onToggleVip?.(row.original)
-        },
-      },
+      ...(options.onToggleVip
+        ? [
+          {
+            id: "vip" as const,
+            label: options.vipActionLabel ?? "Cliente VIP",
+            onSelect: (row: { original: ClientTableRow }) => {
+              options.onToggleVip?.(row.original)
+            },
+          },
+        ]
+        : []),
     ]),
   ]
 }
