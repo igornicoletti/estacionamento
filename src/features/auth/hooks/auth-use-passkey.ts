@@ -6,6 +6,7 @@ import {
   registerPasskey,
   signInWithPasskey,
 } from "../services"
+import { signOutCurrentSession } from "../services/auth-session"
 
 interface PasskeyFlowInput {
   cpf: string
@@ -20,7 +21,17 @@ export function usePasskey() {
 
     try {
       await signInWithPasskey()
-      await completePasskeyLogin(input)
+
+      try {
+        await completePasskeyLogin(input)
+      } catch (caughtError) {
+        // The WebAuthn ceremony already succeeded and persisted a real
+        // Supabase session at this point. If our own app-level bookkeeping
+        // rejects it (e.g. account not "active" yet), sign the stale
+        // session out so it doesn't linger in storage after a blocked login.
+        await signOutCurrentSession()
+        throw caughtError
+      }
     } finally {
       setIsPending(false)
     }

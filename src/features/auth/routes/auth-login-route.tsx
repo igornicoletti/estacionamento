@@ -206,9 +206,11 @@ export function AuthLoginRoute() {
                 label={authCopy.login.passkeyLogin}
                 variant="secondary"
                 isLoading={passkey.isPending}
-                disabled={form.formState.isSubmitting || guard.isBlocked}
+                disabled={
+                  form.formState.isSubmitting || guard.isBlocked || !cpfIsValid
+                }
                 onClick={() => {
-                  if (guard.isBlocked) {
+                  if (guard.isBlocked || !cpfIsValid) {
                     return
                   }
 
