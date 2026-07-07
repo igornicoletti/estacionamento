@@ -41,6 +41,16 @@ export const authCopy = {
     submit: "Enviar solicitação",
     backToLogin: "Voltar para login",
   },
+  inactivity: {
+    title: "Sua sessão está prestes a expirar",
+    description:
+      "Por segurança, sessões inativas são encerradas automaticamente. Deseja continuar conectado?",
+    continueSession: "Continuar conectado",
+    signOutNow: "Sair agora",
+    secondsRemaining: (seconds: number) =>
+      `Você será desconectado em ${seconds}s.`,
+    loggedOutMessage: "Sessão encerrada por inatividade.",
+  },
 } as const
 
 export const recoveryReasonOptions = [

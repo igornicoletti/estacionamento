@@ -1,5 +1,7 @@
 export { AuthCard } from "./auth-card"
 export { AuthCpfField } from "./auth-cpf-field"
+export { AuthInactivityDialog } from "./auth-inactivity-dialog"
+export { AuthInactivityGuard } from "./auth-inactivity-guard"
 export { AuthNewPasswordFields } from "./auth-new-password-fields"
 export { AuthPasskeyAction } from "./auth-passkey-action"
 export { AuthPasswordField } from "./auth-password-field"
