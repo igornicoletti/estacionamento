@@ -6,15 +6,9 @@ import {
   DataTable,
 } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
-import {
-  createAuditColumns,
-  getAuditActorRoleLabel,
-} from "../columns/audit-columns"
+import { createAuditColumns } from "../columns/audit-columns"
 import { useAudit } from "../hooks/use-audit"
-import {
-  auditActionLabels,
-  auditOutcomeLabels,
-} from "../types/audit-types"
+import { auditScopeLabels, auditSeverityLabels } from "../types/audit-types"
 import { filterAuditEvents } from "../utils/audit-filter-utils"
 
 const AUDIT_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.audit.columns.v1"
@@ -30,32 +24,32 @@ export function AuditRoute() {
     [columnFilters, events, globalFilter]
   )
 
-  const actionOptions = React.useMemo(
+  const eventOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
         events,
-        (event) => event.action,
-        (event) => auditActionLabels[event.action]
+        (event) => event.event,
+        (event) => event.eventLabel
       ),
     [events]
   )
 
-  const outcomeOptions = React.useMemo(
+  const scopeOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
         events,
-        (event) => event.outcome,
-        (event) => auditOutcomeLabels[event.outcome]
+        (event) => event.scope,
+        (event) => auditScopeLabels[event.scope]
       ),
     [events]
   )
 
-  const roleOptions = React.useMemo(
+  const severityOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
         events,
-        (event) => event.actorRole ?? "",
-        (event) => getAuditActorRoleLabel(event)
+        (event) => event.severity,
+        (event) => auditSeverityLabels[event.severity]
       ),
     [events]
   )
@@ -75,14 +69,7 @@ export function AuditRoute() {
         getRowId={(event) => event.id}
         manualFiltering
         globalSearch={{
-          columnIds: [
-            "actorName",
-            "entity",
-            "unitName",
-            "ipAddress",
-            "userAgent",
-            "description",
-          ],
+          columnIds: ["actorName", "event", "target"],
           placeholder: "Buscar na auditoria...",
         }}
         globalFilterValue={globalFilter}
@@ -91,19 +78,19 @@ export function AuditRoute() {
         onColumnFiltersChange={setColumnFilters}
         filterFields={[
           {
-            id: "action",
-            title: "Ações",
-            options: actionOptions,
+            id: "event",
+            title: "Eventos",
+            options: eventOptions,
           },
           {
-            id: "outcome",
-            title: "Resultados",
-            options: outcomeOptions,
+            id: "scope",
+            title: "Escopos",
+            options: scopeOptions,
           },
           {
-            id: "actorRole",
-            title: "Perfis",
-            options: roleOptions,
+            id: "severity",
+            title: "Severidade",
+            options: severityOptions,
           },
         ]}
         isLoading={isLoading}

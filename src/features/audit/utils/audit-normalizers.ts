@@ -1,11 +1,8 @@
-import { isUserRole, type UserRole } from "@/features/auth"
-
 import {
-  isAuditAction,
-  isAuditOutcome,
-  type AuditAction,
+  getAuditEventLabel,
+  isAuditScope,
+  isAuditSeverity,
   type AuditEvent,
-  type AuditOutcome,
   type RawAuditEventPayload,
 } from "../types/audit-types"
 
@@ -43,34 +40,40 @@ function sanitizeIsoTimestamp(value: unknown): string {
   return new Date(0).toISOString()
 }
 
-function sanitizeRole(value: unknown): UserRole | null {
-  return isUserRole(value) ? value : null
+function sanitizeBoolean(value: unknown): boolean {
+  return value === true
 }
 
-function sanitizeAction(value: unknown): AuditAction {
-  return isAuditAction(value) ? value : "settings.updated"
-}
+function sanitizeMetadata(value: unknown): Record<string, unknown> | null {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return null
+  }
 
-function sanitizeOutcome(value: unknown): AuditOutcome {
-  return isAuditOutcome(value) ? value : "failure"
+  const entries = Object.entries(value as Record<string, unknown>)
+
+  return entries.length > 0 ? (value as Record<string, unknown>) : null
 }
 
 export function sanitizeAuditEventPayload(
   payload: RawAuditEventPayload
 ): AuditEvent {
+  const event = sanitizeText(payload.event)
+
   return {
     id: sanitizeText(payload.id),
     occurredAt: sanitizeIsoTimestamp(payload.occurred_at),
-    actorName: sanitizeText(payload.actor_name) || "Sistema",
-    actorRole: sanitizeRole(payload.actor_role),
-    action: sanitizeAction(payload.action),
-    outcome: sanitizeOutcome(payload.outcome),
-    entity: sanitizeText(payload.entity),
-    entityId: sanitizeText(payload.entity_id),
-    unitName: sanitizeNullableText(payload.unit_name),
-    ipAddress: sanitizeText(payload.ip_address),
-    userAgent: sanitizeText(payload.user_agent),
-    description: sanitizeText(payload.description),
+    scope: isAuditScope(payload.scope) ? payload.scope : "system",
+    event,
+    eventLabel: getAuditEventLabel(event),
+    actorName: sanitizeText(payload.actor) || "Sistema",
+    actorUserId: sanitizeNullableText(payload.actor_user_id),
+    target: sanitizeText(payload.target),
+    targetUserId: sanitizeNullableText(payload.target_user_id),
+    success: sanitizeBoolean(payload.success),
+    severity: isAuditSeverity(payload.severity) ? payload.severity : "info",
+    reason: sanitizeNullableText(payload.reason),
+    requestId: sanitizeNullableText(payload.request_id),
+    metadata: sanitizeMetadata(payload.metadata),
   }
 }
 

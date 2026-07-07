@@ -1,6 +1,5 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
-import { userRoleLabels } from "@/features/auth"
 import { formatDateTime } from "@/lib"
 
 import {
@@ -13,47 +12,61 @@ import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
 import {
-  auditActionLabels,
-  auditOutcomeLabels,
+  auditScopeLabels,
+  auditSeverityLabels,
   type AuditEvent,
-  type AuditOutcome,
+  type AuditSeverity,
 } from "../types/audit-types"
 
-function resolveAuditOutcomeVariant(outcome: AuditOutcome) {
-  if (outcome === "success") {
+function resolveAuditOutcomeVariant(event: AuditEvent) {
+  if (event.success) {
     return "success" as const
   }
 
-  if (outcome === "failure") {
+  if (event.severity === "critical") {
     return "destructive" as const
   }
 
   return "warning" as const
 }
 
-function getActorRoleLabel(event: AuditEvent) {
-  return event.actorRole ? userRoleLabels[event.actorRole] : "Sistema"
+function resolveAuditSeverityVariant(severity: AuditSeverity) {
+  if (severity === "critical") {
+    return "destructive" as const
+  }
+
+  if (severity === "warning") {
+    return "warning" as const
+  }
+
+  return "info" as const
 }
 
-export function getAuditActorRoleLabel(event: AuditEvent) {
-  return getActorRoleLabel(event)
+export function getAuditOutcomeLabel(event: AuditEvent) {
+  if (event.success) {
+    return "Sucesso"
+  }
+
+  return event.severity === "critical" ? "Crítico" : "Falha"
 }
 
 export function getAuditEventDetails(event: AuditEvent) {
   return {
-    title: `${auditActionLabels[event.action]} · ${event.actorName}`,
-    description: event.description || "Sem descrição adicional.",
+    title: `${event.eventLabel} · ${event.actorName}`,
+    description: event.reason || "Sem informações adicionais.",
     items: [
       { label: "Data/hora", value: formatDateTime(event.occurredAt) },
       { label: "Responsável", value: event.actorName },
-      { label: "Perfil", value: getActorRoleLabel(event) },
-      { label: "Ação", value: auditActionLabels[event.action] },
-      { label: "Resultado", value: auditOutcomeLabels[event.outcome] },
-      { label: "Entidade", value: event.entity },
-      { label: "Unidade", value: event.unitName ?? "—" },
-      { label: "Endereço IP", value: event.ipAddress },
-      { label: "Dispositivo", value: event.userAgent },
-      { label: "Descrição", value: event.description },
+      { label: "Escopo", value: auditScopeLabels[event.scope] },
+      { label: "Evento", value: event.eventLabel },
+      { label: "Alvo", value: event.target || "—" },
+      { label: "Resultado", value: getAuditOutcomeLabel(event) },
+      { label: "Severidade", value: auditSeverityLabels[event.severity] },
+      { label: "Motivo", value: event.reason ?? "—" },
+      {
+        label: "Detalhes",
+        value: event.metadata ? JSON.stringify(event.metadata) : "—",
+      },
     ],
   }
 }
@@ -86,19 +99,25 @@ export function createAuditColumns(): ColumnDef<AuditEvent>[] {
       ),
     },
     {
-      accessorKey: "actorRole",
-      meta: { label: "Perfil" },
-      header: "Perfil",
-      cell: ({ row }) => getActorRoleLabel(row.original),
+      accessorKey: "scope",
+      meta: { label: "Escopo" },
+      header: "Escopo",
+      cell: ({ row }) => auditScopeLabels[row.original.scope],
     },
     {
-      accessorKey: "action",
-      meta: { label: "Ação" },
-      header: "Ação",
-      cell: ({ row }) => auditActionLabels[row.original.action],
+      accessorKey: "event",
+      meta: { label: "Evento" },
+      header: "Evento",
+      cell: ({ row }) => row.original.eventLabel,
     },
     {
-      accessorKey: "outcome",
+      accessorKey: "target",
+      meta: { label: "Alvo" },
+      header: "Alvo",
+      cell: ({ row }) => row.original.target || "—",
+    },
+    {
+      id: "outcome",
       meta: { label: "Resultado" },
       header: () => <div className="text-center text-[0.8rem] font-medium">Resultado</div>,
       enableSorting: false,
@@ -106,28 +125,28 @@ export function createAuditColumns(): ColumnDef<AuditEvent>[] {
         <div className="flex justify-center">
           <Badge
             variant="secondary"
-            className={getBadgeToneClassName(resolveAuditOutcomeVariant(row.original.outcome))}
+            className={getBadgeToneClassName(resolveAuditOutcomeVariant(row.original))}
           >
-            {auditOutcomeLabels[row.original.outcome]}
+            {getAuditOutcomeLabel(row.original)}
           </Badge>
         </div>
       ),
     },
     {
-      accessorKey: "entity",
-      meta: { label: "Entidade" },
-      header: "Entidade",
-    },
-    {
-      accessorKey: "unitName",
-      meta: { label: "Unidade" },
-      header: "Unidade",
-      cell: ({ row }) => row.original.unitName ?? "—",
-    },
-    {
-      accessorKey: "ipAddress",
-      meta: { label: "IP" },
-      header: "IP",
+      accessorKey: "severity",
+      meta: { label: "Severidade" },
+      header: () => <div className="text-center text-[0.8rem] font-medium">Severidade</div>,
+      enableSorting: false,
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <Badge
+            variant="secondary"
+            className={getBadgeToneClassName(resolveAuditSeverityVariant(row.original.severity))}
+          >
+            {auditSeverityLabels[row.original.severity]}
+          </Badge>
+        </div>
+      ),
     },
     createActionsColumn<AuditEvent>([detailsAction]),
   ]

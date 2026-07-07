@@ -6,11 +6,9 @@ import { type AuditEvent } from "../types/audit-types"
 
 const auditGlobalSearchFields: ReadonlyArray<(event: AuditEvent) => string> = [
   (event) => event.actorName,
-  (event) => event.entity,
-  (event) => event.unitName ?? "",
-  (event) => event.ipAddress,
-  (event) => event.userAgent,
-  (event) => event.description,
+  (event) => event.eventLabel,
+  (event) => event.target,
+  (event) => event.reason ?? "",
 ]
 
 function resolveColumnFilterValues(
@@ -31,22 +29,24 @@ export function filterAuditEvents(
   columnFilters: ColumnFiltersState,
   globalFilter: string
 ) {
-  const actionFilters = resolveColumnFilterValues(columnFilters, "action")
-  const outcomeFilters = resolveColumnFilterValues(columnFilters, "outcome")
-  const roleFilters = resolveColumnFilterValues(columnFilters, "actorRole")
+  const eventFilters = resolveColumnFilterValues(columnFilters, "event")
+  const scopeFilters = resolveColumnFilterValues(columnFilters, "scope")
+  const severityFilters = resolveColumnFilterValues(columnFilters, "severity")
   const normalizedQuery = normalizeFilterText(globalFilter)
 
   return events.filter((event) => {
-    if (actionFilters.length > 0 && !actionFilters.includes(event.action)) {
+    if (eventFilters.length > 0 && !eventFilters.includes(event.event)) {
       return false
     }
 
-    if (outcomeFilters.length > 0 && !outcomeFilters.includes(event.outcome)) {
+    if (scopeFilters.length > 0 && !scopeFilters.includes(event.scope)) {
       return false
     }
 
-    const normalizedRole = event.actorRole ?? ""
-    if (roleFilters.length > 0 && !roleFilters.includes(normalizedRole)) {
+    if (
+      severityFilters.length > 0 &&
+      !severityFilters.includes(event.severity)
+    ) {
       return false
     }
 
