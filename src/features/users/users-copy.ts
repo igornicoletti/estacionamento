@@ -10,6 +10,7 @@ export const usersCopy = {
     resetPassword: "Redefinir senha",
     resetPasskey: "Resetar passkey",
     clearLock: "Remover bloqueio",
+    unblockUser: "Desbloquear usuário",
     revokeSessions: "Revogar sessões",
     blockUser: "Bloquear usuário",
   },
@@ -39,6 +40,11 @@ export const usersCopy = {
       "Tem certeza que deseja remover o bloqueio de {{name}}? O acesso será reativado imediatamente.",
     clearLockDescriptionFallback: "Tem certeza que deseja remover o bloqueio deste usuário?",
     clearLockConfirm: "Remover bloqueio",
+    unblockTitle: "Desbloquear usuário",
+    unblockDescription:
+      "Tem certeza que deseja desbloquear {{name}}? O acesso ao sistema será reativado.",
+    unblockDescriptionFallback: "Tem certeza que deseja desbloquear este usuário?",
+    unblockConfirm: "Desbloquear",
     revokeSessionsTitle: "Revogar sessões",
     revokeSessionsDescription:
       "Tem certeza que deseja revogar todas as sessões ativas de {{name}}? O usuário será desconectado imediatamente.",
@@ -79,8 +85,8 @@ export const usersCopy = {
     noEmail: "Sem e-mail",
     noAccess: "Sem acesso",
     globalUnit: "Global",
-    mfaActive: "Ativo",
-    mfaInactive: "Inativo",
+    passkeyActive: "Ativa",
+    passkeyInactive: "Inativa",
   },
   feedback: {
     create: {

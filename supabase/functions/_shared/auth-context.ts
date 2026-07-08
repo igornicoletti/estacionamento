@@ -1,5 +1,7 @@
 import { createAdminClient } from "./auth-supabase-admin.ts"
 
+const IDLE_TIMEOUT_MS = 45 * 60_000
+
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   const parts = token.split(".")
 
@@ -15,6 +17,66 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   } catch {
     return null
   }
+}
+
+async function touchSessionActivity(
+  supabase: ReturnType<typeof createAdminClient>,
+  sessionId: string,
+  authUserId: string
+) {
+  const { data: activity, error: activityError } = await supabase
+    .from("app_session_activity")
+    .select("last_seen_at")
+    .eq("session_id", sessionId)
+    .maybeSingle()
+
+  if (activityError) {
+    console.error("[auth-context] session_activity_lookup_failed", {
+      code: activityError.code,
+      message: activityError.message,
+    })
+    return true
+  }
+
+  const lastSeenAt =
+    activity && typeof activity.last_seen_at === "string"
+      ? new Date(activity.last_seen_at).getTime()
+      : null
+
+  if (lastSeenAt && Date.now() - lastSeenAt > IDLE_TIMEOUT_MS) {
+    await supabase
+      .schema("auth")
+      .from("sessions")
+      .delete()
+      .eq("id", sessionId)
+
+    await supabase
+      .from("app_session_activity")
+      .delete()
+      .eq("session_id", sessionId)
+
+    return false
+  }
+
+  const { error: upsertError } = await supabase
+    .from("app_session_activity")
+    .upsert(
+      {
+        auth_user_id: authUserId,
+        last_seen_at: new Date().toISOString(),
+        session_id: sessionId,
+      },
+      { onConflict: "session_id" }
+    )
+
+  if (upsertError) {
+    console.error("[auth-context] session_activity_upsert_failed", {
+      code: upsertError.code,
+      message: upsertError.message,
+    })
+  }
+
+  return true
 }
 
 export async function getAuthenticatedActor(req: Request) {
@@ -49,6 +111,16 @@ export async function getAuthenticatedActor(req: Request) {
       .maybeSingle()
 
     if (!session) {
+      return null
+    }
+
+    const isSessionActive = await touchSessionActivity(
+      supabase,
+      sessionId,
+      data.user.id
+    )
+
+    if (!isSessionActive) {
       return null
     }
   }

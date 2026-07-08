@@ -47,11 +47,15 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createAdminClient()
-    const { data: appUser } = await supabase
+    const { data: appUser, error: appUserError } = await supabase
       .from("app_users")
       .select("id, auth_user_id, technical_email, name, status, locked_until, failed_attempts")
       .eq("cpf_hmac", cpfHash)
       .maybeSingle()
+
+    if (appUserError) {
+      return genericAuthError(undefined, req)
+    }
 
     if (!appUser || appUser.status === "inactive") {
       console.error("[auth-password] user_not_found_or_inactive", {
@@ -82,7 +86,7 @@ Deno.serve(async (req) => {
         ? new Date(Date.now() + ACCOUNT_LOCK_MINUTES * 60_000).toISOString()
         : null
 
-      await supabase
+      const { error: failedAttemptError } = await supabase
         .from("app_users")
         .update({
           failed_attempts: nextFailedAttempts,
@@ -90,6 +94,10 @@ Deno.serve(async (req) => {
           locked_until: lockedUntil,
         })
         .eq("id", appUser.id)
+
+      if (failedAttemptError) {
+        return genericAuthError(undefined, req)
+      }
 
       if (shouldLockAccount) {
         await writeAuditEvent({
@@ -115,10 +123,14 @@ Deno.serve(async (req) => {
       return genericAuthError(400, req)
     }
 
-    await supabase
+    const { error: clearFailuresError } = await supabase
       .from("app_users")
       .update({ failed_attempts: 0, last_failed_at: null, locked_until: null })
       .eq("id", appUser.id)
+
+    if (clearFailuresError) {
+      return genericAuthError(undefined, req)
+    }
 
     if (input.newPassword) {
       const { error: updateError } =
@@ -134,10 +146,16 @@ Deno.serve(async (req) => {
         return genericAuthError(400, req)
       }
 
-      await supabase
+      const { error: passkeyResetError } = await supabase
         .from("app_users")
         .update({ status: "passkey_reset" })
         .eq("id", appUser.id)
+        .select("id")
+        .maybeSingle()
+
+      if (passkeyResetError) {
+        return genericAuthError(undefined, req)
+      }
       await writeAuditEvent({
         actor: String(appUser.name),
         event: "password_changed",

@@ -17,10 +17,10 @@ export interface UnitCatalogItem {
   name: string
 }
 
-export function resolveMfaLabel(value: UserRecord["mfaStatus"]) {
+export function resolvePasskeyLabel(value: UserRecord["passkeyStatus"]) {
   return value === "active"
-    ? usersCopy.details.mfaActive
-    : usersCopy.details.mfaInactive
+    ? usersCopy.details.passkeyActive
+    : usersCopy.details.passkeyInactive
 }
 
 export function resolveUnitLabel(unitName: string | null) {

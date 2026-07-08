@@ -7,12 +7,12 @@ import { settingsCopy } from "../settings-copy"
 
 export function SettingsRoute() {
   const {
-    mfaStatus,
-    isEnablingMfa,
+    passkeyStatus,
+    isRegisteringPasskey,
     profile,
     isSaving,
     saveProfile,
-    enableMfa,
+    registerPasskey,
   } = useSettings()
 
   return (
@@ -31,9 +31,9 @@ export function SettingsRoute() {
             onSave={saveProfile}
           />
           <SettingsSecuritySection
-            mfaStatus={mfaStatus}
-            isEnablingMfa={isEnablingMfa}
-            onEnableMfa={enableMfa}
+            passkeyStatus={passkeyStatus}
+            isRegisteringPasskey={isRegisteringPasskey}
+            onRegisterPasskey={registerPasskey}
           />
         </>
       ) : null}

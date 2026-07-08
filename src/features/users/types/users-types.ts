@@ -9,9 +9,10 @@ export interface UserRecord {
   phoneMasked: string | null
   role: UserRole
   status: AppUserStatus
+  lockedUntil?: string | null
   unitId: string | null
   unitName: string | null
-  mfaStatus: "active" | "inactive"
+  passkeyStatus: "active" | "inactive"
   passkeyCount?: number
   lastAccessAt: string | null
 }

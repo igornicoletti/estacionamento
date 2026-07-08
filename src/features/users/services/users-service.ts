@@ -32,16 +32,15 @@ type RawAppUserUnitRow = {
 type RawAppUserRow = {
   id: string
   auth_user_id: string
-  cpf_display: string | null
+  cpf_display?: string | null
   cpf_masked: string
   email: string | null
   name: string
-  phone_display: string | null
+  phone_display?: string | null
   phone_masked: string
   role: string
   status: string
-  phone_verified_at: string | null
-  email_verified_at: string | null
+  locked_until?: string | null
   created_at: string
   app_user_units?: RawAppUserUnitRow[] | RawAppUserUnitRow | null
 }
@@ -90,8 +89,21 @@ type RawLastAccessRow = {
 
 type RawAuthFactorRow = {
   auth_user_id: string
-  has_verified_mfa_factor: boolean
   passkey_count: number
+}
+
+function getPostgrestErrorCode(error: unknown) {
+  if (!error || typeof error !== "object" || !("code" in error)) {
+    return ""
+  }
+
+  const code = (error as { code?: unknown }).code
+
+  return typeof code === "string" ? code : ""
+}
+
+function isUndefinedColumnError(error: unknown) {
+  return getPostgrestErrorCode(error) === "42703"
 }
 
 async function listLastAccessByAuthUserId(): Promise<Map<string, string | null>> {
@@ -142,6 +154,48 @@ async function listAuthFactorsByAuthUserId(): Promise<Map<string, RawAuthFactorR
   )
 }
 
+async function listRawAppUsersFromSupabase(
+  supabase: NonNullable<ReturnType<typeof getSupabaseBrowserClient>>
+) {
+  const withDisplayColumns = await supabase
+    .from("app_users")
+    .select(
+      "id, auth_user_id, cpf_display, cpf_masked, email, name, phone_display, phone_masked, role, status, locked_until, created_at, app_user_units(unit_id)"
+    )
+    .order("created_at", { ascending: false })
+
+  const displayResponse = withDisplayColumns as {
+    data: RawAppUserRow[] | null
+    error: unknown
+  }
+
+  if (!displayResponse.error) {
+    return displayResponse.data ?? []
+  }
+
+  if (!isUndefinedColumnError(displayResponse.error)) {
+    throw new Error(usersCopy.errors.load)
+  }
+
+  const legacyColumns = await supabase
+    .from("app_users")
+    .select(
+      "id, auth_user_id, cpf_masked, email, name, phone_masked, role, status, locked_until, created_at, app_user_units(unit_id)"
+    )
+    .order("created_at", { ascending: false })
+
+  const legacyResponse = legacyColumns as {
+    data: RawAppUserRow[] | null
+    error: unknown
+  }
+
+  if (legacyResponse.error) {
+    throw new Error(usersCopy.errors.load)
+  }
+
+  return legacyResponse.data ?? []
+}
+
 async function listUsersFromSupabase(): Promise<UserRecord[]> {
   const supabase = getSupabaseBrowserClient()
 
@@ -149,25 +203,7 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
     throw new Error(usersCopy.errors.load)
   }
 
-  const response = await supabase
-    .from("app_users")
-    .select(
-      "id, auth_user_id, cpf_display, cpf_masked, email, name, phone_display, phone_masked, role, status, phone_verified_at, email_verified_at, created_at, app_user_units(unit_id)"
-    )
-    .order("created_at", { ascending: false })
-
-  const {
-    data,
-    error,
-  } = response as {
-    data: RawAppUserRow[] | null
-    error: unknown
-  }
-
-  if (error) {
-    throw new Error(usersCopy.errors.load)
-  }
-
+  const data = await listRawAppUsersFromSupabase(supabase)
   const unitsCatalog = await listUnitsCatalog()
   const lastAccessByAuthUserId = await listLastAccessByAuthUserId()
   const authFactorsByAuthUserId = await listAuthFactorsByAuthUserId()
@@ -180,13 +216,8 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
     }
 
     const unitId = getRelatedUnitId(appUser.app_user_units)
-    const hasVerifiedContact = Boolean(appUser.phone_verified_at || appUser.email_verified_at)
     const authFactors = authFactorsByAuthUserId.get(appUser.auth_user_id)
     const passkeyCount = authFactors?.passkey_count ?? 0
-    const hasVerifiedAuthFactor =
-      hasVerifiedContact ||
-      Boolean(authFactors?.has_verified_mfa_factor) ||
-      passkeyCount > 0
 
     return [
       {
@@ -198,9 +229,10 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
         phoneMasked: appUser.phone_display || appUser.phone_masked,
         role: appUser.role,
         status: appUser.status,
+        lockedUntil: appUser.locked_until ?? null,
         unitId,
         unitName: unitId ? (unitNameById.get(unitId) ?? null) : null,
-        mfaStatus: hasVerifiedAuthFactor ? "active" : "inactive",
+        passkeyStatus: passkeyCount > 0 ? "active" : "inactive",
         passkeyCount,
         lastAccessAt: lastAccessByAuthUserId.get(appUser.auth_user_id) ?? null,
       } satisfies UserRecord,
@@ -269,9 +301,10 @@ async function createUserInSupabase(input: CreateUserInput): Promise<UserRecord>
     phoneMasked: formatPhone(normalizedPhoneDigits),
     role: input.role,
     status: "pending",
+    lockedUntil: null,
     unitId: normalizedUnitScope.unitId,
     unitName: normalizedUnitScope.unitName,
-    mfaStatus: "inactive",
+    passkeyStatus: "inactive",
     lastAccessAt: null,
   }
 }
@@ -466,9 +499,10 @@ async function createUserInMemory(input: CreateUserInput): Promise<UserRecord> {
     phoneMasked: formatPhone(normalizedPhoneDigits),
     role: input.role,
     status: "active",
+    lockedUntil: null,
     unitId: normalizedUnitScope.unitId,
     unitName: normalizedUnitScope.unitName,
-    mfaStatus: "inactive",
+    passkeyStatus: "inactive",
     lastAccessAt: null,
   }
 
@@ -550,7 +584,7 @@ async function resetUserAccessInMemory(userId: string): Promise<UserRecord> {
 
   const nextUser: UserRecord = {
     ...currentUser,
-    mfaStatus: "inactive",
+    passkeyStatus: "inactive",
     status: "password_reset",
   }
 

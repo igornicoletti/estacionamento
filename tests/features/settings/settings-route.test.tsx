@@ -4,7 +4,7 @@ import { describe, expect, it } from "vitest"
 import { SettingsRoute } from "@/features/settings"
 
 describe("SettingsRoute", () => {
-  it("renders profile, password and MFA sections with standardized copy", async () => {
+  it("renders profile, password and passkey sections with standardized copy", async () => {
     render(<SettingsRoute />)
 
     expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument()
@@ -19,8 +19,8 @@ describe("SettingsRoute", () => {
     ).toBeInTheDocument()
 
     expect(
-      screen.getByText("Autenticação multifator (MFA)")
+      screen.getByText("Passkey")
     ).toBeInTheDocument()
-    expect(screen.getByText("Ativo")).toBeInTheDocument()
+    expect(screen.getByText("Ativa")).toBeInTheDocument()
   })
 })

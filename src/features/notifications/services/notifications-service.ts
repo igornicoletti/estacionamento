@@ -1,83 +1,25 @@
+import { getSupabaseBrowserClient } from "@/lib"
+
 import {
+  notificationTypeValues,
   type NotificationRecord,
   type NotificationStatus,
+  type NotificationType,
 } from "../types/notifications-types"
 
-const initialNotifications: NotificationRecord[] = [
-  {
-    id: "N-001",
-    title: "Sincronização concluída",
-    description: "Clientes e unidades foram sincronizados com sucesso.",
-    type: "sync",
-    status: "unread",
-    occurredAt: "2026-07-01 08:25",
-    href: "/clientes",
-  },
-  {
-    id: "N-002",
-    title: "Nova tentativa de acesso",
-    description: "Uma nova tentativa de login foi registrada para seu usuário.",
-    type: "security",
-    status: "unread",
-    occurredAt: "2026-07-01 07:58",
-    href: "/perfil",
-  },
-  {
-    id: "N-003",
-    title: "Atualização aplicada",
-    description: "Nova versão do painel foi publicada com melhorias de desempenho.",
-    type: "system",
-    status: "read",
-    occurredAt: "2026-06-30 19:10",
-  },
-]
-
-let inMemoryNotifications = [...initialNotifications]
-const listeners = new Set<() => void>()
-
-function emitChange() {
-  listeners.forEach((listener) => listener())
+type NotificationEventRelation = {
+  created_at: string
+  description: string
+  href: string | null
+  title: string
+  type: string
 }
 
-export function subscribeNotifications(listener: () => void) {
-  listeners.add(listener)
-
-  return () => {
-    listeners.delete(listener)
-  }
-}
-
-export async function listNotifications(): Promise<NotificationRecord[]> {
-  await Promise.resolve()
-  return [...inMemoryNotifications]
-}
-
-export async function setNotificationStatus(
-  notificationId: string,
-  status: NotificationStatus
-): Promise<NotificationRecord> {
-  await Promise.resolve()
-
-  const currentNotification = inMemoryNotifications.find(
-    (notification) => notification.id === notificationId
-  )
-
-  if (!currentNotification) {
-    throw new Error("Notificação não encontrada.")
-  }
-
-  const updatedNotification: NotificationRecord = {
-    ...currentNotification,
-    status,
-  }
-
-  inMemoryNotifications = inMemoryNotifications.map((notification) =>
-    notification.id === notificationId ? updatedNotification : notification
-  )
-
-  emitChange()
-
-  return updatedNotification
+type RawNotificationDeliveryRow = {
+  id: string
+  created_at: string
+  read_at: string | null
+  notification_events: NotificationEventRelation | NotificationEventRelation[] | null
 }
 
 export interface SetNotificationsStatusBatchResult {
@@ -86,63 +28,359 @@ export interface SetNotificationsStatusBatchResult {
   failed: string[]
 }
 
-export async function setNotificationsStatus(
-  notificationIds: readonly string[],
-  status: NotificationStatus,
-): Promise<SetNotificationsStatusBatchResult> {
-  await Promise.resolve()
+export interface NotificationsGateway {
+  countUnreadNotifications(): Promise<number>
+  listNotifications(): Promise<NotificationRecord[]>
+  setNotificationStatus(
+    notificationId: string,
+    status: NotificationStatus
+  ): Promise<NotificationRecord>
+  setNotificationsStatus(
+    notificationIds: readonly string[],
+    status: NotificationStatus
+  ): Promise<SetNotificationsStatusBatchResult>
+  subscribeNotifications(listener: () => void): () => void
+}
 
-  const uniqueIds = [...new Set(notificationIds)]
-  if (uniqueIds.length === 0) {
-    return {
-      total: 0,
-      updated: 0,
-      failed: [],
-    }
+let configuredGateway: NotificationsGateway | null = null
+
+function isNotificationType(value: string): value is NotificationType {
+  return notificationTypeValues.includes(value as NotificationType)
+}
+
+function getEventRelation(
+  value: RawNotificationDeliveryRow["notification_events"]
+) {
+  if (Array.isArray(value)) {
+    return value[0] ?? null
   }
 
-  const failed: string[] = []
-  let updated = 0
+  return value
+}
 
-  for (const notificationId of uniqueIds) {
-    const currentNotification = inMemoryNotifications.find(
-      (notification) => notification.id === notificationId
-    )
-
-    if (!currentNotification) {
-      failed.push(notificationId)
-      continue
-    }
-
-    if (currentNotification.status !== status) {
-      inMemoryNotifications = inMemoryNotifications.map((notification) =>
-        notification.id === notificationId
-          ? { ...notification, status }
-          : notification
-      )
-      updated += 1
-    }
+function normalizeHref(value: string | null): `/${string}` | undefined {
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return undefined
   }
 
-  if (updated > 0) {
-    emitChange()
+  return value as `/${string}`
+}
+
+function getReturnedId(value: unknown) {
+  if (!value || typeof value !== "object" || !("id" in value)) {
+    return null
+  }
+
+  const id = (value as { id?: unknown }).id
+
+  return typeof id === "string" ? id : null
+}
+
+function mapNotificationDelivery(
+  row: RawNotificationDeliveryRow
+): NotificationRecord | null {
+  const event = getEventRelation(row.notification_events)
+
+  if (!event || !isNotificationType(event.type)) {
+    return null
   }
 
   return {
-    total: uniqueIds.length,
-    updated,
-    failed,
+    id: row.id,
+    description: event.description,
+    href: normalizeHref(event.href),
+    occurredAt: event.created_at || row.created_at,
+    status: row.read_at ? "read" : "unread",
+    title: event.title,
+    type: event.type,
   }
 }
 
-export async function countUnreadNotifications(): Promise<number> {
-  await Promise.resolve()
+function createEmptyNotificationsGateway(): NotificationsGateway {
+  const listeners = new Set<() => void>()
 
-  return inMemoryNotifications.filter((notification) => notification.status === "unread")
-    .length
+  return {
+    async countUnreadNotifications() {
+      await Promise.resolve()
+      return 0
+    },
+    async listNotifications() {
+      await Promise.resolve()
+      return []
+    },
+    async setNotificationStatus(notificationId) {
+      await Promise.resolve()
+      throw new Error(`Notificação não encontrada: ${notificationId}`)
+    },
+    async setNotificationsStatus(notificationIds) {
+      await Promise.resolve()
+      const uniqueIds = [...new Set(notificationIds)]
+
+      return {
+        failed: uniqueIds,
+        total: uniqueIds.length,
+        updated: 0,
+      }
+    },
+    subscribeNotifications(listener) {
+      listeners.add(listener)
+
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+  }
 }
 
-export function resetNotificationsMockState() {
-  inMemoryNotifications = [...initialNotifications]
-  emitChange()
+function createSupabaseNotificationsGateway(): NotificationsGateway {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    return createEmptyNotificationsGateway()
+  }
+  const supabaseClient = supabase
+
+  async function listNotifications() {
+    const { data, error } = await supabaseClient
+      .from("notification_deliveries")
+      .select(
+        "id, created_at, read_at, notification_events(created_at, description, href, title, type)"
+      )
+      .order("created_at", { ascending: false })
+
+    if (error) {
+      throw new Error("Não foi possível carregar as notificações.", {
+        cause: error,
+      })
+    }
+
+    return ((data ?? []) as RawNotificationDeliveryRow[])
+      .map(mapNotificationDelivery)
+      .filter((notification): notification is NotificationRecord => Boolean(notification))
+  }
+
+  async function setNotificationStatus(
+    notificationId: string,
+    status: NotificationStatus
+  ) {
+    const updateResponse = await supabaseClient.rpc("set_notification_read_status", {
+      delivery_id: notificationId,
+      is_read: status === "read",
+    }) as { error: unknown }
+
+    if (updateResponse.error) {
+      throw new Error("Não foi possível atualizar a notificação.", {
+        cause: updateResponse.error,
+      })
+    }
+
+    const notifications = await listNotifications()
+    const updatedNotification = notifications.find(
+      (notification) => notification.id === notificationId
+    )
+
+    if (!updatedNotification) {
+      throw new Error("Notificação não encontrada.")
+    }
+
+    return updatedNotification
+  }
+
+  async function setNotificationsStatus(
+    notificationIds: readonly string[],
+    status: NotificationStatus
+  ) {
+    const uniqueIds = [...new Set(notificationIds)]
+
+    if (uniqueIds.length === 0) {
+      return {
+        failed: [],
+        total: 0,
+        updated: 0,
+      }
+    }
+
+    const updateResponse = await supabaseClient.rpc("set_notifications_read_status", {
+      delivery_ids: uniqueIds,
+      is_read: status === "read",
+    }) as { data: unknown; error: unknown }
+
+    if (updateResponse.error) {
+      throw new Error("Não foi possível atualizar as notificações.", {
+        cause: updateResponse.error,
+      })
+    }
+
+    const updatedIds = new Set(
+      (Array.isArray(updateResponse.data) ? updateResponse.data : [])
+        .map(getReturnedId)
+        .filter((id): id is string => Boolean(id))
+    )
+
+    return {
+      failed: uniqueIds.filter((id) => !updatedIds.has(id)),
+      total: uniqueIds.length,
+      updated: updatedIds.size,
+    }
+  }
+
+  function subscribeNotifications(listener: () => void) {
+    const channel = supabaseClient
+      .channel("notification-deliveries")
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "notification_deliveries",
+        },
+        listener
+      )
+      .subscribe()
+
+    return () => {
+      void supabaseClient.removeChannel(channel)
+    }
+  }
+
+  return {
+    async countUnreadNotifications() {
+      const notifications = await listNotifications()
+
+      return notifications.filter((notification) => notification.status === "unread")
+        .length
+    },
+    listNotifications,
+    setNotificationStatus,
+    setNotificationsStatus,
+    subscribeNotifications,
+  }
+}
+
+function getNotificationsGateway() {
+  return configuredGateway ?? createSupabaseNotificationsGateway()
+}
+
+export function setNotificationsGateway(gateway: NotificationsGateway) {
+  configuredGateway = gateway
+}
+
+export function resetNotificationsGateway() {
+  configuredGateway = null
+}
+
+export function createMemoryNotificationsGateway(
+  seedNotifications: readonly NotificationRecord[]
+): NotificationsGateway {
+  let notifications = seedNotifications.map((notification) => ({ ...notification }))
+  const listeners = new Set<() => void>()
+
+  function emitChange() {
+    listeners.forEach((listener) => {
+      listener()
+    })
+  }
+
+  return {
+    async countUnreadNotifications() {
+      await Promise.resolve()
+      return notifications.filter((notification) => notification.status === "unread")
+        .length
+    },
+    async listNotifications() {
+      await Promise.resolve()
+      return notifications.map((notification) => ({ ...notification }))
+    },
+    async setNotificationStatus(notificationId, status) {
+      await Promise.resolve()
+      const currentNotification = notifications.find(
+        (notification) => notification.id === notificationId
+      )
+
+      if (!currentNotification) {
+        throw new Error("Notificação não encontrada.")
+      }
+
+      const updatedNotification = {
+        ...currentNotification,
+        status,
+      }
+
+      notifications = notifications.map((notification) =>
+        notification.id === notificationId ? updatedNotification : notification
+      )
+      emitChange()
+
+      return updatedNotification
+    },
+    async setNotificationsStatus(notificationIds, status) {
+      await Promise.resolve()
+      const uniqueIds = [...new Set(notificationIds)]
+      const failed: string[] = []
+      let updated = 0
+
+      for (const notificationId of uniqueIds) {
+        const currentNotification = notifications.find(
+          (notification) => notification.id === notificationId
+        )
+
+        if (!currentNotification) {
+          failed.push(notificationId)
+          continue
+        }
+
+        if (currentNotification.status !== status) {
+          notifications = notifications.map((notification) =>
+            notification.id === notificationId
+              ? { ...notification, status }
+              : notification
+          )
+          updated += 1
+        }
+      }
+
+      if (updated > 0) {
+        emitChange()
+      }
+
+      return {
+        failed,
+        total: uniqueIds.length,
+        updated,
+      }
+    },
+    subscribeNotifications(listener) {
+      listeners.add(listener)
+
+      return () => {
+        listeners.delete(listener)
+      }
+    },
+  }
+}
+
+export function subscribeNotifications(listener: () => void) {
+  return getNotificationsGateway().subscribeNotifications(listener)
+}
+
+export function listNotifications(): Promise<NotificationRecord[]> {
+  return getNotificationsGateway().listNotifications()
+}
+
+export function setNotificationStatus(
+  notificationId: string,
+  status: NotificationStatus
+): Promise<NotificationRecord> {
+  return getNotificationsGateway().setNotificationStatus(notificationId, status)
+}
+
+export function setNotificationsStatus(
+  notificationIds: readonly string[],
+  status: NotificationStatus
+): Promise<SetNotificationsStatusBatchResult> {
+  return getNotificationsGateway().setNotificationsStatus(notificationIds, status)
+}
+
+export function countUnreadNotifications(): Promise<number> {
+  return getNotificationsGateway().countUnreadNotifications()
 }

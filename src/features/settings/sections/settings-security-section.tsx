@@ -8,26 +8,26 @@ import { getBadgeToneClassName } from "@/lib/badge"
 import { settingsCopy } from "../settings-copy"
 
 interface SettingsSecuritySectionProps {
-  mfaStatus: "active" | "inactive"
-  isEnablingMfa: boolean
-  onEnableMfa: () => Promise<void>
+  passkeyStatus: "active" | "inactive"
+  isRegisteringPasskey: boolean
+  onRegisterPasskey: () => Promise<void>
 }
 
 export function SettingsSecuritySection({
-  mfaStatus,
-  isEnablingMfa,
-  onEnableMfa,
+  passkeyStatus,
+  isRegisteringPasskey,
+  onRegisterPasskey,
 }: SettingsSecuritySectionProps) {
-  const isActive = mfaStatus === "active"
+  const isActive = passkeyStatus === "active"
 
-  function handleEnableMfa() {
-    return notify.promise(onEnableMfa(), {
-      loading: settingsCopy.mfa.enableFeedback.loading,
-      success: settingsCopy.mfa.enableFeedback.success,
+  function handleRegisterPasskey() {
+    return notify.promise(onRegisterPasskey(), {
+      loading: settingsCopy.passkey.enableFeedback.loading,
+      success: settingsCopy.passkey.enableFeedback.success,
       error: (error) =>
         error instanceof Error
           ? error.message
-          : settingsCopy.mfa.enableFeedback.error,
+          : settingsCopy.passkey.enableFeedback.error,
     })
   }
 
@@ -39,29 +39,29 @@ export function SettingsSecuritySection({
           <div className="flex items-center gap-3 border-b px-4 py-3">
             <ShieldIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
             <span className="flex-1 text-sm font-medium">
-              {settingsCopy.mfa.sectionTitle}
+              {settingsCopy.passkey.sectionTitle}
             </span>
             <Badge
               variant="secondary"
               className={getBadgeToneClassName(isActive ? "success" : undefined)}
             >
-              {isActive ? settingsCopy.mfa.statusActive : settingsCopy.mfa.statusInactive}
+              {isActive ? settingsCopy.passkey.statusActive : settingsCopy.passkey.statusInactive}
             </Badge>
           </div>
 
           {/* Content */}
           <div className="flex flex-col gap-3 px-4 py-4">
             <p className="text-sm text-muted-foreground">
-              {settingsCopy.mfa.sectionDescription}
+              {settingsCopy.passkey.sectionDescription}
             </p>
 
             <div className="flex flex-col gap-3 rounded-md border border-border/50 px-3 py-3 lg:flex-row lg:items-center lg:justify-between lg:gap-4">
               <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium">{settingsCopy.mfa.statusLabel}</p>
+                <p className="text-sm font-medium">{settingsCopy.passkey.statusLabel}</p>
                 <p className="text-xs text-muted-foreground">
                   {isActive
-                    ? settingsCopy.mfa.statusActiveDescription
-                    : settingsCopy.mfa.statusInactiveDescription}
+                    ? settingsCopy.passkey.statusActiveDescription
+                    : settingsCopy.passkey.statusInactiveDescription}
                 </p>
               </div>
               {!isActive ? (
@@ -69,13 +69,13 @@ export function SettingsSecuritySection({
                   type="button"
                   variant="secondary"
                   size="lg"
-                  disabled={isEnablingMfa}
+                  disabled={isRegisteringPasskey}
                   onClick={() => {
-                    void handleEnableMfa()
+                    void handleRegisterPasskey()
                   }}
                 >
                   <ShieldIcon aria-hidden="true" />
-                  {settingsCopy.mfa.enableButton}
+                  {settingsCopy.passkey.enableButton}
                 </Button>
               ) : null}
             </div>

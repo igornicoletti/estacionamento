@@ -24,13 +24,14 @@ Deno.serve(async (req) => {
 
     const cpfHash = await hashSensitiveValue(normalizeCpf(input.cpf))
     const supabase = createAdminClient()
-    const { data: flow } = await supabase
+    const { data: flow, error: flowError } = await supabase
       .from("auth_flow_attempts")
       .select("flow_id, cpf_hmac, expires_at, consumed_at")
       .eq("flow_id", input.flowId)
       .maybeSingle()
 
     if (
+      flowError ||
       !flow ||
       flow.consumed_at ||
       flow.cpf_hmac !== cpfHash ||
@@ -39,20 +40,26 @@ Deno.serve(async (req) => {
       return genericAuthError(400, req)
     }
 
-    const { error: statusError } = await supabase
+    const { data: activatedUser, error: statusError } = await supabase
       .from("app_users")
       .update({ status: "active" })
       .eq("auth_user_id", actor.authUserId)
       .in("status", ["pending", "passkey_reset"])
+      .select("id")
+      .maybeSingle()
 
-    if (statusError) {
+    if (statusError || !activatedUser) {
       return genericAuthError(undefined, req)
     }
 
-    await supabase
+    const { error: consumeFlowError } = await supabase
       .from("auth_flow_attempts")
       .update({ consumed_at: new Date().toISOString() })
       .eq("flow_id", input.flowId)
+
+    if (consumeFlowError) {
+      return genericAuthError(undefined, req)
+    }
 
     await writeAuditEvent({
       actor: actor.name,

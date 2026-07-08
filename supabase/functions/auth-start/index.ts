@@ -32,11 +32,15 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createAdminClient()
-    const { data: user } = await supabase
+    const { data: user, error: userError } = await supabase
       .from("app_users")
       .select("id, status")
       .eq("cpf_hmac", cpfHash)
       .maybeSingle()
+
+    if (userError) {
+      return genericAuthError(undefined, req)
+    }
 
     const purpose =
       user?.status === "pending"
@@ -47,7 +51,7 @@ Deno.serve(async (req) => {
             ? "passkey_reset"
             : "login"
 
-    const { data: flow } = await supabase
+    const { data: flow, error: flowError } = await supabase
       .from("auth_flow_attempts")
       .insert({
         app_user_id: user?.id,
@@ -58,6 +62,10 @@ Deno.serve(async (req) => {
       })
       .select("flow_id")
       .single()
+
+    if (flowError || !flow?.flow_id) {
+      return genericAuthError(undefined, req)
+    }
 
     return jsonResponse({
       flowId: flow?.flow_id,

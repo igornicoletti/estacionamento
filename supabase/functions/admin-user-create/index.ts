@@ -77,10 +77,16 @@ Deno.serve(async (req) => {
     }
 
     if (input.unitId) {
-      await supabase.from("app_user_units").insert({
+      const { error: unitError } = await supabase.from("app_user_units").insert({
         app_user_id: appUser.id,
         unit_id: input.unitId,
       })
+
+      if (unitError) {
+        await supabase.from("app_users").delete().eq("id", appUser.id)
+        await supabase.auth.admin.deleteUser(authUser.user.id)
+        return genericAuthError(undefined, req)
+      }
     }
 
     await writeAuditEvent({

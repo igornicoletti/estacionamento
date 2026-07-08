@@ -6,7 +6,7 @@ import {
 } from "@/features/auth"
 import {
   resolveLastAccessLabel,
-  resolveMfaLabel,
+  resolvePasskeyLabel,
 } from "@/features/users/utils/users-models"
 import { type UserRecord } from "@/features/users"
 
@@ -31,7 +31,7 @@ function getUserDetails(user: UserRecord) {
       { label: unitsCopy.table.phone, value: user.phoneMasked || "-" },
       { label: unitsCopy.table.profile, value: userRoleLabels[user.role] },
       { label: unitsCopy.table.status, value: appUserStatusLabels[user.status] },
-      { label: unitsCopy.table.mfa, value: resolveMfaLabel(user.mfaStatus) },
+      { label: unitsCopy.table.passkey, value: resolvePasskeyLabel(user.passkeyStatus) },
       { label: unitsCopy.table.lastAccess, value: resolveLastAccessLabel(user.lastAccessAt) },
     ],
   }
@@ -106,16 +106,16 @@ export function createUnitUsersColumns(): ColumnDef<UserRecord>[] {
       },
     },
     {
-      accessorKey: "mfaStatus",
-      meta: { label: unitsCopy.table.mfa },
+      accessorKey: "passkeyStatus",
+      meta: { label: unitsCopy.table.passkey },
       header: () => (
         <div className="text-center">
-          {unitsCopy.table.mfa}
+          {unitsCopy.table.passkey}
         </div>
       ),
       enableSorting: false,
       cell: ({ row }) => {
-        const isActive = row.original.mfaStatus === "active"
+        const isActive = row.original.passkeyStatus === "active"
 
         return (
           <div className="flex justify-center">
@@ -123,7 +123,7 @@ export function createUnitUsersColumns(): ColumnDef<UserRecord>[] {
               variant="secondary"
               className={getBadgeToneClassName(isActive ? "success" : undefined)}
             >
-              {resolveMfaLabel(row.original.mfaStatus)}
+              {resolvePasskeyLabel(row.original.passkeyStatus)}
             </Badge>
           </div>
         )

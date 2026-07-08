@@ -21,7 +21,7 @@ Deno.serve(async (req) => {
 
     const { data: appUser, error: appUserError } = await supabase
       .from("app_users")
-      .select("cpf_hmac, status")
+      .select("cpf_hmac, name, status")
       .eq("auth_user_id", input.targetUserId)
       .maybeSingle()
 
@@ -36,18 +36,18 @@ Deno.serve(async (req) => {
       updated_by: actor.authUserId,
     }
 
-    // "Remover bloqueio" also reactivates a user previously blocked via
-    // admin-user-block, in addition to clearing any temporary lockout.
     if (appUser?.status === "inactive") {
       updatePayload.status = "active"
     }
 
-    const { error: updateError } = await supabase
+    const { data: updatedUser, error: updateError } = await supabase
       .from("app_users")
       .update(updatePayload)
       .eq("auth_user_id", input.targetUserId)
+      .select("id")
+      .maybeSingle()
 
-    if (updateError) {
+    if (updateError || !updatedUser) {
       return genericAuthError(undefined, req)
     }
 
@@ -62,11 +62,13 @@ Deno.serve(async (req) => {
     await writeAuditEvent({
       actor: actor.name,
       actorUserId: actor.authUserId,
-      event: "temporary_lock_cleared",
+      event: appUser.status === "inactive"
+        ? "user_unblocked"
+        : "temporary_lock_cleared",
       reason: input.reason,
       scope: "system",
       success: true,
-      target: "Usuário",
+      target: appUser.name,
       targetUserId: input.targetUserId,
     })
 

@@ -70,7 +70,7 @@ Deno.serve(async (req) => {
     const supabase = createAdminClient()
     const { data: users, error } = await supabase
       .from("app_users")
-      .select("auth_user_id, phone_verified_at, email_verified_at")
+      .select("auth_user_id")
 
     if (error) {
       return genericAuthError(undefined, req)
@@ -83,9 +83,6 @@ Deno.serve(async (req) => {
 
         return {
           auth_user_id: authUserId,
-          has_verified_mfa_factor: Boolean(
-            user.phone_verified_at || user.email_verified_at
-          ),
           passkey_count: passkeyCount,
         }
       })

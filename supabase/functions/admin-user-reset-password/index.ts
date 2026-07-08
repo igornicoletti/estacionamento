@@ -18,7 +18,21 @@ Deno.serve(async (req) => {
     const input = adminActionSchema.parse(await req.json())
     const supabase = createAdminClient()
 
-    const { error: updateError } = await supabase
+    if (input.targetUserId === actor.authUserId) {
+      return genericAuthError(400, req)
+    }
+
+    const { data: targetUser, error: targetUserError } = await supabase
+      .from("app_users")
+      .select("id, name")
+      .eq("auth_user_id", input.targetUserId)
+      .maybeSingle()
+
+    if (targetUserError || !targetUser) {
+      return genericAuthError(400, req)
+    }
+
+    const { data: updatedUser, error: updateError } = await supabase
       .from("app_users")
       .update({
         failed_attempts: 0,
@@ -27,8 +41,10 @@ Deno.serve(async (req) => {
         updated_by: actor.authUserId,
       })
       .eq("auth_user_id", input.targetUserId)
+      .select("id")
+      .maybeSingle()
 
-    if (updateError) {
+    if (updateError || !updatedUser) {
       return genericAuthError(undefined, req)
     }
 
@@ -47,7 +63,7 @@ Deno.serve(async (req) => {
       reason: input.reason,
       scope: "system",
       success: true,
-      target: "Usuário",
+      target: targetUser.name,
       targetUserId: input.targetUserId,
     })
 

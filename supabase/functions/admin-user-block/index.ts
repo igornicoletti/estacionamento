@@ -32,15 +32,17 @@ Deno.serve(async (req) => {
       return genericAuthError(400, req)
     }
 
-    const { error: updateError } = await supabase
+    const { data: updatedUser, error: updateError } = await supabase
       .from("app_users")
       .update({
         status: "inactive",
         updated_by: actor.authUserId,
       })
       .eq("auth_user_id", input.targetUserId)
+      .select("id")
+      .maybeSingle()
 
-    if (updateError) {
+    if (updateError || !updatedUser) {
       return genericAuthError(undefined, req)
     }
 

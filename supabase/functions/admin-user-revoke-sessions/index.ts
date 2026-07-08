@@ -18,6 +18,20 @@ Deno.serve(async (req) => {
     const input = adminActionSchema.parse(await req.json())
     const supabase = createAdminClient()
 
+    if (input.targetUserId === actor.authUserId) {
+      return genericAuthError(400, req)
+    }
+
+    const { data: targetUser, error: targetUserError } = await supabase
+      .from("app_users")
+      .select("name")
+      .eq("auth_user_id", input.targetUserId)
+      .maybeSingle()
+
+    if (targetUserError || !targetUser) {
+      return genericAuthError(400, req)
+    }
+
     const { error: revokeError } = await supabase
       .schema("private")
       .rpc("revoke_auth_sessions", { target_user_id: input.targetUserId })
@@ -33,7 +47,7 @@ Deno.serve(async (req) => {
       reason: input.reason,
       scope: "system",
       success: true,
-      target: "Usuário",
+      target: targetUser.name,
       targetUserId: input.targetUserId,
     })
 

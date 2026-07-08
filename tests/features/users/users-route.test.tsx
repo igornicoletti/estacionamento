@@ -25,6 +25,10 @@ describe("UsersRoute", () => {
     expect(screen.queryByText("USR-001")).not.toBeInTheDocument()
     expect(screen.getAllByText("529.982.247-25").length).toBeGreaterThan(0)
     expect(screen.queryByText("***.***.***-25")).not.toBeInTheDocument()
+    expect(screen.queryByText("MFA")).not.toBeInTheDocument()
+    expect(screen.getAllByText("Passkey").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Ativa").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Inativa").length).toBeGreaterThan(0)
   })
 
   it("exibe validacoes obrigatorias ao submeter dialogo de cadastro vazio", async () => {

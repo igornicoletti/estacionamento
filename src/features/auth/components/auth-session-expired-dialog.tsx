@@ -16,11 +16,7 @@ import { authCopy } from "../auth-copy"
 import { consumeInactivitySessionExpired } from "./auth-inactivity-guard"
 
 export function AuthSessionExpiredDialog() {
-  const [open, setOpen] = React.useState(false)
-
-  React.useEffect(() => {
-    setOpen(consumeInactivitySessionExpired())
-  }, [])
+  const [open, setOpen] = React.useState(() => consumeInactivitySessionExpired())
 
   return (
     <AlertDialog open={open} onOpenChange={setOpen}>

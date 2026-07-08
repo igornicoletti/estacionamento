@@ -1,17 +1,44 @@
-import { afterEach, describe, expect, it } from "vitest"
+import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import {
   countUnreadNotifications,
+  createMemoryNotificationsGateway,
   listNotifications,
-  resetNotificationsMockState,
+  setNotificationsGateway,
   setNotificationsStatus,
+  type NotificationRecord,
 } from "@/features/notifications"
 
+const notificationsFixture: NotificationRecord[] = [
+  {
+    description: "Mensagem de teste.",
+    href: "/clientes",
+    id: "N-001",
+    occurredAt: "2026-07-01T08:25:00.000Z",
+    status: "unread",
+    title: "Sincronização concluída",
+    type: "sync",
+  },
+  {
+    description: "Mensagem de segurança.",
+    href: "/perfil",
+    id: "N-002",
+    occurredAt: "2026-07-01T07:58:00.000Z",
+    status: "unread",
+    title: "Nova tentativa de acesso",
+    type: "security",
+  },
+]
+
 afterEach(() => {
-  resetNotificationsMockState()
+  setNotificationsGateway(createMemoryNotificationsGateway([]))
 })
 
 describe("notifications-service", () => {
+  beforeEach(() => {
+    setNotificationsGateway(createMemoryNotificationsGateway(notificationsFixture))
+  })
+
   it("updates unread notifications in batch and reports summary", async () => {
     const beforeUnread = await countUnreadNotifications()
 

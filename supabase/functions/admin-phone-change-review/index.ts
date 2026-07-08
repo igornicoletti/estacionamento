@@ -19,7 +19,7 @@ Deno.serve(async (req) => {
     const supabase = createAdminClient()
     const { data: appUser, error: appUserError } = await supabase
       .from("app_users")
-      .select("name, pending_phone_masked")
+      .select("name, pending_phone_display, pending_phone_masked")
       .eq("auth_user_id", input.targetUserId)
       .maybeSingle()
 
@@ -27,18 +27,24 @@ Deno.serve(async (req) => {
       return genericAuthError(400, req)
     }
 
-    const nextValues =
+    const nextValues: Record<string, unknown> =
       input.decision === "approved"
         ? {
+            pending_phone_display: null,
             pending_phone_masked: null,
             phone_masked: appUser.pending_phone_masked,
             phone_verified_at: new Date().toISOString(),
             updated_by: actor.authUserId,
           }
         : {
+            pending_phone_display: null,
             pending_phone_masked: null,
             updated_by: actor.authUserId,
           }
+
+    if (input.decision === "approved" && appUser.pending_phone_display) {
+      nextValues.phone_display = appUser.pending_phone_display
+    }
 
     const { error: updateError } = await supabase
       .from("app_users")

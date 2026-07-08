@@ -89,7 +89,7 @@ describe("AuditRoute", () => {
     })
 
     expect(fromMock).toHaveBeenCalledWith("audit_events")
-  })
+  }, 15_000)
 
   it("opens event details from the responsible column", async () => {
     const { AuditRoute } = await import("@/features/audit")

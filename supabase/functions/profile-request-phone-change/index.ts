@@ -1,5 +1,6 @@
 import {
   createAdminClient,
+  formatPhone,
   genericAuthError,
   getAuthenticatedActor,
   handleCors,
@@ -26,6 +27,7 @@ Deno.serve(async (req) => {
       .from("app_users")
       .update({
         pending_phone_masked: maskPhone(input.phone),
+        pending_phone_display: formatPhone(input.phone),
         updated_by: actor.authUserId,
       })
       .eq("auth_user_id", actor.authUserId)

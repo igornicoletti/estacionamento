@@ -22,7 +22,7 @@ type SessionProfile = {
   avatarUrl: null
   email: string
   id: string
-  mfaStatus: "active" | "inactive"
+  passkeyStatus: "active" | "inactive"
   name: string
   phoneMasked: string
   role: "owner"
@@ -45,7 +45,7 @@ const { submitPasswordCredentialsMock, requestAccessRecoveryMock, getCurrentSess
     avatarUrl: null,
     email: "igor.nicoletti@redemontecarlo.com",
     id: "USR-001",
-    mfaStatus: "active",
+    passkeyStatus: "active",
     name: "Igor Nicoletti",
     phoneMasked: "(17) 99130-4197",
     role: "owner",
@@ -149,7 +149,7 @@ beforeEach(() => {
       avatarUrl: null,
       email: "igor.nicoletti@redemontecarlo.com",
       id: "USR-001",
-      mfaStatus: "active",
+      passkeyStatus: "active",
       name: "Igor Nicoletti",
       phoneMasked: "(17) 99130-4197",
       role: "owner",

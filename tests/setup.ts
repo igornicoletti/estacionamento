@@ -4,7 +4,9 @@ import * as React from "react"
 import { beforeEach, vi } from "vitest"
 
 import {
-  resetNotificationsMockState,
+  createMemoryNotificationsGateway,
+  setNotificationsGateway,
+  type NotificationRecord,
 } from "@/features/notifications"
 import {
   resetUsersGateway,
@@ -21,8 +23,8 @@ const testAuthSession = {
     cpfMasked: "***.***.***-25",
     email: "igor.nicoletti@redemontecarlo.com",
     id: "USR-001",
-    mfaStatus: "active",
     name: "Igor Nicoletti",
+    passkeyStatus: "active",
     phoneMasked: "(17) 99130-4197",
     role: "owner",
     status: "active",
@@ -40,8 +42,8 @@ const seedUsers: UserRecord[] = [
     email: "ana.pereira@redemontecarlo.com",
     id: "USR-001",
     lastAccessAt: "2026-07-01 08:25",
-    mfaStatus: "active",
     name: "Ana Pereira",
+    passkeyStatus: "active",
     phoneMasked: "(11) 98888-7777",
     role: "manager",
     status: "active",
@@ -54,13 +56,42 @@ const seedUsers: UserRecord[] = [
     email: "carlos.lima@redemontecarlo.com",
     id: "USR-002",
     lastAccessAt: null,
-    mfaStatus: "inactive",
     name: "Carlos Lima",
+    passkeyStatus: "inactive",
     phoneMasked: "(11) 97777-6666",
     role: "operator",
     status: "active",
     unitId: "1",
     unitName: "Monte Carlo Centro",
+  },
+]
+
+const seedNotifications: NotificationRecord[] = [
+  {
+    description: "Clientes e unidades foram sincronizados com sucesso.",
+    href: "/clientes",
+    id: "N-001",
+    occurredAt: "2026-07-01T08:25:00.000Z",
+    status: "unread",
+    title: "Sincronização concluída",
+    type: "sync",
+  },
+  {
+    description: "Uma nova tentativa de login foi registrada para seu usuário.",
+    href: "/perfil",
+    id: "N-002",
+    occurredAt: "2026-07-01T07:58:00.000Z",
+    status: "unread",
+    title: "Nova tentativa de acesso",
+    type: "security",
+  },
+  {
+    description: "Nova versão do painel foi publicada com melhorias de desempenho.",
+    id: "N-003",
+    occurredAt: "2026-06-30T19:10:00.000Z",
+    status: "read",
+    title: "Atualização aplicada",
+    type: "system",
   },
 ]
 
@@ -96,7 +127,7 @@ vi.mock("@/components/ui/tooltip", async (importOriginal) => {
 })
 
 beforeEach(() => {
-  resetNotificationsMockState()
+  setNotificationsGateway(createMemoryNotificationsGateway(seedNotifications))
 
   const currentUsers = seedUsers.map((user) => ({ ...user }))
 

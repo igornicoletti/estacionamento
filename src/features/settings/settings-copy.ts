@@ -82,21 +82,21 @@ export const settingsCopy = {
       },
     },
   },
-  mfa: {
-    sectionTitle: "Autenticação multifator (MFA)",
+  passkey: {
+    sectionTitle: "Passkey",
     sectionDescription:
-      "Verificamos sua identidade a partir dos canais de contato confirmados (telefone ou email).",
+      "Use uma credencial WebAuthn do seu dispositivo ou gerenciador de senhas para entrar com passkey.",
     statusLabel: "Status",
-    statusActive: "Ativo",
-    statusInactive: "Inativo",
-    statusActiveDescription: "Você possui ao menos um canal de contato verificado.",
+    statusActive: "Ativa",
+    statusInactive: "Inativa",
+    statusActiveDescription: "Você possui ao menos uma passkey cadastrada.",
     statusInactiveDescription:
-      "Nenhum canal de contato foi verificado ainda. Habilite a autenticação multifator para proteger sua conta.",
-    enableButton: "Habilitar MFA",
+      "Nenhuma passkey foi cadastrada ainda. Cadastre uma credencial para habilitar o acesso sem senha.",
+    enableButton: "Cadastrar passkey",
     enableFeedback: {
-      loading: "Enviando solicitação de verificação...",
-      success: "Solicitação enviada. Aguarde a validação do seu telefone.",
-      error: "Não foi possível habilitar a autenticação multifator.",
+      loading: "Abrindo cadastro de passkey...",
+      success: "Passkey cadastrada.",
+      error: "Não foi possível cadastrar a passkey.",
     },
   },
 } as const

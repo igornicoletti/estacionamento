@@ -90,7 +90,7 @@ export function UnitUsersRoute() {
             "phoneMasked",
             "role",
             "status",
-            "mfaStatus",
+            "passkeyStatus",
             "lastAccessAt",
           ],
           placeholder: unitsCopy.pages.unitUsers.searchPlaceholder,

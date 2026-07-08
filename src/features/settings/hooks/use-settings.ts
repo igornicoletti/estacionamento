@@ -2,6 +2,7 @@ import * as React from "react"
 
 import {
   getAuthErrorMessage,
+  registerPasskey,
   requestProfilePhoneChange,
   useAuthSession,
 } from "@/features/auth"
@@ -9,8 +10,7 @@ import {
 import { type SettingsProfile } from "../types/settings-types"
 
 const saveError = "Não foi possível enviar a solicitação."
-const enableMfaError = "Não foi possível habilitar a autenticação multifator."
-const enableMfaMissingPhoneError = "Cadastre um telefone antes de habilitar a autenticação multifator."
+const registerPasskeyError = "Não foi possível cadastrar a passkey."
 
 export function useSettings() {
   const {
@@ -19,7 +19,7 @@ export function useSettings() {
     refresh: refreshSession,
   } = useAuthSession()
   const [isSaving, setIsSaving] = React.useState(false)
-  const [isEnablingMfa, setIsEnablingMfa] = React.useState(false)
+  const [isRegisteringPasskey, setIsRegisteringPasskey] = React.useState(false)
 
   const profile: SettingsProfile | null = sessionProfile
     ? {
@@ -50,32 +50,28 @@ export function useSettings() {
     [refreshSession, sessionProfile]
   )
 
-  const enableMfa = React.useCallback(async () => {
-    if (!sessionProfile?.phoneMasked) {
-      throw new Error(enableMfaMissingPhoneError)
-    }
-
-    setIsEnablingMfa(true)
+  const registerCurrentPasskey = React.useCallback(async () => {
+    setIsRegisteringPasskey(true)
 
     try {
-      await requestProfilePhoneChange({ phone: sessionProfile.phoneMasked })
+      await registerPasskey()
       await refreshSession()
     } catch (caughtError) {
-      throw new Error(getAuthErrorMessage(caughtError, enableMfaError), {
+      throw new Error(getAuthErrorMessage(caughtError, registerPasskeyError), {
         cause: caughtError,
       })
     } finally {
-      setIsEnablingMfa(false)
+      setIsRegisteringPasskey(false)
     }
-  }, [refreshSession, sessionProfile])
+  }, [refreshSession])
 
   return {
     isLoading,
     isSaving,
-    isEnablingMfa,
-    mfaStatus: sessionProfile?.mfaStatus ?? "inactive",
+    isRegisteringPasskey,
+    passkeyStatus: sessionProfile?.passkeyStatus ?? "inactive",
     profile,
     saveProfile,
-    enableMfa,
+    registerPasskey: registerCurrentPasskey,
   }
 }

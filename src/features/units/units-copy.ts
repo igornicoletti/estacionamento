@@ -55,7 +55,7 @@ export const unitsCopy = {
     operators: "Operadores",
     profile: "Perfil",
     status: "Status",
-    mfa: "MFA",
+    passkey: "Passkey",
     lastAccess: "Último acesso",
     phone: "Telefone",
     email: "E-mail",

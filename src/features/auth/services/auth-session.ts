@@ -40,8 +40,8 @@ const developmentProfile: AppUserProfile = {
   cpfMasked: "***.***.***-00",
   email: "igor.nicoletti@redemontecarlo.com",
   id: "USR-001",
-  mfaStatus: "inactive",
   name: "Igor Nicoletti",
+  passkeyStatus: "active",
   phoneMasked: "(17) 99130-4197",
   role: "owner",
   status: "active",
@@ -75,7 +75,7 @@ export function syncDevelopmentSessionProfileFromUser(user: UserRecord) {
     cpfMasked: user.cpf || developmentProfile.cpfMasked,
     unitId: user.unitId,
     unitName: user.unitName,
-    mfaStatus: user.mfaStatus,
+    passkeyStatus: user.passkeyStatus,
   } satisfies Partial<AppUserProfile>)
 
   notifyProfileSyncListeners()
@@ -98,12 +98,12 @@ function getFirstUnitIdFromRelation(value: unknown) {
   return null
 }
 
-function resolveMfaStatus(data: UnknownRecord): "active" | "inactive" {
-  const hasVerifiedContact =
-    Boolean(getStringValue(data.phone_verified_at)) ||
-    Boolean(getStringValue(data.email_verified_at))
+function resolvePasskeyStatus(data: UnknownRecord): "active" | "inactive" {
+  const passkeyCount = data.passkey_count
 
-  return hasVerifiedContact ? "active" : "inactive"
+  return typeof passkeyCount === "number" && passkeyCount > 0
+    ? "active"
+    : "inactive"
 }
 
 function resolveDisplayValue(
@@ -155,7 +155,34 @@ function mapAppUserProfile(data: unknown): AppUserProfile | null {
     phoneMasked,
     cpfMasked: resolveDisplayValue(data, "cpf_display", "cpf_masked"),
     email: getStringValue(data.email),
-    mfaStatus: resolveMfaStatus(data),
+    passkeyStatus: resolvePasskeyStatus(data),
+  }
+}
+
+async function getCurrentUserPasskeyCount(
+  supabase: NonNullable<ReturnType<typeof getSupabaseBrowserClient>>
+) {
+  const passkeyApi = (supabase.auth as unknown as {
+    passkey?: {
+      list?: () => Promise<{ data?: unknown; error?: unknown }>
+    }
+  }).passkey
+
+  if (typeof passkeyApi?.list !== "function") {
+    return 0
+  }
+
+  try {
+    const { data, error } = await passkeyApi.list.call(passkeyApi)
+
+    if (error || !Array.isArray(data)) {
+      return 0
+    }
+
+    return data.length
+  } catch (caughtError) {
+    reportAuthInternalError("getCurrentUserPasskeyCount", caughtError)
+    return 0
   }
 }
 
@@ -182,7 +209,7 @@ export async function getCurrentSessionProfile(): Promise<AppUserProfile | null>
   const { data, error } = await supabase
     .from("app_users")
     .select(
-      "id, auth_user_id, name, role, status, phone_display, phone_masked, cpf_display, cpf_masked, email, phone_verified_at, email_verified_at"
+      "id, auth_user_id, name, role, status, phone_masked, cpf_masked, email"
     )
     .eq("auth_user_id", user.id)
     .maybeSingle()
@@ -206,6 +233,7 @@ export async function getCurrentSessionProfile(): Promise<AppUserProfile | null>
   const profileData = {
     ...data,
     app_user_units: unitLink ?? null,
+    passkey_count: await getCurrentUserPasskeyCount(supabase),
   }
 
   return mapAppUserProfile(profileData) ?? getDevelopmentProfile()

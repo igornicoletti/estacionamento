@@ -28,6 +28,7 @@ import {
   formatNotificationsCounter,
   getRecentUnreadNotifications,
 } from "@/features/notifications/utils/notifications-rules"
+import { formatDateTime } from "@/lib"
 
 import { sidebarCopy } from "./sidebar-copy"
 
@@ -145,7 +146,7 @@ export function NotificationsPopover() {
                             {notification.title}
                           </span>
                           <span className="shrink-0 text-xs text-muted-foreground">
-                            {notification.occurredAt}
+                            {formatDateTime(notification.occurredAt)}
                           </span>
                         </span>
                         <span className="line-clamp-2 text-xs text-muted-foreground">

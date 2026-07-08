@@ -3,8 +3,13 @@ export { notificationsCopy } from "./notifications-copy"
 export { NotificationsRoute } from "./routes/notifications-route"
 export {
   countUnreadNotifications,
+  createMemoryNotificationsGateway,
   listNotifications,
-  resetNotificationsMockState, setNotificationsStatus, setNotificationStatus, subscribeNotifications
+  resetNotificationsGateway,
+  setNotificationStatus,
+  setNotificationsGateway,
+  setNotificationsStatus,
+  subscribeNotifications
 } from "./services/notifications-service"
 export {
   notificationStatusLabels,

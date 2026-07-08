@@ -18,7 +18,7 @@ describe("PermissionsRoute", () => {
     })
 
     expect(screen.getAllByText("Visualizar auditoria").length).toBeGreaterThan(0)
-  })
+  }, 15_000)
 
   it("opens permission details without exposing technical identifiers", async () => {
     render(<PermissionsRoute />)

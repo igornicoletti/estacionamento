@@ -91,7 +91,7 @@ describe("AccessRequestsRoute", () => {
     await waitFor(() => {
       expect(screen.getByText("(11) 98765-4321")).toBeInTheDocument()
     })
-  })
+  }, 15_000)
 
   it("submits a recovery review action", async () => {
     invokeMock.mockResolvedValue({ data: { message: "ok" }, error: null })

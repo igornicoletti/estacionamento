@@ -19,7 +19,7 @@ import { usersCopy } from "../users-copy"
 import {
   resolveEmailLabel,
   resolveLastAccessLabel,
-  resolveMfaLabel,
+  resolvePasskeyLabel,
   resolveUnitLabel,
 } from "../utils/users-models"
 
@@ -67,7 +67,7 @@ function getUserDetails(user: UserRecord) {
       { label: usersCopy.form.roleLabel, value: userRoleLabels[user.role] },
       { label: usersCopy.filters.status, value: appUserStatusLabels[user.status] },
       { label: usersCopy.form.unitLabel, value: resolveUnitLabel(user.unitName) },
-      { label: "MFA", value: resolveMfaLabel(user.mfaStatus) },
+      { label: "Passkey", value: resolvePasskeyLabel(user.passkeyStatus) },
       { label: "Último acesso", value: resolveLastAccessLabel(user.lastAccessAt) },
     ],
   }
@@ -146,12 +146,12 @@ export function createUsersColumns(
       cell: ({ row }) => resolveUnitLabel(row.original.unitName),
     },
     {
-      accessorKey: "mfaStatus",
-      meta: { label: "MFA" },
-      header: () => <div className="text-center">MFA</div>,
+      accessorKey: "passkeyStatus",
+      meta: { label: "Passkey" },
+      header: () => <div className="text-center">Passkey</div>,
       enableSorting: false,
       cell: ({ row }) => {
-        const isActive = row.original.mfaStatus === "active"
+        const isActive = row.original.passkeyStatus === "active"
 
         return (
           <div className="flex justify-center">
@@ -159,7 +159,7 @@ export function createUsersColumns(
               variant="secondary"
               className={getBadgeToneClassName(isActive ? "success" : undefined)}
             >
-              {resolveMfaLabel(row.original.mfaStatus)}
+              {resolvePasskeyLabel(row.original.passkeyStatus)}
             </Badge>
           </div>
         )
@@ -174,6 +174,9 @@ export function createUsersColumns(
     createActionsColumn<UserRecord>((row) => {
       const isActive = row.original.status === "active"
       const isBlocked = row.original.status === "inactive"
+      const isTemporarilyLocked = row.original.lockedUntil
+        ? new Date(row.original.lockedUntil).getTime() > Date.now()
+        : false
 
       return [
         detailsAction,
@@ -212,11 +215,13 @@ export function createUsersColumns(
                 },
               ]
               : []),
-            ...(isBlocked && options.canClearLock && options.onClearLock
+            ...((isBlocked || isTemporarilyLocked) && options.canClearLock && options.onClearLock
               ? [
                 {
                   id: "clear-lock" as const,
-                  label: usersCopy.actions.clearLock,
+                  label: isBlocked
+                    ? usersCopy.actions.unblockUser
+                    : usersCopy.actions.clearLock,
                   onSelect: (row: { original: UserRecord }) => {
                     options.onClearLock?.(row.original)
                   },

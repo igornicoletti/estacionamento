@@ -52,7 +52,7 @@ export interface AppUserProfile {
   phoneMasked: string
   cpfMasked: string | null
   email: string | null
-  mfaStatus?: "active" | "inactive"
+  passkeyStatus?: "active" | "inactive"
 }
 
 export interface RecoveryRequestResponse {

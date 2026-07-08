@@ -158,6 +158,7 @@ if (misplacedTests.length > 0) {
 
 const manualTableFiles = srcCodeFiles
   .filter((file) => file !== "src/components/ui/table.tsx")
+  .filter((file) => file !== "src/components/ui/calendar.tsx")
   .filter((file) => !file.startsWith("src/components/data-table/"))
   .filter((file) => /<(table|thead|tbody|tr|td|th)(\s|>)/.test(read(file)))
 
@@ -220,7 +221,15 @@ for (const [file, needles] of [
   ],
   [
     "src/features/users/columns/users-columns.tsx",
-    ["canResetPasskey", "canRevokeSessions", "resolveLastAccessLabel"],
+    ["canResetPasskey", "canRevokeSessions", "resolveLastAccessLabel", "passkeyStatus", "Passkey"],
+  ],
+  [
+    "src/features/notifications/services/notifications-service.ts",
+    ["notification_deliveries", "notification_events", "set_notification_read_status"],
+  ],
+  [
+    "supabase/migrations/20260708182449_notifications_passkey_auth_hardening.sql",
+    ["notification_events", "notification_deliveries", "enable row level security", "grant select on table public.notification_events to authenticated"],
   ],
 ]) {
   const content = read(file)
@@ -230,6 +239,19 @@ for (const [file, needles] of [
       errors.push(`Missing invariant "${needle}" in ${file}`)
     }
   }
+}
+
+const notificationsService = read("src/features/notifications/services/notifications-service.ts")
+if (/initialNotifications|inMemoryNotifications|resetNotificationsMockState/.test(notificationsService)) {
+  errors.push("Notifications service must not ship mocked notification content")
+}
+
+const remainingMfaReferences = srcCodeFiles
+  .filter((file) => !file.includes("auth-mfa"))
+  .filter((file) => /\bmfaStatus\b|Autenticação multifator|settingsCopy\.mfa|unitsCopy\.table\.mfa/.test(read(file)))
+
+if (remainingMfaReferences.length > 0) {
+  errors.push(`Passkey UI must not use MFA status semantics: ${remainingMfaReferences.join(", ")}`)
 }
 
 const piiMigration = migrationFiles.find((file) =>

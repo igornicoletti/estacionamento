@@ -341,12 +341,20 @@ export function UsersRoute() {
     }
 
     if (type === "clearLock") {
+      const isBlocked = user.status === "inactive"
+
       return {
-        title: usersCopy.dialogs.clearLockTitle,
-        description: interpolateUserCopy(usersCopy.dialogs.clearLockDescription, {
+        title: isBlocked
+          ? usersCopy.dialogs.unblockTitle
+          : usersCopy.dialogs.clearLockTitle,
+        description: interpolateUserCopy(isBlocked
+          ? usersCopy.dialogs.unblockDescription
+          : usersCopy.dialogs.clearLockDescription, {
           name: user.name,
         }),
-        confirmLabel: usersCopy.dialogs.clearLockConfirm,
+        confirmLabel: isBlocked
+          ? usersCopy.dialogs.unblockConfirm
+          : usersCopy.dialogs.clearLockConfirm,
         onConfirm: () => handleClearLock(user),
       }
     }
@@ -766,6 +774,7 @@ export function UsersRoute() {
             "role",
             "status",
             "unitName",
+            "passkeyStatus",
           ],
           placeholder: usersCopy.filters.searchPlaceholder,
         }}
