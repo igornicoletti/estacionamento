@@ -151,7 +151,7 @@ pnpm build
 2. Executar migrations 0007 e 0008 no banco remoto.
 3. Configurar os crons chamando a função SQL:
 
-- select public.configure_units_sync_cron('https://<project-ref>.supabase.co', '<UNITS_SYNC_SECRET>', '*/30 * * * *', '0 3 * * *');
+- select private.configure_units_sync_cron('https://<project-ref>.supabase.co', '<UNITS_SYNC_SECRET>', '*/30 * * * *', '0 3 * * *');
 
 6. Validar execução manual na UI de Unidades pelo botão Sincronizar.
 
