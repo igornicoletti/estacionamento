@@ -54,7 +54,7 @@ describe("RouteErrorBoundary", () => {
     expect(screen.getByText("Erro inesperado")).toBeInTheDocument()
     expect(
       screen.getByText(
-        "A aplicação encontrou um erro ao renderizar esta rota. Tente novamente ou retorne para a página inicial."
+        "A aplicação encontrou uma falha inesperada ao renderizar esta rota. Tente novamente ou retorne para a página inicial."
       )
     ).toBeInTheDocument()
 

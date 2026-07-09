@@ -77,6 +77,12 @@ export function createVipRulesColumns(
       cell: ({ row }) => row.original.vehiclePlate ?? "Todos os veículos",
     },
     {
+      id: "scope",
+      meta: { label: "Abrangência" },
+      header: "Abrangência",
+      cell: ({ row }) => getVipRuleScopeLabel(row.original),
+    },
+    {
       accessorKey: "active",
       meta: { label: "Status" },
       header: () => <div className="text-center">Status</div>,
@@ -98,12 +104,13 @@ export function createVipRulesColumns(
       header: "Atualizado em",
       cell: ({ row }) => formatDateTime(row.original.updatedAt),
     },
-    createActionsColumn<VipRule>([
+    createActionsColumn<VipRule>((row) => [
       detailsAction,
       {
         id: "toggle-active",
-        label: "Alternar status",
-        onSelect: (row) => {
+        label: row.original.active ? "Inativar regra" : "Ativar regra",
+        variant: row.original.active ? "destructive" : "default",
+        onSelect: () => {
           options.onToggleRuleActive?.(row.original)
         },
       },

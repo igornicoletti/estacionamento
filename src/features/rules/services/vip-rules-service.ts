@@ -1,4 +1,5 @@
 import { type Client, type ClientVehicle } from "@/features/clients"
+import { getSupabaseBrowserClient } from "@/lib"
 
 import {
   type ToggleClientVipInput,
@@ -6,7 +7,30 @@ import {
   type VipRule,
 } from "../types/vip-rules-types"
 
-const STORAGE_KEY = "rmc.vip-rules.v1"
+const STORAGE_KEY = "rmc.vip-rules.v2"
+const LEGACY_STORAGE_KEY = "rmc.vip-rules.v1"
+
+interface RawCommercialRuleRow {
+  id: string
+  target_type: "client" | "vehicle" | "network" | "unit"
+  client_id: number | null
+  client_name: string | null
+  vehicle_id: number | null
+  vehicle_plate: string | null
+  applies_to_all_vehicles: boolean | null
+  vehicle_ids: number[] | null
+  applies_to_all_units: boolean | null
+  unit_ids: string[] | null
+  status: "active" | "inactive"
+  updated_at: string
+}
+
+export interface VipRulesGateway {
+  listVipRules(): Promise<VipRule[]>
+  saveVipRule(rule: VipRule): Promise<VipRule>
+}
+
+let configuredGateway: VipRulesGateway | null = null
 
 function canUseStorage() {
   return typeof window !== "undefined" && typeof window.localStorage !== "undefined"
@@ -56,44 +80,93 @@ function sanitizeNumberList(value: unknown) {
     .filter((item) => Number.isFinite(item) && item > 0)
 }
 
+function createClientRuleId(clientId: number) {
+  return `vip-client:${clientId}`
+}
+
+function createVehicleRuleId(clientId: number, vehicleId: number) {
+  return `vip-vehicle:${clientId}:${vehicleId}`
+}
+
+function getStableRuleId(rule: Pick<VipRule, "targetType" | "clientId" | "vehicleId">) {
+  if (rule.targetType === "client") {
+    return createClientRuleId(rule.clientId)
+  }
+
+  return createVehicleRuleId(rule.clientId, rule.vehicleId ?? 0)
+}
+
+function getRuleNaturalKey(rule: Pick<VipRule, "targetType" | "clientId" | "vehicleId">) {
+  return getStableRuleId(rule)
+}
+
+function sortRulesByUpdatedAt(rules: readonly VipRule[]) {
+  return [...rules].sort((first, second) =>
+    second.updatedAt.localeCompare(first.updatedAt)
+  )
+}
+
+function normalizeRuleIdentity(rule: VipRule): VipRule {
+  return {
+    ...rule,
+    id: getStableRuleId(rule),
+  }
+}
+
+function normalizeVipRules(rules: readonly VipRule[]) {
+  const byNaturalKey = new Map<string, VipRule>()
+
+  for (const rule of sortRulesByUpdatedAt(rules).reverse()) {
+    byNaturalKey.set(getRuleNaturalKey(rule), normalizeRuleIdentity(rule))
+  }
+
+  return sortRulesByUpdatedAt([...byNaturalKey.values()])
+}
+
 function sanitizeVipRule(value: unknown): VipRule | null {
   if (!value || typeof value !== "object") {
     return null
   }
 
   const candidate = value as Partial<VipRule>
-  const id = sanitizeText(candidate.id)
   const targetType = candidate.targetType === "vehicle" ? "vehicle" : candidate.targetType === "client" ? "client" : null
   const clientId = sanitizeInteger(candidate.clientId)
   const clientName = sanitizeText(candidate.clientName)
   const updatedAt = sanitizeText(candidate.updatedAt) || new Date(0).toISOString()
+  const vehicleId = candidate.vehicleId === null || candidate.vehicleId === undefined
+    ? null
+    : sanitizeInteger(candidate.vehicleId) || null
 
-  if (!id || !targetType || clientId <= 0 || !clientName) {
+  if (!targetType || clientId <= 0 || !clientName) {
     return null
   }
 
-  return {
-    id,
+  if (targetType === "vehicle" && (!vehicleId || vehicleId <= 0)) {
+    return null
+  }
+
+  return normalizeRuleIdentity({
+    id: "",
     targetType,
     clientId,
     clientName,
-    vehicleId: candidate.vehicleId === null || candidate.vehicleId === undefined ? null : sanitizeInteger(candidate.vehicleId) || null,
+    vehicleId,
     vehiclePlate: candidate.vehiclePlate === null || candidate.vehiclePlate === undefined ? null : sanitizeText(candidate.vehiclePlate) || null,
-    appliesToAllVehicles: Boolean(candidate.appliesToAllVehicles),
-    vehicleIds: sanitizeNumberList(candidate.vehicleIds),
+    appliesToAllVehicles: targetType === "client" ? Boolean(candidate.appliesToAllVehicles) : false,
+    vehicleIds: targetType === "client" ? sanitizeNumberList(candidate.vehicleIds) : vehicleId ? [vehicleId] : [],
     appliesToAllUnits: Boolean(candidate.appliesToAllUnits),
     unitIds: sanitizeStringList(candidate.unitIds),
     active: Boolean(candidate.active),
     updatedAt,
-  }
+  })
 }
 
-function readStoredRules() {
+function readStoredRulesFromKey(key: string) {
   if (!canUseStorage()) {
     return [] as VipRule[]
   }
 
-  const raw = window.localStorage.getItem(STORAGE_KEY)
+  const raw = window.localStorage.getItem(key)
 
   if (!raw) {
     return [] as VipRule[]
@@ -114,39 +187,218 @@ function readStoredRules() {
   }
 }
 
+function readStoredRules() {
+  return normalizeVipRules([
+    ...readStoredRulesFromKey(STORAGE_KEY),
+    ...readStoredRulesFromKey(LEGACY_STORAGE_KEY),
+  ])
+}
+
 function writeStoredRules(rules: readonly VipRule[]) {
   if (!canUseStorage()) {
     return
   }
 
-  window.localStorage.setItem(STORAGE_KEY, JSON.stringify(rules))
+  try {
+    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(normalizeVipRules(rules)))
+  } catch {
+    // Persistência local é apenas fallback; erros de quota não devem derrubar a UI.
+  }
 }
 
-function createRuleId(prefix: string) {
-  return `${prefix}_${Date.now()}_${Math.random().toString(16).slice(2, 8)}`
+function assertPositiveId(value: number, label: string) {
+  if (!Number.isInteger(value) || value <= 0) {
+    throw new Error(`${label} inválido.`)
+  }
 }
 
-function upsertRule(nextRule: VipRule) {
-  const currentRules = readStoredRules().filter((rule) => rule.id !== nextRule.id)
-  const nextRules = [nextRule, ...currentRules].sort((first, second) => {
-    return second.updatedAt.localeCompare(first.updatedAt)
+function createLocalStorageVipRulesGateway(): VipRulesGateway {
+  return {
+    async listVipRules() {
+      await Promise.resolve()
+      return readStoredRules()
+    },
+    async saveVipRule(rule) {
+      await Promise.resolve()
+      const nextRule = normalizeRuleIdentity(rule)
+      const nextRules = normalizeVipRules([
+        nextRule,
+        ...readStoredRules().filter((currentRule) =>
+          getRuleNaturalKey(currentRule) !== getRuleNaturalKey(nextRule)
+        ),
+      ])
+
+      writeStoredRules(nextRules)
+
+      return nextRule
+    },
+  }
+}
+
+function mapCommercialRuleRow(row: RawCommercialRuleRow): VipRule | null {
+  if (row.target_type !== "client" && row.target_type !== "vehicle") {
+    return null
+  }
+
+  return sanitizeVipRule({
+    targetType: row.target_type,
+    clientId: row.client_id,
+    clientName: row.client_name,
+    vehicleId: row.vehicle_id,
+    vehiclePlate: row.vehicle_plate,
+    appliesToAllVehicles: row.applies_to_all_vehicles,
+    vehicleIds: row.vehicle_ids,
+    appliesToAllUnits: row.applies_to_all_units,
+    unitIds: row.unit_ids,
+    active: row.status === "active",
+    updatedAt: row.updated_at,
   })
+}
 
-  writeStoredRules(nextRules)
-  return nextRule
+function createSupabaseVipRulesGateway(): VipRulesGateway {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    return createLocalStorageVipRulesGateway()
+  }
+
+  return {
+    async listVipRules() {
+      const { data, error } = await supabase
+        .from("commercial_rules")
+        .select([
+          "id",
+          "target_type",
+          "client_id",
+          "client_name",
+          "vehicle_id",
+          "vehicle_plate",
+          "applies_to_all_vehicles",
+          "vehicle_ids",
+          "applies_to_all_units",
+          "unit_ids",
+          "status",
+          "updated_at",
+        ].join(","))
+        .eq("type", "vip")
+        .order("updated_at", { ascending: false })
+
+      if (error) {
+        throw new Error("Não foi possível carregar as regras VIP.", {
+          cause: error,
+        })
+      }
+
+      return normalizeVipRules(
+        ((data ?? []) as unknown as RawCommercialRuleRow[])
+          .map(mapCommercialRuleRow)
+          .filter((rule): rule is VipRule => Boolean(rule))
+      )
+    },
+    async saveVipRule(rule) {
+      const nextRule = normalizeRuleIdentity(rule)
+      const { data, error } = await supabase
+        .from("commercial_rules")
+        .upsert({
+          id: nextRule.id,
+          type: "vip",
+          target_type: nextRule.targetType,
+          client_id: nextRule.clientId,
+          client_name: nextRule.clientName,
+          vehicle_id: nextRule.vehicleId,
+          vehicle_plate: nextRule.vehiclePlate,
+          applies_to_all_vehicles: nextRule.appliesToAllVehicles,
+          vehicle_ids: nextRule.vehicleIds,
+          applies_to_all_units: nextRule.appliesToAllUnits,
+          unit_ids: nextRule.unitIds,
+          status: nextRule.active ? "active" : "inactive",
+          starts_at: nextRule.updatedAt,
+        }, {
+          onConflict: "id",
+        })
+        .select([
+          "id",
+          "target_type",
+          "client_id",
+          "client_name",
+          "vehicle_id",
+          "vehicle_plate",
+          "applies_to_all_vehicles",
+          "vehicle_ids",
+          "applies_to_all_units",
+          "unit_ids",
+          "status",
+          "updated_at",
+        ].join(","))
+        .single()
+
+      if (error) {
+        throw new Error("Não foi possível salvar a regra VIP.", {
+          cause: error,
+        })
+      }
+
+      return mapCommercialRuleRow(data as unknown as RawCommercialRuleRow) ?? nextRule
+    },
+  }
+}
+
+function shouldUseSupabaseVipRulesGateway() {
+  return import.meta.env.MODE !== "test" && Boolean(getSupabaseBrowserClient())
+}
+
+function getVipRulesGateway() {
+  if (configuredGateway) {
+    return configuredGateway
+  }
+
+  return shouldUseSupabaseVipRulesGateway()
+    ? createSupabaseVipRulesGateway()
+    : createLocalStorageVipRulesGateway()
+}
+
+export function setVipRulesGateway(gateway: VipRulesGateway) {
+  configuredGateway = gateway
+}
+
+export function resetVipRulesGateway() {
+  configuredGateway = null
+}
+
+export function createMemoryVipRulesGateway(seedRules: readonly VipRule[] = []): VipRulesGateway {
+  let rules = normalizeVipRules(seedRules)
+
+  return {
+    async listVipRules() {
+      await Promise.resolve()
+      return rules.map((rule) => ({ ...rule, vehicleIds: [...rule.vehicleIds], unitIds: [...rule.unitIds] }))
+    },
+    async saveVipRule(rule) {
+      await Promise.resolve()
+      const nextRule = normalizeRuleIdentity(rule)
+      rules = normalizeVipRules([
+        nextRule,
+        ...rules.filter((currentRule) =>
+          getRuleNaturalKey(currentRule) !== getRuleNaturalKey(nextRule)
+        ),
+      ])
+
+      return nextRule
+    },
+  }
 }
 
 export async function listVipRules(): Promise<VipRule[]> {
-  await Promise.resolve()
-
-  return readStoredRules()
+  return getVipRulesGateway().listVipRules()
 }
 
 export async function toggleClientVip(input: ToggleClientVipInput): Promise<VipRule> {
-  await Promise.resolve()
+  assertPositiveId(input.clientId, "Cliente")
 
-  const rule = upsertRule({
-    id: createRuleId("vip-client"),
+  const now = new Date().toISOString()
+
+  return getVipRulesGateway().saveVipRule({
+    id: createClientRuleId(input.clientId),
     targetType: "client",
     clientId: input.clientId,
     clientName: input.clientName,
@@ -157,17 +409,18 @@ export async function toggleClientVip(input: ToggleClientVipInput): Promise<VipR
     appliesToAllUnits: true,
     unitIds: [],
     active: input.enabled,
-    updatedAt: new Date().toISOString(),
+    updatedAt: now,
   })
-
-  return rule
 }
 
 export async function toggleVehicleVip(input: ToggleVehicleVipInput): Promise<VipRule> {
-  await Promise.resolve()
+  assertPositiveId(input.clientId, "Cliente")
+  assertPositiveId(input.vehicleId, "Veículo")
 
-  const rule = upsertRule({
-    id: createRuleId("vip-vehicle"),
+  const now = new Date().toISOString()
+
+  return getVipRulesGateway().saveVipRule({
+    id: createVehicleRuleId(input.clientId, input.vehicleId),
     targetType: "vehicle",
     clientId: input.clientId,
     clientName: input.clientName,
@@ -178,19 +431,13 @@ export async function toggleVehicleVip(input: ToggleVehicleVipInput): Promise<Vi
     appliesToAllUnits: true,
     unitIds: [],
     active: input.enabled,
-    updatedAt: new Date().toISOString(),
+    updatedAt: now,
   })
-
-  return rule
 }
 
 export function isClientVipFromRules(rules: readonly VipRule[], clientId: number) {
-  return rules.some((rule) => {
-    if (!rule.active || rule.clientId !== clientId) {
-      return false
-    }
-
-    return rule.targetType === "client" || rule.targetType === "vehicle"
+  return normalizeVipRules(rules).some((rule) => {
+    return rule.active && rule.clientId === clientId && rule.targetType === "client"
   })
 }
 
@@ -199,7 +446,7 @@ export function isVehicleVipFromRules(
   clientId: number,
   vehicleId: number
 ) {
-  return rules.some((rule) => {
+  return normalizeVipRules(rules).some((rule) => {
     if (!rule.active || rule.clientId !== clientId) {
       return false
     }
@@ -228,9 +475,7 @@ export function getVipRuleScopeLabel(rule: VipRule) {
   if (rule.appliesToAllUnits) {
     return rule.targetType === "client" && rule.appliesToAllVehicles
       ? "Todas as unidades e veículos"
-      : rule.targetType === "vehicle"
-        ? "Todas as unidades"
-        : "Todas as unidades"
+      : "Todas as unidades"
   }
 
   if (rule.unitIds.length > 0) {

@@ -1,8 +1,10 @@
+import { ClipboardListIcon, SearchXIcon } from "lucide-react"
 import * as React from "react"
 
 import {
   createDataTableFilterOptions,
   DataTable,
+  DataTableEmptyState,
 } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
 import { notify } from "@/components/toast"
@@ -73,8 +75,8 @@ export function RulesRoute() {
   return (
     <PageSection>
       <PageHeader
-        title="Regras"
-        subtitle="Gerencie regras VIP e isenções de estacionamento para clientes e veículos."
+        title="Regras comerciais"
+        subtitle="Consulte regras VIP e isenções aplicáveis a clientes, veículos e unidades."
       />
 
       <DataTable
@@ -100,6 +102,20 @@ export function RulesRoute() {
         ]}
         isLoading={isLoading || isSaving}
         error={error}
+        emptyState={(
+          <DataTableEmptyState
+            title="Nenhuma regra comercial cadastrada"
+            description="Nenhuma isenção VIP foi retornada para o escopo atual."
+            icon={<ClipboardListIcon />}
+          />
+        )}
+        filteredEmptyState={(
+          <DataTableEmptyState
+            title="Nenhuma regra encontrada"
+            description="Ajuste a busca ou os filtros aplicados."
+            icon={<SearchXIcon />}
+          />
+        )}
         onRetry={() => {
           void refetch()
         }}

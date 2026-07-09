@@ -38,7 +38,8 @@ export function useLoginFlow() {
   const locationState = location.state as LocationState | null
   const redirectTo =
     locationState?.from?.pathname ??
-    getDefaultRouteHrefForRole(getAuthProfileRole(profile))
+    getDefaultRouteHrefForRole(getAuthProfileRole(profile)) ??
+    "/"
 
   async function handleAuthenticatedRedirect() {
     guard.resetAttempts()

@@ -27,9 +27,9 @@ Data da auditoria: 2026-07-05
 | Auditoria | `src/features/audit` | In-memory + localStorage | `use-audit` | `audit-route` | Parcial |
 | Permissões | `src/features/permissions` | Derivado de `auth` | `use-permissions` | `permissions-route` | Sim |
 | Notificações | `src/features/notifications` | In-memory | `use-notifications` | `notifications-route` | Sim |
-| Regras VIP | `src/features/rules` | localStorage | `use-vip-rules` | `rules-route` | Parcial |
+| Regras VIP | `src/features/rules` | Supabase + localStorage fallback | `use-vip-rules` | `rules-route` | Sim |
 | Configurações | `src/features/settings` | In-memory | `use-settings` | `settings-route` | Parcial |
-| Preços | `src/features/prices` | — | — | Placeholder | Não |
+| Preços | `src/features/prices` | Supabase + localStorage fallback | `use-prices` | `prices-route` | Sim |
 | Auth | `src/features/auth` | Supabase Edge Functions | `useAuthSession`, `useAuthFlow`, `usePasskey` | Auth routes | Sim |
 
 ---
@@ -54,7 +54,8 @@ Todas as features de dados ERP seguem o padrão:
 | `UnitYardGateway` | `src/features/units/services/unit-yard-gateway.ts` | Tabela nova `unit_yard_configs` |
 | Audit | `src/features/audit/services/audit-service.ts` | `audit_events` (já existe na migration 0003) |
 | Notifications | `src/features/notifications/services/notifications-service.ts` | Tabela nova `notifications` |
-| VIP Rules | `src/features/rules/services/vip-rules-service.ts` | Tabela nova `vip_rules` |
+| VIP Rules | `src/features/rules/services/vip-rules-service.ts` | Tabela nova `commercial_rules` |
+| Prices | `src/features/prices/services/prices-service.ts` | Tabelas novas `commercial_price_tables` + `commercial_price_tiers` |
 | Settings | `src/features/settings/services/settings-service.ts` | `app_users` (campos de preferência) |
 
 ---
@@ -100,6 +101,12 @@ Arquivo de referência: `src/features/auth/authorization/authorization-policy.ts
 | `0003_auth_audit_rate_limit.sql` | Tabela `audit_events` com indexação |
 | `0004_auth_recovery_requests.sql` | Tabela `access_recovery_requests` |
 | `0005_auth_session_revocation.sql` | Função `private.revoke_auth_sessions()` |
+
+### Migrations locais pendentes de aplicação
+
+| Migration | Descrição |
+| ----------- | ----------- |
+| `20260709084549_commercial_prices_rules.sql` | Preços e regras comerciais com RLS |
 
 ### Edge Functions
 
@@ -154,7 +161,6 @@ Arquivo de referência: `src/features/auth/authorization/authorization-policy.ts
 
 ### Testes
 
-- [ ] Feature de Preços: sem implementação nem testes
 - [ ] Settings service: sem testes de serviço
 - [ ] Hooks customizados: sem testes unitários (use-notifications, use-vip-rules, use-settings)
 - [ ] Migrar testes de `fireEvent` para `userEvent`
@@ -164,13 +170,13 @@ Arquivo de referência: `src/features/auth/authorization/authorization-policy.ts
 
 - [ ] Criar gateways reais para cada feature conectando ao Postgres via Supabase client
 - [ ] Implementar sincronização ERP (cron com pg_cron + edge functions)
-- [ ] Criar tabelas novas: `unit_yard_configs`, `notifications`, `vip_rules`
+- [ ] Criar tabelas novas: `unit_yard_configs`, `notifications`
 - [ ] Implementar RLS para novas tabelas
 - [ ] Configurar migrations para schema de sincronização
 
 ### Features pendentes
 
-- [ ] Feature de Preços (placeholder atual)
+- [ ] CRUD comercial de preços e benefício de abastecimento após requisitos formais de aprovação/auditoria
 - [ ] Fluxo visual do botão Sincronizar em Unidades
 - [ ] Histórico de sincronização para Clientes (layout pronto em Unidades, compartilhar)
 - [ ] Notificações de falha de sincronização (3 falhas consecutivas)

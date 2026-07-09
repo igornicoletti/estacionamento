@@ -9,8 +9,12 @@ export {
   isClientVipFromRules,
   isVehicleVipFromRules,
   listVipRules,
+  createMemoryVipRulesGateway,
+  resetVipRulesGateway,
+  setVipRulesGateway,
   toggleClientVip,
-  toggleVehicleVip
+  toggleVehicleVip,
+  type VipRulesGateway
 } from "./services/vip-rules-service"
 export {
   type ToggleClientVipInput,

@@ -9,6 +9,10 @@ import {
   type NotificationRecord,
 } from "@/features/notifications"
 import {
+  createMemoryVipRulesGateway,
+  setVipRulesGateway,
+} from "@/features/rules"
+import {
   resetUsersGateway,
   setUsersGateway,
   type UserRecord,
@@ -128,6 +132,7 @@ vi.mock("@/components/ui/tooltip", async (importOriginal) => {
 
 beforeEach(() => {
   setNotificationsGateway(createMemoryNotificationsGateway(seedNotifications))
+  setVipRulesGateway(createMemoryVipRulesGateway())
 
   const currentUsers = seedUsers.map((user) => ({ ...user }))
 
