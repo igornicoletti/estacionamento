@@ -17,7 +17,7 @@ import {
 
 import { dataTableCopy } from "./data-table-copy"
 
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 25, 30, 40, 50]
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>

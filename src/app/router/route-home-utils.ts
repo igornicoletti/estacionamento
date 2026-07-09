@@ -1,46 +1,31 @@
-import { shouldBypassAuthInDev } from "@/config"
-import {
-  hasAllCapabilities,
-  type UserRole,
-} from "@/features/auth"
+import type { UserRole } from "@/features/auth"
 
+import { canRoleAccessCapabilities } from "./route-auth-utils"
 import {
   searchableRouteDefinitions,
   type SearchableRouteDefinition,
 } from "./route-definitions"
 
-const fallbackRouteId = "settings"
-
-function getFallbackRoute() {
-  const route = searchableRouteDefinitions.find((routeDefinition) => {
-    return routeDefinition.id === fallbackRouteId
-  })
-
-  if (!route) {
-    throw new Error(`Rota fallback inválida: "${fallbackRouteId}".`)
-  }
-
-  return route
+function compareDefaultRoutePriority(
+  currentRoute: SearchableRouteDefinition,
+  nextRoute: SearchableRouteDefinition,
+) {
+  return currentRoute.defaultPriority - nextRoute.defaultPriority
 }
 
 function canAccessRoute(
   route: SearchableRouteDefinition,
-  role: UserRole | null | undefined
+  role: UserRole | null | undefined,
 ) {
-  if (shouldBypassAuthInDev()) {
-    return true
-  }
-
-  if (!route.requiredCapabilities || route.requiredCapabilities.length === 0) {
-    return true
-  }
-
-  return hasAllCapabilities(role, route.requiredCapabilities)
+  return canRoleAccessCapabilities(role, route.requiredCapabilities)
 }
 
-export function getDefaultRouteHrefForRole(role: UserRole | null | undefined) {
-  return (
-    searchableRouteDefinitions.find((route) => canAccessRoute(route, role)) ??
-    getFallbackRoute()
-  ).href
+export function getDefaultRouteHrefForRole(
+  role: UserRole | null | undefined,
+): `/${string}` | null {
+  const allowedRoutes = searchableRouteDefinitions.filter((route) => {
+    return canAccessRoute(route, role)
+  })
+
+  return [...allowedRoutes].sort(compareDefaultRoutePriority)[0]?.href ?? null
 }

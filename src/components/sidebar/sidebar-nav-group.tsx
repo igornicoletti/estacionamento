@@ -51,7 +51,7 @@ export function SidebarNavGroup({
 
   return (
     <Collapsible defaultOpen={hasActiveItem} className="group/collapsible">
-      <SidebarGroup className="px-4 py-0">
+      <SidebarGroup className="px-2 py-0">
         <SidebarGroupLabel asChild className="group-data-[collapsible=icon]:hidden">
           <CollapsibleTrigger>
             <span className="text-[11px] font-semibold uppercase tracking-wide text-sidebar-foreground/80">{label}</span>

@@ -1,8 +1,11 @@
+import { shouldBypassAuthInDev } from "@/config"
 import {
   canAccessProtectedApp,
+  hasAllCapabilities,
   isAppUserStatus,
   isUserRole,
   type AppUserStatus,
+  type AuthCapability,
   type UserRole,
 } from "@/features/auth"
 
@@ -12,9 +15,11 @@ function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null
 }
 
-export function getAuthProfileStatus(
-  profile: unknown
-): AppUserStatus | null {
+export function isRouteAuthBypassEnabled() {
+  return Boolean(import.meta.env.DEV && shouldBypassAuthInDev())
+}
+
+export function getAuthProfileStatus(profile: unknown): AppUserStatus | null {
   if (!isRecord(profile)) {
     return null
   }
@@ -36,4 +41,19 @@ export function getAuthProfileRole(profile: unknown): UserRole | null {
 
 export function canProfileAccessProtectedApp(profile: unknown) {
   return canAccessProtectedApp(getAuthProfileStatus(profile))
+}
+
+export function canRoleAccessCapabilities(
+  role: UserRole | null | undefined,
+  requiredCapabilities: readonly AuthCapability[] | null | undefined,
+) {
+  if (isRouteAuthBypassEnabled()) {
+    return true
+  }
+
+  if (!requiredCapabilities || requiredCapabilities.length === 0) {
+    return true
+  }
+
+  return hasAllCapabilities(role, requiredCapabilities)
 }

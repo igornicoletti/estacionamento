@@ -1,26 +1,46 @@
-import * as React from "react"
+import type { ComponentType } from "react"
 
 import { accessRequestsCopy } from "@/features/access-requests/access-requests-copy"
-import {
-  routeCapabilities,
-  type AuthCapability,
-  type AuthorizedRouteId,
-} from "@/features/auth"
+import { routeCapabilities, type AuthCapability } from "@/features/auth"
 
-export interface SearchableRouteDefinition {
+export interface RouteModuleDefinition {
   id: string
-  href: `/${string}`
-  label: string
-  description: string
-  requiredCapabilities?: readonly AuthCapability[]
-}
-
-export interface AppRouteDefinition extends SearchableRouteDefinition {
-  id: Exclude<AuthorizedRouteId, "clientVehicles">
+  load: () => Promise<{ default: ComponentType }>
   path: string
   requiredCapabilities: readonly AuthCapability[]
-  load: () => Promise<{ default: React.ComponentType }>
 }
+
+export interface SearchableRouteDefinition extends RouteModuleDefinition {
+  defaultPriority: number
+  description: string
+  href: `/${string}`
+  label: string
+}
+
+export interface AuthRouteDefinition {
+  id: string
+  load: () => Promise<{ default: ComponentType }>
+  path: string
+}
+
+export const authRouteDefinitions = [
+  {
+    id: "login",
+    path: "login",
+    load: () =>
+      import("@/features/auth/routes/auth-login-route").then((module) => ({
+        default: module.AuthLoginRoute,
+      })),
+  },
+  {
+    id: "access-recovery",
+    path: "recuperar-acesso",
+    load: () =>
+      import("@/features/auth/routes/auth-recovery-route").then((module) => ({
+        default: module.AuthRecoveryRoute,
+      })),
+  },
+] as const satisfies readonly AuthRouteDefinition[]
 
 export const appRouteDefinitions = [
   {
@@ -29,6 +49,7 @@ export const appRouteDefinitions = [
     href: "/unidades",
     label: "Unidades",
     description: "Acompanhar unidades sincronizadas do ERP.",
+    defaultPriority: 10,
     requiredCapabilities: routeCapabilities.units,
     load: () =>
       import("@/features/units").then((module) => ({
@@ -41,6 +62,7 @@ export const appRouteDefinitions = [
     href: "/clientes",
     label: "Clientes",
     description: "Acompanhar clientes sincronizados do ERP.",
+    defaultPriority: 20,
     requiredCapabilities: routeCapabilities.clients,
     load: () =>
       import("@/features/clients").then((module) => ({
@@ -53,13 +75,14 @@ export const appRouteDefinitions = [
     href: "/usuarios",
     label: "Usuários",
     description: "Gerenciar usuários e acessos ao sistema.",
+    defaultPriority: 30,
     requiredCapabilities: routeCapabilities.users,
     load: () =>
       import("@/features/users").then((module) => ({
         default: module.UsersRoute,
       })),
   },
-] as const satisfies readonly AppRouteDefinition[]
+] as const satisfies readonly SearchableRouteDefinition[]
 
 export const appSecurityRouteDefinitions = [
   {
@@ -68,6 +91,7 @@ export const appSecurityRouteDefinitions = [
     href: "/solicitacoes-acesso",
     label: accessRequestsCopy.page.title,
     description: accessRequestsCopy.page.subtitle,
+    defaultPriority: 40,
     requiredCapabilities: routeCapabilities.accessRequests,
     load: () =>
       import("@/features/access-requests").then((module) => ({
@@ -80,6 +104,7 @@ export const appSecurityRouteDefinitions = [
     href: "/auditoria",
     label: "Auditoria",
     description: "Acompanhar eventos de segurança e ações do sistema.",
+    defaultPriority: 50,
     requiredCapabilities: routeCapabilities.audit,
     load: () =>
       import("@/features/audit").then((module) => ({
@@ -92,13 +117,14 @@ export const appSecurityRouteDefinitions = [
     href: "/perfis-permissoes",
     label: "Perfil e Permissões",
     description: "Consultar a matriz de perfis e acessos do sistema.",
+    defaultPriority: 60,
     requiredCapabilities: routeCapabilities.permissions,
     load: () =>
       import("@/features/permissions").then((module) => ({
         default: module.PermissionsRoute,
       })),
   },
-] as const satisfies readonly AppRouteDefinition[]
+] as const satisfies readonly SearchableRouteDefinition[]
 
 export const appCommercialRouteDefinitions = [
   {
@@ -107,6 +133,7 @@ export const appCommercialRouteDefinitions = [
     href: "/precos",
     label: "Preços",
     description: "Gerenciar tabelas e políticas de preços.",
+    defaultPriority: 70,
     requiredCapabilities: routeCapabilities.prices,
     load: () =>
       import("@/features/prices").then((module) => ({
@@ -119,41 +146,43 @@ export const appCommercialRouteDefinitions = [
     href: "/regras",
     label: "Regras",
     description: "Gerenciar regras VIP e critérios comerciais.",
+    defaultPriority: 80,
     requiredCapabilities: routeCapabilities.rules,
     load: () =>
       import("@/features/rules").then((module) => ({
         default: module.RulesRoute,
       })),
   },
-] as const satisfies readonly AppRouteDefinition[]
+] as const satisfies readonly SearchableRouteDefinition[]
 
-/**
- * All lazily-loaded, capability-protected page routes that are wired into the
- * router by a single generic mapping.
- */
-export const lazyAppRouteDefinitions = [
-  ...appRouteDefinitions,
-  ...appSecurityRouteDefinitions,
-  ...appCommercialRouteDefinitions,
-] as const satisfies readonly AppRouteDefinition[]
-
-export const appUtilityRouteDefinitions =
-  [
-    {
-      id: "notifications",
-      href: "/notificacoes",
-      label: "Notificações",
-      description: "Acompanhar notificações e alertas recentes.",
-      requiredCapabilities: routeCapabilities.notifications,
-    },
-    {
-      id: "settings",
-      href: "/configuracoes",
-      label: "Meu perfil",
-      description: "Gerenciar perfil, segurança e preferências da conta.",
-      requiredCapabilities: routeCapabilities.settings,
-    },
-  ] as const satisfies readonly SearchableRouteDefinition[]
+export const appUtilityRouteDefinitions = [
+  {
+    id: "notifications",
+    path: "notificacoes",
+    href: "/notificacoes",
+    label: "Notificações",
+    description: "Acompanhar notificações e alertas recentes.",
+    defaultPriority: 90,
+    requiredCapabilities: routeCapabilities.notifications,
+    load: () =>
+      import("@/features/notifications").then((module) => ({
+        default: module.NotificationsRoute,
+      })),
+  },
+  {
+    id: "settings",
+    path: "configuracoes",
+    href: "/configuracoes",
+    label: "Meu perfil",
+    description: "Gerenciar perfil, segurança e preferências da conta.",
+    defaultPriority: 100,
+    requiredCapabilities: routeCapabilities.settings,
+    load: () =>
+      import("@/features/settings").then((module) => ({
+        default: module.SettingsRoute,
+      })),
+  },
+] as const satisfies readonly SearchableRouteDefinition[]
 
 export const searchableRouteDefinitions = [
   ...appRouteDefinitions,
@@ -161,3 +190,41 @@ export const searchableRouteDefinitions = [
   ...appCommercialRouteDefinitions,
   ...appUtilityRouteDefinitions,
 ] as const satisfies readonly SearchableRouteDefinition[]
+
+export const appDynamicRouteDefinitions = [
+  {
+    id: "client-vehicles",
+    path: "clientes/:cod_pessoa",
+    requiredCapabilities: routeCapabilities.clientVehicles,
+    load: () =>
+      import("@/features/clients").then((module) => ({
+        default: module.ClientVehiclesRoute,
+      })),
+  },
+  {
+    id: "unit-users",
+    path: "unidades/:cod_empresa/usuarios",
+    requiredCapabilities: [
+      ...routeCapabilities.units,
+      ...routeCapabilities.users,
+    ],
+    load: () =>
+      import("@/features/units").then((module) => ({
+        default: module.UnitUsersRoute,
+      })),
+  },
+  {
+    id: "settings-profile-alias",
+    path: "perfil",
+    requiredCapabilities: routeCapabilities.settings,
+    load: () =>
+      import("@/features/settings").then((module) => ({
+        default: module.SettingsRoute,
+      })),
+  },
+] as const satisfies readonly RouteModuleDefinition[]
+
+export const protectedRouteDefinitions = [
+  ...searchableRouteDefinitions,
+  ...appDynamicRouteDefinitions,
+] as const satisfies readonly RouteModuleDefinition[]

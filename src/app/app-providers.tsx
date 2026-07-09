@@ -4,7 +4,11 @@ import { ToastApp } from "@/components/toast"
 import { TooltipProvider } from "@/components/ui/tooltip"
 import { AuthInactivityGuard, AuthSessionProvider } from "@/features/auth"
 
-export function AppProviders({ children }: { children: React.ReactNode }) {
+interface AppProvidersProps {
+  children: React.ReactNode
+}
+
+export function AppProviders({ children }: AppProvidersProps) {
   return (
     <TooltipProvider>
       <AuthSessionProvider>

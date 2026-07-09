@@ -64,12 +64,12 @@ import {
   type DataTableSearchField,
 } from "./data-table-types"
 
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 20, 25, 30, 40, 50]
-const DEFAULT_INITIAL_SKELETON_ROWS = 8
+const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
+const DEFAULT_INITIAL_SKELETON_ROWS = 5
 const MAX_INITIAL_SKELETON_ROWS = 10
-const MIN_INITIAL_SKELETON_ROWS = 4
-const APPROX_SKELETON_ROW_HEIGHT = 44
-const APPROX_SKELETON_RESERVED_SPACE = 420
+const MIN_INITIAL_SKELETON_ROWS = 3
+const APPROX_SKELETON_ROW_HEIGHT = 48
+const APPROX_SKELETON_RESERVED_SPACE = (APPROX_SKELETON_ROW_HEIGHT * 2) + 32
 
 function normalizePositiveInteger(value: number, fallback: number) {
   return Number.isInteger(value) && value > 0 ? value : fallback
@@ -171,7 +171,7 @@ function DataTableStateRow({
           aria-live={
             isLiveRegion ? (kind === "error" ? "assertive" : "polite") : undefined
           }
-          className="sticky left-0 z-10 flex min-h-36 w-[var(--data-table-scroll-viewport-width)] max-w-full items-center justify-center px-4 py-8"
+          className="sticky left-0 z-10 flex min-h-36 w-(--data-table-scroll-viewport-width) max-w-full items-center justify-center px-4 py-8"
         >
           <div className="w-full max-w-md">{children}</div>
         </div>

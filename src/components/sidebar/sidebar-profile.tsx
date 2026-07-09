@@ -73,7 +73,7 @@ export function SidebarProfile() {
   const label = resolveSessionUserRoleLabel(profile, users) ?? getProfileRoleLabel(profile)
 
   return (
-    <SidebarMenu className="px-4 py-3">
+    <SidebarMenu className="px-4 py-3 group-data-[collapsible=icon]:px-1.5">
       <SidebarMenuItem>
         <SidebarMenuButton
           tabIndex={-1}

@@ -1,14 +1,15 @@
 import * as React from "react"
 import { Navigate, Outlet, useLocation } from "react-router"
 
-import { shouldBypassAuthInDev } from "@/config"
-import { hasAllCapabilities, type AuthCapability } from "@/features/auth"
 import { useAuthSession } from "@/features/auth/hooks"
+import type { AuthCapability } from "@/features/auth"
 
 import { RouteAccessDenied } from "./route-access-denied"
 import {
   canProfileAccessProtectedApp,
+  canRoleAccessCapabilities,
   getAuthProfileRole,
+  isRouteAuthBypassEnabled,
 } from "./route-auth-utils"
 import { RouteLoading } from "./route-loading"
 
@@ -28,7 +29,7 @@ export function ProtectedRoute({
   const location = useLocation()
   const { isAuthenticated, isLoading, profile } = useAuthSession()
 
-  if (shouldBypassAuthInDev()) {
+  if (isRouteAuthBypassEnabled()) {
     return children ?? <Outlet />
   }
 
@@ -41,8 +42,10 @@ export function ProtectedRoute({
   }
 
   if (
-    requiredCapabilities.length > 0 &&
-    !hasAllCapabilities(getAuthProfileRole(profile), requiredCapabilities)
+    !canRoleAccessCapabilities(
+      getAuthProfileRole(profile),
+      requiredCapabilities,
+    )
   ) {
     return unauthorizedElement ?? <RouteAccessDenied />
   }
