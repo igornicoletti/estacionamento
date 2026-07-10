@@ -131,11 +131,12 @@ export function AppAlertDialog({
           <AlertDialogFooter>
             {footer === undefined ? (
               <>
-                <AlertDialogCancel disabled={isPending}>
+                <AlertDialogCancel size="lg" disabled={isPending}>
                   {cancelLabel}
                 </AlertDialogCancel>
 
                 <AlertDialogAction
+                  size="lg"
                   disabled={isPending}
                   onClick={handleActionClick}
                 >

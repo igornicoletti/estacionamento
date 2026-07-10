@@ -23,7 +23,7 @@ export const sidebarCopy = {
     signOutDescription:
       "Deseja realmente sair agora? Você precisará fazer login novamente para continuar.",
     signOutCancel: "Cancelar",
-    signOutConfirm: "Sair",
+    signOutConfirm: "Continuar",
   },
   notifications: {
     open: "Abrir notificações",

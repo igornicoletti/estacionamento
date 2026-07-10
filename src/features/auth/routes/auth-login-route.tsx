@@ -21,6 +21,7 @@ import {
   type RequiredPasswordValues,
 } from "@/features/auth"
 import { AuthPageCard } from "@/features/auth/components"
+import { LogOutIcon } from 'lucide-react'
 
 export function AuthLoginRoute() {
   const auth = useAuth()
@@ -193,6 +194,7 @@ export function AuthLoginRoute() {
       <AppAlertDialog
         open={isExpiredDialogOpen}
         onOpenChange={setIsExpiredDialogOpen}
+        media={<LogOutIcon />}
         title={authCopy.inactivity.expiredTitle}
         description={authCopy.inactivity.expiredDescription}
         actionLabel={authCopy.inactivity.expiredAction}
@@ -201,6 +203,7 @@ export function AuthLoginRoute() {
       <AppAlertDialog
         open={isPasskeyBlockedDialogOpen}
         onOpenChange={setIsPasskeyBlockedDialogOpen}
+        media={<LogOutIcon />}
         title={authCopy.passkeyUnavailable.title}
         description={authCopy.passkeyUnavailable.description}
         actionLabel={authCopy.passkeyUnavailable.action}
