@@ -30,9 +30,8 @@ export function SidebarProfile() {
       <SidebarMenuItem>
         <SidebarMenuButton
           type="button"
-          tabIndex={-1}
           aria-disabled="true"
-          className="cursor-default text-primary hover:bg-transparent hover:text-primary active:bg-transparent active:text-primary"
+          className="text-primary bg-primary/20 border border-primary/60 uppercase text-xs font-semibold tracking-wider cursor-not-allowed"
         >
           <ShieldIcon />
           <span>{label}</span>

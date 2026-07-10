@@ -8,7 +8,7 @@ export const sidebarCopy = {
   },
   profile: {
     fallbackName: "Usuário",
-    fallbackRole: "Perfil",
+    fallbackRole: "Proprietário",
     developmentMode: "Modo desenvolvimento",
   },
   menu: {

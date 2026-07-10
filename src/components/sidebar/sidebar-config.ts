@@ -13,8 +13,6 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
-import montecarloLogo from "@/assets/brand/montecarlo-logo.webp"
-import montecarloSymbol from "@/assets/brand/montecarlo-symbol.svg"
 import {
   appRouteIds,
   authenticatedRouteRegistry,
@@ -24,6 +22,8 @@ import {
   type AppRoutePath,
   type AppRouteRegistryItem,
 } from "@/app/router/route-registry"
+import montecarloLogo from "@/assets/brand/montecarlo-logo.webp"
+import montecarloSymbol from "@/assets/brand/montecarlo-symbol.svg"
 import type { AuthPermission } from "@/features/auth"
 
 import { sidebarCopy } from "./sidebar-copy"
