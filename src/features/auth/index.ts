@@ -1,4 +1,3 @@
-export * from "./auth-copy"
 export * from "./authorization"
 export * from "./components"
 export * from "./context"

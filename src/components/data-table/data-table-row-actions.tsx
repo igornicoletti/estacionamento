@@ -103,9 +103,9 @@ export function DataTableRowActions<TData>({
           data-no-drag-scroll="true"
           type="button"
           variant="ghost"
-          size="icon"
+          size="icon-lg"
           aria-label={label}
-          className="size-8 data-[state=open]:bg-muted"
+          className="data-[state=open]:bg-muted"
           onClick={(event) => {
             event.stopPropagation()
           }}

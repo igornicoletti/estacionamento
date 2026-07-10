@@ -1,41 +1,22 @@
-export const appUserStatusValues = [
-  "pending",
-  "active",
-  "inactive",
-  "password_reset",
-  "passkey_reset",
-] as const
+export type AppUserStatus = string
 
-export type AppUserStatus = (typeof appUserStatusValues)[number]
-
-export const appUserStatusLabels: Record<AppUserStatus, string> = {
-  active: "Ativo",
-  inactive: "Inativo",
-  passkey_reset: "Recadastro de passkey",
-  password_reset: "Redefinição de senha",
-  pending: "Pendente",
-}
-
-export const appAccessStatusValues = [
-  "active",
-] as const satisfies readonly AppUserStatus[]
-
-export const accountRecoveryStatusValues = [
-  "password_reset",
-  "passkey_reset",
-] as const satisfies readonly AppUserStatus[]
+export const authUserStatus = {
+  active: "active",
+  passwordReset: "password_reset",
+  passkeyReset: "passkey_reset",
+} as const
 
 export function isAppUserStatus(value: unknown): value is AppUserStatus {
-  return (
-    typeof value === "string" &&
-    appUserStatusValues.includes(value as AppUserStatus)
-  )
+  return typeof value === "string" && value.trim().length > 0
 }
 
 export function canAccessProtectedApp(status: AppUserStatus | null | undefined) {
-  return status === "active"
+  return status === authUserStatus.active
 }
 
 export function requiresAccountRecovery(status: AppUserStatus | null | undefined) {
-  return status === "password_reset" || status === "passkey_reset"
+  return (
+    status === authUserStatus.passwordReset ||
+    status === authUserStatus.passkeyReset
+  )
 }

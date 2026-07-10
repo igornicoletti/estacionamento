@@ -1,42 +1,27 @@
 export {
-  authCapabilities,
-  authCapabilityLabels,
+  AUTH_PERMISSION_WILDCARD,
   isAuthCapability,
+  isAuthPermission,
+  normalizeAuthPermission,
+  normalizeAuthPermissions,
   type AuthCapability,
-} from "./auth-capabilities"
+  type AuthPermission
+} from "./auth-permissions"
 
 export {
-  accountRecoveryStatusValues,
-  appAccessStatusValues,
-  appUserStatusLabels,
-  appUserStatusValues,
+  authUserStatus,
   canAccessProtectedApp,
   isAppUserStatus,
   requiresAccountRecovery,
-  type AppUserStatus,
+  type AppUserStatus
 } from "./auth-status"
 
 export {
-  isGlobalRole,
-  isUserRole,
-  requiresSingleUnit,
-  userRoleLabels,
-  userRoleScopes,
-  userRoleValues,
-  type UserRole,
-} from "./auth-roles"
-
-export {
-  roleCapabilities,
-  routeCapabilities,
-  type AuthorizedRouteId,
-} from "./authorization-policy"
-
-export {
-  canReadAudit,
-  canReadPermissions,
-  getRoleCapabilities,
   hasAllCapabilities,
+  hasAllPermissions,
   hasAnyCapability,
+  hasAnyPermission,
   hasCapability,
-} from "./authorization"
+  hasPermission,
+  type AuthPermissionSource
+} from "./auth-access"

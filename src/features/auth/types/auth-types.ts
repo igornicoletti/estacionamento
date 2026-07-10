@@ -1,4 +1,4 @@
-import { type AppUserStatus, type UserRole } from "../authorization"
+import { type AppUserStatus, type AuthPermission } from "../authorization"
 
 export type AuthFlowStep =
   | "credentials"
@@ -12,7 +12,6 @@ export type AuthPasswordNextAction =
   | "set_new_password"
   | "register_passkey"
   | "authenticated"
-
 
 export interface AuthPasswordResponse {
   flowId: string
@@ -40,13 +39,21 @@ export interface ProfileActionResponse {
   message: string
 }
 
+export interface AppUserRoleProfile {
+  id: string | null
+  key: string
+  label: string | null
+}
+
 export interface AppUserProfile {
   id: string
   authUserId: string
   avatarUrl?: string | null
   name: string
-  role: UserRole
+  role: AppUserRoleProfile | null
+  roleKey: string | null
   status: AppUserStatus
+  permissions: readonly AuthPermission[]
   unitId: string | null
   unitName: string | null
   phoneMasked: string
