@@ -1,15 +1,13 @@
 import { Link } from "react-router"
 
-import {
-  SidebarMenu,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
+import type { AppRoutePath } from "@/app/router/route-registry"
+import { SidebarMenu, SidebarMenuItem } from "@/components/ui/sidebar"
 
 import { sidebarBrand } from "./sidebar-config"
 import { sidebarCopy } from "./sidebar-copy"
 
 interface SidebarBrandProps {
-  homeHref: `/${string}`
+  homeHref: AppRoutePath
 }
 
 export function SidebarBrand({ homeHref }: SidebarBrandProps) {

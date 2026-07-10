@@ -1,62 +1,38 @@
 import { useLocation } from "react-router"
 
 import { shouldBypassAuthInDev } from "@/config"
-import {
-  hasAllCapabilities,
-  isUserRole,
-  type UserRole,
-} from "@/features/auth"
-import { useAuthSession } from "@/features/auth/hooks"
+import { useAuth } from "@/features/auth/auth-provider"
+import type { AuthPermission } from "@/features/auth/auth-contracts"
 
-import {
-  navigationGroups,
-  type SidebarNavigationItem,
-} from "./sidebar-config"
+import { navigationGroups, type SidebarNavigationItem } from "./sidebar-config"
 import { SidebarNavGroup } from "./sidebar-nav-group"
-
-type UnknownRecord = Record<PropertyKey, unknown>
-
-function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === "object" && value !== null
-}
-
-function getProfileRole(profile: unknown): UserRole | null {
-  if (!isRecord(profile)) {
-    return null
-  }
-
-  return isUserRole(profile.role) ? profile.role : null
-}
 
 function canAccessNavigationItem(
   item: SidebarNavigationItem,
-  role: UserRole | null
+  hasAllPermissions: (permissions: readonly AuthPermission[]) => boolean
 ) {
   if (shouldBypassAuthInDev()) {
     return true
   }
 
-  if (!item.requiredCapabilities || item.requiredCapabilities.length === 0) {
+  if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
     return true
   }
 
-  return hasAllCapabilities(role, item.requiredCapabilities)
+  return hasAllPermissions(item.requiredPermissions)
 }
 
 export function SidebarNavigation() {
   const location = useLocation()
-  const { profile } = useAuthSession()
-  const role = getProfileRole(profile)
+  const auth = useAuth()
 
   const visibleGroups = navigationGroups
-    .map((group) => {
-      return {
-        ...group,
-        items: group.items.filter((item) => {
-          return canAccessNavigationItem(item, role)
-        }),
-      }
-    })
+    .map((group) => ({
+      ...group,
+      items: group.items.filter((item) =>
+        canAccessNavigationItem(item, auth.access.hasAllPermissions)
+      ),
+    }))
     .filter((group) => group.items.length > 0)
 
   return (

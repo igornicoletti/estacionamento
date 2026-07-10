@@ -4,25 +4,26 @@ export const sidebarCopy = {
     shortName: "RMC",
   },
   header: {
-    openNavigation: "Abrir navegação",
+    openNavigation: "Alternar navegação",
   },
   profile: {
-    developmentMode: "Modo desenvolvimento",
+    fallbackName: "Usuário",
     fallbackRole: "Perfil",
-    adminRole: "Administrador",
-    developerRole: "Desenvolvedor",
+    developmentMode: "Modo desenvolvimento",
   },
   menu: {
     myProfile: "Meu perfil",
     settings: "Configurações",
     notifications: "Notificações",
     signOut: "Sair",
+    openUserMenu: (name: string) => `${name} - abrir menu de usuário`,
   },
   dialog: {
     signOutTitle: "Encerrar sessão",
     signOutDescription:
       "Deseja realmente sair agora? Você precisará fazer login novamente para continuar.",
-    signOutConfirm: "Continuar",
+    signOutCancel: "Cancelar",
+    signOutConfirm: "Sair",
   },
   notifications: {
     open: "Abrir notificações",

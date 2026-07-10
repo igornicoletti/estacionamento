@@ -1,4 +1,4 @@
-import * as React from "react"
+import type { ReactNode } from "react"
 
 import montecarloLogo from "@/assets/brand/montecarlo-logo.webp"
 import {
@@ -11,9 +11,9 @@ import {
 import { cn } from "@/lib/utils"
 
 interface AuthPageCardProps {
-  title: React.ReactNode
-  description: React.ReactNode
-  children: React.ReactNode
+  title: ReactNode
+  description: ReactNode
+  children: ReactNode
   className?: string
 }
 
@@ -25,16 +25,16 @@ export function AuthPageCard({
 }: AuthPageCardProps) {
   return (
     <Card className={cn("w-full max-w-md", className)}>
-      <CardHeader className="space-y-1">
+      <CardHeader className="space-y-1 text-center">
         <img
           src={montecarloLogo}
-          alt="Monte Carlo Logo"
-          className="h-8 w-auto"
+          alt="Rede Monte Carlo"
+          className="mx-auto h-16 w-auto"
         />
-        <CardTitle className="text-2xl">{title}</CardTitle>
+        <CardTitle>{title}</CardTitle>
         <CardDescription>{description}</CardDescription>
       </CardHeader>
-      <CardContent className="grid gap-4 pt-4">{children}</CardContent>
+      <CardContent>{children}</CardContent>
     </Card>
   )
 }

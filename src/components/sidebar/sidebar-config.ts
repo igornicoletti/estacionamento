@@ -3,6 +3,7 @@ import {
   BellIcon,
   Building2Icon,
   ClipboardListIcon,
+  HomeIcon,
   KeyRoundIcon,
   ScrollTextIcon,
   ShieldCheckIcon,
@@ -14,25 +15,28 @@ import {
 
 import montecarloLogo from "@/assets/brand/montecarlo-logo.webp"
 import montecarloSymbol from "@/assets/brand/montecarlo-symbol.svg"
-
 import {
-  appCommercialRouteDefinitions,
-  appRouteDefinitions,
-  appSecurityRouteDefinitions,
-  appUtilityRouteDefinitions,
-  type SearchableRouteDefinition,
-} from "@/app/router/route-definitions"
-import type { AuthCapability } from "@/features/auth"
+  appRouteIds,
+  authenticatedRouteRegistry,
+  navigationGroups as routeNavigationGroups,
+  type AppRouteGroupId,
+  type AppRouteId,
+  type AppRoutePath,
+  type AppRouteRegistryItem,
+} from "@/app/router/route-registry"
+import type { AuthPermission } from "@/features/auth"
+
+import { sidebarCopy } from "./sidebar-copy"
 
 export interface SidebarNavigationItem {
-  id: string
-  href: `/${string}`
+  id: AppRouteId
+  href: AppRoutePath
   label: string
-  requiredCapabilities?: readonly AuthCapability[]
+  requiredPermissions?: readonly AuthPermission[]
 }
 
 export interface SidebarNavigationGroup {
-  id: string
+  id: AppRouteGroupId
   label: string
   items: readonly SidebarNavigationItem[]
 }
@@ -42,92 +46,84 @@ export interface SidebarNotification {
   title: string
   description: string
   occurredAt: string
-  href?: `/${string}`
-}
-
-function toSidebarNavigationItem(
-  route: SearchableRouteDefinition
-): SidebarNavigationItem {
-  return {
-    href: route.href,
-    id: route.id,
-    label: route.label,
-    requiredCapabilities: route.requiredCapabilities,
-  }
-}
-
-function findRouteDefinition(
-  routes: readonly SearchableRouteDefinition[],
-  id: string
-) {
-  const route = routes.find((candidate) => candidate.id === id)
-
-  if (!route) {
-    throw new Error(`Rota de navegação não encontrada: ${id}`)
-  }
-
-  return toSidebarNavigationItem(route)
+  href?: AppRoutePath
 }
 
 export const sidebarBrand = {
-  shortName: "RMC",
-  name: "Rede Monte Carlo",
+  shortName: sidebarCopy.brand.shortName,
+  name: sidebarCopy.brand.name,
   sidebarLogoUrl: montecarloLogo,
   symbolLogoUrl: montecarloSymbol,
 }
 
-export const routeIconById: Partial<Record<string, LucideIcon>> = {
-  accessRequests: KeyRoundIcon,
-  audit: ScrollTextIcon,
-  prices: BadgeDollarSignIcon,
-  rules: ClipboardListIcon,
-  clients: TruckIcon,
-  notifications: BellIcon,
-  permissions: ShieldCheckIcon,
-  settings: UserRoundIcon,
-  units: Building2Icon,
-  users: UsersIcon,
+export const routeIconById = {
+  [appRouteIds.home]: HomeIcon,
+  [appRouteIds.units]: Building2Icon,
+  [appRouteIds.clients]: TruckIcon,
+  [appRouteIds.prices]: BadgeDollarSignIcon,
+  [appRouteIds.rules]: ClipboardListIcon,
+  [appRouteIds.users]: UsersIcon,
+  [appRouteIds.accessRequests]: KeyRoundIcon,
+  [appRouteIds.permissions]: ShieldCheckIcon,
+  [appRouteIds.audit]: ScrollTextIcon,
+  [appRouteIds.notifications]: BellIcon,
+  [appRouteIds.settings]: UserRoundIcon,
+} as const satisfies Partial<Record<AppRouteId, LucideIcon>>
+
+type NavigationRoute = AppRouteRegistryItem & {
+  href: AppRoutePath
+  navigation: { group: AppRouteGroupId; order: number }
 }
 
-export const navigationGroups = [
-  {
-    id: "records",
-    label: "Cadastros",
-    items: [
-      findRouteDefinition(appRouteDefinitions, "units"),
-      findRouteDefinition(appRouteDefinitions, "clients"),
-    ],
-  },
-  {
-    id: "commercial",
-    label: "Comercial",
-    items: [
-      findRouteDefinition(appCommercialRouteDefinitions, "prices"),
-      findRouteDefinition(appCommercialRouteDefinitions, "rules"),
-    ],
-  },
-  {
-    id: "access",
-    label: "Acesso",
-    items: [
-      findRouteDefinition(appRouteDefinitions, "users"),
-      findRouteDefinition(appSecurityRouteDefinitions, "accessRequests"),
-      findRouteDefinition(appSecurityRouteDefinitions, "permissions"),
-    ],
-  },
-  {
-    id: "monitoring",
-    label: "Monitoramento",
-    items: [
-      findRouteDefinition(appSecurityRouteDefinitions, "audit"),
-      findRouteDefinition(appUtilityRouteDefinitions, "notifications"),
-    ],
-  },
-  {
-    id: "utilities",
-    label: "Configurações",
-    items: [findRouteDefinition(appUtilityRouteDefinitions, "settings")],
-  },
-] as const satisfies readonly SidebarNavigationGroup[]
+interface SidebarNavigationItemWithGroup extends SidebarNavigationItem {
+  group: AppRouteGroupId
+  order: number
+}
+
+function isNavigationRoute(route: AppRouteRegistryItem): route is NavigationRoute {
+  return (
+    "href" in route &&
+    typeof route.href === "string" &&
+    "navigation" in route &&
+    typeof route.navigation === "object" &&
+    route.navigation !== null &&
+    "group" in route.navigation &&
+    "order" in route.navigation
+  )
+}
+
+const navigationItems: readonly SidebarNavigationItemWithGroup[] =
+  authenticatedRouteRegistry
+    .filter(isNavigationRoute)
+    .map((route) => ({
+      id: route.id,
+      href: route.href,
+      label: route.label,
+      requiredPermissions: route.requiredPermissions,
+      group: route.navigation.group,
+      order: route.navigation.order,
+    }))
+
+function toSidebarNavigationItem(
+  item: SidebarNavigationItemWithGroup
+): SidebarNavigationItem {
+  return {
+    id: item.id,
+    href: item.href,
+    label: item.label,
+    requiredPermissions: item.requiredPermissions,
+  }
+}
+
+export const navigationGroups = routeNavigationGroups
+  .map((group) => ({
+    id: group.id,
+    label: group.label,
+    items: navigationItems
+      .filter((item) => item.group === group.id)
+      .sort((left, right) => left.order - right.order)
+      .map(toSidebarNavigationItem),
+  }))
+  .filter((group) => group.items.length > 0) satisfies readonly SidebarNavigationGroup[]
 
 export const notifications: readonly SidebarNotification[] = []

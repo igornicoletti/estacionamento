@@ -2,6 +2,7 @@ import { BellIcon } from "lucide-react"
 import * as React from "react"
 import { Link } from "react-router"
 
+import { appRoutePaths } from "@/app/router/route-registry"
 import { notify } from "@/components/toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -31,6 +32,10 @@ import {
 import { formatDateTime } from "@/lib"
 
 import { sidebarCopy } from "./sidebar-copy"
+
+function resolveNotificationHref(href: string | undefined) {
+  return href || appRoutePaths.notifications
+}
 
 export function NotificationsPopover() {
   const [isOpen, setIsOpen] = React.useState(false)
@@ -69,6 +74,7 @@ export function NotificationsPopover() {
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
         <Button
+          type="button"
           variant="ghost"
           size="icon"
           className="relative"
@@ -78,7 +84,7 @@ export function NotificationsPopover() {
           {unreadBadge ? (
             <Badge
               variant="destructive"
-              className="absolute -top-1 -right-1 h-5 min-w-5 justify-center px-1 text-[0.625rem] font-bold leading-none bg-destructive text-destructive-foreground"
+              className="absolute -top-1 -right-1 h-5 min-w-5 justify-center px-1 text-[0.625rem] font-bold leading-none"
             >
               {unreadBadge}
             </Badge>
@@ -127,7 +133,7 @@ export function NotificationsPopover() {
                   className="h-auto justify-start px-2 py-2 text-left"
                 >
                   <Link
-                    to={notification.href || "/notificacoes"}
+                    to={resolveNotificationHref(notification.href)}
                     onClick={() => {
                       setIsOpen(false)
                       if (notification.status === "unread") {
@@ -170,7 +176,7 @@ export function NotificationsPopover() {
                 setIsOpen(false)
               }}
             >
-              <Link to="/notificacoes">{sidebarCopy.notifications.viewAll}</Link>
+              <Link to={appRoutePaths.notifications}>{sidebarCopy.notifications.viewAll}</Link>
             </Button>
           </div>
         )}

@@ -1,15 +1,11 @@
-import {
-  BellIcon,
-  LogOutIcon,
-  UserIcon,
-  UserRoundIcon,
-} from "lucide-react"
-import { useState } from "react"
-import { Link, useNavigate } from "react-router"
+import { BellIcon, LogOutIcon, UserIcon, UserRoundIcon } from "lucide-react"
+import * as React from "react"
+import { Link } from "react-router"
 
+import { appRoutePaths } from "@/app/router/route-registry"
+import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { DestructiveConfirmDialog } from "@/components/ui/destructive-confirm-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,22 +15,10 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { shouldBypassAuthInDev } from "@/config"
-import {
-  isUserRole,
-  userRoleLabels,
-} from "@/features/auth"
-import { useAuthSession } from "@/features/auth/hooks"
-import { useUsers } from "@/features/users"
-import { type UserRecord } from "@/features/users/types/users-types"
+import type { AuthProfile } from "@/features/auth/auth-api"
+import { useAuth } from "@/features/auth/auth-provider"
 
 import { sidebarCopy } from "./sidebar-copy"
-
-type UnknownRecord = Record<PropertyKey, unknown>
-
-function isRecord(value: unknown): value is UnknownRecord {
-  return typeof value === "object" && value !== null
-}
 
 function getFallback(name: string) {
   return (
@@ -47,91 +31,36 @@ function getFallback(name: string) {
   )
 }
 
-function getProfileName(profile: unknown) {
-  if (!isRecord(profile) || typeof profile.name !== "string") {
-    return "Usuário"
-  }
-
-  return profile.name.trim() || "Usuário"
+function getDisplayName(profile: AuthProfile | null) {
+  return profile?.name?.trim() || sidebarCopy.profile.fallbackName
 }
 
-function getProfileMeta(profile: unknown) {
-  if (!isRecord(profile)) {
-    return shouldBypassAuthInDev()
-      ? sidebarCopy.profile.developmentMode
-      : sidebarCopy.profile.fallbackRole
-  }
-
-  return isUserRole(profile.role)
-    ? userRoleLabels[profile.role]
-    : sidebarCopy.profile.fallbackRole
-}
-
-function resolveSessionUser(profile: unknown, users: readonly UserRecord[]) {
-  if (!users.length) {
-    return null
-  }
-
-  if (isRecord(profile)) {
-    const profileId = typeof profile.id === "string" ? profile.id : null
-    const profileEmail = typeof profile.email === "string"
-      ? profile.email.toLowerCase()
-      : null
-
-    const matchedById = profileId
-      ? users.find((user) => user.id === profileId)
-      : null
-
-    if (matchedById) {
-      return matchedById
-    }
-
-    const matchedByEmail = profileEmail
-      ? users.find((user) => user.email?.toLowerCase() === profileEmail)
-      : null
-
-    if (matchedByEmail) {
-      return matchedByEmail
-    }
-  }
-
-  return users.find((user) => user.status === "active") ?? users[0] ?? null
+function getDisplayMeta(profile: AuthProfile | null) {
+  return profile?.role?.label ?? profile?.email ?? sidebarCopy.profile.fallbackRole
 }
 
 export function UserMenu() {
-  const { profile, signOut } = useAuthSession()
-  const { data: users } = useUsers()
-  const navigate = useNavigate()
-  const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false)
-  const sessionUser = resolveSessionUser(profile, users)
-  const displayName = sessionUser?.name || getProfileName(profile)
-  const profileMeta = isRecord(profile) && isUserRole(profile.role)
-    ? userRoleLabels[profile.role]
-    : null
-  const displayMeta = profileMeta ?? (sessionUser
-    ? userRoleLabels[sessionUser.role]
-    : getProfileMeta(profile))
+  const auth = useAuth()
+  const [isSignOutDialogOpen, setIsSignOutDialogOpen] = React.useState(false)
+  const displayName = getDisplayName(auth.profile)
+  const displayMeta = getDisplayMeta(auth.profile)
   const fallback = getFallback(displayName)
-
-  async function handleSignOut() {
-    await signOut()
-    void navigate("/login", { replace: true })
-  }
 
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
           <Button
+            type="button"
             variant="ghost"
-            className="h-10 gap-2 px-2 focus-visible:ring-2 focus-visible:ring-offset-2 focus-visible:ring-offset-background"
-            aria-label={`${displayName} - abrir menu de usuário`}
+            className="h-10 gap-2 px-2"
+            aria-label={sidebarCopy.menu.openUserMenu(displayName)}
           >
             <Avatar>
               <AvatarFallback>{fallback}</AvatarFallback>
             </Avatar>
-            <span className="hidden flex-col items-center md:flex">
-              <span className="text-sm font-medium">{displayName}</span>
+            <span className="hidden flex-col items-start md:flex">
+              <span className="text-sm font-medium leading-none">{displayName}</span>
               <span className="text-xs text-muted-foreground">{displayMeta}</span>
             </span>
           </Button>
@@ -151,19 +80,19 @@ export function UserMenu() {
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-              <Link to="/perfil">
+              <Link to={appRoutePaths.profile}>
                 <UserRoundIcon />
                 {sidebarCopy.menu.myProfile}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/configuracoes">
+              <Link to={appRoutePaths.settings}>
                 <UserIcon />
                 {sidebarCopy.menu.settings}
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/notificacoes">
+              <Link to={appRoutePaths.notifications}>
                 <BellIcon />
                 {sidebarCopy.menu.notifications}
               </Link>
@@ -183,14 +112,15 @@ export function UserMenu() {
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <DestructiveConfirmDialog
+      <AppAlertDialog
         open={isSignOutDialogOpen}
         onOpenChange={setIsSignOutDialogOpen}
         title={sidebarCopy.dialog.signOutTitle}
         description={sidebarCopy.dialog.signOutDescription}
-        confirmLabel={sidebarCopy.dialog.signOutConfirm}
-        onConfirm={async () => {
-          await handleSignOut()
+        cancelLabel={sidebarCopy.dialog.signOutCancel}
+        actionLabel={sidebarCopy.dialog.signOutConfirm}
+        onAction={() => {
+          void auth.actions.logoutAsync()
         }}
       />
     </>

@@ -1,4 +1,5 @@
-import { type AppUserStatus, type AuthPermission } from "../authorization"
+import type { AuthNextAction } from "../auth-contracts"
+import type { AuthProfile } from "../auth-api"
 
 export type AuthFlowStep =
   | "credentials"
@@ -7,14 +8,10 @@ export type AuthFlowStep =
   | "passkey_registration"
   | "authenticated"
 
-export type AuthPasswordNextAction =
-  | "use_passkey"
-  | "set_new_password"
-  | "register_passkey"
-  | "authenticated"
+export type AuthPasswordNextAction = AuthNextAction
 
 export interface AuthPasswordResponse {
-  flowId: string
+  flowId: string | null
   nextAction: AuthPasswordNextAction
   message: string
   session?: {
@@ -39,28 +36,7 @@ export interface ProfileActionResponse {
   message: string
 }
 
-export interface AppUserRoleProfile {
-  id: string | null
-  key: string
-  label: string | null
-}
-
-export interface AppUserProfile {
-  id: string
-  authUserId: string
-  avatarUrl?: string | null
-  name: string
-  role: AppUserRoleProfile | null
-  roleKey: string | null
-  status: AppUserStatus
-  permissions: readonly AuthPermission[]
-  unitId: string | null
-  unitName: string | null
-  phoneMasked: string
-  cpfMasked: string | null
-  email: string | null
-  passkeyStatus?: "active" | "inactive"
-}
+export type AppUserProfile = AuthProfile
 
 export interface RecoveryRequestResponse {
   message: string
