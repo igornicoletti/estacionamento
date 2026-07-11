@@ -7,7 +7,7 @@ import {
   AUTH_STORAGE_KEYS,
   canAccessProtectedApp,
   type AuthPermission,
-} from "../contracts"
+} from "../contracts/auth-contracts"
 import {
   completeRequiredPassword,
   getCurrentAuthProfile,
@@ -15,8 +15,8 @@ import {
   signOutCurrentSession,
   subscribeToAuthSessionChanges,
 } from "../api"
-import type { AuthPasswordResponse, AuthProfile } from "../types"
-import type { AuthLoginPayload } from "../validation"
+import type { AuthPasswordResponse, AuthProfile } from "../types/auth-types"
+import type { AuthLoginPayload } from "../validation/auth-validation"
 
 export type AuthSessionStatus = "loading" | "anonymous" | "authenticated"
 

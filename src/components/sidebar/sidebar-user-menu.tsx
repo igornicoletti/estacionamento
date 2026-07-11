@@ -16,7 +16,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 import type { AuthProfile } from "@/features/auth/api"
-import { useAuth } from "@/features/auth/context"
+import { useAuth } from "@/features/auth"
 
 import { sidebarCopy } from "./sidebar-copy"
 

@@ -8,12 +8,12 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
-import { usersCopy } from "../contents/users-copy"
 import {
   appUserStatusLabels,
-  userRoleLabels,
   type UserRecord,
+  userRoleLabels,
 } from "../types/users-types"
+import { usersCopy } from "../users-copy"
 import {
   resolveEmailLabel,
   resolveLastAccessLabel,

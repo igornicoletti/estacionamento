@@ -11,6 +11,8 @@ export const notificationsCopy = {
     markAsUnread: "Marcar como não lida",
     openDestination: "Abrir destino",
     openDetails: "Informações",
+    retry: "Recarregar",
+    updating: "Atualizando...",
     updatingAll: "Atualizando...",
     viewAll: "Ver todas",
   },

@@ -1,6 +1,5 @@
 import {
   adminCreateUserSchema,
-  createAdminClient,
   formatCpf,
   formatPhone,
   genericAuthError,
@@ -15,6 +14,7 @@ import {
   writeAuditEvent,
 } from "../_shared/index.ts"
 
+import { createAdminClient } from "../_shared/auth-supabase-admin.ts"
 import { canAssignRole, isGlobalRole } from "../_shared/admin-users.ts"
 
 Deno.serve(async (request) => {
@@ -48,31 +48,33 @@ Deno.serve(async (request) => {
     const cpfHash = await hashSensitiveValue(cpf)
     const technicalEmail = `auth+${crypto.randomUUID()}@estacionamento.redemontecarlo.com.br`
 
-    const { data: existingUser } = await supabase
+    const existingUserResponse = await supabase
       .from("app_users")
       .select("id")
       .eq("cpf_hmac", cpfHash)
       .maybeSingle()
 
-    if (existingUser) {
+    if (existingUserResponse.data) {
       return genericAuthError(409, request)
     }
 
-    const { data: authUser, error: createError } = await supabase.auth.admin.createUser({
+    const authUserResponse = await supabase.auth.admin.createUser({
       email: technicalEmail,
       email_confirm: true,
       password: input.temporaryPassword,
       user_metadata: {},
     })
 
-    if (createError || !authUser.user) {
+    if (authUserResponse.error || !authUserResponse.data.user) {
       return genericAuthError(400, request)
     }
 
-    const { data: appUser, error: appUserError } = await supabase
+    const authUserId = authUserResponse.data.user.id
+
+    const appUserResponse = await supabase
       .from("app_users")
       .insert({
-        auth_user_id: authUser.user.id,
+        auth_user_id: authUserId,
         cpf_display: formatCpf(cpf),
         cpf_hmac: cpfHash,
         cpf_masked: maskCpf(cpf),
@@ -88,20 +90,22 @@ Deno.serve(async (request) => {
       .select("id")
       .single()
 
-    if (appUserError || !appUser) {
-      await supabase.auth.admin.deleteUser(authUser.user.id)
+    if (appUserResponse.error || !appUserResponse.data) {
+      await supabase.auth.admin.deleteUser(authUserId)
       return genericAuthError(400, request)
     }
 
+    const appUserId = appUserResponse.data.id
+
     if (input.unitId) {
-      const { error: unitError } = await supabase.from("app_user_units").insert({
-        app_user_id: appUser.id,
+      const unitResponse = await supabase.from("app_user_units").insert({
+        app_user_id: appUserId,
         unit_id: input.unitId,
       })
 
-      if (unitError) {
-        await supabase.from("app_users").delete().eq("id", appUser.id)
-        await supabase.auth.admin.deleteUser(authUser.user.id)
+      if (unitResponse.error) {
+        await supabase.from("app_users").delete().eq("id", appUserId)
+        await supabase.auth.admin.deleteUser(authUserId)
         return genericAuthError(400, request)
       }
     }
@@ -114,10 +118,10 @@ Deno.serve(async (request) => {
       scope: "system",
       success: true,
       target: input.name.trim(),
-      targetUserId: authUser.user.id,
+      targetUserId: authUserId,
     })
 
-    return jsonResponse({ ok: true, id: appUser.id, appUserId: appUser.id, authUserId: authUser.user.id, message: "Usuário criado." }, 200, request)
+    return jsonResponse({ ok: true, id: appUserId, appUserId, authUserId, message: "Usuário criado." }, 200, request)
   } catch {
     return genericAuthError(400, request)
   }

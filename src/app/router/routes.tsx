@@ -1,6 +1,7 @@
 import { Outlet, type RouteObject } from "react-router"
 
 import { AuthenticatedLayout } from "@/app/layouts/authenticated-layout"
+import { appRouteIds } from "@/app/router/route-registry"
 import {
   AuthenticatedHomeRoute,
   PrivateRouteGate,
@@ -8,12 +9,12 @@ import {
   RouteLoadingState,
   RouteNotFound,
 } from "@/app/router/route-elements"
-import { RouteErrorBoundary } from "@/app/router/route-error-boundary"
 import {
-  appRouteIds, authenticatedRouteRegistry,
+  authenticatedRouteRegistry,
   publicRouteRegistry,
-  type AppRouteRegistryItem
+  type AppRouteRegistryItem,
 } from "@/app/router/route-registry"
+import { RouteErrorBoundary } from "@/app/router/route-error-boundary"
 
 const routeHydrateFallbackElement = <RouteLoadingState />
 

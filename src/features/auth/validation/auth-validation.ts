@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { authCopy } from "../copy"
+import { authCopy } from "../copy/auth-copy"
 
 const cpfRegex = /^\d{11}$|^\d{3}\.\d{3}\.\d{3}-\d{2}$/
 const phoneRegex = /^\+?[0-9\s().-]{10,20}$/

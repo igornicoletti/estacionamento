@@ -1,7 +1,7 @@
 import type { ComponentType } from "react"
 
 import { appCopy } from "@/app/app-copy"
-import { AUTH_PERMISSION, type AuthPermission } from "@/features/auth/contracts"
+import { AUTH_PERMISSION, type AuthPermission } from "@/features/auth"
 
 export const appRouteIds = {
   root: "root",

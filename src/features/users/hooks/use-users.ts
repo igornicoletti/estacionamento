@@ -2,7 +2,6 @@ import * as React from "react"
 
 import { toError } from "@/lib"
 
-import { usersCopy } from "../contents/users-copy"
 import {
   blockUser,
   clearUserLock,
@@ -18,6 +17,7 @@ import {
   type UpdateUserInput,
   type UserRecord,
 } from "../types/users-types"
+import { usersCopy } from "../users-copy"
 
 export function useUsers() {
   const [data, setData] = React.useState<UserRecord[]>([])

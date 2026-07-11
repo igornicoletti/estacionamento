@@ -1,4 +1,4 @@
-import { AUTH_ROLE_KEY, AUTH_STATUS, type AuthRoleKey, type AuthStatus } from "@/features/auth/contracts"
+import { AUTH_ROLE_KEY, AUTH_STATUS, type AuthRoleKey, type AuthStatus } from "@/features/auth"
 
 export type UserRole = AuthRoleKey
 export type AppUserStatus = AuthStatus

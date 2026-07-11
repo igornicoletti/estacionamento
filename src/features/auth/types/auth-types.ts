@@ -1,4 +1,4 @@
-import type { AuthNextAction, AuthPermission, AuthStatus } from "../contracts"
+import type { AuthNextAction, AuthPermission, AuthStatus } from "../contracts/auth-contracts"
 
 export interface AuthRoleProfile {
   id: string | null

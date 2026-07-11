@@ -6,12 +6,12 @@ Deno.serve(async (request) => {
 
   try {
     const context = await createAdminActionContext(request)
-    const { error: statusError } = await context.admin
+    const statusResponse = await context.admin
       .from("app_users")
       .update({ status: "password_reset", locked_until: null })
       .eq("auth_user_id", context.target.auth_user_id)
 
-    if (statusError) {
+    if (statusResponse.error) {
       throw new Error("Não foi possível redefinir a autenticação.")
     }
 

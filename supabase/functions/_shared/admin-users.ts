@@ -1,6 +1,9 @@
-import { createClient, type SupabaseClient } from "https://esm.sh/@supabase/supabase-js@2"
-
 import { getCorsHeaders, handleCors } from "./auth-cors.ts"
+import {
+  createAdminClient,
+  createAuthorizedClient,
+  type EdgeSupabaseClient,
+} from "./auth-supabase-admin.ts"
 
 export type AdminRole = "owner" | "admin" | "auditor" | "manager" | "operator"
 
@@ -13,7 +16,7 @@ export interface AppUserRow {
 }
 
 export interface AdminActionContext {
-  admin: SupabaseClient
+  admin: EdgeSupabaseClient
   actor: AppUserRow
   target: AppUserRow
   reason: string | null
@@ -48,39 +51,6 @@ export async function readJsonBody(request: Request): Promise<Record<string, unk
   } catch {
     return {}
   }
-}
-
-function getEnv(name: string) {
-  const value = Deno.env.get(name)
-
-  if (!value) {
-    throw new Error(`Variável de ambiente ausente: ${name}.`)
-  }
-
-  return value
-}
-
-function createAdminClient() {
-  return createClient(getEnv("SUPABASE_URL"), getEnv("SUPABASE_SERVICE_ROLE_KEY"), {
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
-}
-
-function createUserClient(authorization: string) {
-  return createClient(getEnv("SUPABASE_URL"), getEnv("SUPABASE_ANON_KEY"), {
-    global: {
-      headers: {
-        Authorization: authorization,
-      },
-    },
-    auth: {
-      persistSession: false,
-      autoRefreshToken: false,
-    },
-  })
 }
 
 function isManagementRole(role: string | null | undefined) {
@@ -118,32 +88,35 @@ async function getSessionUserId(request: Request) {
     throw new Error("Sessão ausente.")
   }
 
-  const userClient = createUserClient(authorization)
-  const { data, error } = await userClient.auth.getUser()
+  const userClient = createAuthorizedClient(authorization)
+  const userResponse = await userClient.auth.getUser()
 
-  if (error || !data.user) {
+  if (userResponse.error || !userResponse.data.user) {
     throw new Error("Sessão inválida.")
   }
 
-  return data.user.id
+  return userResponse.data.user.id
 }
 
-export async function getAppUserByAuthUserId(admin: SupabaseClient, authUserId: string) {
-  const { data, error } = await admin
+export async function getAppUserByAuthUserId(
+  admin: EdgeSupabaseClient,
+  authUserId: string
+) {
+  const response = await admin
     .from("app_users")
     .select("id, auth_user_id, name, role, status")
     .eq("auth_user_id", authUserId)
     .maybeSingle()
 
-  if (error || !data) {
+  if (response.error || !response.data) {
     throw new Error("Usuário não encontrado.")
   }
 
-  return data as AppUserRow
+  return response.data satisfies AppUserRow
 }
 
 async function recordAudit(
-  admin: SupabaseClient,
+  admin: EdgeSupabaseClient,
   actor: AppUserRow | null,
   event: string,
   target: AppUserRow | null,

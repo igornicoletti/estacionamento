@@ -24,7 +24,7 @@ import {
   type AppRoutePath,
   type AppRouteRegistryItem,
 } from "@/app/router/route-registry"
-import type { AuthPermission } from "@/features/auth/contracts"
+import type { AuthPermission } from "@/features/auth"
 
 import { sidebarCopy } from "./sidebar-copy"
 

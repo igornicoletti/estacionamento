@@ -6,9 +6,9 @@ Deno.serve(async (request) => {
 
   try {
     const context = await createAdminActionContext(request)
-    const { error } = await context.admin.auth.admin.signOut(context.target.auth_user_id, "global")
+    const signOutResponse = await context.admin.auth.admin.signOut(context.target.auth_user_id, "global")
 
-    if (error) {
+    if (signOutResponse.error) {
       throw new Error("Não foi possível revogar as sessões.")
     }
 

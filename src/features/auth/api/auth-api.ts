@@ -7,15 +7,15 @@ import {
   normalizeAuthStatus,
   resolveAuthProfilePermissions,
   type AuthNextAction,
-} from "../contracts"
-import { authCopy } from "../copy"
+} from "../contracts/auth-contracts"
+import { authCopy } from "../copy/auth-copy"
 import type {
   AuthPasswordResponse,
   AuthProfile,
   AuthRoleProfile,
   AuthSessionPayload,
-} from "../types"
-import type { AuthLoginPayload, AuthRecoveryPayload } from "../validation"
+} from "../types/auth-types"
+import type { AuthLoginPayload, AuthRecoveryPayload } from "../validation/auth-validation"
 
 type UnknownRecord = Record<PropertyKey, unknown>
 
@@ -102,9 +102,9 @@ async function setSessionIfPresent(session: AuthSessionPayload | undefined) {
   }
 
   const supabase = getSupabaseOrThrow()
-  const { error } = await supabase.auth.setSession(session)
+  const sessionResponse = await supabase.auth.setSession(session)
 
-  if (error) {
+  if (sessionResponse.error) {
     throw new AuthApiError(authCopy.errors.invalidCredentials)
   }
 }
@@ -147,13 +147,11 @@ export function subscribeToAuthSessionChanges(callback: () => void) {
     return () => undefined
   }
 
-  const {
-    data: { subscription },
-  } = supabase.auth.onAuthStateChange(() => {
+  const authStateChangeResponse = supabase.auth.onAuthStateChange(() => {
     callback()
   })
 
-  return () => subscription.unsubscribe()
+  return () => authStateChangeResponse.data.subscription.unsubscribe()
 }
 
 export async function getCurrentAuthProfile() {
@@ -162,41 +160,37 @@ export async function getCurrentAuthProfile() {
   if (!supabase) {
     return null
   }
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser()
+  const userResponse = await supabase.auth.getUser()
+  const user = userResponse.data.user
 
-  if (userError || !user) {
+  if (userResponse.error || !user) {
     return null
   }
 
-  const { data: rpcProfile, error: rpcError } = await supabase.rpc(
-    "get_current_auth_profile"
-  )
+  const profileResponse = await supabase.rpc("get_current_auth_profile")
 
-  if (!rpcError && rpcProfile) {
-    const profile = Array.isArray(rpcProfile)
-      ? mapAuthProfile(rpcProfile[0])
-      : mapAuthProfile(rpcProfile)
+  if (!profileResponse.error && profileResponse.data) {
+    const profile = Array.isArray(profileResponse.data)
+      ? mapAuthProfile(profileResponse.data[0])
+      : mapAuthProfile(profileResponse.data)
 
     if (profile) {
       return profile
     }
   }
 
-  const { data, error } = await supabase
+  const appUserResponse = await supabase
     .from("app_users")
     .select("id, auth_user_id, name, role, status, phone_masked, cpf_masked, email")
     .eq("auth_user_id", user.id)
     .maybeSingle()
 
-  if (error || !data) {
+  if (appUserResponse.error || !appUserResponse.data) {
     return null
   }
 
   return mapAuthProfile({
-    ...data,
+    ...appUserResponse.data,
     permissions: [],
     passkey_status: "inactive",
   })
@@ -204,15 +198,15 @@ export async function getCurrentAuthProfile() {
 
 export async function signInWithPassword(payload: AuthLoginPayload) {
   const supabase = getSupabaseOrThrow()
-  const { data, error } = await supabase.functions.invoke(AUTH_FUNCTIONS.password, {
+  const passwordResponse = await supabase.functions.invoke(AUTH_FUNCTIONS.password, {
     body: payload,
   })
 
-  if (error) {
+  if (passwordResponse.error) {
     throw new AuthApiError(authCopy.errors.invalidCredentials)
   }
 
-  const response = mapPasswordResponse(data)
+  const response = mapPasswordResponse(passwordResponse.data)
 
   if (response.nextAction === AUTH_NEXT_ACTION.authenticated) {
     await setSessionIfPresent(response.session)
@@ -228,7 +222,7 @@ export async function completeRequiredPassword(input: {
   newPassword: string
 }) {
   const supabase = getSupabaseOrThrow()
-  const { data, error } = await supabase.functions.invoke(AUTH_FUNCTIONS.password, {
+  const passwordResponse = await supabase.functions.invoke(AUTH_FUNCTIONS.password, {
     body: {
       cpf: input.cpf,
       password: input.currentPassword,
@@ -237,20 +231,20 @@ export async function completeRequiredPassword(input: {
     },
   })
 
-  if (error) {
+  if (passwordResponse.error) {
     throw new AuthApiError(authCopy.errors.invalidCredentials)
   }
 
-  return mapPasswordResponse(data)
+  return mapPasswordResponse(passwordResponse.data)
 }
 
 export async function requestAccessRecovery(payload: AuthRecoveryPayload) {
   const supabase = getSupabaseOrThrow()
-  const { error } = await supabase.functions.invoke(AUTH_FUNCTIONS.recovery, {
+  const recoveryResponse = await supabase.functions.invoke(AUTH_FUNCTIONS.recovery, {
     body: payload,
   })
 
-  if (error) {
+  if (recoveryResponse.error) {
     throw new AuthApiError(authCopy.errors.recoveryFailed)
   }
 }

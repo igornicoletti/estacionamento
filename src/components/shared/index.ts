@@ -1,4 +1,5 @@
 export * from "./app-alert-dialog"
+export * from "./app-details-sheet"
 export * from "./app-dialog"
 export * from "./app-drawer"
 export * from "./app-empty-state"

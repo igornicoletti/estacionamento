@@ -8,8 +8,8 @@ import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { shouldBypassAuthInDev } from "@/config"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { canAccessProtectedApp, type AuthPermission } from "@/features/auth/contracts"
-import { useAuth } from "@/features/auth/context"
+import { canAccessProtectedApp, type AuthPermission } from "@/features/auth"
+import { useAuth } from "@/features/auth"
 
 interface PrivateRouteGateProps {
   children?: ReactNode

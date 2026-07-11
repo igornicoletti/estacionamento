@@ -6,12 +6,12 @@ Deno.serve(async (request) => {
 
   try {
     const context = await createAdminActionContext(request)
-    const { error } = await context.admin
+    const updateResponse = await context.admin
       .from("app_users")
       .update({ status: "inactive", locked_until: null })
       .eq("auth_user_id", context.target.auth_user_id)
 
-    if (error) {
+    if (updateResponse.error) {
       throw new Error("Não foi possível bloquear o usuário.")
     }
 

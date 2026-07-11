@@ -3,8 +3,8 @@ import { z } from "zod"
 import { authCpfSchema, newPasswordSchema } from "@/features/auth/validation"
 import { isValidPhone } from "@/lib"
 
-import { usersCopy } from "../contents/users-copy"
 import { requiresSingleUnit, userRoleValues } from "../types/users-types"
+import { usersCopy } from "../users-copy"
 
 const userFormModeValues = ["create", "edit"] as const
 

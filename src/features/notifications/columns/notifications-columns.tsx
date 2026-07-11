@@ -20,6 +20,7 @@ interface CreateNotificationsColumnsOptions {
   onOpenDetails?: (notification: NotificationRecord) => void
   onMarkAsRead?: (notification: NotificationRecord) => void
   onMarkAsUnread?: (notification: NotificationRecord) => void
+  isNotificationUpdating?: (notificationId: string) => boolean
 }
 
 function resolveNotificationStatusVariant(status: NotificationRecord["status"]) {
@@ -37,7 +38,7 @@ export function createNotificationsColumns(
       cell: ({ row }) => (
         <button
           type="button"
-          className="font-medium"
+          className="font-medium text-left hover:underline"
           onClick={() => {
             options.onOpenDetails?.(row.original)
           }}
@@ -107,6 +108,7 @@ export function createNotificationsColumns(
       enableHiding: false,
       size: 48,
       cell: ({ row }) => {
+        const isUpdating = options.isNotificationUpdating?.(row.original.id) ?? false
         const actions: DataTableRowAction<NotificationRecord>[] = [
           {
             id: "details",
@@ -117,16 +119,20 @@ export function createNotificationsColumns(
           },
           {
             id: "mark-read",
-            label: notificationsCopy.actions.markAsRead,
-            disabled: row.original.status === "read",
+            label: isUpdating
+              ? notificationsCopy.actions.updating
+              : notificationsCopy.actions.markAsRead,
+            disabled: isUpdating || row.original.status === "read",
             onSelect: (currentRow) => {
               options.onMarkAsRead?.(currentRow.original)
             },
           },
           {
             id: "mark-unread",
-            label: notificationsCopy.actions.markAsUnread,
-            disabled: row.original.status === "unread",
+            label: isUpdating
+              ? notificationsCopy.actions.updating
+              : notificationsCopy.actions.markAsUnread,
+            disabled: isUpdating || row.original.status === "unread",
             onSelect: (currentRow) => {
               options.onMarkAsUnread?.(currentRow.original)
             },

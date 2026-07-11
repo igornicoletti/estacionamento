@@ -1,8 +1,8 @@
 import { BellIcon } from "lucide-react"
 import * as React from "react"
 
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
-import { AppSheet } from "@/components/shared/app-sheet"
 import {
   createDataTableFilterOptions,
   DataTable,
@@ -10,18 +10,22 @@ import {
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
-import { formatDateTime } from "@/lib"
 
 import { createNotificationsColumns } from "../columns/notifications-columns"
-import { useNotifications } from "../context"
+import { useNotifications } from "../context/notifications-provider"
 import { notificationsCopy } from "../notifications-copy"
 import {
   notificationStatusLabels,
   notificationTypeLabels,
   type NotificationRecord,
 } from "../types/notifications-types"
+import {
+  getNotificationDetailItems,
+  resolveNotificationDetailsDescription,
+  resolveNotificationDetailsTitle,
+} from "../utils/notifications-details-model"
 
-const NOTIFICATIONS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.notifications.columns.v2"
+const NOTIFICATIONS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.notifications.columns.v3"
 
 export function NotificationsRoute() {
   const {
@@ -30,6 +34,7 @@ export function NotificationsRoute() {
     error,
     isLoading,
     isUpdatingBatch,
+    isNotificationUpdating,
     refetch,
     updateStatus,
     markAllAsRead,
@@ -52,6 +57,7 @@ export function NotificationsRoute() {
   const columns = React.useMemo(
     () =>
       createNotificationsColumns({
+        isNotificationUpdating,
         onOpenDetails: setSelectedNotification,
         onMarkAsRead: (notification) => {
           void updateStatus(notification.id, "read").catch(() => {
@@ -64,7 +70,7 @@ export function NotificationsRoute() {
           })
         },
       }),
-    [updateStatus]
+    [isNotificationUpdating, updateStatus]
   )
 
   const typeOptions = React.useMemo(
@@ -156,45 +162,17 @@ export function NotificationsRoute() {
         enableViewOptions
       />
 
-      <AppSheet
+      <AppDetailsSheet
         open={Boolean(selectedNotification)}
         onOpenChange={(open) => {
           if (!open) {
             setSelectedNotification(null)
           }
         }}
-        title={selectedNotification?.title ?? notificationsCopy.details.titleFallback}
-        description={selectedNotification?.description}
-      >
-        {selectedNotification ? (
-          <dl className="grid gap-4 text-sm">
-            <div className="grid gap-1">
-              <dt className="font-medium">{notificationsCopy.details.type}</dt>
-              <dd className="text-muted-foreground">
-                {notificationTypeLabels[selectedNotification.type]}
-              </dd>
-            </div>
-            <div className="grid gap-1">
-              <dt className="font-medium">{notificationsCopy.details.status}</dt>
-              <dd className="text-muted-foreground">
-                {notificationStatusLabels[selectedNotification.status]}
-              </dd>
-            </div>
-            <div className="grid gap-1">
-              <dt className="font-medium">{notificationsCopy.details.date}</dt>
-              <dd className="text-muted-foreground">
-                {formatDateTime(selectedNotification.occurredAt)}
-              </dd>
-            </div>
-            <div className="grid gap-1">
-              <dt className="font-medium">{notificationsCopy.details.destination}</dt>
-              <dd className="break-all text-muted-foreground">
-                {selectedNotification.href ?? notificationsCopy.details.emptyDestination}
-              </dd>
-            </div>
-          </dl>
-        ) : null}
-      </AppSheet>
+        title={resolveNotificationDetailsTitle(selectedNotification)}
+        description={resolveNotificationDetailsDescription(selectedNotification)}
+        items={selectedNotification ? getNotificationDetailItems(selectedNotification) : []}
+      />
     </PageSection>
   )
 }

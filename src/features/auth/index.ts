@@ -5,7 +5,7 @@ export {
   signInWithPassword,
   signOutCurrentSession,
   subscribeToAuthSessionChanges,
-} from "./api"
+} from "./api/auth-api"
 
 export type {
   AppUserProfile,
@@ -19,7 +19,7 @@ export type {
   AuthStartResponse,
   ProfileActionResponse,
   RecoveryRequestResponse,
-} from "./types"
+} from "./types/auth-types"
 
 export {
   AUTH_FUNCTIONS,
@@ -43,9 +43,9 @@ export {
   type AuthPermission,
   type AuthRoleKey,
   type AuthStatus,
-} from "./contracts"
+} from "./contracts/auth-contracts"
 
-export { authCopy } from "./copy"
+export { authCopy } from "./copy/auth-copy"
 
 export {
   AuthProvider,
@@ -60,7 +60,11 @@ export {
   type AuthSessionStatus,
   type AuthSessionValue,
   type RequiredPasswordChallenge,
-} from "./context"
+} from "./context/auth-provider"
+
+export { AuthPageCard } from "./components/auth-page-card"
+export { AuthLoginRoute } from "./routes/auth-login-route"
+export { AuthRecoveryRoute } from "./routes/auth-recovery-route"
 
 export {
   authCpfSchema,
@@ -81,4 +85,4 @@ export {
   type FieldErrors,
   type RecoveryReason,
   type RequiredPasswordValues,
-} from "./validation"
+} from "./validation/auth-validation"

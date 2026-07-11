@@ -3,6 +3,12 @@ import { type NotificationRecord } from "../types/notifications-types"
 const DEFAULT_RECENT_NOTIFICATIONS_LIMIT = 6
 const MAX_COUNTER_VALUE = 99
 
+function getNotificationTimestamp(notification: NotificationRecord) {
+  const timestamp = Date.parse(notification.occurredAt)
+
+  return Number.isNaN(timestamp) ? 0 : timestamp
+}
+
 export function isUnreadNotification(notification: NotificationRecord) {
   return notification.status === "unread"
 }
@@ -25,7 +31,13 @@ export function getRecentUnreadNotifications(
 ) {
   const limit = options.limit ?? DEFAULT_RECENT_NOTIFICATIONS_LIMIT
 
-  return getUnreadNotifications(notifications).slice(0, limit)
+  return [...getUnreadNotifications(notifications)]
+    .sort((current, next) => {
+      const timestampDiff = getNotificationTimestamp(next) - getNotificationTimestamp(current)
+
+      return timestampDiff !== 0 ? timestampDiff : next.id.localeCompare(current.id)
+    })
+    .slice(0, limit)
 }
 
 export function formatNotificationsCounter(count: number) {

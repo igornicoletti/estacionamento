@@ -6,8 +6,8 @@ import {
   DataTable,
 } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
+import { AppDetailsSheet, type AppDetailsSheetItem } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
-import { AppSheet } from "@/components/shared/app-sheet"
 
 import { createPermissionsColumns } from "../columns/permissions-columns"
 import { permissionsCopy } from "../content/permissions-copy"
@@ -25,8 +25,35 @@ import { formatPermissionRolesWithoutAccess } from "../utils/permissions-model"
 
 const PERMISSIONS_TABLE_STATE_KEY = "rmc.table.permissions.v2"
 
+function getPermissionDetailItems(
+  permission: PermissionMatrixRow
+): readonly AppDetailsSheetItem[] {
+  return [
+    {
+      label: permissionsCopy.labels.key,
+      value: permission.key,
+      valueClassName: "break-all font-mono text-xs",
+    },
+    { label: permissionsCopy.labels.group, value: permission.groupLabel },
+    { label: permissionsCopy.labels.source, value: permissionSourceLabels[permission.source] },
+    {
+      label: permissionsCopy.labels.critical,
+      value: permission.isCritical ? permissionsCopy.labels.yes : permissionsCopy.labels.no,
+    },
+    { label: permissionsCopy.labels.rolesWithAccess, value: permission.roleLabels },
+    {
+      label: permissionsCopy.labels.rolesWithoutAccess,
+      value: formatPermissionRolesWithoutAccess(permission.roles),
+    },
+  ]
+}
+
 export function PermissionsRoute() {
-  const { data: permissions, error, isLoading, refetch } = usePermissions()
+  const permissionsSnapshot = usePermissions()
+  const permissions = permissionsSnapshot.data
+  const error = permissionsSnapshot.error
+  const isLoading = permissionsSnapshot.isLoading
+  const refetch = permissionsSnapshot.refetch
   const [selectedPermission, setSelectedPermission] = React.useState<PermissionMatrixRow | null>(null)
   const columns = React.useMemo(
     () => createPermissionsColumns({ onOpenDetails: setSelectedPermission }),
@@ -134,7 +161,7 @@ export function PermissionsRoute() {
         enableViewOptions
       />
 
-      <AppSheet
+      <AppDetailsSheet
         open={Boolean(selectedPermission)}
         onOpenChange={(open) => {
           if (!open) {
@@ -143,36 +170,8 @@ export function PermissionsRoute() {
         }}
         title={selectedPermission?.label}
         description={selectedPermission?.description ?? selectedPermission?.key}
-      >
-        {selectedPermission ? (
-          <dl className="grid gap-4 py-4 text-sm">
-            <div className="grid gap-1">
-              <dt className="font-medium text-muted-foreground">{permissionsCopy.labels.key}</dt>
-              <dd className="break-all font-mono text-xs">{selectedPermission.key}</dd>
-            </div>
-            <div className="grid gap-1">
-              <dt className="font-medium text-muted-foreground">{permissionsCopy.labels.group}</dt>
-              <dd>{selectedPermission.groupLabel}</dd>
-            </div>
-            <div className="grid gap-1">
-              <dt className="font-medium text-muted-foreground">{permissionsCopy.labels.source}</dt>
-              <dd>{permissionSourceLabels[selectedPermission.source]}</dd>
-            </div>
-            <div className="grid gap-1">
-              <dt className="font-medium text-muted-foreground">{permissionsCopy.labels.critical}</dt>
-              <dd>{selectedPermission.isCritical ? permissionsCopy.labels.yes : permissionsCopy.labels.no}</dd>
-            </div>
-            <div className="grid gap-1">
-              <dt className="font-medium text-muted-foreground">{permissionsCopy.labels.rolesWithAccess}</dt>
-              <dd>{selectedPermission.roleLabels}</dd>
-            </div>
-            <div className="grid gap-1">
-              <dt className="font-medium text-muted-foreground">{permissionsCopy.labels.rolesWithoutAccess}</dt>
-              <dd>{formatPermissionRolesWithoutAccess(selectedPermission.roles)}</dd>
-            </div>
-          </dl>
-        ) : null}
-      </AppSheet>
+        items={selectedPermission ? getPermissionDetailItems(selectedPermission) : []}
+      />
     </PageSection>
   )
 }

@@ -4,7 +4,7 @@ import * as React from "react"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { useAuth } from "@/features/auth/context"
+import { useAuth } from "@/features/auth"
 
 import { sidebarCopy } from "./sidebar-copy"
 import { NotificationsPopover } from "./sidebar-notifications-popover"

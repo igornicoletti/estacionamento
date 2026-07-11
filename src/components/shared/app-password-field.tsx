@@ -63,7 +63,7 @@ export function AppPasswordField({
         ) : null}
       </div>
 
-      <InputGroup className='h-9'>
+      <InputGroup className="h-9">
         <InputGroupInput
           id={id}
           type={isPasswordVisible ? "text" : "password"}

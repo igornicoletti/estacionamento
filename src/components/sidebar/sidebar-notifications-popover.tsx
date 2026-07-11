@@ -1,4 +1,4 @@
-import { BellIcon } from "lucide-react"
+import { BellIcon, RefreshCcw } from "lucide-react"
 import * as React from "react"
 import { Link } from "react-router"
 
@@ -32,13 +32,24 @@ function resolveNotificationHref(href: string | undefined) {
   return isInternalNotificationHref(href) ? href : appRoutePaths.notifications
 }
 
+function resolveNotificationButtonLabel(unreadCount: number) {
+  if (unreadCount <= 0) {
+    return sidebarCopy.notifications.open
+  }
+
+  return `${sidebarCopy.notifications.open}. ${notificationsCopy.page.unreadCounter(unreadCount)}.`
+}
+
 export function NotificationsPopover() {
   const [isOpen, setIsOpen] = React.useState(false)
   const {
     data,
     unreadCount,
+    error,
     isLoading,
     isUpdatingBatch,
+    isNotificationUpdating,
+    refetch,
     updateStatus,
     markAllAsRead,
   } = useNotifications()
@@ -65,6 +76,10 @@ export function NotificationsPopover() {
     }
   }, [isUpdatingBatch, markAllAsRead, unreadCount])
 
+  const handleRetry = React.useCallback(() => {
+    void refetch()
+  }, [refetch])
+
   return (
     <Popover open={isOpen} onOpenChange={setIsOpen}>
       <PopoverTrigger asChild>
@@ -73,12 +88,13 @@ export function NotificationsPopover() {
           variant="ghost"
           size="icon"
           className="relative"
-          aria-label={sidebarCopy.notifications.open}
+          aria-label={resolveNotificationButtonLabel(unreadCount)}
         >
           <BellIcon />
           {unreadBadge ? (
             <Badge
               variant="destructive"
+              aria-live="polite"
               className="absolute -top-1 -right-1 h-5 min-w-5 justify-center px-1 text-[0.625rem] font-bold leading-none"
             >
               {unreadBadge}
@@ -87,16 +103,30 @@ export function NotificationsPopover() {
         </Button>
       </PopoverTrigger>
 
-      <PopoverContent className="w-[min(24rem,calc(100vw-2rem))] p-0" align="end">
-        {recentNotifications.length === 0 ? (
+      <PopoverContent
+        align="end"
+        className="max-h-[min(32rem,calc(100svh-5rem))] w-[min(24rem,calc(100vw-2rem))] overflow-hidden p-0"
+      >
+        {error ? (
           <AppEmptyState
-            className="h-64 rounded-lg border-0 bg-muted/30"
+            className="min-h-64 rounded-lg border-0 bg-muted/30"
+            media={<RefreshCcw />}
+            title={notificationsCopy.feedback.loadError}
+            actions={(
+              <Button type="button" variant="secondary" onClick={handleRetry}>
+                {notificationsCopy.actions.retry}
+              </Button>
+            )}
+          />
+        ) : recentNotifications.length === 0 ? (
+          <AppEmptyState
+            className="min-h-64 rounded-lg border-0 bg-muted/30"
             media={<BellIcon />}
             title={notificationsCopy.empty.unreadTitle}
             description={notificationsCopy.empty.unreadDescription}
           />
         ) : (
-          <div className="flex flex-col gap-2 p-2.5">
+          <div className="flex max-h-[inherit] min-h-0 flex-col gap-2 p-2.5">
             <PopoverHeader className="flex-row items-center justify-between gap-2">
               <PopoverTitle>{sidebarCopy.notifications.panelTitle}</PopoverTitle>
               <Button
@@ -114,56 +144,64 @@ export function NotificationsPopover() {
               </Button>
             </PopoverHeader>
 
-            <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
-              {recentNotifications.map((notification) => (
-                <Button
-                  key={notification.id}
-                  asChild
-                  variant="ghost"
-                  className="h-auto justify-start px-2 py-2 text-left"
-                >
-                  <Link
-                    to={resolveNotificationHref(notification.href)}
-                    onClick={() => {
-                      setIsOpen(false)
-                      if (notification.status === "unread") {
-                        void updateStatus(notification.id, "read").catch(() => {
-                          notify.error(notificationsCopy.feedback.markAsReadError)
-                        })
-                      }
-                    }}
-                  >
-                    <span className="flex min-w-0 flex-1 items-start gap-2">
-                      <span
-                        aria-hidden="true"
-                        className="mt-1.5 size-2 shrink-0 rounded-full bg-primary"
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-start justify-between gap-2">
-                          <span className="truncate text-sm font-medium">
-                            {notification.title}
+            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+              <div className="flex flex-col gap-1">
+                {recentNotifications.map((notification) => {
+                  const isUpdating = isNotificationUpdating(notification.id)
+
+                  return (
+                    <Button
+                      key={notification.id}
+                      asChild
+                      variant="ghost"
+                      className="h-auto justify-start px-2 py-2 text-left"
+                    >
+                      <Link
+                        to={resolveNotificationHref(notification.href)}
+                        aria-busy={isUpdating}
+                        onClick={() => {
+                          setIsOpen(false)
+
+                          if (notification.status === "unread" && !isUpdating) {
+                            void updateStatus(notification.id, "read").catch(() => {
+                              notify.error(notificationsCopy.feedback.markAsReadError)
+                            })
+                          }
+                        }}
+                      >
+                        <span className="flex min-w-0 flex-1 items-start gap-2">
+                          <span
+                            aria-hidden="true"
+                            className="mt-1.5 size-2 shrink-0 rounded-full bg-primary"
+                          />
+                          <span className="min-w-0 flex-1">
+                            <span className="flex items-start justify-between gap-2">
+                              <span className="truncate text-sm font-medium">
+                                {notification.title}
+                              </span>
+                              <span className="shrink-0 text-xs text-muted-foreground">
+                                {formatDateTime(notification.occurredAt)}
+                              </span>
+                            </span>
+                            <span className="line-clamp-2 text-xs text-muted-foreground">
+                              {notification.description}
+                            </span>
+                            <span className="text-[0.6875rem] text-muted-foreground">
+                              {notificationTypeLabels[notification.type]}
+                            </span>
                           </span>
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            {formatDateTime(notification.occurredAt)}
-                          </span>
                         </span>
-                        <span className="line-clamp-2 text-xs text-muted-foreground">
-                          {notification.description}
-                        </span>
-                        <span className="text-[0.6875rem] text-muted-foreground">
-                          {notificationTypeLabels[notification.type]}
-                        </span>
-                      </span>
-                    </span>
-                  </Link>
-                </Button>
-              ))}
+                      </Link>
+                    </Button>
+                  )
+                })}
+              </div>
             </div>
 
             <Button
               asChild
               variant="secondary"
-              className="w-full"
+              className="w-full shrink-0"
               onClick={() => {
                 setIsOpen(false)
               }}

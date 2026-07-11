@@ -12,9 +12,9 @@ import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { AuthPageCard } from "@/features/auth/components"
-import { AUTH_NEXT_ACTION } from "@/features/auth/contracts"
+import { AUTH_NEXT_ACTION } from "@/features/auth"
 import { authCopy } from "@/features/auth/copy"
-import { useAuth } from "@/features/auth/context"
+import { useAuth } from "@/features/auth"
 import {
   authLoginSchema,
   formatCpfInput,

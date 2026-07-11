@@ -1,5 +1,6 @@
-export { AppRouter } from "./app-router"
-export { routes } from "./routes"
+export { AppProviders } from "./app-providers"
+export { AppRouter } from "./router/app-router"
+export { routes } from "./router/routes"
 export {
   appPermissionKeys,
   appRouteGroupIds,
@@ -13,4 +14,5 @@ export {
   type AppRouteId,
   type AppRoutePath,
   type AppRouteRegistryItem,
-} from "./route-registry"
+} from "./router/route-registry"
+export { AuthenticatedLayout } from "./layouts/authenticated-layout"

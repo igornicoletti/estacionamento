@@ -116,13 +116,13 @@ export async function listPermissionMatrix(): Promise<PermissionMatrixRow[]> {
     throw new Error(permissionsCopy.error.unavailable)
   }
 
-  const { data, error } = await supabase.functions.invoke("list-permission-matrix", {
+  const matrixResponse = await supabase.functions.invoke("list-permission-matrix", {
     body: {},
   })
 
-  if (error) {
-    throw new Error(permissionsCopy.error.load, { cause: error })
+  if (matrixResponse.error) {
+    throw new Error(permissionsCopy.error.load, { cause: matrixResponse.error })
   }
 
-  return parsePermissionMatrixResponse(data).permissions
+  return parsePermissionMatrixResponse(matrixResponse.data).permissions
 }

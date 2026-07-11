@@ -9,7 +9,6 @@ import {
   onlyDigits,
 } from "@/lib"
 
-import { usersCopy } from "../contents/users-copy"
 import {
   isAppUserStatus,
   isUserRole,
@@ -18,6 +17,7 @@ import {
   type UpdateUserInput,
   type UserRecord,
 } from "../types/users-types"
+import { usersCopy } from "../users-copy"
 import {
   createNextUserId,
   normalizeUnitScope,
@@ -217,17 +217,16 @@ async function listLastAccessByAuthUserId() {
     return new Map<string, string | null>()
   }
 
-  const response = await supabase.rpc("list_app_user_last_access")
-  const { data, error } = response as {
+  const response = await supabase.rpc("list_app_user_last_access") as {
     data: RawLastAccessRow[] | null
     error: unknown
   }
 
-  if (error) {
+  if (response.error) {
     return new Map<string, string | null>()
   }
 
-  return new Map((data ?? []).map((row) => [row.auth_user_id, row.last_sign_in_at]))
+  return new Map((response.data ?? []).map((row) => [row.auth_user_id, row.last_sign_in_at]))
 }
 
 async function listAuthFactorsByAuthUserId() {
@@ -239,17 +238,16 @@ async function listAuthFactorsByAuthUserId() {
 
   const response = await supabase.functions.invoke<{ factors?: RawAuthFactorRow[] }>(
     "admin-user-auth-factors"
-  )
-  const { data, error } = response as {
+  ) as {
     data: { factors?: RawAuthFactorRow[] } | null
     error: unknown
   }
 
-  if (error || !data) {
+  if (response.error || !response.data) {
     return new Map<string, RawAuthFactorRow>()
   }
 
-  return new Map((data.factors ?? []).map((factor) => [factor.auth_user_id, factor]))
+  return new Map((response.data.factors ?? []).map((factor) => [factor.auth_user_id, factor]))
 }
 
 async function listRawAppUsersFromSupabase(

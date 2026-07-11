@@ -1,6 +1,5 @@
 import {
   adminUpdateUserSchema,
-  createAdminClient,
   formatCpf,
   formatPhone,
   genericAuthError,
@@ -15,6 +14,7 @@ import {
   writeAuditEvent,
 } from "../_shared/index.ts"
 
+import { createAdminClient } from "../_shared/auth-supabase-admin.ts"
 import { canAssignRole, getAppUserByAuthUserId, isGlobalRole } from "../_shared/admin-users.ts"
 
 Deno.serve(async (request) => {
@@ -50,19 +50,19 @@ Deno.serve(async (request) => {
 
     const cpf = normalizeCpf(input.cpf)
     const cpfHash = await hashSensitiveValue(cpf)
-    const { data: duplicateUser } = await supabase
+    const duplicateUserResponse = await supabase
       .from("app_users")
       .select("id")
       .eq("cpf_hmac", cpfHash)
       .neq("auth_user_id", input.targetUserId)
       .maybeSingle()
 
-    if (duplicateUser) {
+    if (duplicateUserResponse.data) {
       return genericAuthError(409, request)
     }
 
     if (!isGlobalRole(input.role) && input.unitId) {
-      const { error: unitError } = await supabase
+      const unitResponse = await supabase
         .from("app_user_units")
         .upsert(
           {
@@ -72,12 +72,12 @@ Deno.serve(async (request) => {
           { onConflict: "app_user_id" }
         )
 
-      if (unitError) {
+      if (unitResponse.error) {
         return genericAuthError(400, request)
       }
     }
 
-    const { error: updateError } = await supabase
+    const updateResponse = await supabase
       .from("app_users")
       .update({
         cpf_display: formatCpf(cpf),
@@ -92,17 +92,17 @@ Deno.serve(async (request) => {
       })
       .eq("auth_user_id", input.targetUserId)
 
-    if (updateError) {
+    if (updateResponse.error) {
       return genericAuthError(400, request)
     }
 
     if (isGlobalRole(input.role)) {
-      const { error: unitDeleteError } = await supabase
+      const unitDeleteResponse = await supabase
         .from("app_user_units")
         .delete()
         .eq("app_user_id", targetUser.id)
 
-      if (unitDeleteError) {
+      if (unitDeleteResponse.error) {
         return genericAuthError(400, request)
       }
     }

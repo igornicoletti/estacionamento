@@ -1,5 +1,4 @@
 export { createUsersColumns } from "./columns/users-columns"
-export { usersCopy } from "./contents/users-copy"
 export { useUsers } from "./hooks/use-users"
 export { UsersRoute } from "./routes/users-route"
 export {
@@ -7,7 +6,7 @@ export {
   resetUsersGateway,
   resetUsersInMemoryState,
   setUsersGateway,
-  type UsersGateway
+  type UsersGateway,
 } from "./services/users-gateway"
 export {
   blockUser,
@@ -17,6 +16,7 @@ export {
   resetUserAccess,
   resetUserPasskey,
   revokeUserSessions,
-  updateUser
+  updateUser,
 } from "./services/users-service"
 export type { CreateUserInput, UpdateUserInput, UserRecord } from "./types/users-types"
+export { usersCopy } from "./users-copy"

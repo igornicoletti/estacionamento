@@ -1,18 +1,18 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import { PlusIcon, SearchIcon, ShieldAlertIcon, UserPlus2Icon } from "lucide-react"
+import { PlusIcon, SearchIcon, ShieldAlertIcon } from "lucide-react"
 import * as React from "react"
 import { Controller, useForm } from "react-hook-form"
 
+import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
+import { AppDialog } from "@/components/shared/app-dialog"
+import { AppPasswordField } from "@/components/shared/app-password-field"
+import { AppDetailsSheet, type AppDetailsSheetItem } from "@/components/shared/app-details-sheet"
 import {
   createDataTableFilterOptions,
   DataTable,
   type DataTableStateAction,
 } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
-import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
-import { AppDialog } from "@/components/shared/app-dialog"
-import { AppPasswordField } from "@/components/shared/app-password-field"
-import { AppSheet } from "@/components/shared/app-sheet"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -34,16 +34,15 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { shouldBypassAuthInDev } from "@/config"
-import { useAuth } from "@/features/auth/context"
-import { AUTH_PERMISSION, AUTH_ROLE_KEY } from "@/features/auth/contracts"
+import { AUTH_PERMISSION, AUTH_ROLE_KEY } from "@/features/auth"
+import { useAuth } from "@/features/auth"
 import { formatCpfInput } from "@/features/auth/validation"
 import { useUnits } from "@/features/units"
 import { formatPhone, getSupabaseBrowserClient, onlyDigits } from "@/lib"
 import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
+import { shouldBypassAuthInDev } from "@/config"
 
 import { createUsersColumns } from "../columns/users-columns"
-import { usersCopy } from "../contents/users-copy"
 import { useUsers } from "../hooks/use-users"
 import { usersFormSchema, type UsersFormValues } from "../schemas/users-form-schema"
 import {
@@ -53,6 +52,7 @@ import {
   userRoleLabels,
   userRoleValues,
 } from "../types/users-types"
+import { usersCopy } from "../users-copy"
 import {
   interpolateUserCopy,
   resolveEmailLabel,
@@ -67,11 +67,6 @@ const USERS_DIALOG_FORM_ID = "users-dialog-form"
 interface UnitOption {
   label: string
   value: string
-}
-
-interface UserDetailItem {
-  label: string
-  value: React.ReactNode
 }
 
 function RequiredMark() {
@@ -108,7 +103,7 @@ function mapUserToFormValues(user: UserRecord): UsersFormValues {
   }
 }
 
-function getUserDetailItems(user: UserRecord): readonly UserDetailItem[] {
+function getUserDetailItems(user: UserRecord): readonly AppDetailsSheetItem[] {
   return [
     { label: usersCopy.form.fields.name, value: user.name },
     { label: usersCopy.form.fields.cpf, value: user.cpf },
@@ -130,23 +125,13 @@ function UserDetailsSheet({
   onOpenChange: (open: boolean) => void
 }) {
   return (
-    <AppSheet
+    <AppDetailsSheet
       open={Boolean(user)}
       onOpenChange={onOpenChange}
       title={user?.name ?? usersCopy.details.title}
       description={user ? resolveEmailLabel(user.email) : undefined}
-    >
-      {user ? (
-        <dl className="grid gap-4">
-          {getUserDetailItems(user).map((item) => (
-            <div key={item.label} className="grid gap-1">
-              <dt className="text-sm font-medium text-muted-foreground">{item.label}</dt>
-              <dd className="text-sm text-foreground">{item.value}</dd>
-            </div>
-          ))}
-        </dl>
-      ) : null}
-    </AppSheet>
+      items={user ? getUserDetailItems(user) : []}
+    />
   )
 }
 
@@ -167,7 +152,8 @@ export function UsersRoute() {
     clearLock,
     revokeSessions,
   } = useUsers()
-  const { data: units } = useUnits()
+  const unitsSnapshot = useUnits()
+  const units = unitsSnapshot.data
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [editingUser, setEditingUser] = React.useState<UserRecord | null>(null)
   const [detailsUser, setDetailsUser] = React.useState<UserRecord | null>(null)
@@ -522,7 +508,7 @@ export function UsersRoute() {
                 size="lg"
                 onClick={handleOpenCreateDialog}
               >
-                <UserPlus2Icon aria-hidden="true" />
+                <PlusIcon aria-hidden="true" />
                 {usersCopy.actions.create}
               </Button>
             </PageHeaderActions>

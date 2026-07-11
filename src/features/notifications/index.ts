@@ -3,13 +3,14 @@ export {
   NotificationsProvider,
   useNotifications,
   type NotificationsContextValue,
-} from "./context"
+} from "./context/notifications-provider"
 export { notificationsCopy } from "./notifications-copy"
 export { NotificationsRoute } from "./routes/notifications-route"
 export {
   countUnreadNotifications,
   createMemoryNotificationsGateway,
   listNotifications,
+  markAllNotificationsAsRead,
   resetNotificationsGateway,
   setNotificationStatus,
   setNotificationsGateway,
@@ -27,6 +28,11 @@ export {
   type NotificationStatus,
   type NotificationType,
 } from "./types/notifications-types"
+export {
+  getNotificationDetailItems,
+  resolveNotificationDetailsDescription,
+  resolveNotificationDetailsTitle,
+} from "./utils/notifications-details-model"
 export {
   formatNotificationsCounter,
   getRecentUnreadNotifications,
