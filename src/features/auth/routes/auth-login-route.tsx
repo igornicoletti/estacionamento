@@ -1,3 +1,4 @@
+import { LogOutIcon } from "lucide-react"
 import * as React from "react"
 import { Link } from "react-router"
 
@@ -10,18 +11,22 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
+import { AuthPageCard } from "@/features/auth/components"
+import { AUTH_NEXT_ACTION } from "@/features/auth/contracts"
+import { authCopy } from "@/features/auth/copy"
+import { useAuth } from "@/features/auth/context"
 import {
-  AUTH_NEXT_ACTION,
-  authCopy,
   authLoginSchema,
+  formatCpfInput,
   getFirstIssueByPath,
   requiredPasswordSchema,
-  useAuth,
   type FieldErrors,
   type RequiredPasswordValues,
-} from "@/features/auth"
-import { AuthPageCard } from "@/features/auth/components"
-import { LogOutIcon } from 'lucide-react'
+} from "@/features/auth/validation"
+
+function RequiredMark() {
+  return <span className="text-destructive">*</span>
+}
 
 export function AuthLoginRoute() {
   const auth = useAuth()
@@ -31,8 +36,10 @@ export function AuthLoginRoute() {
   const [password, setPassword] = React.useState("")
   const [newPassword, setNewPassword] = React.useState("")
   const [confirmPassword, setConfirmPassword] = React.useState("")
-  const [loginErrors, setLoginErrors] = React.useState<FieldErrors<{ cpf: string; password: string }>>({})
-  const [passwordErrors, setPasswordErrors] = React.useState<FieldErrors<RequiredPasswordValues>>({})
+  const [loginErrors, setLoginErrors] =
+    React.useState<FieldErrors<{ cpf: string; password: string }>>({})
+  const [passwordErrors, setPasswordErrors] =
+    React.useState<FieldErrors<RequiredPasswordValues>>({})
   const [isExpiredDialogOpen, setIsExpiredDialogOpen] = React.useState(() =>
     auth.inactivity.consumeExpired()
   )
@@ -116,21 +123,31 @@ export function AuthLoginRoute() {
   return (
     <main className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
       <AuthPageCard title={copy.title} description={copy.description}>
-        <form onSubmit={handleLoginSubmit} noValidate>
+        <form
+          onSubmit={(event) => {
+            void handleLoginSubmit(event)
+          }}
+          noValidate
+        >
           <FieldGroup>
             <Field data-invalid={Boolean(loginErrors.cpf)}>
-              <FieldLabel htmlFor="auth-cpf">{copy.cpfLabel}</FieldLabel>
-              <Input className="h-9"
+              <FieldLabel htmlFor="auth-cpf">
+                {copy.cpfLabel}
+                <RequiredMark />
+              </FieldLabel>
+              <Input
                 id="auth-cpf"
                 value={cpf}
-                onChange={(event) => setCpf(event.target.value)}
+                onChange={(event) => setCpf(formatCpfInput(event.target.value))}
                 placeholder={copy.cpfPlaceholder}
                 inputMode="numeric"
                 autoComplete="username"
+                className="h-9"
                 aria-invalid={Boolean(loginErrors.cpf)}
               />
               {loginErrors.cpf ? <FieldError>{loginErrors.cpf}</FieldError> : null}
             </Field>
+
             <AppPasswordField
               id="auth-password"
               label={copy.passwordLabel}
@@ -163,7 +180,12 @@ export function AuthLoginRoute() {
         title={requiredPasswordCopy.title}
         description={requiredPasswordCopy.description}
       >
-        <form onSubmit={handleRequiredPasswordSubmit} noValidate>
+        <form
+          onSubmit={(event) => {
+            void handleRequiredPasswordSubmit(event)
+          }}
+          noValidate
+        >
           <FieldGroup>
             <AppPasswordField
               id="auth-new-password"

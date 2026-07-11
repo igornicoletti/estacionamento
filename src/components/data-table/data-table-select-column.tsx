@@ -28,7 +28,6 @@ export function createSelectColumn<TData>(): ColumnDef<TData> {
             }}
             disabled={!hasSelectableRows}
             aria-label={dataTableCopy.accessibility.selectPageRows}
-            className="translate-y-0.5"
           />
         </div>
       )
@@ -46,7 +45,6 @@ export function createSelectColumn<TData>(): ColumnDef<TData> {
           }}
           disabled={!row.getCanSelect()}
           aria-label={dataTableCopy.accessibility.selectRow}
-          className="translate-y-0.5"
         />
       </div>
     ),

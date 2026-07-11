@@ -3,6 +3,8 @@ export const authCopy = {
     cpfRequired: "Informe o CPF.",
     cpfInvalid: "CPF inválido.",
     passwordRequired: "Informe a senha.",
+    newPasswordRequired: "Informe a nova senha.",
+    confirmPasswordRequired: "Confirme a nova senha.",
     passwordMin: "A senha deve ter pelo menos 8 caracteres.",
     newPasswordMin: "A nova senha deve ter pelo menos 12 caracteres.",
     newPasswordUppercase: "A nova senha deve conter uma letra maiúscula.",
@@ -49,7 +51,7 @@ export const authCopy = {
   passkeyUnavailable: {
     title: "Cadastro de passkey necessário",
     description:
-      "A senha foi validada, mas a conta exige cadastro de passkey. Por segurança, a sessão não foi aberta porque este cliente ainda não possui fluxo WebAuthn validado na documentação oficial do Supabase. Solicite suporte administrativo para concluir o acesso.",
+      "A senha foi validada, mas a conta exige cadastro de passkey. Por segurança, a sessão não foi aberta porque este cliente ainda não possui fluxo WebAuthn validado. Solicite suporte administrativo para concluir o acesso.",
     action: "Entendi",
   },
   recovery: {
@@ -57,10 +59,10 @@ export const authCopy = {
     description: "Informe seus dados para solicitar recuperação de acesso.",
     cpfLabel: "CPF",
     phoneLabel: "Telefone",
-    emailLabel: "E-mail opcional",
+    emailLabel: "E-mail",
     reasonLabel: "Motivo",
     reasonPlaceholder: "Selecione o motivo",
-    descriptionLabel: "Descrição opcional",
+    descriptionLabel: "Detalhes",
     descriptionPlaceholder: "Inclua informações úteis para a análise administrativa.",
     submit: "Solicitar recuperação",
     submitting: "Enviando...",
@@ -80,7 +82,8 @@ export const authCopy = {
     continueSession: "Continuar sessão",
     signOutNow: "Sair agora",
     expiredTitle: "Sessão encerrada",
-    expiredDescription: "Sua sessão foi encerrada por inatividade. Faça login novamente para continuar.",
+    expiredDescription:
+      "Sua sessão foi encerrada por inatividade. Faça login novamente para continuar.",
     expiredAction: "Entendi",
   },
 } as const

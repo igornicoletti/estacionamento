@@ -1,25 +1,23 @@
 import { z } from "zod"
 
-import {
-  authCpfSchema,
-  newPasswordSchema,
-  requiresSingleUnit,
-  userRoleValues,
-} from "@/features/auth"
+import { authCpfSchema, newPasswordSchema } from "@/features/auth/validation"
 import { isValidPhone } from "@/lib"
 
-import { usersCopy } from "../users-copy"
+import { usersCopy } from "../contents/users-copy"
+import { requiresSingleUnit, userRoleValues } from "../types/users-types"
 
 const userFormModeValues = ["create", "edit"] as const
 
 const optionalEmailSchema = z.union([
   z.literal(""),
-  z.string().trim().email("Informe um e-mail válido."),
+  z.email({ error: usersCopy.errors.invalidEmail }),
 ])
 
 const optionalPhoneSchema = z.union([
   z.literal(""),
-  z.string().refine(isValidPhone, "Informe um telefone válido."),
+  z.string({ error: usersCopy.errors.requiredPhone }).refine(isValidPhone, {
+    error: usersCopy.errors.invalidPhone,
+  }),
 ])
 
 export const usersFormSchema = z
@@ -29,7 +27,10 @@ export const usersFormSchema = z
     firstAccessPassword: z.string(),
     id: z.string().optional(),
     mode: z.enum(userFormModeValues),
-    name: z.string().trim().min(1, "Informe o nome do usuário."),
+    name: z
+      .string({ error: usersCopy.errors.requiredName })
+      .trim()
+      .min(1, { error: usersCopy.errors.requiredName }),
     phone: optionalPhoneSchema,
     role: z.enum(userRoleValues),
     unitId: z.string().trim().optional(),
@@ -38,7 +39,7 @@ export const usersFormSchema = z
   .superRefine((values, context) => {
     if (!values.phone.trim()) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: usersCopy.errors.requiredPhone,
         path: ["phone"],
       })
@@ -46,7 +47,7 @@ export const usersFormSchema = z
 
     if (requiresSingleUnit(values.role) && !values.unitId?.trim()) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: usersCopy.errors.requiredUnit,
         path: ["unitId"],
       })
@@ -56,7 +57,7 @@ export const usersFormSchema = z
 
     if (values.mode === "create" && !password) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message: usersCopy.errors.requiredFirstAccessPassword,
         path: ["firstAccessPassword"],
       })
@@ -71,7 +72,7 @@ export const usersFormSchema = z
 
     if (!passwordResult.success) {
       context.addIssue({
-        code: z.ZodIssueCode.custom,
+        code: "custom",
         message:
           passwordResult.error.issues[0]?.message ?? usersCopy.errors.invalidPassword,
         path: ["firstAccessPassword"],

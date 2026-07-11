@@ -18,10 +18,11 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table"
-import { Database, RefreshCcw, SearchX, X } from "lucide-react"
+import { DatabaseIcon, ListRestartIcon, PlusIcon, RefreshCcwIcon, SearchXIcon } from "lucide-react"
 import * as React from "react"
 
-import { Separator } from "@/components/ui/separator"
+import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { Button } from "@/components/ui/button"
 import {
   Table,
   TableBody,
@@ -32,8 +33,12 @@ import {
 } from "@/components/ui/table"
 
 import { DataTableColumnHeader } from "./data-table-column-header"
+import {
+  DATA_TABLE_INITIAL_PAGE_SIZE,
+  DATA_TABLE_PAGE_SIZE_OPTIONS,
+  DATA_TABLE_SKELETON,
+} from "./data-table-constants"
 import { dataTableCopy } from "./data-table-copy"
-import { DataTableEmptyState } from "./data-table-empty-state"
 import { includesSelectedValue } from "./data-table-filter-fns"
 import {
   dedupeFilterFields,
@@ -62,14 +67,9 @@ import {
   type DataTableFilterField,
   type DataTableGlobalSearch,
   type DataTableSearchField,
+  type DataTableStateAction,
 } from "./data-table-types"
 
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
-const DEFAULT_INITIAL_SKELETON_ROWS = 5
-const MAX_INITIAL_SKELETON_ROWS = 10
-const MIN_INITIAL_SKELETON_ROWS = 3
-const APPROX_SKELETON_ROW_HEIGHT = 48
-const APPROX_SKELETON_RESERVED_SPACE = (APPROX_SKELETON_ROW_HEIGHT * 2) + 32
 
 function normalizePositiveInteger(value: number, fallback: number) {
   return Number.isInteger(value) && value > 0 ? value : fallback
@@ -78,25 +78,12 @@ function normalizePositiveInteger(value: number, fallback: number) {
 function resolveInitialSkeletonRowCount(pageSize: number) {
   const safePageSize = normalizePositiveInteger(
     pageSize,
-    DEFAULT_INITIAL_SKELETON_ROWS
-  )
-
-  if (typeof window === "undefined") {
-    return Math.min(safePageSize, DEFAULT_INITIAL_SKELETON_ROWS)
-  }
-
-  const viewportBasedRows = Math.floor(
-    (window.innerHeight - APPROX_SKELETON_RESERVED_SPACE) /
-    APPROX_SKELETON_ROW_HEIGHT
-  )
-  const safeViewportRows = normalizePositiveInteger(
-    viewportBasedRows,
-    DEFAULT_INITIAL_SKELETON_ROWS
+    DATA_TABLE_SKELETON.fallbackRows
   )
 
   return Math.max(
-    MIN_INITIAL_SKELETON_ROWS,
-    Math.min(safePageSize, safeViewportRows, MAX_INITIAL_SKELETON_ROWS)
+    DATA_TABLE_SKELETON.minRows,
+    Math.min(safePageSize, DATA_TABLE_SKELETON.maxRows)
   )
 }
 
@@ -114,69 +101,55 @@ function getHeaderAriaSort<TData, TValue>(header: Header<TData, TValue>) {
   return undefined
 }
 
-function resolveDataTableStateContent({
-  isLoading,
-  hasError,
-  isFiltered,
-  loadingState,
-  errorState,
-  emptyState,
-  filteredEmptyState,
-  defaultErrorState,
-  defaultEmptyState,
-  defaultFilteredEmptyState,
-}: {
-  isLoading: boolean
-  hasError: boolean
-  isFiltered: boolean
-  loadingState?: React.ReactNode
-  errorState?: React.ReactNode
-  emptyState?: React.ReactNode
-  filteredEmptyState?: React.ReactNode
-  defaultErrorState: React.ReactNode
-  defaultEmptyState: React.ReactNode
-  defaultFilteredEmptyState: React.ReactNode
-}) {
-  if (hasError) {
-    return errorState ?? defaultErrorState
-  }
-
-  if (isLoading) {
-    return loadingState
-  }
-
-  if (isFiltered) {
-    return filteredEmptyState ?? defaultFilteredEmptyState
-  }
-
-  return emptyState ?? defaultEmptyState
-}
-
-function DataTableStateRow({
+function DataTableStatePanel({
   children,
-  colSpan,
   kind,
 }: {
   children: React.ReactNode
-  colSpan: number
   kind: "empty" | "error" | "loading"
 }) {
   const isLiveRegion = kind === "loading" || kind === "error"
 
   return (
-    <TableRow className="hover:bg-transparent">
-      <TableCell colSpan={colSpan} className="h-36 p-0 align-middle">
-        <div
-          role={kind === "error" ? "alert" : kind === "loading" ? "status" : undefined}
-          aria-live={
-            isLiveRegion ? (kind === "error" ? "assertive" : "polite") : undefined
-          }
-          className="sticky left-0 z-10 flex min-h-36 w-(--data-table-scroll-viewport-width) max-w-full items-center justify-center px-4 py-8"
-        >
-          <div className="w-full max-w-md">{children}</div>
-        </div>
-      </TableCell>
-    </TableRow>
+    <div
+      role={kind === "error" ? "alert" : kind === "loading" ? "status" : undefined}
+      aria-live={
+        isLiveRegion ? (kind === "error" ? "assertive" : "polite") : undefined
+      }
+      className="flex min-h-64 items-center justify-center border-t px-4 py-10"
+    >
+      <div className="w-full max-w-md">{children}</div>
+    </div>
+  )
+}
+
+function DataTableActionButton({ action }: { action: DataTableStateAction }) {
+  return (
+    <Button type="button" variant="secondary" size="lg" onClick={action.onClick}>
+      {action.icon}
+      {action.label}
+    </Button>
+  )
+}
+
+function DataTableDefaultState({
+  title,
+  description,
+  icon,
+  action,
+}: {
+  title: string
+  description: string
+  icon: React.ReactNode
+  action?: DataTableStateAction
+}) {
+  return (
+    <AppEmptyState
+      media={icon}
+      title={title}
+      description={description}
+      actions={action ? <DataTableActionButton action={action} /> : null}
+    />
   )
 }
 
@@ -189,9 +162,13 @@ export interface DataTableProps<TData extends RowData, TValue> {
   filterFields?: readonly DataTableFilterField<TData>[]
   toolbarActions?: React.ReactNode
   emptyState?: React.ReactNode
+  emptyActionLabel?: string
+  emptyActionIcon?: React.ReactNode
+  onEmptyAction?: () => void
   filteredEmptyState?: React.ReactNode
   loadingState?: React.ReactNode
   errorState?: React.ReactNode
+  emptyAction?: DataTableStateAction
   onRetry?: () => void
   loadingAnnouncement?: string
   refetchAnnouncement?: string
@@ -236,16 +213,20 @@ export function DataTable<TData extends RowData, TValue>({
   filterFields,
   toolbarActions,
   emptyState,
+  emptyActionLabel,
+  emptyActionIcon,
+  onEmptyAction,
   filteredEmptyState,
   loadingState,
   errorState,
+  emptyAction,
   onRetry,
   loadingAnnouncement = dataTableCopy.loading.initialAnnouncement,
   refetchAnnouncement = dataTableCopy.loading.refetchAnnouncement,
   isLoading = false,
   error = null,
-  initialPageSize = 25,
-  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
+  initialPageSize = DATA_TABLE_INITIAL_PAGE_SIZE,
+  pageSizeOptions = DATA_TABLE_PAGE_SIZE_OPTIONS,
   enablePagination = true,
   enableExport = true,
   enableRowSelection = false,
@@ -275,7 +256,7 @@ export function DataTable<TData extends RowData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const safeInitialPageSize = normalizePositiveInteger(
     initialPageSize,
-    DEFAULT_PAGE_SIZE_OPTIONS[0]
+    DATA_TABLE_PAGE_SIZE_OPTIONS[0]
   )
   const [rowSelection, setRowSelection] = useControllableDataTableState<RowSelectionState>({
     controlledValue: controlledRowSelection,
@@ -365,8 +346,8 @@ export function DataTable<TData extends RowData, TValue>({
     [globalSearch, searchableColumnIds]
   )
   const normalizedSearchFields = React.useMemo(
-    () => dedupeSearchFields(searchFields),
-    [searchFields]
+    () => normalizedGlobalSearch ? [] : dedupeSearchFields(searchFields),
+    [normalizedGlobalSearch, searchFields]
   )
   const normalizedFilterFields = React.useMemo(
     () => dedupeFilterFields(filterFields),
@@ -505,14 +486,9 @@ export function DataTable<TData extends RowData, TValue>({
     )
   const handleGlobalFilterChange = React.useCallback<OnChangeFn<string>>(
     (updater) => {
-      const sanitizedUpdater = (previous: string): string => {
-        const nextValue =
-          typeof updater === "function" ? updater(previous) : updater
-
-        return nextValue
-      }
-
-      setGlobalFilter(sanitizedUpdater)
+      setGlobalFilter((previous) =>
+        typeof updater === "function" ? updater(previous) : updater
+      )
       resetPageIndex()
     },
     [resetPageIndex, setGlobalFilter]
@@ -575,17 +551,19 @@ export function DataTable<TData extends RowData, TValue>({
   })
 
   const tableRows = table.getRowModel().rows
-  const hasSourceRows = (sourceRowCount ?? normalizedData.length) > 0
   const datasetRowCount = manualPagination
     ? rowCount ?? normalizedData.length
     : sourceRowCount ?? normalizedData.length
   const hasDatasetRows = datasetRowCount > 0
   const hasVisibleRows = tableRows.length > 0
   const hasError = Boolean(error)
-  const hasBlockingError = hasError && !isLoading && !hasSourceRows
-  const hasNonBlockingError = hasError && !isLoading && hasSourceRows
+  const hasBlockingError = hasError && !isLoading && !hasVisibleRows
+  const hasNonBlockingError = hasError && !isLoading && hasVisibleRows
+  const isInitialLoading = isLoading && !hasVisibleRows && !hasDatasetRows
   const shouldRenderInitialSkeleton =
     isLoading && !loadingState && !hasVisibleRows
+  const shouldRenderControls =
+    !hasBlockingError && !isInitialLoading && hasDatasetRows
   const handleClearFilters = React.useCallback(() => {
     table.resetColumnFilters()
     handleGlobalFilterChange("")
@@ -600,46 +578,62 @@ export function DataTable<TData extends RowData, TValue>({
       window.location.reload()
     }
   }, [onRetry])
+  const errorAction = React.useMemo<DataTableStateAction>(
+    () => ({
+      label: dataTableCopy.fallback.errorAction,
+      icon: <RefreshCcwIcon aria-hidden="true" />,
+      onClick: handleRetry,
+    }),
+    [handleRetry]
+  )
+  const filteredAction = React.useMemo<DataTableStateAction>(
+    () => ({
+      label: dataTableCopy.fallback.filteredEmptyAction,
+      icon: <ListRestartIcon aria-hidden="true" />,
+      onClick: handleClearFilters,
+    }),
+    [handleClearFilters]
+  )
+  const resolvedEmptyAction = React.useMemo<DataTableStateAction | undefined>(() => {
+    if (emptyAction) {
+      return emptyAction
+    }
+
+    if (!emptyActionLabel || !onEmptyAction) {
+      return undefined
+    }
+
+    return {
+      label: emptyActionLabel,
+      icon: emptyActionIcon ?? <PlusIcon aria-hidden="true" />,
+      onClick: onEmptyAction,
+    }
+  }, [emptyAction, emptyActionIcon, emptyActionLabel, onEmptyAction])
+
   const defaultErrorState = (
-    <DataTableEmptyState
+    <DataTableDefaultState
       title={dataTableCopy.fallback.errorTitle}
       description={dataTableCopy.fallback.errorDescription}
-      icon={<RefreshCcw />}
-      actionLabel={dataTableCopy.fallback.errorAction}
-      actionIcon={<RefreshCcw />}
-      onAction={handleRetry}
+      icon={<RefreshCcwIcon />}
+      action={errorAction}
     />
   )
   const defaultEmptyState = (
-    <DataTableEmptyState
+    <DataTableDefaultState
       title={dataTableCopy.fallback.emptyTitle}
       description={dataTableCopy.fallback.emptyDescription}
-      icon={<Database />}
+      icon={<DatabaseIcon />}
+      action={resolvedEmptyAction}
     />
   )
   const defaultFilteredEmptyState = (
-    <DataTableEmptyState
+    <DataTableDefaultState
       title={dataTableCopy.fallback.filteredEmptyTitle}
       description={dataTableCopy.fallback.filteredEmptyDescription}
-      icon={<SearchX />}
-      actionLabel={dataTableCopy.fallback.filteredEmptyAction}
-      actionIcon={<X />}
-      onAction={handleClearFilters}
+      icon={<SearchXIcon />}
+      action={filteredAction}
     />
   )
-  const stateKind = hasBlockingError ? "error" : isLoading ? "loading" : "empty"
-  const stateContent = resolveDataTableStateContent({
-    isLoading,
-    hasError: hasBlockingError,
-    isFiltered: hasDatasetRows && isFiltered,
-    loadingState,
-    errorState,
-    emptyState,
-    filteredEmptyState,
-    defaultErrorState,
-    defaultEmptyState,
-    defaultFilteredEmptyState,
-  })
   const visibleRows = hasBlockingError ? [] : tableRows
   const visibleLeafColumns = table.getVisibleLeafColumns()
   const visibleColumnCount = Math.max(visibleLeafColumns.length, 1)
@@ -652,9 +646,6 @@ export function DataTable<TData extends RowData, TValue>({
     () => resolveInitialSkeletonRowCount(paginationPageSize),
     [paginationPageSize]
   )
-  const shouldRenderTableControls = true
-  const shouldRenderTableEmptyRow =
-    !shouldRenderInitialSkeleton && !visibleRows.length
   const currentRowCount = manualPagination
     ? rowCount ?? tableData.length
     : manualFiltering
@@ -667,9 +658,22 @@ export function DataTable<TData extends RowData, TValue>({
         ? table.getSelectedRowModel().rows.length
         : table.getFilteredSelectedRowModel().rows.length
       : 0)
+  const shouldRenderStatePanel =
+    !shouldRenderInitialSkeleton && !visibleRows.length
+  const stateKind = hasBlockingError ? "error" : isLoading ? "loading" : "empty"
+  const stateContent = hasBlockingError
+    ? errorState ?? defaultErrorState
+    : isLoading
+      ? loadingState
+      : hasDatasetRows && isFiltered
+        ? filteredEmptyState ?? defaultFilteredEmptyState
+        : emptyState ?? defaultEmptyState
 
-  const tableContent = (
-    <>
+  return (
+    <div
+      className="flex min-h-0 flex-col gap-4"
+      aria-busy={isLoading || undefined}
+    >
       {hasNonBlockingError ? (
         <div
           className="rounded-md border p-4"
@@ -680,25 +684,22 @@ export function DataTable<TData extends RowData, TValue>({
         </div>
       ) : null}
 
-      {shouldRenderTableControls ? (
-        <>
-          <Separator />
-
-          <DataTableToolbar
-            table={table}
-            globalSearch={normalizedGlobalSearch}
-            searchFields={normalizedSearchFields}
-            filterFields={normalizedFilterFields}
-            actions={toolbarActions}
-            enableViewOptions={enableViewOptions}
-            enableExport={enableExport}
-            manualFiltering={manualFiltering}
-            isLoading={isLoading}
-            globalFilterValue={globalFilter}
-            onGlobalFilterChange={handleGlobalFilterChange}
-            onClearFilters={handleClearFilters}
-          />
-        </>
+      {shouldRenderControls ? (
+        <DataTableToolbar
+          table={table}
+          globalSearch={normalizedGlobalSearch}
+          searchFields={normalizedSearchFields}
+          filterFields={normalizedFilterFields}
+          actions={toolbarActions}
+          enableViewOptions={enableViewOptions}
+          enableExport={enableExport}
+          canExport={visibleRows.length > 0}
+          manualFiltering={manualFiltering}
+          isLoading={isLoading}
+          globalFilterValue={globalFilter}
+          onGlobalFilterChange={handleGlobalFilterChange}
+          onClearFilters={handleClearFilters}
+        />
       ) : null}
 
       {isLoading && !loadingState ? (
@@ -709,78 +710,77 @@ export function DataTable<TData extends RowData, TValue>({
         </span>
       ) : null}
 
-      <DataTableScrollContainer className="max-h-[min(70svh,42rem)]">
-        <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
-          <caption className="sr-only">
-            {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
-            {isFiltered ? " (filtrado)" : ""}
-          </caption>
-          <TableHeader className="sticky top-0 z-20 bg-background">
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id} className="bg-background">
-                {headerGroup.headers.map((header) => (
-                  <TableHead
-                    key={header.id}
-                    colSpan={header.colSpan}
-                    style={{ width: header.getSize() }}
-                    className="bg-background"
-                    aria-sort={getHeaderAriaSort(header)}
-                  >
-                    {header.isPlaceholder
-                      ? null
-                      : typeof header.column.columnDef.header === "string"
-                        ? (
-                          <DataTableColumnHeader
-                            column={header.column}
-                            title={header.column.columnDef.header}
-                          />
-                        )
-                        : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {shouldRenderInitialSkeleton ? (
-              <DataTableLoadingSkeleton
-                columnCount={visibleColumnCount}
-                rowCount={skeletonRowCount}
-                columnSizes={skeletonColumnSizes}
-              />
-            ) : shouldRenderTableEmptyRow ? (
-              <DataTableStateRow
-                colSpan={visibleColumnCount}
-                kind={stateKind}
-              >
-                {stateContent}
-              </DataTableStateRow>
-            ) : (
-              visibleRows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  data-state={row.getIsSelected() ? "selected" : undefined}
-                  className={isLoading ? "opacity-60" : undefined}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
-                    </TableCell>
+      <div className="overflow-hidden rounded-md border">
+        <DataTableScrollContainer className="max-h-[min(70svh,42rem)]">
+          <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
+            <caption className="sr-only">
+              {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
+              {isFiltered ? " (filtrado)" : ""}
+            </caption>
+            <TableHeader className="sticky top-0 z-20 bg-background">
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id} className="bg-background">
+                  {headerGroup.headers.map((header) => (
+                    <TableHead
+                      key={header.id}
+                      colSpan={header.colSpan}
+                      style={{ width: header.getSize() }}
+                      className="bg-background"
+                      aria-sort={getHeaderAriaSort(header)}
+                    >
+                      {header.isPlaceholder
+                        ? null
+                        : typeof header.column.columnDef.header === "string"
+                          ? (
+                            <DataTableColumnHeader
+                              column={header.column}
+                              title={header.column.columnDef.header}
+                            />
+                          )
+                          : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            )}
-          </TableBody>
-        </Table>
-      </DataTableScrollContainer>
+              ))}
+            </TableHeader>
+            <TableBody>
+              {shouldRenderInitialSkeleton ? (
+                <DataTableLoadingSkeleton
+                  columnCount={visibleColumnCount}
+                  rowCount={skeletonRowCount}
+                  columnSizes={skeletonColumnSizes}
+                />
+              ) : (
+                visibleRows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() ? "selected" : undefined}
+                    className={isLoading ? "opacity-60" : undefined}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(
+                          cell.column.columnDef.cell,
+                          cell.getContext()
+                        )}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              )}
+            </TableBody>
+          </Table>
+        </DataTableScrollContainer>
 
-      {enablePagination && shouldRenderTableControls ? (
+        {shouldRenderStatePanel ? (
+          <DataTableStatePanel kind={stateKind}>{stateContent}</DataTableStatePanel>
+        ) : null}
+      </div>
+
+      {enablePagination && shouldRenderControls && hasVisibleRows ? (
         <DataTablePagination
           table={table}
           pageSizeOptions={normalizedPageSizeOptions}
@@ -789,16 +789,6 @@ export function DataTable<TData extends RowData, TValue>({
           showSelectedCount={enableRowSelection}
         />
       ) : null}
-    </>
+    </div>
   )
-
-  if (isLoading) {
-    return (
-      <div className="flex min-h-0 flex-col gap-4" aria-busy="true">
-        {tableContent}
-      </div>
-    )
-  }
-
-  return <div className="flex min-h-0 flex-col gap-4">{tableContent}</div>
 }

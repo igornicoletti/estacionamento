@@ -39,7 +39,7 @@ export function DataTableSearchInput({
   }
 
   return (
-    <InputGroup className="h-9 w-full lg:w-80">
+    <InputGroup className="w-full lg:w-80">
       <InputGroupInput
         ref={inputRef}
         data-no-drag-scroll="true"
@@ -61,7 +61,7 @@ export function DataTableSearchInput({
       </InputGroupAddon>
       {hasTrailingAddon ? (
         <InputGroupAddon align="inline-end">
-          {isLoading ? <Spinner className="size-4" /> : null}
+          {isLoading ? <Spinner /> : null}
           {hasValue ? (
             <InputGroupButton
               data-no-drag-scroll="true"

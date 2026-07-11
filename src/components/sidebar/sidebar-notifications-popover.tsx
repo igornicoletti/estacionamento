@@ -3,16 +3,10 @@ import * as React from "react"
 import { Link } from "react-router"
 
 import { appRoutePaths } from "@/app/router/route-registry"
+import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyMedia,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import {
   Popover,
   PopoverContent,
@@ -28,13 +22,14 @@ import {
 import {
   formatNotificationsCounter,
   getRecentUnreadNotifications,
+  isInternalNotificationHref,
 } from "@/features/notifications/utils/notifications-rules"
 import { formatDateTime } from "@/lib"
 
 import { sidebarCopy } from "./sidebar-copy"
 
 function resolveNotificationHref(href: string | undefined) {
-  return href || appRoutePaths.notifications
+  return isInternalNotificationHref(href) ? href : appRoutePaths.notifications
 }
 
 export function NotificationsPopover() {
@@ -94,17 +89,12 @@ export function NotificationsPopover() {
 
       <PopoverContent className="w-[min(24rem,calc(100vw-2rem))] p-0" align="end">
         {recentNotifications.length === 0 ? (
-          <Empty className="h-64 rounded-lg border-0 bg-muted/30">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <BellIcon />
-              </EmptyMedia>
-              <EmptyTitle>{notificationsCopy.empty.unreadTitle}</EmptyTitle>
-              <EmptyDescription className="max-w-xs text-pretty">
-                {notificationsCopy.empty.unreadDescription}
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
+          <AppEmptyState
+            className="h-64 rounded-lg border-0 bg-muted/30"
+            media={<BellIcon />}
+            title={notificationsCopy.empty.unreadTitle}
+            description={notificationsCopy.empty.unreadDescription}
+          />
         ) : (
           <div className="flex flex-col gap-2 p-2.5">
             <PopoverHeader className="flex-row items-center justify-between gap-2">
@@ -137,7 +127,9 @@ export function NotificationsPopover() {
                     onClick={() => {
                       setIsOpen(false)
                       if (notification.status === "unread") {
-                        void updateStatus(notification.id, "read")
+                        void updateStatus(notification.id, "read").catch(() => {
+                          notify.error(notificationsCopy.feedback.markAsReadError)
+                        })
                       }
                     }}
                   >

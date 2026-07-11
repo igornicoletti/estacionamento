@@ -1,8 +1,8 @@
 import { useLocation } from "react-router"
 
 import { shouldBypassAuthInDev } from "@/config"
-import { useAuth } from "@/features/auth/auth-provider"
-import type { AuthPermission } from "@/features/auth/auth-contracts"
+import type { AuthPermission } from "@/features/auth/contracts"
+import { useAuth } from "@/features/auth/context"
 
 import { navigationGroups, type SidebarNavigationItem } from "./sidebar-config"
 import { SidebarNavGroup } from "./sidebar-nav-group"

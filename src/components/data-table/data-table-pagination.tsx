@@ -15,9 +15,8 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 
+import { DATA_TABLE_PAGE_SIZE_OPTIONS } from "./data-table-constants"
 import { dataTableCopy } from "./data-table-copy"
-
-const DEFAULT_PAGE_SIZE_OPTIONS = [10, 25, 50, 100]
 
 interface DataTablePaginationProps<TData> {
   table: Table<TData>
@@ -42,7 +41,7 @@ function normalizePageSizeOptions(
 
 export function DataTablePagination<TData>({
   table,
-  pageSizeOptions = DEFAULT_PAGE_SIZE_OPTIONS,
+  pageSizeOptions = DATA_TABLE_PAGE_SIZE_OPTIONS,
   rowCount,
   selectedRowCount = 0,
   showSelectedCount = true,
@@ -75,8 +74,8 @@ export function DataTablePagination<TData>({
   )
 
   return (
-    <div className="flex flex-col gap-3 px-2 md:flex-row md:items-center md:justify-between">
-      <div className="text-center text-sm text-muted-foreground md:flex-1 md:text-left">
+    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+      <div className="text-sm text-muted-foreground">
         {showSelectedCount ? selectedRowsText : displayedRowsText}
       </div>
 
@@ -95,7 +94,7 @@ export function DataTablePagination<TData>({
               }))
             }}
           >
-            <SelectTrigger className="w-20 data-[size=default]:h-9">
+            <SelectTrigger className="w-20">
               <SelectValue placeholder={`${pagination.pageSize}`} />
             </SelectTrigger>
             <SelectContent side="top" position="popper">

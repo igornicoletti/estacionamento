@@ -1,10 +1,8 @@
 import * as React from "react"
 
-import {
-  syncDevelopmentSessionProfileFromUser,
-} from "@/features/auth"
 import { toError } from "@/lib"
 
+import { usersCopy } from "../contents/users-copy"
 import {
   blockUser,
   clearUserLock,
@@ -20,7 +18,6 @@ import {
   type UpdateUserInput,
   type UserRecord,
 } from "../types/users-types"
-import { usersCopy } from "../users-copy"
 
 export function useUsers() {
   const [data, setData] = React.useState<UserRecord[]>([])
@@ -47,9 +44,7 @@ export function useUsers() {
       }
     } catch (caughtError) {
       if (isCurrent()) {
-        setError(
-          toError(caughtError, usersCopy.errors.load)
-        )
+        setError(toError(caughtError, usersCopy.errors.load))
       }
     } finally {
       if (isCurrent()) {
@@ -72,7 +67,6 @@ export function useUsers() {
       return createdUser
     } catch (caughtError) {
       const nextError = toError(caughtError, usersCopy.errors.create)
-
       setError(nextError)
       throw nextError
     } finally {
@@ -89,13 +83,9 @@ export function useUsers() {
       setData((current) =>
         current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
       )
-
-      syncDevelopmentSessionProfileFromUser(updatedUser)
-
       return updatedUser
     } catch (caughtError) {
       const nextError = toError(caughtError, usersCopy.errors.update)
-
       setError(nextError)
       throw nextError
     } finally {
@@ -166,31 +156,12 @@ export function useUsers() {
   React.useEffect(() => {
     let isMounted = true
 
-    async function loadInitialUsers() {
-      try {
-        const users = await listUsers()
-
-        if (isMounted) {
-          setData(users)
-          setError(null)
-        }
-      } catch (caughtError) {
-        if (isMounted) {
-          setError(toError(caughtError, usersCopy.errors.load))
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void loadInitialUsers()
+    void loadUsers(() => isMounted)
 
     return () => {
       isMounted = false
     }
-  }, [])
+  }, [loadUsers])
 
   return {
     data,

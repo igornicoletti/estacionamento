@@ -4,7 +4,7 @@ const initialUsers: UserRecord[] = []
 
 export interface UsersGateway {
   list(): Promise<UserRecord[]>
-  saveAll(users: UserRecord[]): Promise<void>
+  saveAll(users: readonly UserRecord[]): Promise<void>
 }
 
 let inMemoryUsers = [...initialUsers]

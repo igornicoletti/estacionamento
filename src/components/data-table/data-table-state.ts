@@ -161,7 +161,7 @@ export function writeDataTableSnapshot(
   try {
     window.localStorage.setItem(storageKey, JSON.stringify(payload))
   } catch {
-    // Quota exceeded or storage unavailable — silently skip persistence.
+    return
   }
 }
 

@@ -1,21 +1,19 @@
-import { type ColumnDef } from "@tanstack/react-table"
-
-import {
-  appUserStatusLabels,
-  userRoleLabels,
-} from "@/features/auth"
-import { getBadgeToneClassName } from "@/lib"
+import { type ColumnDef, type Row } from "@tanstack/react-table"
 
 import {
   createActionsColumn,
-  createDataTableDetailsAction,
-  DataTableDetails,
-  DataTableDetailsTextTrigger,
+  DataTableStackedCell,
+  type DataTableRowAction,
 } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
+import { getBadgeToneClassName } from "@/lib"
 
-import { type UserRecord } from "../types/users-types"
-import { usersCopy } from "../users-copy"
+import { usersCopy } from "../contents/users-copy"
+import {
+  appUserStatusLabels,
+  userRoleLabels,
+  type UserRecord,
+} from "../types/users-types"
 import {
   resolveEmailLabel,
   resolveLastAccessLabel,
@@ -30,6 +28,9 @@ interface CreateUsersColumnsOptions {
   canResetPasskey?: boolean
   canClearLock?: boolean
   canRevokeSessions?: boolean
+  canManageOwnerUser?: boolean
+  currentAuthUserId?: string | null
+  onViewUserDetails?: (user: UserRecord) => void
   onEditUser?: (user: UserRecord) => void
   onBlockUser?: (user: UserRecord) => void
   onResetAccess?: (user: UserRecord) => void
@@ -55,52 +56,50 @@ function resolveStatusBadgeVariant(status: UserRecord["status"]) {
   return "warning" as const
 }
 
-function getUserDetails(user: UserRecord) {
-  return {
-    title: user.name,
-    description: resolveEmailLabel(user.email),
-    items: [
-      { label: usersCopy.form.fields.name, value: user.name },
-      { label: usersCopy.form.fields.cpf, value: user.cpf },
-      { label: usersCopy.form.fields.email, value: user.email || "—" },
-      { label: usersCopy.form.fields.phone, value: user.phoneMasked || "—" },
-      { label: usersCopy.form.roleLabel, value: userRoleLabels[user.role] },
-      { label: usersCopy.filters.status, value: appUserStatusLabels[user.status] },
-      { label: usersCopy.form.unitLabel, value: resolveUnitLabel(user.unitName) },
-      { label: "Passkey", value: resolvePasskeyLabel(user.passkeyStatus) },
-      { label: "Último acesso", value: resolveLastAccessLabel(user.lastAccessAt) },
-    ],
+function createDetailsAction(
+  row: Row<UserRecord>,
+  onViewUserDetails: ((user: UserRecord) => void) | undefined
+): DataTableRowAction<UserRecord>[] {
+  if (!onViewUserDetails) {
+    return []
   }
+
+  return [
+    {
+      id: "details",
+      label: usersCopy.actions.details,
+      onSelect: () => {
+        onViewUserDetails(row.original)
+      },
+    },
+  ]
 }
 
 export function createUsersColumns(
   options: CreateUsersColumnsOptions = {}
 ): ColumnDef<UserRecord>[] {
-  const detailsAction = createDataTableDetailsAction<UserRecord>((row) =>
-    getUserDetails(row.original)
-  )
-
   return [
     {
       accessorKey: "name",
       meta: { label: usersCopy.form.fields.name },
       header: usersCopy.form.fields.name,
       cell: ({ row }) => (
-        <DataTableDetails
-          {...getUserDetails(row.original)}
-          trigger={
-            <DataTableDetailsTextTrigger>
-              {row.original.name}
-            </DataTableDetailsTextTrigger>
-          }
-        />
+        <button
+          type="button"
+          className="font-medium"
+          onClick={() => {
+            options.onViewUserDetails?.(row.original)
+          }}
+        >
+          {row.original.name}
+        </button>
       ),
     },
     {
       accessorKey: "email",
       meta: { label: usersCopy.form.fields.email },
       header: usersCopy.form.fields.email,
-      cell: ({ row }) => row.original.email || "—",
+      cell: ({ row }) => resolveEmailLabel(row.original.email),
     },
     {
       accessorKey: "cpf",
@@ -122,21 +121,15 @@ export function createUsersColumns(
     {
       accessorKey: "status",
       meta: { label: usersCopy.filters.status },
-      header: () => (
-        <div className="text-center">
-          {usersCopy.filters.status}
-        </div>
-      ),
+      header: usersCopy.filters.status,
       enableSorting: false,
       cell: ({ row }) => (
-        <div className="flex justify-center">
-          <Badge
-            variant="secondary"
-            className={getBadgeToneClassName(resolveStatusBadgeVariant(row.original.status))}
-          >
-            {appUserStatusLabels[row.original.status]}
-          </Badge>
-        </div>
+        <Badge
+          variant="secondary"
+          className={getBadgeToneClassName(resolveStatusBadgeVariant(row.original.status))}
+        >
+          {appUserStatusLabels[row.original.status]}
+        </Badge>
       ),
     },
     {
@@ -147,45 +140,54 @@ export function createUsersColumns(
     },
     {
       accessorKey: "passkeyStatus",
-      meta: { label: "Passkey" },
-      header: () => <div className="text-center">Passkey</div>,
+      meta: { label: usersCopy.details.passkeyLabel },
+      header: usersCopy.details.passkeyLabel,
       enableSorting: false,
       cell: ({ row }) => {
         const isActive = row.original.passkeyStatus === "active"
 
         return (
-          <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(isActive ? "success" : undefined)}
-            >
-              {resolvePasskeyLabel(row.original.passkeyStatus)}
-            </Badge>
-          </div>
+          <Badge
+            variant="secondary"
+            className={getBadgeToneClassName(isActive ? "success" : undefined)}
+          >
+            {resolvePasskeyLabel(row.original.passkeyStatus)}
+          </Badge>
         )
       },
     },
     {
       accessorKey: "lastAccessAt",
-      meta: { label: "Último acesso" },
-      header: "Último acesso",
-      cell: ({ row }) => resolveLastAccessLabel(row.original.lastAccessAt),
+      meta: { label: usersCopy.details.lastAccessLabel },
+      header: usersCopy.details.lastAccessLabel,
+      cell: ({ row }) => (
+        <DataTableStackedCell
+          primary={resolveLastAccessLabel(row.original.lastAccessAt)}
+          secondary={row.original.authUserId ? undefined : usersCopy.details.localUser}
+        />
+      ),
     },
     createActionsColumn<UserRecord>((row) => {
       const isActive = row.original.status === "active"
       const isBlocked = row.original.status === "inactive"
+      const isCurrentUser = Boolean(
+        options.currentAuthUserId && row.original.authUserId === options.currentAuthUserId
+      )
+      const isOwnerUser = row.original.role === "owner"
+      const isProtectedTarget = isCurrentUser || (isOwnerUser && !options.canManageOwnerUser)
       const isTemporarilyLocked = row.original.lockedUntil
         ? new Date(row.original.lockedUntil).getTime() > Date.now()
         : false
 
       return [
-        detailsAction,
+        ...createDetailsAction(row, options.onViewUserDetails),
         ...(options.canEditUser && options.onEditUser
           ? [
             {
               id: "edit" as const,
               label: usersCopy.actions.edit,
-              onSelect: (row: { original: UserRecord }) => {
+              disabled: isOwnerUser && !options.canManageOwnerUser,
+              onSelect: () => {
                 options.onEditUser?.(row.original)
               },
             },
@@ -196,7 +198,8 @@ export function createUsersColumns(
             {
               id: "reset-access" as const,
               label: usersCopy.actions.resetPassword,
-              onSelect: (row: { original: UserRecord }) => {
+              disabled: isProtectedTarget,
+              onSelect: () => {
                 options.onResetAccess?.(row.original)
               },
             },
@@ -209,7 +212,8 @@ export function createUsersColumns(
                 {
                   id: "reset-passkey" as const,
                   label: usersCopy.actions.resetPasskey,
-                  onSelect: (row: { original: UserRecord }) => {
+                  disabled: isProtectedTarget,
+                  onSelect: () => {
                     options.onResetPasskey?.(row.original)
                   },
                 },
@@ -222,7 +226,8 @@ export function createUsersColumns(
                   label: isBlocked
                     ? usersCopy.actions.unblockUser
                     : usersCopy.actions.clearLock,
-                  onSelect: (row: { original: UserRecord }) => {
+                  disabled: isOwnerUser && !options.canManageOwnerUser,
+                  onSelect: () => {
                     options.onClearLock?.(row.original)
                   },
                 },
@@ -233,7 +238,8 @@ export function createUsersColumns(
                 {
                   id: "revoke-sessions" as const,
                   label: usersCopy.actions.revokeSessions,
-                  onSelect: (row: { original: UserRecord }) => {
+                  disabled: isProtectedTarget,
+                  onSelect: () => {
                     options.onRevokeSessions?.(row.original)
                   },
                 },
@@ -246,8 +252,10 @@ export function createUsersColumns(
             {
               id: "block" as const,
               label: usersCopy.actions.blockUser,
+              disabled: isProtectedTarget,
               variant: "destructive" as const,
-              onSelect: (row: { original: UserRecord }) => {
+              separatorBefore: true,
+              onSelect: () => {
                 options.onBlockUser?.(row.original)
               },
             },

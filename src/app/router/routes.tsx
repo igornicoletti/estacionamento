@@ -1,19 +1,21 @@
 import { Outlet, type RouteObject } from "react-router"
 
 import { AuthenticatedLayout } from "@/app/layouts/authenticated-layout"
-import { appRouteIds } from "@/app/router/route-registry"
 import {
   AuthenticatedHomeRoute,
   PrivateRouteGate,
   PublicRouteGate,
+  RouteLoadingState,
   RouteNotFound,
 } from "@/app/router/route-elements"
-import {
-  authenticatedRouteRegistry,
-  publicRouteRegistry,
-  type AppRouteRegistryItem,
-} from "@/app/router/route-registry"
 import { RouteErrorBoundary } from "@/app/router/route-error-boundary"
+import {
+  appRouteIds, authenticatedRouteRegistry,
+  publicRouteRegistry,
+  type AppRouteRegistryItem
+} from "@/app/router/route-registry"
+
+const routeHydrateFallbackElement = <RouteLoadingState />
 
 function createPublicRoute(route: AppRouteRegistryItem): RouteObject {
   return {
@@ -21,6 +23,7 @@ function createPublicRoute(route: AppRouteRegistryItem): RouteObject {
     path: route.path,
     lazy: route.lazy,
     errorElement: <RouteErrorBoundary />,
+    hydrateFallbackElement: routeHydrateFallbackElement,
   }
 }
 
@@ -31,6 +34,7 @@ function createAuthenticatedRouteLeaf(route: AppRouteRegistryItem): RouteObject 
       index: true,
       Component: AuthenticatedHomeRoute,
       errorElement: <RouteErrorBoundary />,
+      hydrateFallbackElement: routeHydrateFallbackElement,
     }
   }
 
@@ -39,6 +43,7 @@ function createAuthenticatedRouteLeaf(route: AppRouteRegistryItem): RouteObject 
     path: route.path,
     lazy: route.lazy,
     errorElement: <RouteErrorBoundary />,
+    hydrateFallbackElement: routeHydrateFallbackElement,
   }
 }
 
@@ -52,6 +57,8 @@ function createAuthenticatedRoute(route: AppRouteRegistryItem): RouteObject {
   return {
     id: `${route.id}.permissions`,
     element: <PrivateRouteGate requiredPermissions={route.requiredPermissions} />,
+    errorElement: <RouteErrorBoundary />,
+    hydrateFallbackElement: routeHydrateFallbackElement,
     children: [leaf],
   }
 }
@@ -61,11 +68,13 @@ export const routes = [
     id: appRouteIds.root,
     element: <Outlet />,
     errorElement: <RouteErrorBoundary />,
+    hydrateFallbackElement: routeHydrateFallbackElement,
     children: [
       {
         id: appRouteIds.auth,
         element: <PublicRouteGate />,
         errorElement: <RouteErrorBoundary />,
+        hydrateFallbackElement: routeHydrateFallbackElement,
         children: publicRouteRegistry.map(createPublicRoute),
       },
       {
@@ -76,6 +85,7 @@ export const routes = [
           </PrivateRouteGate>
         ),
         errorElement: <RouteErrorBoundary />,
+        hydrateFallbackElement: routeHydrateFallbackElement,
         children: authenticatedRouteRegistry.map(createAuthenticatedRoute),
       },
       {
@@ -83,6 +93,7 @@ export const routes = [
         path: "*",
         Component: RouteNotFound,
         errorElement: <RouteErrorBoundary />,
+        hydrateFallbackElement: routeHydrateFallbackElement,
       },
     ],
   },

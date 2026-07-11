@@ -6,8 +6,8 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { shouldBypassAuthInDev } from "@/config"
-import type { AuthProfile } from "@/features/auth/auth-api"
-import { useAuth } from "@/features/auth/auth-provider"
+import type { AuthProfile } from "@/features/auth/api"
+import { useAuth } from "@/features/auth/context"
 
 import { sidebarCopy } from "./sidebar-copy"
 
@@ -30,8 +30,9 @@ export function SidebarProfile() {
       <SidebarMenuItem>
         <SidebarMenuButton
           type="button"
+          tabIndex={-1}
           aria-disabled="true"
-          className="text-primary bg-primary/20 border border-primary/60 uppercase text-xs font-semibold tracking-wider cursor-not-allowed"
+          className="cursor-default text-primary hover:bg-transparent hover:text-primary active:bg-transparent active:text-primary"
         >
           <ShieldIcon />
           <span>{label}</span>

@@ -1,0 +1,52 @@
+export const permissionsCopy = {
+  page: {
+    title: "Perfil e Permissões",
+    subtitle:
+      "Consulte a matriz de perfis e permissões efetivamente registrada no banco.",
+  },
+  filters: {
+    access: "Acesso",
+    groups: "Grupos",
+    roles: "Perfis",
+    source: "Origem",
+    searchPlaceholder: "Buscar permissões...",
+  },
+  labels: {
+    permission: "Permissão",
+    group: "Grupo",
+    source: "Origem",
+    rolesWithAccess: "Perfis com acesso",
+    rolesWithoutAccess: "Perfis sem acesso",
+    totalRoles: "Total de perfis",
+    critical: "Crítica",
+    description: "Descrição",
+    key: "Chave",
+    noneRole: "Nenhum perfil",
+    noRoleWithoutAccess: "Nenhum",
+    yes: "Sim",
+    no: "Não",
+  },
+  accessibility: {
+    withAccess: "Perfil com acesso",
+    withoutAccess: "Perfil sem acesso",
+    openDetails: "Abrir detalhes da permissão",
+  },
+  actions: {
+    details: "Detalhes",
+  },
+  empty: {
+    title: "Nenhuma permissão cadastrada",
+    description:
+      "A matriz de permissões ainda não foi carregada ou seedada no banco.",
+  },
+  filteredEmpty: {
+    title: "Nenhuma permissão encontrada",
+    description:
+      "Ajuste o termo de busca ou os filtros para localizar uma permissão.",
+  },
+  error: {
+    load: "Não foi possível carregar a matriz de permissões.",
+    invalidResponse: "A resposta da matriz de permissões é inválida.",
+    unavailable: "O serviço de permissões não está configurado.",
+  },
+} as const

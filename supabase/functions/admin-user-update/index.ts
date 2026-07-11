@@ -15,37 +15,66 @@ import {
   writeAuditEvent,
 } from "../_shared/index.ts"
 
-function isGlobalRole(role: string) {
-  return role === "owner" || role === "admin" || role === "auditor"
-}
+import { canAssignRole, getAppUserByAuthUserId, isGlobalRole } from "../_shared/admin-users.ts"
 
-Deno.serve(async (req) => {
-  const cors = handleCors(req)
+Deno.serve(async (request) => {
+  const cors = handleCors(request)
   if (cors) return cors
 
   try {
-    const actor = requireAdminActor(await getAuthenticatedActor(req))
-    const input = adminUpdateUserSchema.parse(await req.json())
+    const actor = requireAdminActor(await getAuthenticatedActor(request))
+    const input = adminUpdateUserSchema.parse(await request.json())
+    const supabase = createAdminClient()
+    const actorUser = await getAppUserByAuthUserId(supabase, actor.authUserId)
+    const targetUser = await getAppUserByAuthUserId(supabase, input.targetUserId)
+
+    if (actor.authUserId === input.targetUserId) {
+      return genericAuthError(403, request)
+    }
+
+    if (targetUser.role === "owner" && actor.role !== "owner") {
+      return genericAuthError(403, request)
+    }
+
+    if (!canAssignRole(actorUser, input.role)) {
+      return genericAuthError(403, request)
+    }
 
     if (isGlobalRole(input.role) && input.unitId) {
-      return genericAuthError(400, req)
+      return genericAuthError(400, request)
     }
 
     if (!isGlobalRole(input.role) && !input.unitId) {
-      return genericAuthError(400, req)
+      return genericAuthError(400, request)
     }
 
-    const supabase = createAdminClient()
     const cpf = normalizeCpf(input.cpf)
     const cpfHash = await hashSensitiveValue(cpf)
-    const { data: appUser, error: appUserError } = await supabase
+    const { data: duplicateUser } = await supabase
       .from("app_users")
       .select("id")
-      .eq("auth_user_id", input.targetUserId)
+      .eq("cpf_hmac", cpfHash)
+      .neq("auth_user_id", input.targetUserId)
       .maybeSingle()
 
-    if (appUserError || !appUser) {
-      return genericAuthError(400, req)
+    if (duplicateUser) {
+      return genericAuthError(409, request)
+    }
+
+    if (!isGlobalRole(input.role) && input.unitId) {
+      const { error: unitError } = await supabase
+        .from("app_user_units")
+        .upsert(
+          {
+            app_user_id: targetUser.id,
+            unit_id: input.unitId,
+          },
+          { onConflict: "app_user_id" }
+        )
+
+      if (unitError) {
+        return genericAuthError(400, request)
+      }
     }
 
     const { error: updateError } = await supabase
@@ -55,7 +84,7 @@ Deno.serve(async (req) => {
         cpf_hmac: cpfHash,
         cpf_masked: maskCpf(cpf),
         email: input.email ?? null,
-        name: input.name,
+        name: input.name.trim(),
         phone_display: formatPhone(input.phone),
         phone_masked: maskPhone(input.phone),
         role: input.role,
@@ -64,28 +93,17 @@ Deno.serve(async (req) => {
       .eq("auth_user_id", input.targetUserId)
 
     if (updateError) {
-      return genericAuthError(undefined, req)
+      return genericAuthError(400, request)
     }
 
-    const { error: deleteUnitError } = await supabase
-      .from("app_user_units")
-      .delete()
-      .eq("app_user_id", appUser.id)
-
-    if (deleteUnitError) {
-      return genericAuthError(undefined, req)
-    }
-
-    if (input.unitId) {
-      const { error: insertUnitError } = await supabase
+    if (isGlobalRole(input.role)) {
+      const { error: unitDeleteError } = await supabase
         .from("app_user_units")
-        .insert({
-          app_user_id: appUser.id,
-          unit_id: input.unitId,
-        })
+        .delete()
+        .eq("app_user_id", targetUser.id)
 
-      if (insertUnitError) {
-        return genericAuthError(undefined, req)
+      if (unitDeleteError) {
+        return genericAuthError(400, request)
       }
     }
 
@@ -93,14 +111,15 @@ Deno.serve(async (req) => {
       actor: actor.name,
       actorUserId: actor.authUserId,
       event: "user_updated",
+      metadata: { previousRole: targetUser.role, role: input.role },
       scope: "system",
       success: true,
-      target: input.name,
+      target: input.name.trim(),
       targetUserId: input.targetUserId,
     })
 
-    return jsonResponse({ message: "Usuário atualizado." }, 200, req)
+    return jsonResponse({ ok: true, id: targetUser.id, appUserId: targetUser.id, authUserId: input.targetUserId, message: "Usuário atualizado." }, 200, request)
   } catch {
-    return genericAuthError(400, req)
+    return genericAuthError(400, request)
   }
 })

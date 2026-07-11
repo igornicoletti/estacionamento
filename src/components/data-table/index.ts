@@ -11,13 +11,6 @@ export {
   formatSelectedRows,
 } from "./data-table-copy"
 export { createDateTimeColumn } from "./data-table-date-time-column"
-export {
-  DataTableDetails,
-  DataTableDetailsTextTrigger,
-  type DataTableDetailsConfig,
-  type DataTableDetailsItem,
-  type DataTableDetailsProps,
-} from "./data-table-details"
 export { DataTableEmptyState } from "./data-table-empty-state"
 export { DataTableFacetedFilter } from "./data-table-faceted-filter"
 export { includesSelectedValue } from "./data-table-filter-fns"
@@ -40,7 +33,6 @@ export {
 export { createOptionColumn } from "./data-table-option-column"
 export { DataTablePagination } from "./data-table-pagination"
 export {
-  createDataTableDetailsAction,
   DataTableRowActions,
   type DataTableRowAction,
 } from "./data-table-row-actions"
@@ -48,7 +40,6 @@ export { DataTableScrollContainer } from "./data-table-scroll-container"
 export { DataTableSearchInput } from "./data-table-search-input"
 export { createSelectColumn } from "./data-table-select-column"
 export { DataTableStackedCell } from "./data-table-stacked-cell"
-export { DataTableStateRow } from "./data-table-state-row"
 export { createTextColumn } from "./data-table-text-column"
 export { DataTableToolbar } from "./data-table-toolbar"
 export {
@@ -57,6 +48,7 @@ export {
   type DataTableFilterOption,
   type DataTableGlobalSearch,
   type DataTableSearchField,
+  type DataTableStateAction,
 } from "./data-table-types"
 export { DataTableViewOptions } from "./data-table-view-options"
 export { DataTable, type DataTableProps } from "./data-table"

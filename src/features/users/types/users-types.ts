@@ -1,4 +1,53 @@
-import { type AppUserStatus, type UserRole } from "@/features/auth"
+import { AUTH_ROLE_KEY, AUTH_STATUS, type AuthRoleKey, type AuthStatus } from "@/features/auth/contracts"
+
+export type UserRole = AuthRoleKey
+export type AppUserStatus = AuthStatus
+
+export const userRoleValues = [
+  AUTH_ROLE_KEY.owner,
+  AUTH_ROLE_KEY.admin,
+  AUTH_ROLE_KEY.auditor,
+  AUTH_ROLE_KEY.manager,
+  AUTH_ROLE_KEY.operator,
+] as const satisfies readonly UserRole[]
+
+export const userRoleLabels: Record<UserRole, string> = {
+  owner: "Proprietário",
+  admin: "Administrador",
+  auditor: "Auditor",
+  manager: "Gerente",
+  operator: "Operador",
+}
+
+export const appUserStatusLabels: Record<AppUserStatus, string> = {
+  active: "Ativo",
+  pending: "Pendente",
+  inactive: "Inativo",
+  password_reset: "Troca de senha",
+  passkey_reset: "Reset de passkey",
+}
+
+export function isUserRole(value: unknown): value is UserRole {
+  return userRoleValues.includes(value as UserRole)
+}
+
+export function isGlobalRole(value: unknown) {
+  return value === AUTH_ROLE_KEY.owner || value === AUTH_ROLE_KEY.admin || value === AUTH_ROLE_KEY.auditor
+}
+
+export function requiresSingleUnit(value: unknown) {
+  return isUserRole(value) && !isGlobalRole(value)
+}
+
+export function isAppUserStatus(value: unknown): value is AppUserStatus {
+  return (
+    value === AUTH_STATUS.active ||
+    value === AUTH_STATUS.pending ||
+    value === AUTH_STATUS.inactive ||
+    value === AUTH_STATUS.passwordReset ||
+    value === AUTH_STATUS.passkeyReset
+  )
+}
 
 export interface UserRecord {
   id: string

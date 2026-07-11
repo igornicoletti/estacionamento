@@ -1,4 +1,16 @@
-export * from './app-router'
-export * from './route-elements'
-export * from './route-error-boundary'
-export * from './route-registry'
+export { AppRouter } from "./app-router"
+export { routes } from "./routes"
+export {
+  appPermissionKeys,
+  appRouteGroupIds,
+  appRouteIds,
+  appRoutePaths,
+  appRouteSegments,
+  authenticatedRouteRegistry,
+  navigationGroups,
+  publicRouteRegistry,
+  type AppRouteGroupId,
+  type AppRouteId,
+  type AppRoutePath,
+  type AppRouteRegistryItem,
+} from "./route-registry"

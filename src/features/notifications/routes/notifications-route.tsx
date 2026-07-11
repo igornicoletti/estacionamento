@@ -1,5 +1,8 @@
+import { BellIcon } from "lucide-react"
 import * as React from "react"
 
+import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppSheet } from "@/components/shared/app-sheet"
 import {
   createDataTableFilterOptions,
   DataTable,
@@ -7,16 +10,18 @@ import {
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
+import { formatDateTime } from "@/lib"
 
 import { createNotificationsColumns } from "../columns/notifications-columns"
-import { useNotifications } from "../hooks/use-notifications"
+import { useNotifications } from "../context"
 import { notificationsCopy } from "../notifications-copy"
 import {
   notificationStatusLabels,
   notificationTypeLabels,
+  type NotificationRecord,
 } from "../types/notifications-types"
 
-const NOTIFICATIONS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.notifications.columns.v1"
+const NOTIFICATIONS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.notifications.columns.v2"
 
 export function NotificationsRoute() {
   const {
@@ -25,14 +30,21 @@ export function NotificationsRoute() {
     error,
     isLoading,
     isUpdatingBatch,
+    refetch,
     updateStatus,
     markAllAsRead,
   } = useNotifications()
+  const [selectedNotification, setSelectedNotification] =
+    React.useState<NotificationRecord | null>(null)
 
   const handleMarkAllAsRead = React.useCallback(async () => {
-    const result = await markAllAsRead()
+    try {
+      const result = await markAllAsRead()
 
-    if (result.failed.length > 0) {
+      if (result.failed.length > 0) {
+        notify.error(notificationsCopy.feedback.markAllAsReadError)
+      }
+    } catch {
       notify.error(notificationsCopy.feedback.markAllAsReadError)
     }
   }, [markAllAsRead])
@@ -40,11 +52,16 @@ export function NotificationsRoute() {
   const columns = React.useMemo(
     () =>
       createNotificationsColumns({
+        onOpenDetails: setSelectedNotification,
         onMarkAsRead: (notification) => {
-          void updateStatus(notification.id, "read")
+          void updateStatus(notification.id, "read").catch(() => {
+            notify.error(notificationsCopy.feedback.markAsReadError)
+          })
         },
         onMarkAsUnread: (notification) => {
-          void updateStatus(notification.id, "unread")
+          void updateStatus(notification.id, "unread").catch(() => {
+            notify.error(notificationsCopy.feedback.markAsUnreadError)
+          })
         },
       }),
     [updateStatus]
@@ -74,7 +91,7 @@ export function NotificationsRoute() {
     <PageSection>
       <PageHeader
         title={notificationsCopy.page.title}
-        subtitle={`${notificationsCopy.page.subtitle} Não lidas: ${unreadCount}.`}
+        subtitle={`${notificationsCopy.page.subtitle} ${notificationsCopy.page.unreadCounter(unreadCount)}.`}
         actions={(
           <PageHeaderActions>
             <Button
@@ -109,31 +126,75 @@ export function NotificationsRoute() {
             "occurredAt",
             "href",
           ],
-          placeholder: "Buscar notificações...",
+          placeholder: notificationsCopy.filters.searchPlaceholder,
         }}
         filterFields={[
           {
             id: "type",
-            title: "Tipos",
+            title: notificationsCopy.filters.type,
             options: typeOptions,
           },
           {
             id: "status",
-            title: "Status",
+            title: notificationsCopy.filters.status,
             options: statusOptions,
           },
         ]}
         isLoading={isLoading}
         error={error}
+        onRetry={() => {
+          void refetch()
+        }}
         emptyState={(
-          <div className="py-8 text-center text-sm text-muted-foreground">
-            <p className="font-medium text-foreground">{notificationsCopy.empty.allTitle}</p>
-            <p>{notificationsCopy.empty.allDescription}</p>
-          </div>
+          <AppEmptyState
+            media={<BellIcon />}
+            title={notificationsCopy.empty.allTitle}
+            description={notificationsCopy.empty.allDescription}
+          />
         )}
         enablePagination
         enableViewOptions
       />
+
+      <AppSheet
+        open={Boolean(selectedNotification)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedNotification(null)
+          }
+        }}
+        title={selectedNotification?.title ?? notificationsCopy.details.titleFallback}
+        description={selectedNotification?.description}
+      >
+        {selectedNotification ? (
+          <dl className="grid gap-4 text-sm">
+            <div className="grid gap-1">
+              <dt className="font-medium">{notificationsCopy.details.type}</dt>
+              <dd className="text-muted-foreground">
+                {notificationTypeLabels[selectedNotification.type]}
+              </dd>
+            </div>
+            <div className="grid gap-1">
+              <dt className="font-medium">{notificationsCopy.details.status}</dt>
+              <dd className="text-muted-foreground">
+                {notificationStatusLabels[selectedNotification.status]}
+              </dd>
+            </div>
+            <div className="grid gap-1">
+              <dt className="font-medium">{notificationsCopy.details.date}</dt>
+              <dd className="text-muted-foreground">
+                {formatDateTime(selectedNotification.occurredAt)}
+              </dd>
+            </div>
+            <div className="grid gap-1">
+              <dt className="font-medium">{notificationsCopy.details.destination}</dt>
+              <dd className="break-all text-muted-foreground">
+                {selectedNotification.href ?? notificationsCopy.details.emptyDestination}
+              </dd>
+            </div>
+          </dl>
+        ) : null}
+      </AppSheet>
     </PageSection>
   )
 }

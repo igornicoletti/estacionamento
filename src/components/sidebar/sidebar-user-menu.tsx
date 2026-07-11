@@ -15,8 +15,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { AuthProfile } from "@/features/auth/auth-api"
-import { useAuth } from "@/features/auth/auth-provider"
+import type { AuthProfile } from "@/features/auth/api"
+import { useAuth } from "@/features/auth/context"
 
 import { sidebarCopy } from "./sidebar-copy"
 
@@ -119,9 +119,7 @@ export function UserMenu() {
         description={sidebarCopy.dialog.signOutDescription}
         cancelLabel={sidebarCopy.dialog.signOutCancel}
         actionLabel={sidebarCopy.dialog.signOutConfirm}
-        onAction={() => {
-          void auth.actions.logoutAsync()
-        }}
+        onAction={auth.actions.logoutAsync}
       />
     </>
   )

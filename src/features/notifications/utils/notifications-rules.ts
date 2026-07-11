@@ -1,6 +1,7 @@
 import { type NotificationRecord } from "../types/notifications-types"
 
 const DEFAULT_RECENT_NOTIFICATIONS_LIMIT = 6
+const MAX_COUNTER_VALUE = 99
 
 export function isUnreadNotification(notification: NotificationRecord) {
   return notification.status === "unread"
@@ -28,9 +29,15 @@ export function getRecentUnreadNotifications(
 }
 
 export function formatNotificationsCounter(count: number) {
-  if (count === 0) {
+  if (count <= 0) {
     return null
   }
 
-  return count > 99 ? "+99" : String(count)
+  return count > MAX_COUNTER_VALUE ? `+${MAX_COUNTER_VALUE}` : String(count)
+}
+
+export function isInternalNotificationHref(
+  href: string | null | undefined
+): href is `/${string}` {
+  return Boolean(href && href.startsWith("/") && !href.startsWith("//"))
 }

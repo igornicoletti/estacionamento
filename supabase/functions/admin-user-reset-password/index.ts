@@ -1,74 +1,24 @@
-import {
-  adminActionSchema,
-  createAdminClient,
-  genericAuthError,
-  getAuthenticatedActor,
-  handleCors,
-  jsonResponse,
-  requireAdminActor,
-  writeAuditEvent,
-} from "../_shared/index.ts"
+import { completeAdminAction, createAdminActionContext, errorResponse, handleAdminCors } from "../_shared/admin-users.ts"
 
-Deno.serve(async (req) => {
-  const cors = handleCors(req)
+Deno.serve(async (request) => {
+  const cors = handleAdminCors(request)
   if (cors) return cors
 
   try {
-    const actor = requireAdminActor(await getAuthenticatedActor(req))
-    const input = adminActionSchema.parse(await req.json())
-    const supabase = createAdminClient()
-
-    if (input.targetUserId === actor.authUserId) {
-      return genericAuthError(400, req)
-    }
-
-    const { data: targetUser, error: targetUserError } = await supabase
+    const context = await createAdminActionContext(request)
+    const { error: statusError } = await context.admin
       .from("app_users")
-      .select("id, name")
-      .eq("auth_user_id", input.targetUserId)
-      .maybeSingle()
+      .update({ status: "password_reset", locked_until: null })
+      .eq("auth_user_id", context.target.auth_user_id)
 
-    if (targetUserError || !targetUser) {
-      return genericAuthError(400, req)
+    if (statusError) {
+      throw new Error("Não foi possível redefinir a autenticação.")
     }
 
-    const { data: updatedUser, error: updateError } = await supabase
-      .from("app_users")
-      .update({
-        failed_attempts: 0,
-        locked_until: null,
-        status: "password_reset",
-        updated_by: actor.authUserId,
-      })
-      .eq("auth_user_id", input.targetUserId)
-      .select("id")
-      .maybeSingle()
+    await context.admin.auth.admin.signOut(context.target.auth_user_id, "global")
 
-    if (updateError || !updatedUser) {
-      return genericAuthError(undefined, req)
-    }
-
-    const { error: revokeError } = await supabase
-      .schema("private")
-      .rpc("revoke_auth_sessions", { target_user_id: input.targetUserId })
-
-    if (revokeError) {
-      return genericAuthError(undefined, req)
-    }
-
-    await writeAuditEvent({
-      actor: actor.name,
-      actorUserId: actor.authUserId,
-      event: "password_reset_requested",
-      reason: input.reason,
-      scope: "system",
-      success: true,
-      target: targetUser.name,
-      targetUserId: input.targetUserId,
-    })
-
-    return jsonResponse({ message: "Reset de senha aplicado." }, 200, req)
-  } catch {
-    return genericAuthError(400, req)
+    return completeAdminAction(context, "password_reset_requested")
+  } catch (caughtError) {
+    return errorResponse(request, caughtError instanceof Error ? caughtError.message : "Não foi possível redefinir a autenticação.")
   }
 })

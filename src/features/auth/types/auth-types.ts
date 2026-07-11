@@ -1,5 +1,39 @@
-import type { AuthNextAction } from "../auth-contracts"
-import type { AuthProfile } from "../auth-api"
+import type { AuthNextAction, AuthPermission, AuthStatus } from "../contracts"
+
+export interface AuthRoleProfile {
+  id: string | null
+  key: string | null
+  label: string | null
+}
+
+export interface AuthProfile {
+  id: string
+  authUserId: string
+  name: string
+  role: AuthRoleProfile | null
+  roleKey: string | null
+  status: AuthStatus
+  permissions: readonly AuthPermission[]
+  unitId: string | null
+  unitName: string | null
+  phoneMasked: string
+  cpfMasked: string | null
+  email: string | null
+  avatarUrl: string | null
+  passkeyStatus: "active" | "inactive"
+}
+
+export interface AuthSessionPayload {
+  access_token: string
+  refresh_token: string
+}
+
+export interface AuthPasswordResponse {
+  flowId: string | null
+  message: string
+  nextAction: AuthNextAction
+  session?: AuthSessionPayload
+}
 
 export type AuthFlowStep =
   | "credentials"
@@ -9,16 +43,7 @@ export type AuthFlowStep =
   | "authenticated"
 
 export type AuthPasswordNextAction = AuthNextAction
-
-export interface AuthPasswordResponse {
-  flowId: string | null
-  nextAction: AuthPasswordNextAction
-  message: string
-  session?: {
-    access_token: string
-    refresh_token: string
-  }
-}
+export type AppUserProfile = AuthProfile
 
 export interface AuthStartResponse {
   flowId: string
@@ -35,8 +60,6 @@ export interface AuthFlowActionResponse {
 export interface ProfileActionResponse {
   message: string
 }
-
-export type AppUserProfile = AuthProfile
 
 export interface RecoveryRequestResponse {
   message: string

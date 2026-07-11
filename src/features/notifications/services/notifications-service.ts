@@ -1,11 +1,13 @@
 import { getSupabaseBrowserClient } from "@/lib"
 
+import { notificationsCopy } from "../notifications-copy"
 import {
   notificationTypeValues,
   type NotificationRecord,
   type NotificationStatus,
   type NotificationType,
 } from "../types/notifications-types"
+import { isInternalNotificationHref } from "../utils/notifications-rules"
 
 type NotificationEventRelation = {
   created_at: string
@@ -20,6 +22,10 @@ type RawNotificationDeliveryRow = {
   created_at: string
   read_at: string | null
   notification_events: NotificationEventRelation | NotificationEventRelation[] | null
+}
+
+type ReturnedIdRow = {
+  id: string
 }
 
 export interface SetNotificationsStatusBatchResult {
@@ -39,7 +45,10 @@ export interface NotificationsGateway {
     notificationIds: readonly string[],
     status: NotificationStatus
   ): Promise<SetNotificationsStatusBatchResult>
-  subscribeNotifications(listener: () => void): () => void
+  subscribeNotifications(
+    listener: () => void,
+    options?: { recipientAuthUserId?: string | null }
+  ): () => void
 }
 
 let configuredGateway: NotificationsGateway | null = null
@@ -59,11 +68,7 @@ function getEventRelation(
 }
 
 function normalizeHref(value: string | null): `/${string}` | undefined {
-  if (!value || !value.startsWith("/") || value.startsWith("//")) {
-    return undefined
-  }
-
-  return value as `/${string}`
+  return isInternalNotificationHref(value) ? value : undefined
 }
 
 function getReturnedId(value: unknown) {
@@ -71,7 +76,7 @@ function getReturnedId(value: unknown) {
     return null
   }
 
-  const id = (value as { id?: unknown }).id
+  const id = (value as Partial<ReturnedIdRow>).id
 
   return typeof id === "string" ? id : null
 }
@@ -138,6 +143,7 @@ function createSupabaseNotificationsGateway(): NotificationsGateway {
   if (!supabase) {
     return createEmptyNotificationsGateway()
   }
+
   const supabaseClient = supabase
 
   async function listNotifications() {
@@ -149,14 +155,27 @@ function createSupabaseNotificationsGateway(): NotificationsGateway {
       .order("created_at", { ascending: false })
 
     if (error) {
-      throw new Error("Não foi possível carregar as notificações.", {
-        cause: error,
-      })
+      throw new Error(notificationsCopy.feedback.loadError, { cause: error })
     }
 
     return ((data ?? []) as RawNotificationDeliveryRow[])
       .map(mapNotificationDelivery)
-      .filter((notification): notification is NotificationRecord => Boolean(notification))
+      .filter((notification): notification is NotificationRecord =>
+        Boolean(notification)
+      )
+  }
+
+  async function countUnreadNotifications() {
+    const { count, error } = await supabaseClient
+      .from("notification_deliveries")
+      .select("id", { count: "exact", head: true })
+      .is("read_at", null)
+
+    if (error) {
+      throw new Error(notificationsCopy.feedback.loadError, { cause: error })
+    }
+
+    return count ?? 0
   }
 
   async function setNotificationStatus(
@@ -169,9 +188,11 @@ function createSupabaseNotificationsGateway(): NotificationsGateway {
     }) as { error: unknown }
 
     if (updateResponse.error) {
-      throw new Error("Não foi possível atualizar a notificação.", {
-        cause: updateResponse.error,
-      })
+      const message = status === "read"
+        ? notificationsCopy.feedback.markAsReadError
+        : notificationsCopy.feedback.markAsUnreadError
+
+      throw new Error(message, { cause: updateResponse.error })
     }
 
     const notifications = await listNotifications()
@@ -206,7 +227,7 @@ function createSupabaseNotificationsGateway(): NotificationsGateway {
     }) as { data: unknown; error: unknown }
 
     if (updateResponse.error) {
-      throw new Error("Não foi possível atualizar as notificações.", {
+      throw new Error(notificationsCopy.feedback.markAllAsReadError, {
         cause: updateResponse.error,
       })
     }
@@ -224,7 +245,13 @@ function createSupabaseNotificationsGateway(): NotificationsGateway {
     }
   }
 
-  function subscribeNotifications(listener: () => void) {
+  function subscribeNotifications(
+    listener: () => void,
+    options: { recipientAuthUserId?: string | null } = {}
+  ) {
+    const filter = options.recipientAuthUserId
+      ? `recipient_auth_user_id=eq.${options.recipientAuthUserId}`
+      : undefined
     const channel = supabaseClient
       .channel("notification-deliveries")
       .on(
@@ -233,6 +260,7 @@ function createSupabaseNotificationsGateway(): NotificationsGateway {
           event: "*",
           schema: "public",
           table: "notification_deliveries",
+          ...(filter ? { filter } : {}),
         },
         listener
       )
@@ -244,12 +272,7 @@ function createSupabaseNotificationsGateway(): NotificationsGateway {
   }
 
   return {
-    async countUnreadNotifications() {
-      const notifications = await listNotifications()
-
-      return notifications.filter((notification) => notification.status === "unread")
-        .length
-    },
+    countUnreadNotifications,
     listNotifications,
     setNotificationStatus,
     setNotificationsStatus,
@@ -359,8 +382,11 @@ export function createMemoryNotificationsGateway(
   }
 }
 
-export function subscribeNotifications(listener: () => void) {
-  return getNotificationsGateway().subscribeNotifications(listener)
+export function subscribeNotifications(
+  listener: () => void,
+  options?: { recipientAuthUserId?: string | null }
+) {
+  return getNotificationsGateway().subscribeNotifications(listener, options)
 }
 
 export function listNotifications(): Promise<NotificationRecord[]> {

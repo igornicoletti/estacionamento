@@ -55,7 +55,6 @@ export function DataTableViewOptions<TData>({
               type="button"
               variant="outline"
               size="icon-lg"
-              className="ml-auto hidden lg:flex"
               aria-label={dataTableCopy.viewOptions.trigger}
             >
               <Settings2 aria-hidden="true" />
@@ -71,7 +70,6 @@ export function DataTableViewOptions<TData>({
           {hideableColumns.map((column) => (
             <DropdownMenuCheckboxItem
               key={column.id}
-              className="capitalize"
               checked={column.getIsVisible()}
               onCheckedChange={(value) => {
                 column.toggleVisibility(!!value)

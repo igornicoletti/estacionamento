@@ -44,15 +44,16 @@ export const dataTableCopy = {
     clearFilters: "Limpar filtros",
   },
   fallback: {
-    errorTitle: "Não foi possível carregar os dados.",
+    errorTitle: "Não foi possível carregar os dados",
     errorDescription:
-      "A tabela não pôde ser renderizada com segurança. Recarregue os dados ou revise a origem.",
-    errorAction: "Recarregar dados",
-    emptyTitle: "Nenhum registro encontrado.",
+      "A tabela não pôde carregar os registros com segurança. Recarregue os dados e tente novamente.",
+    errorAction: "Recarregar",
+    emptyTitle: "Nenhum registro cadastrado",
     emptyDescription: "Ainda não há registros disponíveis para esta tabela.",
-    filteredEmptyTitle: "Nenhum resultado encontrado.",
+    emptyAction: "Adicionar registro",
+    filteredEmptyTitle: "Nenhum resultado encontrado",
     filteredEmptyDescription:
-      "Limpe os filtros para ver os registros disponíveis.",
+      "Nenhum registro corresponde aos filtros aplicados. Limpe os filtros para voltar à listagem completa.",
     filteredEmptyAction: "Limpar filtros",
   },
   pagination: {

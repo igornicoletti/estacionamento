@@ -5,9 +5,11 @@ import { Link, Navigate, Outlet, useLocation } from "react-router"
 import { appCopy } from "@/app/app-copy"
 import { appRoutePaths } from "@/app/router/route-registry"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { shouldBypassAuthInDev } from "@/config"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { canAccessProtectedApp, type AuthPermission, useAuth } from "@/features/auth"
+import { canAccessProtectedApp, type AuthPermission } from "@/features/auth/contracts"
+import { useAuth } from "@/features/auth/context"
 
 interface PrivateRouteGateProps {
   children?: ReactNode
@@ -41,6 +43,10 @@ export function PublicRouteGate() {
     return <RouteLoadingState />
   }
 
+  if (shouldBypassAuthInDev()) {
+    return <Navigate to={appRoutePaths.home} replace />
+  }
+
   if (auth.isAuthenticated && canAccessProtectedApp(auth.profile?.status)) {
     return <Navigate to={appRoutePaths.home} replace />
   }
@@ -57,6 +63,10 @@ export function PrivateRouteGate({
 
   if (auth.isLoading) {
     return <RouteLoadingState />
+  }
+
+  if (shouldBypassAuthInDev()) {
+    return children ?? <Outlet />
   }
 
   if (!auth.isAuthenticated || !canAccessProtectedApp(auth.profile?.status)) {

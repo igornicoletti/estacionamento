@@ -63,7 +63,6 @@ export function DataTableScrollContainer({
   const previousBodyCursor = React.useRef("")
   const previousBodyUserSelect = React.useRef("")
   const [isDragging, setIsDragging] = React.useState(false)
-  const [viewportWidth, setViewportWidth] = React.useState<number | null>(null)
 
   const stopDragging = React.useCallback((pointerId?: number) => {
     const captureElement = scrollRef.current
@@ -73,7 +72,7 @@ export function DataTableScrollContainer({
       try {
         captureElement.releasePointerCapture(pointerId ?? currentPointerId)
       } catch {
-        // Pointer capture may already be released by the browser.
+        void 0
       }
     }
 
@@ -102,35 +101,6 @@ export function DataTableScrollContainer({
     }
   }, [])
 
-  React.useEffect(() => {
-    const element = scrollRef.current
-
-    if (!element) {
-      return
-    }
-
-    const updateViewportWidth = () => {
-      setViewportWidth(element.clientWidth)
-    }
-
-    updateViewportWidth()
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", updateViewportWidth)
-
-      return () => {
-        window.removeEventListener("resize", updateViewportWidth)
-      }
-    }
-
-    const observer = new ResizeObserver(updateViewportWidth)
-    observer.observe(element)
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
-
   return (
     <div
       ref={scrollRef}
@@ -139,9 +109,8 @@ export function DataTableScrollContainer({
       tabIndex={0}
       data-dragging={isDragging || undefined}
       className={cn(
-        "overflow-x-auto overflow-y-auto rounded-md border",
-        "cursor-grab focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        isDragging && "cursor-grabbing select-none",
+        "overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        isDragging && "select-none",
         className
       )}
       onPointerDown={(event) => {
@@ -149,14 +118,9 @@ export function DataTableScrollContainer({
           return
         }
 
-        const captureElement = scrollRef.current
-        const scrollElement = captureElement
+        const scrollElement = scrollRef.current
 
-        if (
-          !captureElement ||
-          !scrollElement ||
-          scrollElement.scrollWidth <= scrollElement.clientWidth
-        ) {
+        if (!scrollElement || scrollElement.scrollWidth <= scrollElement.clientWidth) {
           return
         }
 
@@ -171,7 +135,7 @@ export function DataTableScrollContainer({
         previousBodyUserSelect.current = document.body.style.userSelect
         document.body.style.cursor = "grabbing"
         document.body.style.userSelect = "none"
-        captureElement.setPointerCapture(event.pointerId)
+        scrollElement.setPointerCapture(event.pointerId)
         setIsDragging(true)
       }}
       onPointerMove={(event) => {
@@ -220,12 +184,7 @@ export function DataTableScrollContainer({
         }
       }}
       {...props}
-      style={{
-        ...style,
-        "--data-table-scroll-viewport-width": viewportWidth
-          ? `${viewportWidth}px`
-          : "100%",
-      } as React.CSSProperties}
+      style={style}
     >
       {children}
     </div>

@@ -48,9 +48,66 @@ export const AUTH_PERMISSION = {
   auditRead: "audit.read",
 } as const
 
-export type AuthStatus = (typeof AUTH_STATUS)[keyof typeof AUTH_STATUS] | string
+export const AUTH_ROLE_KEY = {
+  owner: "owner",
+  admin: "admin",
+  auditor: "auditor",
+  manager: "manager",
+  operator: "operator",
+} as const
+
+export type AuthStatus = (typeof AUTH_STATUS)[keyof typeof AUTH_STATUS]
 export type AuthNextAction = (typeof AUTH_NEXT_ACTION)[keyof typeof AUTH_NEXT_ACTION]
+export type AuthRoleKey = (typeof AUTH_ROLE_KEY)[keyof typeof AUTH_ROLE_KEY]
 export type AuthPermission = string
+
+const operatorPermissions = [
+  AUTH_PERMISSION.profileReadSelf,
+  AUTH_PERMISSION.settingsReadSelf,
+  AUTH_PERMISSION.notificationsRead,
+  AUTH_PERMISSION.unitsRead,
+  AUTH_PERMISSION.clientsRead,
+  AUTH_PERMISSION.clientVehiclesRead,
+  AUTH_PERMISSION.pricesRead,
+  AUTH_PERMISSION.rulesRead,
+] as const
+
+const managerPermissions = [...operatorPermissions, AUTH_PERMISSION.usersRead] as const
+
+const auditorPermissions = [
+  ...managerPermissions,
+  AUTH_PERMISSION.accessRequestsRead,
+  AUTH_PERMISSION.permissionsRead,
+  AUTH_PERMISSION.auditRead,
+] as const
+
+const adminPermissions = [
+  ...auditorPermissions,
+  AUTH_PERMISSION.usersManage,
+  AUTH_PERMISSION.accessRequestsReview,
+] as const
+
+const fallbackPermissionsByRole: Record<AuthRoleKey, readonly AuthPermission[]> = {
+  owner: [AUTH_PERMISSION_WILDCARD],
+  admin: adminPermissions,
+  auditor: auditorPermissions,
+  manager: managerPermissions,
+  operator: operatorPermissions,
+}
+
+export function isAuthStatus(value: unknown): value is AuthStatus {
+  return (
+    value === AUTH_STATUS.active ||
+    value === AUTH_STATUS.pending ||
+    value === AUTH_STATUS.inactive ||
+    value === AUTH_STATUS.passwordReset ||
+    value === AUTH_STATUS.passkeyReset
+  )
+}
+
+export function normalizeAuthStatus(value: unknown): AuthStatus | null {
+  return isAuthStatus(value) ? value : null
+}
 
 export function isAuthPermission(value: unknown): value is AuthPermission {
   return typeof value === "string" && value.trim().length > 0
@@ -76,6 +133,38 @@ export function normalizeAuthPermissions(value: unknown): readonly AuthPermissio
   }
 
   return Array.from(permissions)
+}
+
+export function getRoleFallbackPermissions(
+  roleKey: string | null | undefined
+): readonly AuthPermission[] {
+  if (
+    roleKey === AUTH_ROLE_KEY.owner ||
+    roleKey === AUTH_ROLE_KEY.admin ||
+    roleKey === AUTH_ROLE_KEY.auditor ||
+    roleKey === AUTH_ROLE_KEY.manager ||
+    roleKey === AUTH_ROLE_KEY.operator
+  ) {
+    return fallbackPermissionsByRole[roleKey]
+  }
+
+  return []
+}
+
+export function resolveAuthProfilePermissions({
+  permissions,
+  roleKey,
+}: {
+  permissions: unknown
+  roleKey: string | null | undefined
+}) {
+  const resolvedPermissions = normalizeAuthPermissions(permissions)
+
+  if (resolvedPermissions.length > 0) {
+    return resolvedPermissions
+  }
+
+  return getRoleFallbackPermissions(roleKey)
 }
 
 export function canAccessProtectedApp(status: AuthStatus | null | undefined) {

@@ -1,11 +1,11 @@
-import { isGlobalRole } from "@/features/auth"
 import { formatDateTime } from "@/lib"
 
+import { usersCopy } from "../contents/users-copy"
 import {
   type CreateUserInput,
   type UserRecord,
+  isGlobalRole,
 } from "../types/users-types"
-import { usersCopy } from "../users-copy"
 
 interface NormalizedUnitScope {
   unitId: string | null

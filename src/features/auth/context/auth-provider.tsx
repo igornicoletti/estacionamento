@@ -7,27 +7,26 @@ import {
   AUTH_STORAGE_KEYS,
   canAccessProtectedApp,
   type AuthPermission,
-} from "./auth-contracts"
+} from "../contracts"
 import {
   completeRequiredPassword,
   getCurrentAuthProfile,
   signInWithPassword,
   signOutCurrentSession,
   subscribeToAuthSessionChanges,
-  type AuthPasswordResponse,
-  type AuthProfile,
-} from "./auth-api"
-import type { AuthLoginPayload } from "./auth-validation"
+} from "../api"
+import type { AuthPasswordResponse, AuthProfile } from "../types"
+import type { AuthLoginPayload } from "../validation"
 
-type AuthSessionStatus = "loading" | "anonymous" | "authenticated"
+export type AuthSessionStatus = "loading" | "anonymous" | "authenticated"
 
-interface RequiredPasswordChallenge {
+export interface RequiredPasswordChallenge {
   cpf: string
   currentPassword: string
   flowId: string | null
 }
 
-interface AuthInactivityState {
+export interface AuthInactivityState {
   isWarningOpen: boolean
   secondsRemaining: number
   continueSession: () => void
@@ -35,14 +34,14 @@ interface AuthInactivityState {
   consumeExpired: () => boolean
 }
 
-interface AuthAccessState {
+export interface AuthAccessState {
   permissions: readonly AuthPermission[]
   hasPermission: (permission: AuthPermission) => boolean
   hasAllPermissions: (permissions: readonly AuthPermission[]) => boolean
   hasAnyPermission: (permissions: readonly AuthPermission[]) => boolean
 }
 
-interface AuthActions {
+export interface AuthActions {
   refreshProfile: () => Promise<void>
   signInWithPassword: (payload: AuthLoginPayload) => Promise<AuthPasswordResponse>
   completeRequiredPassword: (newPassword: string) => Promise<AuthPasswordResponse>
@@ -51,7 +50,7 @@ interface AuthActions {
   logoutAsync: () => Promise<void>
 }
 
-interface AuthContextValue {
+export interface AuthContextValue {
   status: AuthSessionStatus
   profile: AuthProfile | null
   isLoading: boolean
@@ -64,6 +63,14 @@ interface AuthContextValue {
   access: AuthAccessState
   inactivity: AuthInactivityState
   actions: AuthActions
+}
+
+export interface AuthSessionValue {
+  profile: AuthProfile | null
+  isAuthenticated: boolean
+  isLoading: boolean
+  refresh: () => Promise<void>
+  signOut: () => Promise<void>
 }
 
 const AuthContext = React.createContext<AuthContextValue | null>(null)
@@ -103,7 +110,11 @@ function now() {
 }
 
 function createPermissionSet(profile: AuthProfile | null) {
-  return new Set(profile?.permissions ?? [])
+  return new Set<AuthPermission>(profile?.permissions ?? [])
+}
+
+function resolveErrorMessage(caughtError: unknown) {
+  return caughtError instanceof Error ? caughtError.message : null
 }
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
@@ -118,8 +129,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Math.ceil(AUTH_INACTIVITY.warningMs / 1000)
   )
   const lastActivityAtRef = React.useRef(now())
-
   const isAuthenticated = status === "authenticated" && Boolean(profile)
+  const canTrackInactivity =
+    isAuthenticated && canAccessProtectedApp(profile?.status)
+  const effectiveWarningOpen = canTrackInactivity && isWarningOpen
 
   const refreshProfile = React.useCallback(async () => {
     setError(null)
@@ -144,7 +157,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         if (!cancelled) {
           setProfile(null)
           setStatus("anonymous")
-          setError(caughtError instanceof Error ? caughtError.message : null)
+          setError(resolveErrorMessage(caughtError))
         }
       }
     }
@@ -180,7 +193,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [])
 
   React.useEffect(() => {
-    if (!isAuthenticated || !canAccessProtectedApp(profile?.status)) {
+    if (!canTrackInactivity) {
       return
     }
 
@@ -206,11 +219,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         window.removeEventListener(event, handleActivity)
       }
     }
-  }, [isAuthenticated, isWarningOpen, profile?.status])
+  }, [canTrackInactivity, isWarningOpen])
 
   React.useEffect(() => {
-    if (!isAuthenticated || !canAccessProtectedApp(profile?.status)) {
-      setIsWarningOpen(false)
+    if (!canTrackInactivity) {
       return
     }
 
@@ -232,7 +244,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }, AUTH_INACTIVITY.tickMs)
 
     return () => window.clearInterval(timer)
-  }, [isAuthenticated, logout, profile?.status])
+  }, [canTrackInactivity, logout])
 
   const signIn = React.useCallback(
     async (payload: AuthLoginPayload) => {
@@ -257,7 +269,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         return response
       } catch (caughtError) {
-        setError(caughtError instanceof Error ? caughtError.message : null)
+        setError(resolveErrorMessage(caughtError))
         throw caughtError
       } finally {
         setIsSubmitting(false)
@@ -287,7 +299,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setStatus("anonymous")
         return response
       } catch (caughtError) {
-        setError(caughtError instanceof Error ? caughtError.message : null)
+        setError(resolveErrorMessage(caughtError))
         throw caughtError
       } finally {
         setIsSubmitting(false)
@@ -296,22 +308,35 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [requiredPasswordChallenge]
   )
 
-  const permissionSet = React.useMemo(() => createPermissionSet(profile), [profile])
+  const permissionSet = React.useMemo(
+    () => createPermissionSet(profile),
+    [profile]
+  )
 
   const access = React.useMemo<AuthAccessState>(
     () => ({
       permissions: profile?.permissions ?? [],
       hasPermission(permission) {
-        return permissionSet.has(AUTH_PERMISSION_WILDCARD) || permissionSet.has(permission)
+        return (
+          permissionSet.has(AUTH_PERMISSION_WILDCARD) ||
+          permissionSet.has(permission)
+        )
       },
       hasAllPermissions(permissions) {
-        return permissions.every((permission) =>
-          permissionSet.has(AUTH_PERMISSION_WILDCARD) || permissionSet.has(permission)
+        return permissions.every(
+          (permission) =>
+            permissionSet.has(AUTH_PERMISSION_WILDCARD) ||
+            permissionSet.has(permission)
         )
       },
       hasAnyPermission(permissions) {
-        return permissions.length === 0 || permissions.some((permission) =>
-          permissionSet.has(AUTH_PERMISSION_WILDCARD) || permissionSet.has(permission)
+        return (
+          permissions.length === 0 ||
+          permissions.some(
+            (permission) =>
+              permissionSet.has(AUTH_PERMISSION_WILDCARD) ||
+              permissionSet.has(permission)
+          )
         )
       },
     }),
@@ -331,7 +356,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       access,
       inactivity: {
-        isWarningOpen,
+        isWarningOpen: effectiveWarningOpen,
         secondsRemaining,
         continueSession,
         markExpired: writeInactivityExpired,
@@ -350,10 +375,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       access,
       completePassword,
       continueSession,
+      effectiveWarningOpen,
       error,
       isAuthenticated,
       isSubmitting,
-      isWarningOpen,
       logout,
       logoutAsync,
       profile,
@@ -368,7 +393,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
 
-export function useAuth() {
+export function useAuth(): AuthContextValue {
   const context = React.useContext(AuthContext)
 
   if (!context) {
@@ -378,7 +403,7 @@ export function useAuth() {
   return context
 }
 
-export function useAuthSession() {
+export function useAuthSession(): AuthSessionValue {
   const auth = useAuth()
 
   return React.useMemo(

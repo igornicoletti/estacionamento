@@ -15,24 +15,32 @@ import {
   writeAuditEvent,
 } from "../_shared/index.ts"
 
-function isGlobalRole(role: string) {
-  return role === "owner" || role === "admin" || role === "auditor"
-}
+import { canAssignRole, isGlobalRole } from "../_shared/admin-users.ts"
 
-Deno.serve(async (req) => {
-  const cors = handleCors(req)
+Deno.serve(async (request) => {
+  const cors = handleCors(request)
   if (cors) return cors
 
   try {
-    const actor = requireAdminActor(await getAuthenticatedActor(req))
-    const input = adminCreateUserSchema.parse(await req.json())
+    const actor = requireAdminActor(await getAuthenticatedActor(request))
+    const input = adminCreateUserSchema.parse(await request.json())
+
+    if (!canAssignRole({
+      auth_user_id: actor.authUserId,
+      id: actor.id,
+      name: actor.name,
+      role: actor.role as "owner" | "admin" | "auditor" | "manager" | "operator",
+      status: actor.status,
+    }, input.role)) {
+      return genericAuthError(403, request)
+    }
 
     if (isGlobalRole(input.role) && input.unitId) {
-      return genericAuthError(400, req)
+      return genericAuthError(400, request)
     }
 
     if (!isGlobalRole(input.role) && !input.unitId) {
-      return genericAuthError(400, req)
+      return genericAuthError(400, request)
     }
 
     const supabase = createAdminClient()
@@ -40,16 +48,25 @@ Deno.serve(async (req) => {
     const cpfHash = await hashSensitiveValue(cpf)
     const technicalEmail = `auth+${crypto.randomUUID()}@estacionamento.redemontecarlo.com.br`
 
-    const { data: authUser, error: createError } =
-      await supabase.auth.admin.createUser({
-        email: technicalEmail,
-        email_confirm: true,
-        password: input.temporaryPassword,
-        user_metadata: {},
-      })
+    const { data: existingUser } = await supabase
+      .from("app_users")
+      .select("id")
+      .eq("cpf_hmac", cpfHash)
+      .maybeSingle()
+
+    if (existingUser) {
+      return genericAuthError(409, request)
+    }
+
+    const { data: authUser, error: createError } = await supabase.auth.admin.createUser({
+      email: technicalEmail,
+      email_confirm: true,
+      password: input.temporaryPassword,
+      user_metadata: {},
+    })
 
     if (createError || !authUser.user) {
-      return genericAuthError(400, req)
+      return genericAuthError(400, request)
     }
 
     const { data: appUser, error: appUserError } = await supabase
@@ -61,7 +78,7 @@ Deno.serve(async (req) => {
         cpf_masked: maskCpf(cpf),
         created_by: actor.authUserId,
         email: input.email ?? null,
-        name: input.name,
+        name: input.name.trim(),
         phone_display: formatPhone(input.phone),
         phone_masked: maskPhone(input.phone),
         role: input.role,
@@ -73,7 +90,7 @@ Deno.serve(async (req) => {
 
     if (appUserError || !appUser) {
       await supabase.auth.admin.deleteUser(authUser.user.id)
-      return genericAuthError(400, req)
+      return genericAuthError(400, request)
     }
 
     if (input.unitId) {
@@ -85,7 +102,7 @@ Deno.serve(async (req) => {
       if (unitError) {
         await supabase.from("app_users").delete().eq("id", appUser.id)
         await supabase.auth.admin.deleteUser(authUser.user.id)
-        return genericAuthError(undefined, req)
+        return genericAuthError(400, request)
       }
     }
 
@@ -93,14 +110,15 @@ Deno.serve(async (req) => {
       actor: actor.name,
       actorUserId: actor.authUserId,
       event: "user_created",
+      metadata: { role: input.role },
       scope: "system",
       success: true,
-      target: input.name,
+      target: input.name.trim(),
       targetUserId: authUser.user.id,
     })
 
-    return jsonResponse({ id: appUser.id, message: "Usuário criado." }, 200, req)
+    return jsonResponse({ ok: true, id: appUser.id, appUserId: appUser.id, authUserId: authUser.user.id, message: "Usuário criado." }, 200, request)
   } catch {
-    return genericAuthError(400, req)
+    return genericAuthError(400, request)
   }
 })

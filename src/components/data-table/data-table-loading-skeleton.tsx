@@ -21,20 +21,23 @@ function getSkeletonWidthClass(columnIndex: number, columnCount: number) {
   }
 
   if (columnIndex === 0) {
-    return "w-32"
+    return "w-40"
   }
 
   return columnIndex % 3 === 0 ? "w-2/3" : "w-full"
 }
 
-function getSkeletonWidthStyle(columnIndex: number, columnSizes?: readonly number[]) {
+function getSkeletonWidthStyle(
+  columnIndex: number,
+  columnSizes?: readonly number[]
+) {
   const width = columnSizes?.[columnIndex]
 
   if (!width || !Number.isFinite(width) || width <= 0) {
     return undefined
   }
 
-  const safeWidth = Math.max(28, Math.min(width * 0.82, width - 24))
+  const safeWidth = Math.max(32, Math.min(width * 0.72, width - 24))
 
   return { width: `${safeWidth}px` }
 }
@@ -49,30 +52,25 @@ export function DataTableLoadingSkeleton({
 
   return (
     <>
-      {Array.from({ length: safeRowCount }).map((_, rowIndex) => {
-        const fadeOpacity = Math.max(0.35, 1 - rowIndex * 0.08)
-
-        return (
-          <TableRow
-            key={`loading-row-${rowIndex}`}
-            aria-hidden="true"
-            className="h-11"
-            style={{ opacity: fadeOpacity }}
-          >
-            {Array.from({ length: safeColumnCount }).map((__, columnIndex) => (
-              <TableCell key={`loading-cell-${rowIndex}-${columnIndex}`}>
-                <Skeleton
-                  className={`h-5 ${getSkeletonWidthClass(
-                    columnIndex,
-                    safeColumnCount
-                  )}`}
-                  style={getSkeletonWidthStyle(columnIndex, columnSizes)}
-                />
-              </TableCell>
-            ))}
-          </TableRow>
-        )
-      })}
+      {Array.from({ length: safeRowCount }).map((_, rowIndex) => (
+        <TableRow
+          key={`loading-row-${rowIndex}`}
+          aria-hidden="true"
+          className="h-12"
+        >
+          {Array.from({ length: safeColumnCount }).map((__, columnIndex) => (
+            <TableCell key={`loading-cell-${rowIndex}-${columnIndex}`}>
+              <Skeleton
+                className={`h-5 ${getSkeletonWidthClass(
+                  columnIndex,
+                  safeColumnCount
+                )}`}
+                style={getSkeletonWidthStyle(columnIndex, columnSizes)}
+              />
+            </TableCell>
+          ))}
+        </TableRow>
+      ))}
     </>
   )
 }

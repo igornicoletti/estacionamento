@@ -1,23 +1,22 @@
-export {
-  createPermissionsColumns,
-  getPermissionDetails
-} from "./columns/permissions-columns"
+export { createPermissionsColumns } from "./columns/permissions-columns"
+export { permissionsCopy } from "./content/permissions-copy"
 export { usePermissions } from "./hooks/use-permissions"
-export { permissionsCopy } from "./permissions-copy"
 export { PermissionsRoute } from "./routes/permissions-route"
+export { listPermissionMatrix } from "./services/permissions-service"
 export {
-  buildPermissionMatrix,
-  listPermissionMatrix
-} from "./services/permissions-service"
-export {
-  permissionGroupLabels,
-  permissionGroupValues,
-  type PermissionGroup,
-  type PermissionMatrixRow
+  permissionAccessFilterLabels,
+  permissionAccessFilterValues,
+  permissionRoleLabels,
+  permissionRoleValues,
+  permissionSourceLabels,
+  permissionSourceValues,
+  type PermissionAccessFilter,
+  type PermissionMatrixRow,
+  type PermissionRole,
+  type PermissionSource,
 } from "./types/permissions-types"
 export {
-  formatRolesWithAccess,
-  formatRolesWithoutAccess,
-  listPermissionCapabilityDescriptors,
-  resolvePermissionGroup
-} from "./utils/permissions-matrix-model"
+  formatPermissionRoles,
+  formatPermissionRolesWithoutAccess,
+  isPermissionRole,
+} from "./utils/permissions-model"

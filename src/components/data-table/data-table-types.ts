@@ -20,6 +20,7 @@ export interface DataTableFilterField<TData> {
   title: string
   options: readonly DataTableFilterOption[]
   showCounts?: boolean
+  maxVisibleChips?: number
 }
 
 export interface DataTableSearchField<TData> {
@@ -30,4 +31,10 @@ export interface DataTableSearchField<TData> {
 export interface DataTableGlobalSearch<TData> {
   columnIds: readonly DataTableColumnId<TData>[]
   placeholder?: string
+}
+
+export interface DataTableStateAction {
+  label: string
+  icon?: React.ReactNode
+  onClick: () => void
 }

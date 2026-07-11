@@ -1,4 +1,9 @@
-export { useNotifications } from "./hooks/use-notifications"
+export { createNotificationsColumns } from "./columns/notifications-columns"
+export {
+  NotificationsProvider,
+  useNotifications,
+  type NotificationsContextValue,
+} from "./context"
 export { notificationsCopy } from "./notifications-copy"
 export { NotificationsRoute } from "./routes/notifications-route"
 export {
@@ -9,7 +14,9 @@ export {
   setNotificationStatus,
   setNotificationsGateway,
   setNotificationsStatus,
-  subscribeNotifications
+  subscribeNotifications,
+  type NotificationsGateway,
+  type SetNotificationsStatusBatchResult,
 } from "./services/notifications-service"
 export {
   notificationStatusLabels,
@@ -18,12 +25,13 @@ export {
   notificationTypeValues,
   type NotificationRecord,
   type NotificationStatus,
-  type NotificationType
+  type NotificationType,
 } from "./types/notifications-types"
 export {
   formatNotificationsCounter,
   getRecentUnreadNotifications,
   getUnreadNotifications,
   getUnreadNotificationsCount,
-  isUnreadNotification
+  isInternalNotificationHref,
+  isUnreadNotification,
 } from "./utils/notifications-rules"

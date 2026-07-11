@@ -6,6 +6,7 @@ export const usersCopy = {
   actions: {
     create: "Cadastrar",
     save: "Salvar",
+    details: "Informações",
     edit: "Editar",
     resetPassword: "Redefinir senha",
     resetPasskey: "Resetar passkey",
@@ -82,11 +83,18 @@ export const usersCopy = {
     },
   },
   details: {
+    title: "Informações do usuário",
     noEmail: "Sem e-mail",
     noAccess: "Sem acesso",
     globalUnit: "Global",
+    passkeyLabel: "Passkey",
     passkeyActive: "Ativa",
     passkeyInactive: "Inativa",
+    lastAccessLabel: "Último acesso",
+    localUser: "Usuário local",
+  },
+  table: {
+    emptyAction: "Cadastrar usuário",
   },
   feedback: {
     create: {
@@ -131,6 +139,11 @@ export const usersCopy = {
     update: "Não foi possível atualizar o usuário.",
     userNotFound: "Usuário não encontrado.",
     requiredUnit: "Selecione uma unidade para o perfil informado.",
+    requiredName: "Informe o nome do usuário.",
+    invalidCpf: "Informe um CPF válido.",
+    invalidRole: "Selecione um perfil válido.",
+    invalidEmail: "Informe um e-mail válido.",
+    invalidPhone: "Informe um telefone válido.",
     requiredFirstAccessPassword: "Informe a senha de primeiro acesso.",
     requiredCpf: "Informe o CPF do usuário.",
     requiredPhone: "Informe o telefone do usuário.",

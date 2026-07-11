@@ -19,7 +19,7 @@ export function findDataTableFilterOption(
 export function DataTableOptionCell({
   options,
   value,
-  className = "flex items-center gap-2",
+  className = "font-medium",
   fallback = null,
 }: DataTableOptionCellProps) {
   const option = findDataTableFilterOption(options, value)
@@ -28,9 +28,5 @@ export function DataTableOptionCell({
     return fallback
   }
 
-  return (
-    <div className={className}>
-      <span>{option.label}</span>
-    </div>
-  )
+  return <span className={className}>{option.label}</span>
 }

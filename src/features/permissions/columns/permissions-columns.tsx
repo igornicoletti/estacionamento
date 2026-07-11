@@ -1,104 +1,132 @@
 import { type ColumnDef } from "@tanstack/react-table"
-import { CheckIcon } from "lucide-react"
+import { CheckIcon, XIcon } from "lucide-react"
 
+import { createActionsColumn } from "@/components/data-table"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { cn } from "@/lib/utils"
+
+import { permissionsCopy } from "../content/permissions-copy"
 import {
-  userRoleLabels,
-  userRoleValues,
-} from "@/features/auth"
+  permissionRoleLabels,
+  permissionRoleValues,
+  permissionSourceLabels,
+  type PermissionMatrixRow,
+  type PermissionRole,
+} from "../types/permissions-types"
 
-import {
-  createActionsColumn,
-  createDataTableDetailsAction,
-  DataTableDetails,
-  DataTableDetailsTextTrigger,
-} from "@/components/data-table"
-
-import { permissionsCopy } from "../permissions-copy"
-import { type PermissionMatrixRow } from "../types/permissions-types"
-import { formatRolesWithoutAccess } from "../utils/permissions-matrix-model"
-
-function getRolesWithoutAccessLabel(row: PermissionMatrixRow) {
-  return formatRolesWithoutAccess(row.roles)
+interface CreatePermissionsColumnsOptions {
+  onOpenDetails?: (permission: PermissionMatrixRow) => void
 }
 
-export function getPermissionDetails(row: PermissionMatrixRow) {
+function PermissionAccessIcon({ hasAccess }: { hasAccess: boolean }) {
+  const Icon = hasAccess ? CheckIcon : XIcon
+
+  return (
+    <span className="flex justify-center">
+      <Icon
+        aria-label={
+          hasAccess
+            ? permissionsCopy.accessibility.withAccess
+            : permissionsCopy.accessibility.withoutAccess
+        }
+        className={cn(
+          "size-4",
+          hasAccess ? "text-primary" : "text-muted-foreground"
+        )}
+      />
+    </span>
+  )
+}
+
+function createRoleAccessColumn(role: PermissionRole): ColumnDef<PermissionMatrixRow> {
   return {
-    title: row.label,
-    description: `Grupo: ${row.groupLabel}`,
-    items: [
-      { label: permissionsCopy.labels.permission, value: row.label },
-      { label: permissionsCopy.labels.group, value: row.groupLabel },
-      { label: permissionsCopy.labels.rolesWithAccess, value: row.roleLabels },
-      { label: permissionsCopy.labels.rolesWithoutAccess, value: getRolesWithoutAccessLabel(row) },
-      { label: permissionsCopy.labels.totalRoles, value: row.roleCount },
-    ],
+    id: role,
+    accessorFn: (row) => (row.roleAccess[role] ? "with_access" : "without_access"),
+    cell: ({ row }) => (
+      <PermissionAccessIcon hasAccess={row.original.roleAccess[role]} />
+    ),
+    enableSorting: false,
+    header: () => (
+      <div className="text-center">
+        {permissionRoleLabels[role]}
+      </div>
+    ),
+    meta: { label: permissionRoleLabels[role] },
   }
 }
 
-export function createPermissionsColumns(): ColumnDef<PermissionMatrixRow>[] {
-  const detailsAction = createDataTableDetailsAction<PermissionMatrixRow>(
-    (row) => getPermissionDetails(row.original)
-  )
-
-  const roleColumns: ColumnDef<PermissionMatrixRow>[] = userRoleValues.map(
-    (role) => ({
-      id: role,
-      meta: { label: userRoleLabels[role] },
-      header: () => <div className="text-center">{userRoleLabels[role]}</div>,
-      enableSorting: false,
-      accessorFn: (row) => (row.roles.includes(role) ? 1 : 0),
-      cell: ({ getValue }) => {
-        const hasAccess = getValue<number>() > 0
-
-        return (
-          <div className="flex justify-center">
-            {hasAccess ? (
-              <CheckIcon
-                className="size-4 text-emerald-600"
-                aria-label={permissionsCopy.accessibility.withAccess}
-                aria-hidden={false}
-              />
-            ) : (
-              <span
-                className="text-muted-foreground"
-                aria-label={permissionsCopy.accessibility.withoutAccess}
-              >
-                —
-              </span>
-            )}
-          </div>
-        )
-      },
-    })
-  )
-
+export function createPermissionsColumns({
+  onOpenDetails,
+}: CreatePermissionsColumnsOptions = {}): ColumnDef<PermissionMatrixRow>[] {
   return [
     {
       accessorKey: "label",
-      meta: { label: permissionsCopy.labels.permission },
-      header: permissionsCopy.labels.permission,
       cell: ({ row }) => (
-        <DataTableDetails
-          {...getPermissionDetails(row.original)}
-          trigger={
-            <DataTableDetailsTextTrigger>
-              {row.original.label}
-            </DataTableDetailsTextTrigger>
-          }
-        />
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto justify-start px-0 text-left font-medium"
+          onClick={() => onOpenDetails?.(row.original)}
+        >
+          {row.original.label}
+        </Button>
       ),
+      header: permissionsCopy.labels.permission,
+      meta: { label: permissionsCopy.labels.permission },
     },
     {
       accessorKey: "groupLabel",
-      meta: { label: permissionsCopy.labels.group },
+      cell: ({ row }) => <Badge variant="outline">{row.original.groupLabel}</Badge>,
       header: permissionsCopy.labels.group,
+      meta: { label: permissionsCopy.labels.group },
+    },
+    {
+      accessorKey: "source",
+      cell: ({ row }) => (
+        <Badge variant="secondary">
+          {permissionSourceLabels[row.original.source]}
+        </Badge>
+      ),
+      enableSorting: false,
+      header: permissionsCopy.labels.source,
+      meta: { label: permissionsCopy.labels.source },
     },
     {
       accessorKey: "roleCount",
-      meta: { label: permissionsCopy.labels.rolesWithAccess },
-      header: permissionsCopy.labels.rolesWithAccess,
+      cell: ({ row }) => (
+        <div className="text-center tabular-nums">
+          {row.original.roleCount}
+        </div>
+      ),
+      header: () => (
+        <div className="text-center">
+          {permissionsCopy.labels.totalRoles}
+        </div>
+      ),
+      meta: { label: permissionsCopy.labels.totalRoles },
     },
-    ...roleColumns,
-    createActionsColumn<PermissionMatrixRow>([detailsAction]),
+    ...permissionRoleValues.map(createRoleAccessColumn),
+    {
+      id: "roles",
+      accessorFn: (row) => row.roles,
+      enableSorting: false,
+      header: permissionsCopy.filters.roles,
+      meta: { label: permissionsCopy.filters.roles },
+    },
+    {
+      id: "accessFilters",
+      accessorFn: (row) => row.accessFilters,
+      enableSorting: false,
+      header: permissionsCopy.filters.access,
+      meta: { label: permissionsCopy.filters.access },
+    },
+    createActionsColumn<PermissionMatrixRow>([
+      {
+        id: "details",
+        label: permissionsCopy.actions.details,
+        onSelect: (row) => onOpenDetails?.(row.original),
+      },
+    ]),
   ]
 }

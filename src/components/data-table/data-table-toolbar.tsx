@@ -32,6 +32,7 @@ interface DataTableToolbarProps<TData> {
   actions?: React.ReactNode
   enableViewOptions?: boolean
   enableExport?: boolean
+  canExport?: boolean
   manualFiltering?: boolean
   isLoading?: boolean
   globalFilterValue?: string
@@ -55,6 +56,7 @@ interface DataTableToolbarActionsProps<TData> {
   table: Table<TData>
   enableViewOptions: boolean
   enableExport: boolean
+  canExport: boolean
   manualFiltering: boolean
   actions?: React.ReactNode
 }
@@ -190,6 +192,7 @@ function DataTableToolbarControls<TData>({
             title={field.title}
             options={field.options}
             showCounts={field.showCounts ?? !manualFiltering}
+            maxVisibleChips={field.maxVisibleChips}
           />
         )
       })}
@@ -223,10 +226,11 @@ function DataTableToolbarActions<TData>({
   table,
   enableViewOptions,
   enableExport,
+  canExport,
   manualFiltering,
   actions,
 }: DataTableToolbarActionsProps<TData>) {
-  if (!enableViewOptions && !enableExport && !actions) {
+  if (!enableViewOptions && !(enableExport && canExport) && !actions) {
     return null
   }
 
@@ -270,9 +274,9 @@ function DataTableToolbarActions<TData>({
   }
 
   return (
-    <div className="flex items-center gap-2">
+    <div className="flex flex-wrap items-center justify-end gap-2">
       {enableViewOptions ? <DataTableViewOptions table={table} /> : null}
-      {enableExport ? (
+      {enableExport && canExport ? (
         <Tooltip>
           <TooltipTrigger asChild>
             <Button
@@ -280,7 +284,6 @@ function DataTableToolbarActions<TData>({
               type="button"
               variant="outline"
               size="icon-lg"
-              className="hidden lg:flex"
               onClick={handleExport}
             >
               <DownloadIcon aria-hidden="true" />
@@ -305,6 +308,7 @@ export function DataTableToolbar<TData>({
   actions,
   enableViewOptions = true,
   enableExport = true,
+  canExport = true,
   manualFiltering = false,
   isLoading = false,
   globalFilterValue = "",
@@ -312,7 +316,7 @@ export function DataTableToolbar<TData>({
   onClearFilters,
 }: DataTableToolbarProps<TData>) {
   return (
-    <div className="flex items-center justify-between gap-2">
+    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
       <DataTableToolbarControls
         table={table}
         globalSearch={globalSearch}
@@ -329,6 +333,7 @@ export function DataTableToolbar<TData>({
         table={table}
         enableViewOptions={enableViewOptions}
         enableExport={enableExport}
+        canExport={canExport}
         manualFiltering={manualFiltering}
         actions={actions}
       />

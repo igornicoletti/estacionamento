@@ -1,39 +1,51 @@
 export {
+  completeRequiredPassword,
+  getCurrentAuthProfile,
+  requestAccessRecovery,
+  signInWithPassword,
+  signOutCurrentSession,
+  subscribeToAuthSessionChanges,
+} from "./api"
+
+export type {
+  AppUserProfile,
+  AuthFlowActionResponse,
+  AuthFlowStep,
+  AuthPasswordNextAction,
+  AuthPasswordResponse,
+  AuthProfile,
+  AuthRoleProfile,
+  AuthSessionPayload,
+  AuthStartResponse,
+  ProfileActionResponse,
+  RecoveryRequestResponse,
+} from "./types"
+
+export {
   AUTH_FUNCTIONS,
   AUTH_INACTIVITY,
   AUTH_NEXT_ACTION,
   AUTH_PERMISSION,
   AUTH_PERMISSION_WILDCARD,
+  AUTH_ROLE_KEY,
   AUTH_STATUS,
   AUTH_STORAGE_KEYS,
   canAccessProtectedApp,
+  getRoleFallbackPermissions,
   isAuthPermission,
+  isAuthStatus,
   normalizeAuthPermission,
   normalizeAuthPermissions,
+  normalizeAuthStatus,
   requiresAccountRecovery,
+  resolveAuthProfilePermissions,
   type AuthNextAction,
   type AuthPermission,
+  type AuthRoleKey,
   type AuthStatus,
-} from "./auth-contracts"
+} from "./contracts"
 
-export { authCopy } from "./auth-copy"
-
-export {
-  authCpfSchema,
-  authLoginSchema,
-  authPasswordSchema,
-  authRecoverySchema,
-  getFirstIssueByPath,
-  newPasswordSchema,
-  normalizeCpf,
-  recoveryReasonValues,
-  requiredPasswordSchema,
-  type AuthLoginPayload,
-  type AuthRecoveryPayload,
-  type FieldErrors,
-  type RecoveryReason,
-  type RequiredPasswordValues,
-} from "./auth-validation"
+export { authCopy } from "./copy"
 
 export {
   AuthProvider,
@@ -41,6 +53,32 @@ export {
   markAuthInactivitySessionExpired,
   useAuth,
   useAuthSession,
-} from "./auth-provider"
+  type AuthAccessState,
+  type AuthActions,
+  type AuthContextValue,
+  type AuthInactivityState,
+  type AuthSessionStatus,
+  type AuthSessionValue,
+  type RequiredPasswordChallenge,
+} from "./context"
 
-export type { AuthProfile, AuthRoleProfile } from "./auth-api"
+export {
+  authCpfSchema,
+  authLoginSchema,
+  authPasswordSchema,
+  authRecoverySchema,
+  formatCpfInput,
+  formatPhoneInput,
+  getFirstIssueByPath,
+  newPasswordSchema,
+  normalizeCpf,
+  normalizePhone,
+  recoveryReasonValues,
+  requiredPasswordSchema,
+  type AuthLoginPayload,
+  type AuthRecoveryFormValues,
+  type AuthRecoveryPayload,
+  type FieldErrors,
+  type RecoveryReason,
+  type RequiredPasswordValues,
+} from "./validation"

@@ -13,10 +13,6 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import { dataTableCopy } from "./data-table-copy"
-import {
-  DataTableDetails,
-  type DataTableDetailsConfig,
-} from "./data-table-details"
 
 type DataTableRowActionVariant = "default" | "destructive"
 
@@ -38,16 +34,8 @@ interface DisabledDataTableRowAction extends DataTableBaseRowAction {
   onSelect?: never
 }
 
-interface DetailsDataTableRowAction<TData> extends DataTableBaseRowAction {
-  type: "details"
-  disabled?: false
-  getDetails: (row: Row<TData>) => DataTableDetailsConfig
-  onSelect?: never
-}
-
 export type DataTableRowAction<TData> =
   | EnabledDataTableRowAction<TData>
-  | DetailsDataTableRowAction<TData>
   | DisabledDataTableRowAction
 
 interface DataTableRowActionsProps<TData> {
@@ -69,17 +57,6 @@ function dedupeRowActions<TData>(
     seen.add(action.id)
     return true
   })
-}
-
-export function createDataTableDetailsAction<TData>(
-  getDetails: (row: Row<TData>) => DataTableDetailsConfig
-): DataTableRowAction<TData> {
-  return {
-    id: "details",
-    label: "Informações",
-    type: "details",
-    getDetails,
-  }
 }
 
 export function DataTableRowActions<TData>({
@@ -119,59 +96,27 @@ export function DataTableRowActions<TData>({
         align="end"
         className="w-48"
       >
-        {normalizedActions.map((action) => {
-          if ("type" in action && action.type === "details") {
-            return (
-              <React.Fragment key={action.id}>
-                {action.separatorBefore ? <DropdownMenuSeparator /> : null}
-                <DataTableDetails
-                  {...action.getDetails(row)}
-                  trigger={
-                    <DropdownMenuItem
-                      variant={action.variant}
-                      onSelect={(event) => {
-                        event.preventDefault()
-                        event.stopPropagation()
-                      }}
-                    >
-                      {action.label}
-                      {action.shortcut ? (
-                        <DropdownMenuShortcut>
-                          {action.shortcut}
-                        </DropdownMenuShortcut>
-                      ) : null}
-                    </DropdownMenuItem>
-                  }
-                />
-              </React.Fragment>
-            )
-          }
+        {normalizedActions.map((action) => (
+          <React.Fragment key={action.id}>
+            {action.separatorBefore ? <DropdownMenuSeparator /> : null}
+            <DropdownMenuItem
+              variant={action.variant}
+              disabled={action.disabled}
+              onSelect={(event) => {
+                event.stopPropagation()
 
-          return (
-            <React.Fragment key={action.id}>
-              {action.separatorBefore ? <DropdownMenuSeparator /> : null}
-              <DropdownMenuItem
-                variant={action.variant}
-                disabled={action.disabled}
-                onSelect={(event) => {
-                  event.stopPropagation()
-
-                  const actionSelect =
-                    "onSelect" in action ? action.onSelect : undefined
-
-                  if (!action.disabled && actionSelect) {
-                    actionSelect(row)
-                  }
-                }}
-              >
-                {action.label}
-                {action.shortcut ? (
-                  <DropdownMenuShortcut>{action.shortcut}</DropdownMenuShortcut>
-                ) : null}
-              </DropdownMenuItem>
-            </React.Fragment>
-          )
-        })}
+                if (!action.disabled) {
+                  action.onSelect(row)
+                }
+              }}
+            >
+              {action.label}
+              {action.shortcut ? (
+                <DropdownMenuShortcut>{action.shortcut}</DropdownMenuShortcut>
+              ) : null}
+            </DropdownMenuItem>
+          </React.Fragment>
+        ))}
       </DropdownMenuContent>
     </DropdownMenu>
   )

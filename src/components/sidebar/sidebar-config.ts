@@ -13,6 +13,8 @@ import {
   type LucideIcon,
 } from "lucide-react"
 
+import montecarloLogo from "@/assets/brand/montecarlo-logo.webp"
+import montecarloSymbol from "@/assets/brand/montecarlo-symbol.svg"
 import {
   appRouteIds,
   authenticatedRouteRegistry,
@@ -22,9 +24,7 @@ import {
   type AppRoutePath,
   type AppRouteRegistryItem,
 } from "@/app/router/route-registry"
-import montecarloLogo from "@/assets/brand/montecarlo-logo.webp"
-import montecarloSymbol from "@/assets/brand/montecarlo-symbol.svg"
-import type { AuthPermission } from "@/features/auth"
+import type { AuthPermission } from "@/features/auth/contracts"
 
 import { sidebarCopy } from "./sidebar-copy"
 
@@ -70,39 +70,28 @@ export const routeIconById = {
   [appRouteIds.settings]: UserRoundIcon,
 } as const satisfies Partial<Record<AppRouteId, LucideIcon>>
 
-type NavigationRoute = AppRouteRegistryItem & {
-  href: AppRoutePath
-  navigation: { group: AppRouteGroupId; order: number }
-}
-
 interface SidebarNavigationItemWithGroup extends SidebarNavigationItem {
   group: AppRouteGroupId
   order: number
 }
 
-function isNavigationRoute(route: AppRouteRegistryItem): route is NavigationRoute {
-  return (
-    "href" in route &&
-    typeof route.href === "string" &&
-    "navigation" in route &&
-    typeof route.navigation === "object" &&
-    route.navigation !== null &&
-    "group" in route.navigation &&
-    "order" in route.navigation
-  )
-}
-
 const navigationItems: readonly SidebarNavigationItemWithGroup[] =
-  authenticatedRouteRegistry
-    .filter(isNavigationRoute)
-    .map((route) => ({
-      id: route.id,
-      href: route.href,
-      label: route.label,
-      requiredPermissions: route.requiredPermissions,
-      group: route.navigation.group,
-      order: route.navigation.order,
-    }))
+  authenticatedRouteRegistry.flatMap((route) => {
+    if (!route.href || !route.navigation) {
+      return []
+    }
+
+    return [
+      {
+        id: route.id,
+        href: route.href,
+        label: route.label,
+        requiredPermissions: route.requiredPermissions,
+        group: route.navigation.group,
+        order: route.navigation.order,
+      },
+    ]
+  })
 
 function toSidebarNavigationItem(
   item: SidebarNavigationItemWithGroup

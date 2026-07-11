@@ -2,47 +2,28 @@ import { type ColumnDef } from "@tanstack/react-table"
 import { Link } from "react-router"
 
 import {
-  createDataTableDetailsAction,
-  DataTableDetails,
-  DataTableDetailsTextTrigger,
   DataTableRowActions,
   type DataTableRowAction,
 } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import { formatDateTime, getBadgeToneClassName } from "@/lib"
 
+import { notificationsCopy } from "../notifications-copy"
 import {
   notificationStatusLabels,
   notificationTypeLabels,
   type NotificationRecord,
 } from "../types/notifications-types"
+import { isInternalNotificationHref } from "../utils/notifications-rules"
 
 interface CreateNotificationsColumnsOptions {
+  onOpenDetails?: (notification: NotificationRecord) => void
   onMarkAsRead?: (notification: NotificationRecord) => void
   onMarkAsUnread?: (notification: NotificationRecord) => void
 }
 
 function resolveNotificationStatusVariant(status: NotificationRecord["status"]) {
-  return status === "read"
-    ? undefined
-    : ("info" as const)
-}
-
-function isInternalHref(href: string) {
-  return href.startsWith("/") && !href.startsWith("//")
-}
-
-function getNotificationDetails(notification: NotificationRecord) {
-  return {
-    title: notification.title,
-    description: notification.description,
-    items: [
-      { label: "Tipo", value: notificationTypeLabels[notification.type] },
-      { label: "Status", value: notificationStatusLabels[notification.status] },
-      { label: "Data", value: formatDateTime(notification.occurredAt) },
-      { label: "Destino", value: notification.href || "—" },
-    ],
-  }
+  return status === "read" ? undefined : ("info" as const)
 }
 
 export function createNotificationsColumns(
@@ -54,14 +35,15 @@ export function createNotificationsColumns(
       meta: { label: "Título" },
       header: "Título",
       cell: ({ row }) => (
-        <DataTableDetails
-          {...getNotificationDetails(row.original)}
-          trigger={
-            <DataTableDetailsTextTrigger>
-              {row.original.title}
-            </DataTableDetailsTextTrigger>
-          }
-        />
+        <button
+          type="button"
+          className="font-medium"
+          onClick={() => {
+            options.onOpenDetails?.(row.original)
+          }}
+        >
+          {row.original.title}
+        </button>
       ),
     },
     {
@@ -71,20 +53,22 @@ export function createNotificationsColumns(
     },
     {
       accessorKey: "type",
-      meta: { label: "Tipo" },
-      header: "Tipo",
+      meta: { label: notificationsCopy.details.type },
+      header: notificationsCopy.details.type,
       cell: ({ row }) => notificationTypeLabels[row.original.type],
     },
     {
       accessorKey: "status",
-      meta: { label: "Status" },
-      header: () => <div className="text-center">Status</div>,
+      meta: { label: notificationsCopy.details.status },
+      header: () => <div className="text-center">{notificationsCopy.details.status}</div>,
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
           <Badge
             variant="secondary"
-            className={getBadgeToneClassName(resolveNotificationStatusVariant(row.original.status))}
+            className={getBadgeToneClassName(
+              resolveNotificationStatusVariant(row.original.status)
+            )}
           >
             {notificationStatusLabels[row.original.status]}
           </Badge>
@@ -93,23 +77,23 @@ export function createNotificationsColumns(
     },
     {
       accessorKey: "occurredAt",
-      meta: { label: "Data" },
-      header: "Data",
+      meta: { label: notificationsCopy.details.date },
+      header: notificationsCopy.details.date,
       cell: ({ row }) => formatDateTime(row.original.occurredAt),
     },
     {
       accessorKey: "href",
-      meta: { label: "Destino" },
-      header: "Destino",
+      meta: { label: notificationsCopy.details.destination },
+      header: notificationsCopy.details.destination,
       cell: ({ row }) => {
         const href = row.original.href
 
-        if (!href || !isInternalHref(href)) {
-          return "—"
+        if (!isInternalNotificationHref(href)) {
+          return notificationsCopy.details.emptyDestination
         }
 
         return (
-          <Link className="font-medium underline-offset-4 hover:underline" to={href}>
+          <Link className="font-medium" to={href}>
             {href}
           </Link>
         )
@@ -123,45 +107,39 @@ export function createNotificationsColumns(
       enableHiding: false,
       size: 48,
       cell: ({ row }) => {
-        const detailsAction = createDataTableDetailsAction<NotificationRecord>(
-          (currentRow) => getNotificationDetails(currentRow.original)
-        )
-
         const actions: DataTableRowAction<NotificationRecord>[] = [
-          detailsAction,
+          {
+            id: "details",
+            label: notificationsCopy.actions.openDetails,
+            onSelect: (currentRow) => {
+              options.onOpenDetails?.(currentRow.original)
+            },
+          },
           {
             id: "mark-read",
-            label: "Marcar como lida",
+            label: notificationsCopy.actions.markAsRead,
+            disabled: row.original.status === "read",
             onSelect: (currentRow) => {
-              if (currentRow.original.status === "read") {
-                return
-              }
-
               options.onMarkAsRead?.(currentRow.original)
             },
           },
           {
             id: "mark-unread",
-            label: "Marcar como não lida",
+            label: notificationsCopy.actions.markAsUnread,
+            disabled: row.original.status === "unread",
             onSelect: (currentRow) => {
-              if (currentRow.original.status === "unread") {
-                return
-              }
-
               options.onMarkAsUnread?.(currentRow.original)
             },
           },
           {
             id: "open-destination",
-            label: "Abrir destino",
-            shortcut:
-              row.original.href && isInternalHref(row.original.href)
-                ? "↗"
-                : undefined,
+            label: notificationsCopy.actions.openDestination,
+            disabled: !isInternalNotificationHref(row.original.href),
+            shortcut: isInternalNotificationHref(row.original.href) ? "↗" : undefined,
             onSelect: (currentRow) => {
               const href = currentRow.original.href
 
-              if (!href || !isInternalHref(href) || typeof window === "undefined") {
+              if (!isInternalNotificationHref(href) || typeof window === "undefined") {
                 return
               }
 

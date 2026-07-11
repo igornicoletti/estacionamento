@@ -1,23 +1,23 @@
 import { shouldBypassAuthInDev } from "@/config"
-import {
-  isAppUserStatus,
-  isUserRole,
-  requiresSingleUnit,
-} from "@/features/auth"
+import { authCpfSchema } from "@/features/auth/validation"
 import { listUnits } from "@/features/units"
 import {
   formatCpf,
   formatPhone,
   getSupabaseBrowserClient,
+  isValidPhone,
   onlyDigits,
 } from "@/lib"
 
+import { usersCopy } from "../contents/users-copy"
 import {
+  isAppUserStatus,
+  isUserRole,
+  requiresSingleUnit,
   type CreateUserInput,
   type UpdateUserInput,
   type UserRecord,
 } from "../types/users-types"
-import { usersCopy } from "../users-copy"
 import {
   createNextUserId,
   normalizeUnitScope,
@@ -43,6 +43,89 @@ type RawAppUserRow = {
   locked_until?: string | null
   created_at: string
   app_user_units?: RawAppUserUnitRow[] | RawAppUserUnitRow | null
+}
+
+type RawLastAccessRow = {
+  auth_user_id: string
+  last_sign_in_at: string | null
+}
+
+type RawAuthFactorRow = {
+  auth_user_id: string
+  passkey_count: number
+}
+
+
+type AdminFunctionSuccessResponse = {
+  ok?: true
+  id?: string
+  appUserId?: string
+  authUserId?: string
+  message?: string
+}
+
+type AdminFunctionErrorResponse = {
+  ok: false
+  code?: string
+  message?: string
+}
+
+type AdminFunctionResponse = AdminFunctionSuccessResponse | AdminFunctionErrorResponse
+
+type AdminUserCreateResponse = AdminFunctionResponse & {
+  id?: string
+  appUserId?: string
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object"
+}
+
+function getResponseMessage(value: unknown) {
+  if (!isRecord(value)) {
+    return null
+  }
+
+  const message = value.message
+
+  return typeof message === "string" && message.trim() ? message : null
+}
+
+function assertAdminFunctionResponse(
+  response: { data: unknown; error: unknown },
+  fallbackMessage: string
+): AdminFunctionResponse {
+  if (response.error) {
+    throw new Error(getResponseMessage(response.error) ?? fallbackMessage)
+  }
+
+  if (!isRecord(response.data)) {
+    return { ok: true }
+  }
+
+  if (response.data.ok === false) {
+    throw new Error(getResponseMessage(response.data) ?? fallbackMessage)
+  }
+
+  return response.data as AdminFunctionResponse
+}
+
+function getAdminReturnedId(response: AdminFunctionResponse) {
+  if ("appUserId" in response && typeof response.appUserId === "string") {
+    return response.appUserId
+  }
+
+  if ("id" in response && typeof response.id === "string") {
+    return response.id
+  }
+
+  return null
+}
+
+function assertActionUserId(userId: string) {
+  if (!userId.trim()) {
+    throw new Error(usersCopy.errors.userNotFound)
+  }
 }
 
 const RESET_ACCESS_REASON = "Reset solicitado pelo painel administrativo."
@@ -82,16 +165,6 @@ function getRelatedUnitId(value: RawAppUserRow["app_user_units"]) {
   return null
 }
 
-type RawLastAccessRow = {
-  auth_user_id: string
-  last_sign_in_at: string | null
-}
-
-type RawAuthFactorRow = {
-  auth_user_id: string
-  passkey_count: number
-}
-
 function getPostgrestErrorCode(error: unknown) {
   if (!error || typeof error !== "object" || !("code" in error)) {
     return ""
@@ -106,52 +179,77 @@ function isUndefinedColumnError(error: unknown) {
   return getPostgrestErrorCode(error) === "42703"
 }
 
-async function listLastAccessByAuthUserId(): Promise<Map<string, string | null>> {
+function assertValidUserInput(
+  input: CreateUserInput | UpdateUserInput,
+  options: { requireFirstAccessPassword: boolean }
+) {
+  if (!input.name.trim()) {
+    throw new Error(usersCopy.errors.requiredName)
+  }
+
+  const cpfResult = authCpfSchema.safeParse(input.cpf)
+
+  if (!cpfResult.success) {
+    throw new Error(usersCopy.errors.invalidCpf)
+  }
+
+  if (!isUserRole(input.role)) {
+    throw new Error(usersCopy.errors.invalidRole)
+  }
+
+  if (requiresSingleUnit(input.role) && !input.unitId?.trim()) {
+    throw new Error(usersCopy.errors.requiredUnit)
+  }
+
+  if (!isValidPhone(input.phone ?? "")) {
+    throw new Error(usersCopy.errors.invalidPhone)
+  }
+
+  if (options.requireFirstAccessPassword && !input.firstAccessPassword?.trim()) {
+    throw new Error(usersCopy.errors.requiredFirstAccessPassword)
+  }
+}
+
+async function listLastAccessByAuthUserId() {
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {
-    return new Map()
+    return new Map<string, string | null>()
   }
 
   const response = await supabase.rpc("list_app_user_last_access")
-
   const { data, error } = response as {
     data: RawLastAccessRow[] | null
     error: unknown
   }
 
   if (error) {
-    throw new Error(usersCopy.errors.load)
+    return new Map<string, string | null>()
   }
 
-  const rows = data ?? []
-
-  return new Map(rows.map((row) => [row.auth_user_id, row.last_sign_in_at]))
+  return new Map((data ?? []).map((row) => [row.auth_user_id, row.last_sign_in_at]))
 }
 
-async function listAuthFactorsByAuthUserId(): Promise<Map<string, RawAuthFactorRow>> {
+async function listAuthFactorsByAuthUserId() {
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {
-    return new Map()
+    return new Map<string, RawAuthFactorRow>()
   }
 
-  const response = await supabase.functions.invoke<{
-    factors?: RawAuthFactorRow[]
-  }>("admin-user-auth-factors")
-
+  const response = await supabase.functions.invoke<{ factors?: RawAuthFactorRow[] }>(
+    "admin-user-auth-factors"
+  )
   const { data, error } = response as {
     data: { factors?: RawAuthFactorRow[] } | null
     error: unknown
   }
 
   if (error || !data) {
-    throw new Error(usersCopy.errors.load)
+    return new Map<string, RawAuthFactorRow>()
   }
 
-  return new Map(
-    (data.factors ?? []).map((factor) => [factor.auth_user_id, factor])
-  )
+  return new Map((data.factors ?? []).map((factor) => [factor.auth_user_id, factor]))
 }
 
 async function listRawAppUsersFromSupabase(
@@ -205,12 +303,11 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
 
   const data = await listRawAppUsersFromSupabase(supabase)
   const unitsCatalog = await listUnitsCatalog()
+  const unitNameById = new Map(unitsCatalog.map((unit) => [unit.id, unit.name]))
   const lastAccessByAuthUserId = await listLastAccessByAuthUserId()
   const authFactorsByAuthUserId = await listAuthFactorsByAuthUserId()
 
-  const unitNameById = new Map(unitsCatalog.map((unit) => [unit.id, unit.name]))
-
-  return (data ?? []).flatMap((appUser) => {
+  return data.flatMap((appUser) => {
     if (!isUserRole(appUser.role) || !isAppUserStatus(appUser.status)) {
       return []
     }
@@ -252,61 +349,34 @@ async function createUserInSupabase(input: CreateUserInput): Promise<UserRecord>
   const normalizedEmail = input.email?.trim() || ""
   const normalizedPhoneDigits = onlyDigits(input.phone ?? "")
 
-  if (!normalizedPhoneDigits) {
-    throw new Error(usersCopy.errors.requiredPhone)
-  }
+  const createResponse = await supabase.functions.invoke<AdminUserCreateResponse>(
+    "admin-user-create",
+    {
+      body: {
+        cpf: onlyDigits(input.cpf),
+        email: normalizedEmail || undefined,
+        hasOwnEmail: Boolean(normalizedEmail),
+        name: input.name.trim(),
+        phone: normalizedPhoneDigits,
+        role: input.role,
+        temporaryPassword: input.firstAccessPassword.trim(),
+        unitId: normalizedUnitScope.unitId ?? undefined,
+      },
+    }
+  )
+  const response = assertAdminFunctionResponse(
+    createResponse as { data: unknown; error: unknown },
+    usersCopy.errors.create
+  )
+  const returnedId = getAdminReturnedId(response)
+  const users = await listUsersFromSupabase()
+  const createdUser = returnedId ? users.find((user) => user.id === returnedId) : null
 
-  const createResponse = await supabase.functions.invoke<{
-    id?: string
-    message?: string
-  }>("admin-user-create", {
-    body: {
-      cpf: onlyDigits(input.cpf),
-      email: normalizedEmail || undefined,
-      hasOwnEmail: Boolean(normalizedEmail),
-      name: input.name.trim(),
-      phone: normalizedPhoneDigits,
-      role: input.role,
-      temporaryPassword: input.firstAccessPassword.trim(),
-      unitId: normalizedUnitScope.unitId ?? undefined,
-    },
-  })
-
-  const {
-    data,
-    error,
-  } = createResponse as {
-    data: { id?: string; message?: string } | null
-    error: unknown
-  }
-
-  if (error) {
+  if (!createdUser) {
     throw new Error(usersCopy.errors.create)
   }
 
-  const users = await listUsersFromSupabase()
-  const createdUser = data?.id
-    ? users.find((user) => user.id === data.id)
-    : null
-
-  if (createdUser) {
-    return createdUser
-  }
-
-  return {
-    id: data?.id ?? crypto.randomUUID(),
-    name: input.name.trim(),
-    cpf: formatCpf(onlyDigits(input.cpf)),
-    email: normalizedEmail || null,
-    phoneMasked: formatPhone(normalizedPhoneDigits),
-    role: input.role,
-    status: "pending",
-    lockedUntil: null,
-    unitId: normalizedUnitScope.unitId,
-    unitName: normalizedUnitScope.unitName,
-    passkeyStatus: "inactive",
-    lastAccessAt: null,
-  }
+  return createdUser
 }
 
 async function updateUserInSupabase(input: UpdateUserInput): Promise<UserRecord> {
@@ -320,11 +390,6 @@ async function updateUserInSupabase(input: UpdateUserInput): Promise<UserRecord>
   const normalizedUnitScope = normalizeUnitScope(input, unitsCatalog)
   const normalizedEmail = input.email?.trim() || ""
   const normalizedPhoneDigits = onlyDigits(input.phone ?? "")
-
-  if (!normalizedPhoneDigits) {
-    throw new Error(usersCopy.errors.requiredPhone)
-  }
-
   const users = await listUsersFromSupabase()
   const targetUser = users.find((user) => user.id === input.id)
 
@@ -332,67 +397,27 @@ async function updateUserInSupabase(input: UpdateUserInput): Promise<UserRecord>
     throw new Error(usersCopy.errors.userNotFound)
   }
 
-  const updateResponse = await supabase.functions.invoke("admin-user-update", {
-    body: {
-      cpf: onlyDigits(input.cpf),
-      email: normalizedEmail || undefined,
-      name: input.name.trim(),
-      phone: normalizedPhoneDigits,
-      role: input.role,
-      targetUserId: targetUser.authUserId,
-      unitId: normalizedUnitScope.unitId ?? undefined,
-    },
-  })
-
-  const { error } = updateResponse as {
-    error: unknown
-  }
-
-  if (error) {
-    throw new Error(usersCopy.errors.update)
-  }
+  const updateResponse = await supabase.functions.invoke<AdminFunctionResponse>(
+    "admin-user-update",
+    {
+      body: {
+        cpf: onlyDigits(input.cpf),
+        email: normalizedEmail || undefined,
+        name: input.name.trim(),
+        phone: normalizedPhoneDigits,
+        role: input.role,
+        targetUserId: targetUser.authUserId,
+        unitId: normalizedUnitScope.unitId ?? undefined,
+      },
+    }
+  )
+  assertAdminFunctionResponse(
+    updateResponse as { data: unknown; error: unknown },
+    usersCopy.errors.update
+  )
 
   const refreshedUsers = await listUsersFromSupabase()
   const updatedUser = refreshedUsers.find((user) => user.id === input.id)
-
-  if (!updatedUser) {
-    throw new Error(usersCopy.errors.userNotFound)
-  }
-
-  return updatedUser
-}
-
-async function resetUserAccessInSupabase(userId: string): Promise<UserRecord> {
-  const supabase = getSupabaseBrowserClient()
-
-  if (!supabase) {
-    throw new Error(usersCopy.feedback.reset.error)
-  }
-
-  const users = await listUsersFromSupabase()
-  const targetUser = users.find((user) => user.id === userId)
-
-  if (!targetUser?.authUserId) {
-    throw new Error(usersCopy.errors.userNotFound)
-  }
-
-  const resetResponse = await supabase.functions.invoke("admin-user-reset-password", {
-    body: {
-      reason: RESET_ACCESS_REASON,
-      targetUserId: targetUser.authUserId,
-    },
-  })
-
-  const { error } = resetResponse as {
-    error: unknown
-  }
-
-  if (error) {
-    throw new Error(usersCopy.feedback.reset.error)
-  }
-
-  const refreshedUsers = await listUsersFromSupabase()
-  const updatedUser = refreshedUsers.find((user) => user.id === userId)
 
   if (!updatedUser) {
     throw new Error(usersCopy.errors.userNotFound)
@@ -420,18 +445,19 @@ async function invokeAdminUserAction(
     throw new Error(usersCopy.errors.userNotFound)
   }
 
-  const actionResponse = await supabase.functions.invoke(functionName, {
-    body: {
-      reason,
-      targetUserId: targetUser.authUserId,
-    },
-  })
-
-  const { error } = actionResponse as { error: unknown }
-
-  if (error) {
-    throw new Error(errorMessage)
-  }
+  const actionResponse = await supabase.functions.invoke<AdminFunctionResponse>(
+    functionName,
+    {
+      body: {
+        reason,
+        targetUserId: targetUser.authUserId,
+      },
+    }
+  )
+  assertAdminFunctionResponse(
+    actionResponse as { data: unknown; error: unknown },
+    errorMessage
+  )
 
   const refreshedUsers = await listUsersFromSupabase()
   const updatedUser = refreshedUsers.find((user) => user.id === userId)
@@ -443,53 +469,12 @@ async function invokeAdminUserAction(
   return updatedUser
 }
 
-async function resetUserPasskeyInSupabase(userId: string): Promise<UserRecord> {
-  return invokeAdminUserAction(
-    "admin-user-reset-passkey",
-    userId,
-    RESET_PASSKEY_REASON,
-    usersCopy.feedback.resetPasskey.error
-  )
-}
-
-async function clearUserLockInSupabase(userId: string): Promise<UserRecord> {
-  return invokeAdminUserAction(
-    "admin-user-clear-lock",
-    userId,
-    CLEAR_LOCK_REASON,
-    usersCopy.feedback.clearLock.error
-  )
-}
-
-async function revokeUserSessionsInSupabase(userId: string): Promise<UserRecord> {
-  return invokeAdminUserAction(
-    "admin-user-revoke-sessions",
-    userId,
-    REVOKE_SESSIONS_REASON,
-    usersCopy.feedback.revokeSessions.error
-  )
-}
-
-async function blockUserInSupabase(userId: string): Promise<UserRecord> {
-  return invokeAdminUserAction(
-    "admin-user-block",
-    userId,
-    BLOCK_USER_REASON,
-    usersCopy.feedback.block.error
-  )
-}
-
 async function createUserInMemory(input: CreateUserInput): Promise<UserRecord> {
   const usersGateway = getUsersGateway()
   const currentUsers = await usersGateway.list()
-
   const unitsCatalog = await listUnitsCatalog()
   const normalizedUnitScope = normalizeUnitScope(input, unitsCatalog)
   const normalizedPhoneDigits = onlyDigits(input.phone ?? "")
-
-  if (!normalizedPhoneDigits) {
-    throw new Error(usersCopy.errors.requiredPhone)
-  }
 
   const nextUser: UserRecord = {
     id: createNextUserId(currentUsers),
@@ -514,7 +499,6 @@ async function createUserInMemory(input: CreateUserInput): Promise<UserRecord> {
 async function updateUserInMemory(input: UpdateUserInput): Promise<UserRecord> {
   const usersGateway = getUsersGateway()
   const currentUsers = await usersGateway.list()
-
   const userIndex = currentUsers.findIndex((user) => user.id === input.id)
 
   if (userIndex < 0) {
@@ -525,10 +509,6 @@ async function updateUserInMemory(input: UpdateUserInput): Promise<UserRecord> {
   const unitsCatalog = await listUnitsCatalog()
   const normalizedUnitScope = normalizeUnitScope(input, unitsCatalog)
   const normalizedPhoneDigits = onlyDigits(input.phone ?? "")
-
-  if (!normalizedPhoneDigits) {
-    throw new Error(usersCopy.errors.requiredPhone)
-  }
 
   const updatedUser: UserRecord = {
     ...currentUser,
@@ -541,10 +521,9 @@ async function updateUserInMemory(input: UpdateUserInput): Promise<UserRecord> {
     unitName: normalizedUnitScope.unitName,
   }
 
-  const nextUsers = currentUsers.map((user) =>
-    user.id === input.id ? updatedUser : user
+  await usersGateway.saveAll(
+    currentUsers.map((user) => (user.id === input.id ? updatedUser : user))
   )
-  await usersGateway.saveAll(nextUsers)
 
   return updatedUser
 }
@@ -552,7 +531,6 @@ async function updateUserInMemory(input: UpdateUserInput): Promise<UserRecord> {
 async function blockUserInMemory(userId: string): Promise<UserRecord> {
   const usersGateway = getUsersGateway()
   const currentUsers = await usersGateway.list()
-
   const currentUser = currentUsers.find((user) => user.id === userId)
 
   if (!currentUser) {
@@ -564,10 +542,9 @@ async function blockUserInMemory(userId: string): Promise<UserRecord> {
     status: "inactive",
   }
 
-  const nextUsers = currentUsers.map((user) =>
-    user.id === userId ? nextUser : user
+  await usersGateway.saveAll(
+    currentUsers.map((user) => (user.id === userId ? nextUser : user))
   )
-  await usersGateway.saveAll(nextUsers)
 
   return nextUser
 }
@@ -575,7 +552,6 @@ async function blockUserInMemory(userId: string): Promise<UserRecord> {
 async function resetUserAccessInMemory(userId: string): Promise<UserRecord> {
   const usersGateway = getUsersGateway()
   const currentUsers = await usersGateway.list()
-
   const currentUser = currentUsers.find((user) => user.id === userId)
 
   if (!currentUser) {
@@ -588,10 +564,9 @@ async function resetUserAccessInMemory(userId: string): Promise<UserRecord> {
     status: "password_reset",
   }
 
-  const nextUsers = currentUsers.map((user) =>
-    user.id === userId ? nextUser : user
+  await usersGateway.saveAll(
+    currentUsers.map((user) => (user.id === userId ? nextUser : user))
   )
-  await usersGateway.saveAll(nextUsers)
 
   return nextUser
 }
@@ -601,85 +576,77 @@ export async function listUsers(): Promise<UserRecord[]> {
     return listUsersFromSupabase()
   }
 
-  const usersGateway = getUsersGateway()
-  return usersGateway.list()
+  return getUsersGateway().list()
 }
 
 export async function createUser(input: CreateUserInput): Promise<UserRecord> {
-  if (!input.firstAccessPassword.trim()) {
-    throw new Error(usersCopy.errors.requiredFirstAccessPassword)
-  }
+  assertValidUserInput(input, { requireFirstAccessPassword: true })
 
-  if (!input.cpf.trim()) {
-    throw new Error(usersCopy.errors.requiredCpf)
-  }
-
-  if (requiresSingleUnit(input.role) && !input.unitId?.trim()) {
-    throw new Error(usersCopy.errors.requiredUnit)
-  }
-
-  if (!onlyDigits(input.phone ?? "")) {
-    throw new Error(usersCopy.errors.requiredPhone)
-  }
-
-  if (isRemoteUsersEnabled()) {
-    return createUserInSupabase(input)
-  }
-
-  return createUserInMemory(input)
+  return isRemoteUsersEnabled() ? createUserInSupabase(input) : createUserInMemory(input)
 }
 
 export async function updateUser(input: UpdateUserInput): Promise<UserRecord> {
-  if (requiresSingleUnit(input.role) && !input.unitId?.trim()) {
-    throw new Error(usersCopy.errors.requiredUnit)
-  }
+  assertValidUserInput(input, { requireFirstAccessPassword: false })
 
-  if (!onlyDigits(input.phone ?? "")) {
-    throw new Error(usersCopy.errors.requiredPhone)
-  }
-
-  if (isRemoteUsersEnabled()) {
-    return updateUserInSupabase(input)
-  }
-
-  return updateUserInMemory(input)
+  return isRemoteUsersEnabled() ? updateUserInSupabase(input) : updateUserInMemory(input)
 }
 
 export async function blockUser(userId: string): Promise<UserRecord> {
-  if (isRemoteUsersEnabled()) {
-    return blockUserInSupabase(userId)
-  }
+  assertActionUserId(userId)
 
-  return blockUserInMemory(userId)
+  return isRemoteUsersEnabled()
+    ? invokeAdminUserAction("admin-user-block", userId, BLOCK_USER_REASON, usersCopy.feedback.block.error)
+    : blockUserInMemory(userId)
 }
 
 export async function resetUserAccess(userId: string): Promise<UserRecord> {
-  if (isRemoteUsersEnabled()) {
-    return resetUserAccessInSupabase(userId)
-  }
+  assertActionUserId(userId)
 
-  return resetUserAccessInMemory(userId)
+  return isRemoteUsersEnabled()
+    ? invokeAdminUserAction("admin-user-reset-password", userId, RESET_ACCESS_REASON, usersCopy.feedback.reset.error)
+    : resetUserAccessInMemory(userId)
 }
 
 export async function resetUserPasskey(userId: string): Promise<UserRecord> {
+  assertActionUserId(userId)
+
   if (isRemoteUsersEnabled()) {
-    return resetUserPasskeyInSupabase(userId)
+    return invokeAdminUserAction(
+      "admin-user-reset-passkey",
+      userId,
+      RESET_PASSKEY_REASON,
+      usersCopy.feedback.resetPasskey.error
+    )
   }
 
   throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)
 }
 
 export async function clearUserLock(userId: string): Promise<UserRecord> {
+  assertActionUserId(userId)
+
   if (isRemoteUsersEnabled()) {
-    return clearUserLockInSupabase(userId)
+    return invokeAdminUserAction(
+      "admin-user-clear-lock",
+      userId,
+      CLEAR_LOCK_REASON,
+      usersCopy.feedback.clearLock.error
+    )
   }
 
   throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)
 }
 
 export async function revokeUserSessions(userId: string): Promise<UserRecord> {
+  assertActionUserId(userId)
+
   if (isRemoteUsersEnabled()) {
-    return revokeUserSessionsInSupabase(userId)
+    return invokeAdminUserAction(
+      "admin-user-revoke-sessions",
+      userId,
+      REVOKE_SESSIONS_REASON,
+      usersCopy.feedback.revokeSessions.error
+    )
   }
 
   throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)

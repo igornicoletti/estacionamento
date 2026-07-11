@@ -1,45 +1,54 @@
-import { type AuthCapability, type UserRole } from "@/features/auth"
-
-export const permissionGroupValues = [
-  "audit",
-  "commercial",
-  "security",
-  "clients",
-  "vehicles",
-  "units",
-  "users",
-  "profile",
-  "sessions",
-  "passkeys",
+export const permissionRoleValues = [
+  "owner",
+  "admin",
+  "auditor",
+  "manager",
+  "operator",
 ] as const
 
-export type PermissionGroup = (typeof permissionGroupValues)[number]
+export type PermissionRole = (typeof permissionRoleValues)[number]
 
-export const permissionGroupLabels: Record<PermissionGroup, string> = {
-  audit: "Auditoria",
-  commercial: "Comercial",
-  security: "Segurança",
-  clients: "Clientes",
-  vehicles: "Veículos",
-  units: "Unidades",
-  users: "Usuários",
-  profile: "Perfil",
-  sessions: "Sessões",
-  passkeys: "Passkeys",
+export const permissionRoleLabels: Record<PermissionRole, string> = {
+  admin: "Administrador",
+  auditor: "Auditor",
+  manager: "Gestor",
+  operator: "Operador",
+  owner: "Proprietário",
 }
 
-/**
- * A single row of the role × capability matrix, derived from the live RBAC
- * policy so the screen is always an accurate reflection of what each role can
- * actually do.
- */
+export const permissionSourceValues = ["system", "custom"] as const
+
+export type PermissionSource = (typeof permissionSourceValues)[number]
+
+export const permissionSourceLabels: Record<PermissionSource, string> = {
+  custom: "Customizada",
+  system: "Sistema",
+}
+
+export const permissionAccessFilterValues = [
+  "with_access",
+  "without_access",
+] as const
+
+export type PermissionAccessFilter = (typeof permissionAccessFilterValues)[number]
+
+export const permissionAccessFilterLabels: Record<PermissionAccessFilter, string> = {
+  with_access: "Com acesso",
+  without_access: "Sem acesso",
+}
+
 export interface PermissionMatrixRow {
-  capability: AuthCapability
+  id: string
+  key: string
   label: string
-  group: PermissionGroup
+  description: string | null
+  groupKey: string
   groupLabel: string
-  /** Roles that currently hold this capability. */
-  roles: UserRole[]
+  source: PermissionSource
+  isCritical: boolean
+  roles: PermissionRole[]
+  accessFilters: PermissionAccessFilter[]
+  roleAccess: Record<PermissionRole, boolean>
   roleLabels: string
   roleCount: number
 }

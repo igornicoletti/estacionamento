@@ -1,3 +1,8 @@
 export { AppSidebar } from "./sidebar-app"
+export { SidebarBrand } from "./sidebar-brand"
+export { SidebarCollapseControl } from "./sidebar-collapse-control"
 export { AppHeader } from "./sidebar-header"
+export { SidebarNavigation } from "./sidebar-navigation"
+export { NotificationsPopover } from "./sidebar-notifications-popover"
 export { SidebarProfile } from "./sidebar-profile"
+export { UserMenu } from "./sidebar-user-menu"

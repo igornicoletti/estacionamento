@@ -1,50 +1,21 @@
-import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
+import { getSupabaseBrowserClient } from "@/lib"
 
 import {
   AUTH_FUNCTIONS,
   AUTH_NEXT_ACTION,
-  normalizeAuthPermissions,
+  AUTH_STATUS,
+  normalizeAuthStatus,
+  resolveAuthProfilePermissions,
   type AuthNextAction,
-  type AuthPermission,
-  type AuthStatus,
-} from "./auth-contracts"
-import { authCopy } from "./auth-copy"
-import type { AuthLoginPayload, AuthRecoveryPayload } from "./auth-validation"
-
-export interface AuthRoleProfile {
-  id: string | null
-  key: string | null
-  label: string | null
-}
-
-export interface AuthProfile {
-  id: string
-  authUserId: string
-  name: string
-  role: AuthRoleProfile | null
-  roleKey: string | null
-  status: AuthStatus
-  permissions: readonly AuthPermission[]
-  unitId: string | null
-  unitName: string | null
-  phoneMasked: string
-  cpfMasked: string | null
-  email: string | null
-  avatarUrl: string | null
-  passkeyStatus: "active" | "inactive"
-}
-
-export interface AuthSessionPayload {
-  access_token: string
-  refresh_token: string
-}
-
-export interface AuthPasswordResponse {
-  flowId: string | null
-  message: string
-  nextAction: AuthNextAction
-  session?: AuthSessionPayload
-}
+} from "../contracts"
+import { authCopy } from "../copy"
+import type {
+  AuthPasswordResponse,
+  AuthProfile,
+  AuthRoleProfile,
+  AuthSessionPayload,
+} from "../types"
+import type { AuthLoginPayload, AuthRecoveryPayload } from "../validation"
 
 type UnknownRecord = Record<PropertyKey, unknown>
 
@@ -100,8 +71,11 @@ function mapAuthProfile(value: unknown): AuthProfile | null {
     name: getRequiredString(value, "name"),
     role,
     roleKey: role?.key ?? null,
-    status: getRequiredString(value, "status"),
-    permissions: normalizeAuthPermissions(value.permissions),
+    status: normalizeAuthStatus(value.status) ?? AUTH_STATUS.inactive,
+    permissions: resolveAuthProfilePermissions({
+      permissions: value.permissions,
+      roleKey: role?.key,
+    }),
     unitId: getString(value.unit_id),
     unitName: getString(value.unit_name),
     phoneMasked: getRequiredString(value, "phone_masked"),
@@ -183,7 +157,11 @@ export function subscribeToAuthSessionChanges(callback: () => void) {
 }
 
 export async function getCurrentAuthProfile() {
-  const supabase = getSupabaseOrThrow()
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    return null
+  }
   const {
     data: { user },
     error: userError,

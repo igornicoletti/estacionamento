@@ -33,11 +33,7 @@ export function DataTableColumnHeader<TData, TValue>({
   const sortState = column.getIsSorted()
 
   if (!column.getCanSort()) {
-    return (
-      <div className={cn("text-[0.8rem] font-medium leading-none", className)}>
-        {title}
-      </div>
-    )
+    return <div className={cn("font-medium", className)}>{title}</div>
   }
 
   function handleSortClick() {
@@ -62,18 +58,17 @@ export function DataTableColumnHeader<TData, TValue>({
         : ChevronsUpDown
 
   return (
-    <div className={cn("flex items-center gap-2", className)}>
+    <div className={cn("flex items-center", className)}>
       <Button
         data-no-drag-scroll="true"
         type="button"
         variant="ghost"
         size="sm"
-        className="-ml-2 gap-1.5 px-2 hover:bg-transparent! focus-visible:bg-transparent focus-visible:ring-0 focus-visible:ring-offset-0"
         aria-label={getSortButtonLabel(sortState, title)}
         onClick={handleSortClick}
       >
         <span>{title}</span>
-        <SortIcon className="h-4 w-4 text-muted-foreground/40" />
+        <SortIcon aria-hidden="true" />
       </Button>
     </div>
   )

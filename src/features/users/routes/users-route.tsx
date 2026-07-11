@@ -1,35 +1,18 @@
 import { zodResolver } from "@hookform/resolvers/zod"
-import {
-  PlusIcon,
-  SearchIcon,
-} from "lucide-react"
+import { PlusIcon, SearchIcon, ShieldAlertIcon, UserPlus2Icon } from "lucide-react"
 import * as React from "react"
 import { Controller, useForm } from "react-hook-form"
-
-import { shouldBypassAuthInDev } from "@/config"
-import {
-  appUserStatusLabels,
-  AuthCpfField,
-  AuthPasswordField,
-  hasCapability,
-  isGlobalRole,
-  useAuthSession,
-  userRoleLabels,
-  userRoleValues,
-} from "@/features/auth"
-import { useUnits } from "@/features/units"
-import {
-  formatPhone,
-  getSupabaseBrowserClient,
-  onlyDigits,
-} from "@/lib"
-import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
 
 import {
   createDataTableFilterOptions,
   DataTable,
+  type DataTableStateAction,
 } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
+import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
+import { AppDialog } from "@/components/shared/app-dialog"
+import { AppPasswordField } from "@/components/shared/app-password-field"
+import { AppSheet } from "@/components/shared/app-sheet"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -41,22 +24,7 @@ import {
   ComboboxItem,
   ComboboxList,
 } from "@/components/ui/combobox"
-import { DestructiveConfirmDialog } from "@/components/ui/destructive-confirm-dialog"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
-import {
-  Field,
-  FieldError,
-  FieldGroup,
-  FieldLabel,
-} from "@/components/ui/field"
+import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { InputGroupAddon } from "@/components/ui/input-group"
 import {
@@ -66,17 +34,30 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { shouldBypassAuthInDev } from "@/config"
+import { useAuth } from "@/features/auth/context"
+import { AUTH_PERMISSION, AUTH_ROLE_KEY } from "@/features/auth/contracts"
+import { formatCpfInput } from "@/features/auth/validation"
+import { useUnits } from "@/features/units"
+import { formatPhone, getSupabaseBrowserClient, onlyDigits } from "@/lib"
+import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
 
 import { createUsersColumns } from "../columns/users-columns"
+import { usersCopy } from "../contents/users-copy"
 import { useUsers } from "../hooks/use-users"
+import { usersFormSchema, type UsersFormValues } from "../schemas/users-form-schema"
 import {
-  usersFormSchema,
-  type UsersFormValues,
-} from "../schemas/users-form-schema"
-import { type UserRecord } from "../types/users-types"
-import { usersCopy } from "../users-copy"
+  appUserStatusLabels,
+  isGlobalRole,
+  type UserRecord,
+  userRoleLabels,
+  userRoleValues,
+} from "../types/users-types"
 import {
   interpolateUserCopy,
+  resolveEmailLabel,
+  resolveLastAccessLabel,
+  resolvePasskeyLabel,
   resolveUnitLabel,
 } from "../utils/users-models"
 
@@ -86,6 +67,15 @@ const USERS_DIALOG_FORM_ID = "users-dialog-form"
 interface UnitOption {
   label: string
   value: string
+}
+
+interface UserDetailItem {
+  label: string
+  value: React.ReactNode
+}
+
+function RequiredMark() {
+  return <span className="text-destructive">{usersCopy.form.requiredMark}</span>
 }
 
 function createDefaultFormValues(): UsersFormValues {
@@ -118,7 +108,50 @@ function mapUserToFormValues(user: UserRecord): UsersFormValues {
   }
 }
 
+function getUserDetailItems(user: UserRecord): readonly UserDetailItem[] {
+  return [
+    { label: usersCopy.form.fields.name, value: user.name },
+    { label: usersCopy.form.fields.cpf, value: user.cpf },
+    { label: usersCopy.form.fields.email, value: resolveEmailLabel(user.email) },
+    { label: usersCopy.form.fields.phone, value: user.phoneMasked || "—" },
+    { label: usersCopy.form.roleLabel, value: userRoleLabels[user.role] },
+    { label: usersCopy.filters.status, value: appUserStatusLabels[user.status] },
+    { label: usersCopy.form.unitLabel, value: resolveUnitLabel(user.unitName) },
+    { label: usersCopy.details.passkeyLabel, value: resolvePasskeyLabel(user.passkeyStatus) },
+    { label: usersCopy.details.lastAccessLabel, value: resolveLastAccessLabel(user.lastAccessAt) },
+  ]
+}
+
+function UserDetailsSheet({
+  user,
+  onOpenChange,
+}: {
+  user: UserRecord | null
+  onOpenChange: (open: boolean) => void
+}) {
+  return (
+    <AppSheet
+      open={Boolean(user)}
+      onOpenChange={onOpenChange}
+      title={user?.name ?? usersCopy.details.title}
+      description={user ? resolveEmailLabel(user.email) : undefined}
+    >
+      {user ? (
+        <dl className="grid gap-4">
+          {getUserDetailItems(user).map((item) => (
+            <div key={item.label} className="grid gap-1">
+              <dt className="text-sm font-medium text-muted-foreground">{item.label}</dt>
+              <dd className="text-sm text-foreground">{item.value}</dd>
+            </div>
+          ))}
+        </dl>
+      ) : null}
+    </AppSheet>
+  )
+}
+
 export function UsersRoute() {
+  const auth = useAuth()
   const remoteMode = Boolean(getSupabaseBrowserClient()) && !shouldBypassAuthInDev()
   const {
     data,
@@ -135,9 +168,9 @@ export function UsersRoute() {
     revokeSessions,
   } = useUsers()
   const { data: units } = useUnits()
-  const { profile } = useAuthSession()
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [editingUser, setEditingUser] = React.useState<UserRecord | null>(null)
+  const [detailsUser, setDetailsUser] = React.useState<UserRecord | null>(null)
   const [pendingAction, setPendingAction] = React.useState<{
     type: "block" | "reset" | "resetPasskey" | "clearLock" | "revokeSessions"
     user: UserRecord
@@ -152,39 +185,32 @@ export function UsersRoute() {
   const isEditMode = editingUser !== null
   const selectedRole = form.watch("role")
   const isGlobalScopeRole = isGlobalRole(selectedRole)
+  const canAssignOwnerRole =
+    auth.profile?.role?.key === AUTH_ROLE_KEY.owner ||
+    auth.access.hasPermission(AUTH_PERMISSION.all)
+  const canReadUsers = auth.access.hasPermission(AUTH_PERMISSION.usersRead)
+  const canManageUsers = auth.access.hasPermission(AUTH_PERMISSION.usersManage)
+  const canCreateUsers = canManageUsers
+  const canEditUsers = canManageUsers
+  const canBlockUsers = canManageUsers
+  const canResetPasswords = canManageUsers
+  const canResetPasskeys = canManageUsers
+  const canClearLocks = canManageUsers
+  const canRevokeUserSessions = canManageUsers
+  const canExportUsers = canReadUsers
 
-  // Only owners can assign or see the "owner" role — everyone else works
-  // with a restricted role list, both in the assignment form and filters.
-  const canAssignOwnerRole = profile?.role === "owner"
-  const canCreateUsers = hasCapability(profile?.role, "admin.users.create")
-  const canEditUsers = hasCapability(profile?.role, "admin.users.update")
-  const canBlockUsers = hasCapability(profile?.role, "admin.users.disable")
-  const canResetPasswords = hasCapability(
-    profile?.role,
-    "admin.users.resetPassword"
-  )
-  const canResetPasskeys = hasCapability(
-    profile?.role,
-    "admin.users.resetPasskey"
-  )
-  const canClearLocks = hasCapability(profile?.role, "admin.users.clearLock")
-  const canRevokeUserSessions = hasCapability(
-    profile?.role,
-    "admin.users.revokeSessions"
-  )
-  const canExportUsers = hasCapability(profile?.role, "admin.users.export")
   const assignableRoleValues = React.useMemo(
     () =>
       canAssignOwnerRole
         ? userRoleValues
-        : userRoleValues.filter((role) => role !== "owner"),
+        : userRoleValues.filter((role) => role !== AUTH_ROLE_KEY.owner),
     [canAssignOwnerRole]
   )
 
   const roleOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
-        data.filter((user) => canAssignOwnerRole || user.role !== "owner"),
+        data.filter((user) => canAssignOwnerRole || user.role !== AUTH_ROLE_KEY.owner),
         (user) => user.role,
         (user) => userRoleLabels[user.role]
       ),
@@ -245,8 +271,8 @@ export function UsersRoute() {
     setIsDialogOpen(true)
   }, [form])
 
-  const handleBlockUser = React.useCallback((user: UserRecord) => {
-    void notify.track(inactivateUser(user.id), {
+  const handleBlockUser = React.useCallback(async (user: UserRecord) => {
+    await notify.track(inactivateUser(user.id), {
       loading: usersCopy.feedback.block.loading,
       success: usersCopy.feedback.block.success,
       error: (caughtError) =>
@@ -256,8 +282,8 @@ export function UsersRoute() {
     })
   }, [inactivateUser])
 
-  const handleResetAccess = React.useCallback((user: UserRecord) => {
-    void notify.track(resetAccess(user.id), {
+  const handleResetAccess = React.useCallback(async (user: UserRecord) => {
+    await notify.track(resetAccess(user.id), {
       loading: usersCopy.feedback.reset.loading,
       success: usersCopy.feedback.reset.success,
       error: (caughtError) =>
@@ -267,8 +293,8 @@ export function UsersRoute() {
     })
   }, [resetAccess])
 
-  const handleResetPasskey = React.useCallback((user: UserRecord) => {
-    void notify.track(resetPasskey(user.id), {
+  const handleResetPasskey = React.useCallback(async (user: UserRecord) => {
+    await notify.track(resetPasskey(user.id), {
       loading: usersCopy.feedback.resetPasskey.loading,
       success: usersCopy.feedback.resetPasskey.success,
       error: (caughtError) =>
@@ -278,8 +304,8 @@ export function UsersRoute() {
     })
   }, [resetPasskey])
 
-  const handleClearLock = React.useCallback((user: UserRecord) => {
-    void notify.track(clearLock(user.id), {
+  const handleClearLock = React.useCallback(async (user: UserRecord) => {
+    await notify.track(clearLock(user.id), {
       loading: usersCopy.feedback.clearLock.loading,
       success: usersCopy.feedback.clearLock.success,
       error: (caughtError) =>
@@ -289,8 +315,8 @@ export function UsersRoute() {
     })
   }, [clearLock])
 
-  const handleRevokeSessions = React.useCallback((user: UserRecord) => {
-    void notify.track(revokeSessions(user.id), {
+  const handleRevokeSessions = React.useCallback(async (user: UserRecord) => {
+    await notify.track(revokeSessions(user.id), {
       loading: usersCopy.feedback.revokeSessions.loading,
       success: usersCopy.feedback.revokeSessions.success,
       error: (caughtError) =>
@@ -347,11 +373,12 @@ export function UsersRoute() {
         title: isBlocked
           ? usersCopy.dialogs.unblockTitle
           : usersCopy.dialogs.clearLockTitle,
-        description: interpolateUserCopy(isBlocked
-          ? usersCopy.dialogs.unblockDescription
-          : usersCopy.dialogs.clearLockDescription, {
-          name: user.name,
-        }),
+        description: interpolateUserCopy(
+          isBlocked
+            ? usersCopy.dialogs.unblockDescription
+            : usersCopy.dialogs.clearLockDescription,
+          { name: user.name }
+        ),
         confirmLabel: isBlocked
           ? usersCopy.dialogs.unblockConfirm
           : usersCopy.dialogs.clearLockConfirm,
@@ -385,6 +412,9 @@ export function UsersRoute() {
         canResetPasskey: canResetPasskeys,
         canResetPassword: canResetPasswords,
         canRevokeSessions: canRevokeUserSessions,
+        canManageOwnerUser: canAssignOwnerRole,
+        currentAuthUserId: auth.profile?.authUserId ?? null,
+        onViewUserDetails: setDetailsUser,
         onBlockUser: (user) => {
           setPendingAction({ type: "block", user })
         },
@@ -409,11 +439,25 @@ export function UsersRoute() {
       canEditUsers,
       canResetPasskeys,
       canResetPasswords,
+      canAssignOwnerRole,
       canRevokeUserSessions,
+      auth.profile?.authUserId,
       handleOpenEditDialog,
       remoteMode,
     ]
   )
+
+  const emptyAction = React.useMemo<DataTableStateAction | undefined>(() => {
+    if (!canCreateUsers) {
+      return undefined
+    }
+
+    return {
+      label: usersCopy.table.emptyAction,
+      icon: <PlusIcon aria-hidden="true" />,
+      onClick: handleOpenCreateDialog,
+    }
+  }, [canCreateUsers, handleOpenCreateDialog])
 
   async function handleSubmit(values: UsersFormValues) {
     try {
@@ -470,294 +514,296 @@ export function UsersRoute() {
         title={usersCopy.page.title}
         subtitle={usersCopy.page.subtitle}
         actions={
-          canCreateUsers
-            ? (
-              <PageHeaderActions>
-                <Button
-                  type="button"
-                  variant="secondary"
-                  size="lg"
-                  onClick={handleOpenCreateDialog}
-                >
-                  <PlusIcon aria-hidden="true" />
-                  {usersCopy.actions.create}
-                </Button>
-              </PageHeaderActions>
-            )
-            : null
+          canCreateUsers ? (
+            <PageHeaderActions>
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                onClick={handleOpenCreateDialog}
+              >
+                <UserPlus2Icon aria-hidden="true" />
+                {usersCopy.actions.create}
+              </Button>
+            </PageHeaderActions>
+          ) : null
         }
       />
 
-      <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
-        <DialogContent
-          onInteractOutside={(event) => {
-            preventDialogCloseOnFloatingLayerInteraction(event)
-          }}
-        >
-          <DialogHeader>
-            <DialogTitle>
-              {isEditMode ? usersCopy.dialogs.editTitle : usersCopy.dialogs.createTitle}
-            </DialogTitle>
-            <DialogDescription>
-              {isEditMode
-                ? usersCopy.dialogs.editDescription
-                : usersCopy.dialogs.createDescription}
-            </DialogDescription>
-          </DialogHeader>
-
-          <div className="-mx-4 no-scrollbar max-h-[50vh] overflow-y-auto px-4">
-            <form
-              id={USERS_DIALOG_FORM_ID}
-              onSubmit={(event) => {
-                void form.handleSubmit(handleSubmit)(event)
-              }}
+      <AppDialog
+        open={isDialogOpen}
+        onOpenChange={handleDialogOpenChange}
+        title={isEditMode ? usersCopy.dialogs.editTitle : usersCopy.dialogs.createTitle}
+        description={isEditMode ? usersCopy.dialogs.editDescription : usersCopy.dialogs.createDescription}
+        contentProps={{
+          onInteractOutside: preventDialogCloseOnFloatingLayerInteraction,
+        }}
+        footer={
+          <div className="grid w-full grid-cols-2 gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
+              onClick={() => handleDialogOpenChange(false)}
             >
-              <FieldGroup>
-                <Controller
-                  control={form.control}
-                  name="name"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={Boolean(fieldState.error)}>
-                      <FieldLabel htmlFor="user-name">
-                        {usersCopy.form.fields.name}{" "}
-                        <span className="text-destructive">{usersCopy.form.requiredMark}</span>
-                      </FieldLabel>
-                      <Input
-                        id="user-name"
-                        className="h-9 w-full"
-                        placeholder={usersCopy.form.placeholders.name}
-                        value={field.value}
-                        onChange={field.onChange}
-                        disabled={isSaving}
-                        aria-invalid={Boolean(fieldState.error)}
-                      />
-                      {fieldState.error ? (
-                        <FieldError>{fieldState.error.message}</FieldError>
-                      ) : null}
-                    </Field>
-                  )}
-                />
-
-                <Controller
-                  control={form.control}
-                  name="cpf"
-                  render={({ field, fieldState }) => (
-                    <AuthCpfField
-                      id="user-cpf"
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      disabled={isSaving}
-                      error={fieldState.error?.message}
-                    />
-                  )}
-                />
-
-                <Controller
-                  control={form.control}
-                  name="email"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={Boolean(fieldState.error)}>
-                      <FieldLabel htmlFor="user-email">{usersCopy.form.fields.email}</FieldLabel>
-                      <Input
-                        id="user-email"
-                        type="email"
-                        className="h-9 w-full"
-                        placeholder={usersCopy.form.placeholders.email}
-                        value={field.value}
-                        onChange={field.onChange}
-                        disabled={isSaving}
-                        aria-invalid={Boolean(fieldState.error)}
-                      />
-                      {fieldState.error ? (
-                        <FieldError>{fieldState.error.message}</FieldError>
-                      ) : null}
-                    </Field>
-                  )}
-                />
-
-                <Controller
-                  control={form.control}
-                  name="phone"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={Boolean(fieldState.error)}>
-                      <FieldLabel htmlFor="user-phone">
-                        {usersCopy.form.fields.phone}{" "}
-                        <span className="text-destructive">{usersCopy.form.requiredMark}</span>
-                      </FieldLabel>
-                      <Input
-                        id="user-phone"
-                        className="h-9 w-full"
-                        placeholder={usersCopy.form.placeholders.phone}
-                        value={field.value}
-                        onChange={(event) => {
-                          field.onChange(formatPhone(onlyDigits(event.target.value)))
-                        }}
-                        disabled={isSaving}
-                        aria-invalid={Boolean(fieldState.error)}
-                      />
-                      {fieldState.error ? (
-                        <FieldError>{fieldState.error.message}</FieldError>
-                      ) : null}
-                    </Field>
-                  )}
-                />
-
-                <Controller
-                  control={form.control}
-                  name="role"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={Boolean(fieldState.error)}>
-                      <FieldLabel>
-                        {usersCopy.form.roleLabel}{" "}
-                        <span className="text-destructive">{usersCopy.form.requiredMark}</span>
-                      </FieldLabel>
-                      <Select
-                        value={field.value}
-                        onValueChange={(value) => {
-                          field.onChange(value)
-
-                          if (isGlobalRole(value as UserRecord["role"])) {
-                            form.setValue("unitId", "", {
-                              shouldDirty: true,
-                              shouldValidate: false,
-                            })
-                            form.setValue("unitName", "", {
-                              shouldDirty: true,
-                              shouldValidate: false,
-                            })
-                          }
-                        }}
-                        disabled={isSaving}
-                      >
-                        <SelectTrigger
-                          className="w-full data-[size=default]:h-9"
-                          aria-invalid={Boolean(fieldState.error)}
-                        >
-                          <SelectValue placeholder={usersCopy.form.placeholders.role} />
-                        </SelectTrigger>
-                        <SelectContent position="popper">
-                          {assignableRoleValues.map((role) => (
-                            <SelectItem key={role} value={role}>
-                              {userRoleLabels[role]}
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      {fieldState.error ? (
-                        <FieldError>{fieldState.error.message}</FieldError>
-                      ) : null}
-                    </Field>
-                  )}
-                />
-
-                <Controller
-                  control={form.control}
-                  name="unitId"
-                  render={({ field, fieldState }) => (
-                    <Field data-invalid={Boolean(fieldState.error)}>
-                      <FieldLabel htmlFor="user-unit">
-                        {usersCopy.form.unitLabel}
-                        {!isGlobalScopeRole ? (
-                          <span className="text-destructive">*</span>
-                        ) : null}
-                      </FieldLabel>
-                      <Combobox<UnitOption>
-                        items={unitOptions}
-                        value={
-                          isGlobalScopeRole
-                            ? null
-                            : unitOptions.find((unit) => unit.value === field.value) ||
-                            null
-                        }
-                        onValueChange={(value) => {
-                          field.onChange(value?.value || "")
-                          form.setValue("unitName", value?.label || "", {
-                            shouldDirty: true,
-                            shouldValidate: false,
-                          })
-                        }}
-                        itemToStringLabel={(unit) => unit.label}
-                        itemToStringValue={(unit) => `${unit.value} ${unit.label}`}
-                        disabled={isSaving || isGlobalScopeRole}
-                      >
-                        <ComboboxInput
-                          id="user-unit"
-                          className="h-9 w-full"
-                          placeholder={
-                            isGlobalScopeRole
-                              ? usersCopy.form.globalUnitPlaceholder
-                              : usersCopy.form.unitPlaceholder
-                          }
-                          disabled={isSaving || isGlobalScopeRole}
-                          aria-invalid={Boolean(fieldState.error)}
-                        >
-                          <InputGroupAddon>
-                            <SearchIcon />
-                          </InputGroupAddon>
-                        </ComboboxInput>
-                        <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
-                          <ComboboxEmpty>{usersCopy.form.unitEmpty}</ComboboxEmpty>
-                          <ComboboxList>
-                            <ComboboxCollection>
-                              {(unit: UnitOption) => (
-                                <ComboboxItem key={unit.value} value={unit}>
-                                  {unit.label}
-                                </ComboboxItem>
-                              )}
-                            </ComboboxCollection>
-                          </ComboboxList>
-                        </ComboboxContent>
-                      </Combobox>
-                      {isGlobalScopeRole ? (
-                        <p className="text-xs text-muted-foreground">
-                          {usersCopy.form.globalScopeHint}
-                        </p>
-                      ) : null}
-                      {fieldState.error ? (
-                        <FieldError>{fieldState.error.message}</FieldError>
-                      ) : null}
-                    </Field>
-                  )}
-                />
-
-                <Controller
-                  control={form.control}
-                  name="firstAccessPassword"
-                  render={({ field, fieldState }) => (
-                    <AuthPasswordField
-                      id="user-password"
-                      label={usersCopy.form.passwordLabel}
-                      value={field.value}
-                      onValueChange={field.onChange}
-                      error={fieldState.error?.message}
-                      disabled={isSaving}
-                      autoComplete="new-password"
-                      description={usersCopy.form.passwordDescription}
-                      required={!isEditMode}
-                    />
-                  )}
-                />
-              </FieldGroup>
-            </form>
-          </div>
-          <DialogFooter className="grid grid-cols-2 sm:grid-cols-2">
-            <DialogClose asChild>
-              <Button type="button" variant="outline" size="lg" className="w-full">
-                {usersCopy.dialogs.cancel}
-              </Button>
-            </DialogClose>
+              {usersCopy.dialogs.cancel}
+            </Button>
             <Button
               type="submit"
               form={USERS_DIALOG_FORM_ID}
               size="lg"
-              className="w-full"
               disabled={isSaving}
             >
               {isEditMode ? usersCopy.actions.save : usersCopy.actions.create}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </div>
+        }
+      >
+        <form
+          id={USERS_DIALOG_FORM_ID}
+          onSubmit={(event) => {
+            void form.handleSubmit(handleSubmit)(event)
+          }}
+        >
+          <FieldGroup>
+            <Controller
+              control={form.control}
+              name="name"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={Boolean(fieldState.error)}>
+                  <FieldLabel htmlFor="user-name">
+                    {usersCopy.form.fields.name}
+                    <RequiredMark />
+                  </FieldLabel>
+                  <Input
+                    id="user-name"
+                    className="h-9 w-full"
+                    placeholder={usersCopy.form.placeholders.name}
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isSaving}
+                    aria-invalid={Boolean(fieldState.error)}
+                  />
+                  {fieldState.error ? (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  ) : null}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="cpf"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={Boolean(fieldState.error)}>
+                  <FieldLabel htmlFor="user-cpf">
+                    {usersCopy.form.fields.cpf}
+                    <RequiredMark />
+                  </FieldLabel>
+                  <Input
+                    id="user-cpf"
+                    className="h-9 w-full"
+                    value={field.value}
+                    onChange={(event) => field.onChange(formatCpfInput(event.target.value))}
+                    disabled={isSaving}
+                    inputMode="numeric"
+                    autoComplete="username"
+                    aria-invalid={Boolean(fieldState.error)}
+                  />
+                  {fieldState.error ? (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  ) : null}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="email"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={Boolean(fieldState.error)}>
+                  <FieldLabel htmlFor="user-email">{usersCopy.form.fields.email}</FieldLabel>
+                  <Input
+                    id="user-email"
+                    type="email"
+                    className="h-9 w-full"
+                    placeholder={usersCopy.form.placeholders.email}
+                    value={field.value}
+                    onChange={field.onChange}
+                    disabled={isSaving}
+                    aria-invalid={Boolean(fieldState.error)}
+                  />
+                  {fieldState.error ? (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  ) : null}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="phone"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={Boolean(fieldState.error)}>
+                  <FieldLabel htmlFor="user-phone">
+                    {usersCopy.form.fields.phone}
+                    <RequiredMark />
+                  </FieldLabel>
+                  <Input
+                    id="user-phone"
+                    className="h-9 w-full"
+                    placeholder={usersCopy.form.placeholders.phone}
+                    value={field.value}
+                    onChange={(event) => {
+                      field.onChange(formatPhone(onlyDigits(event.target.value)))
+                    }}
+                    disabled={isSaving}
+                    inputMode="tel"
+                    autoComplete="tel"
+                    aria-invalid={Boolean(fieldState.error)}
+                  />
+                  {fieldState.error ? (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  ) : null}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="role"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={Boolean(fieldState.error)}>
+                  <FieldLabel>
+                    {usersCopy.form.roleLabel}
+                    <RequiredMark />
+                  </FieldLabel>
+                  <Select
+                    value={field.value}
+                    onValueChange={(value) => {
+                      field.onChange(value)
+
+                      if (isGlobalRole(value)) {
+                        form.setValue("unitId", "", {
+                          shouldDirty: true,
+                          shouldValidate: false,
+                        })
+                        form.setValue("unitName", "", {
+                          shouldDirty: true,
+                          shouldValidate: false,
+                        })
+                      }
+                    }}
+                    disabled={isSaving}
+                  >
+                    <SelectTrigger
+                      className="w-full data-[size=default]:h-9"
+                      aria-invalid={Boolean(fieldState.error)}
+                    >
+                      <SelectValue placeholder={usersCopy.form.placeholders.role} />
+                    </SelectTrigger>
+                    <SelectContent position="popper">
+                      {assignableRoleValues.map((role) => (
+                        <SelectItem key={role} value={role}>
+                          {userRoleLabels[role]}
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                  {fieldState.error ? (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  ) : null}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="unitId"
+              render={({ field, fieldState }) => (
+                <Field data-invalid={Boolean(fieldState.error)}>
+                  <FieldLabel htmlFor="user-unit">
+                    {usersCopy.form.unitLabel}
+                    {!isGlobalScopeRole ? <RequiredMark /> : null}
+                  </FieldLabel>
+                  <Combobox<UnitOption>
+                    items={unitOptions}
+                    value={
+                      isGlobalScopeRole
+                        ? null
+                        : unitOptions.find((unit) => unit.value === field.value) || null
+                    }
+                    onValueChange={(value) => {
+                      field.onChange(value?.value || "")
+                      form.setValue("unitName", value?.label || "", {
+                        shouldDirty: true,
+                        shouldValidate: false,
+                      })
+                    }}
+                    itemToStringLabel={(unit) => unit.label}
+                    itemToStringValue={(unit) => `${unit.value} ${unit.label}`}
+                    disabled={isSaving || isGlobalScopeRole}
+                  >
+                    <ComboboxInput
+                      id="user-unit"
+                      className="h-9 w-full"
+                      placeholder={
+                        isGlobalScopeRole
+                          ? usersCopy.form.globalUnitPlaceholder
+                          : usersCopy.form.unitPlaceholder
+                      }
+                      disabled={isSaving || isGlobalScopeRole}
+                      aria-invalid={Boolean(fieldState.error)}
+                    >
+                      <InputGroupAddon>
+                        <SearchIcon />
+                      </InputGroupAddon>
+                    </ComboboxInput>
+                    <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
+                      <ComboboxEmpty>{usersCopy.form.unitEmpty}</ComboboxEmpty>
+                      <ComboboxList>
+                        <ComboboxCollection>
+                          {(unit: UnitOption) => (
+                            <ComboboxItem key={unit.value} value={unit}>
+                              {unit.label}
+                            </ComboboxItem>
+                          )}
+                        </ComboboxCollection>
+                      </ComboboxList>
+                    </ComboboxContent>
+                  </Combobox>
+                  {isGlobalScopeRole ? (
+                    <p className="text-xs text-muted-foreground">
+                      {usersCopy.form.globalScopeHint}
+                    </p>
+                  ) : null}
+                  {fieldState.error ? (
+                    <FieldError>{fieldState.error.message}</FieldError>
+                  ) : null}
+                </Field>
+              )}
+            />
+
+            <Controller
+              control={form.control}
+              name="firstAccessPassword"
+              render={({ field, fieldState }) => (
+                <AppPasswordField
+                  id="user-password"
+                  label={usersCopy.form.passwordLabel}
+                  value={field.value}
+                  onChange={field.onChange}
+                  error={fieldState.error?.message}
+                  disabled={isSaving}
+                  autoComplete="new-password"
+                  description={usersCopy.form.passwordDescription}
+                  required={!isEditMode}
+                />
+              )}
+            />
+          </FieldGroup>
+        </form>
+      </AppDialog>
 
       <DataTable
         columns={columns}
@@ -795,6 +841,7 @@ export function UsersRoute() {
             options: unitFilterOptions,
           },
         ]}
+        emptyAction={emptyAction}
         isLoading={isLoading}
         error={error}
         onRetry={() => {
@@ -805,20 +852,38 @@ export function UsersRoute() {
         enableViewOptions
       />
 
-      <DestructiveConfirmDialog
-        size="sm"
+      <UserDetailsSheet
+        user={detailsUser}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailsUser(null)
+          }
+        }}
+      />
+
+      <AppAlertDialog
         open={Boolean(pendingAction)}
         onOpenChange={(open) => {
           if (!open) {
             setPendingAction(null)
           }
         }}
+        media={<ShieldAlertIcon />}
         title={pendingActionConfig?.title ?? ""}
         description={pendingActionConfig?.description ?? ""}
-        confirmLabel={pendingActionConfig?.confirmLabel}
-        onConfirm={() => {
-          pendingActionConfig?.onConfirm()
-          setPendingAction(null)
+        cancelLabel={usersCopy.dialogs.cancel}
+        actionLabel={pendingActionConfig?.confirmLabel}
+        onAction={async () => {
+          if (!pendingActionConfig) {
+            return
+          }
+
+          try {
+            await pendingActionConfig.onConfirm()
+            setPendingAction(null)
+          } catch {
+            return
+          }
         }}
       />
     </PageSection>
