@@ -2,12 +2,8 @@ import { type ColumnDef } from "@tanstack/react-table"
 
 import { formatDateTime } from "@/lib"
 
-import {
-  createActionsColumn,
-  createDataTableDetailsAction,
-  DataTableDetails,
-  DataTableDetailsTextTrigger,
-} from "@/components/data-table"
+import { createActionsColumn } from "@/components/data-table"
+import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
@@ -51,31 +47,25 @@ export function getAuditOutcomeLabel(event: AuditEvent) {
 }
 
 export function getAuditEventDetails(event: AuditEvent) {
-  return {
-    title: `${event.eventLabel} · ${event.actorName}`,
-    description: event.reason || "Sem informações adicionais.",
-    items: [
-      { label: "Data/hora", value: formatDateTime(event.occurredAt) },
-      { label: "Responsável", value: event.actorName },
-      { label: "Escopo", value: auditScopeLabels[event.scope] },
-      { label: "Evento", value: event.eventLabel },
-      { label: "Alvo", value: event.target || "—" },
-      { label: "Resultado", value: getAuditOutcomeLabel(event) },
-      { label: "Severidade", value: auditSeverityLabels[event.severity] },
-      { label: "Motivo", value: event.reason ?? "—" },
-      {
-        label: "Detalhes",
-        value: event.metadata ? JSON.stringify(event.metadata) : "—",
-      },
-    ],
-  }
+  return [
+    { label: "Data/hora", value: formatDateTime(event.occurredAt) },
+    { label: "Responsável", value: event.actorName },
+    { label: "Escopo", value: auditScopeLabels[event.scope] },
+    { label: "Evento", value: event.eventLabel },
+    { label: "Alvo", value: event.target || "—" },
+    { label: "Resultado", value: getAuditOutcomeLabel(event) },
+    { label: "Severidade", value: auditSeverityLabels[event.severity] },
+    { label: "Motivo", value: event.reason ?? "—" },
+    {
+      label: "Detalhes",
+      value: event.metadata ? JSON.stringify(event.metadata) : "—",
+    },
+  ]
 }
 
-export function createAuditColumns(): ColumnDef<AuditEvent>[] {
-  const detailsAction = createDataTableDetailsAction<AuditEvent>((row) =>
-    getAuditEventDetails(row.original)
-  )
-
+export function createAuditColumns(options: {
+  onOpenDetails?: (event: AuditEvent) => void
+} = {}): ColumnDef<AuditEvent>[] {
   return [
     {
       accessorKey: "occurredAt",
@@ -88,14 +78,16 @@ export function createAuditColumns(): ColumnDef<AuditEvent>[] {
       meta: { label: "Responsável" },
       header: "Responsável",
       cell: ({ row }) => (
-        <DataTableDetails
-          {...getAuditEventDetails(row.original)}
-          trigger={
-            <DataTableDetailsTextTrigger>
-              {row.original.actorName}
-            </DataTableDetailsTextTrigger>
-          }
-        />
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto justify-start px-0 text-left font-medium"
+          onClick={() => {
+            options.onOpenDetails?.(row.original)
+          }}
+        >
+          {row.original.actorName}
+        </Button>
       ),
     },
     {
@@ -148,6 +140,14 @@ export function createAuditColumns(): ColumnDef<AuditEvent>[] {
         </div>
       ),
     },
-    createActionsColumn<AuditEvent>([detailsAction]),
+    createActionsColumn<AuditEvent>([
+      {
+        id: "details",
+        label: "Detalhes",
+        onSelect: (row) => {
+          options.onOpenDetails?.(row.original)
+        },
+      },
+    ]),
   ]
 }

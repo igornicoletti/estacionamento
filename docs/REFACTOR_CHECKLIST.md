@@ -1,6 +1,6 @@
 # Refactor Checklist
 
-> Escopo: mock funcional por enquanto, sem banco. A lista abaixo foca em estabilidade, consistência, reutilização, limpeza estrutural e preparação para a fase de BD.
+> Escopo atualizado em 2026-07-13: aplicação com Supabase Auth, Edge Functions, RLS e RPCs comerciais. A lista abaixo foca em estabilidade, consistência, reutilização, limpeza estrutural e contratos antirregressão.
 
 ## Como usar
 
@@ -11,7 +11,7 @@
 ## src/app/router
 
 - [x] `P0` Consolidar padrões de loading/error/empty em rotas públicas, protegidas e fallback.
-- [x] `P1` Verificar consistência entre `route-definitions`, `routes.tsx` e `default-route-redirect.tsx`.
+- [x] `P1` Verificar consistência entre `route-registry.ts`, `route-elements.tsx` e guards de rota.
 - [x] `P1` Garantir que `not-found-route.tsx` e `route-access-denied.tsx` usem a mesma linguagem visual e de copy.
 - [x] `P2` Revisar textos de ajuda e subtítulos para evitar redundância entre páginas.
 
@@ -85,14 +85,14 @@
 
 ## src/features/prices
 
-- [ ] `P1` Revisar o motivo de existência do módulo no mock funcional e alinhar escopo.
-- [ ] `P2` Remover código morto ou hooks/componentes não utilizados.
+- [x] `P1` Alinhar escopo comercial com Supabase RPC transacional e auditoria.
+- [x] `P2` Remover dependência de persistência local como autoridade de produção.
 
 ## src/features/rules
 
-- [ ] `P1` Consolidar regras VIP por domínio (cliente/veículo) com contratos claros.
-- [ ] `P1` Revisar persistência/mutação no mock para facilitar migração futura para BD.
-- [ ] `P2` Padronizar filtros, labels e ações de tabela.
+- [x] `P1` Consolidar regras VIP por domínio (cliente/veículo) com contratos claros.
+- [x] `P1` Persistir mutações críticas por RPC versionada e auditada.
+- [x] `P2` Padronizar filtros, labels e ações de tabela.
 
 ## src/features/settings
 
@@ -145,15 +145,15 @@
 
 ## supabase
 
-- [ ] `P0` Quando a fase de BD começar, criar migrations e validar execução remota antes de concluir qualquer mudança de schema.
-- [ ] `P1` Definir estratégia de migração incremental para substituir mocks em memória por persistência real.
-- [ ] `P1` Mapear quais serviços precisam virar edge functions, queries ou políticas.
-- [ ] `P2` Atualizar configurações e tipos gerados após cada mudança de schema.
+- [x] `P0` Criar migrations comerciais e de autorização com RLS, grants explícitos e RPCs.
+- [x] `P1` Definir escrita comercial por RPC transacional em vez de mutação direta do client.
+- [x] `P1` Mapear funções públicas e administrativas com `verify_jwt` explícito.
+- [ ] `P2` Atualizar tipos gerados após aplicar migrations no projeto remoto.
 
 ## scripts
 
-- [ ] `P1` Revisar scripts de validação para cobrir lint, typecheck e checks de consistência do mock funcional.
-- [ ] `P2` Simplificar scripts duplicados ou sem uso claro.
+- [x] `P1` Revisar script de validação para cobrir contratos auditados de auth, Supabase, CI e UI.
+- [x] `P2` Remover expectativas obsoletas de arquivos legados.
 
 ## public
 

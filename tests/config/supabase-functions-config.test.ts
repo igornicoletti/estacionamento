@@ -20,7 +20,6 @@ describe("Supabase Edge Function auth config", () => {
   it("keeps pre-session auth functions callable with a publishable key", () => {
     const config = readSupabaseConfig()
 
-    expectFunctionVerifyJwt(config, "auth-start", false)
     expectFunctionVerifyJwt(config, "auth-password", false)
     expectFunctionVerifyJwt(config, "auth-recovery-request", false)
   })

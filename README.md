@@ -1,8 +1,8 @@
-# Generic shadcn Data Table
+# Estacionamento
 
-Aplicação Vite + React + TypeScript para validar uma `DataTable` genérica e reutilizável baseada em TanStack Table, shadcn/ui, Tailwind CSS, React Router, Sonner, Zod e Supabase.
+Aplicação Vite + React + TypeScript para operação administrativa do estacionamento, com `DataTable` genérica baseada em TanStack Table, shadcn/ui, Tailwind CSS, React Router, Sonner, Zod e Supabase.
 
-O objetivo deste diretório é manter a tabela como um bloco independente do domínio. Os dados seguem mockados enquanto a estrutura geral do produto evolui para sidebar, header, formulários e integrações reais.
+O projeto separa o core visual reutilizável (`src/components`) dos módulos de domínio (`src/features`). Em produção, autenticação, autorização, preços, regras comerciais e auditoria dependem de Supabase Auth, Edge Functions, RLS e RPCs transacionais.
 
 ## Stack
 
@@ -13,7 +13,7 @@ O objetivo deste diretório é manter a tabela como um bloco independente do dom
 - Tailwind CSS 4 com `@tailwindcss/vite`
 - shadcn/ui v4
 - TanStack Table v8
-- Supabase Auth, Edge Functions e RLS
+- Supabase Auth, Edge Functions, Postgres, RLS e RPC
 - React Hook Form
 - Sonner
 - Zod 4
@@ -24,84 +24,104 @@ O objetivo deste diretório é manter a tabela como um bloco independente do dom
 
 - `/login`
 - `/recuperar-acesso`
+- `/`
 - `/unidades`
+- `/unidades/:cod_empresa/usuarios`
 - `/clientes`
-- `/clientes/:id` exibe os veículos vinculados ao cliente selecionado
+- `/clientes/:cod_pessoa`
+- `/precos`
+- `/regras`
 - `/usuarios`
-- `/perfil`
+- `/solicitacoes-acesso`
+- `/perfis-permissoes`
 - `/auditoria`
-- `/` redireciona para `/unidades`
-- `*` renderiza a página 404 com busca dinâmica baseada nas rotas cadastradas
+- `/notificacoes`
+- `/configuracoes`
+- `/perfil`
+- `*`
 
-As rotas internas são protegidas por sessão Supabase e perfil empresarial `active`. A rota direta de veículos foi removida; veículos são acessados pelo contexto do cliente. A estrutura usa `React.lazy`, `Suspense`, `ProtectedRoute` e metadados centralizados em `src/app/router/route-definitions.ts`.
+As rotas públicas e protegidas são descritas em `src/app/router/route-registry.ts` e renderizadas por `src/app/router/route-elements.tsx`. Rotas internas exigem sessão Supabase, perfil empresarial `active` e permissões explícitas do contrato `src/features/auth/contracts/auth-contracts.ts`.
 
 ## Arquitetura
 
 ```txt
-shadcn-data-table-generic/
+estacionamento/
+├── .github/workflows/
 ├── docs/
-├── supabase/
-│   ├── migrations/
-│   └── functions/
 ├── scripts/
-├── tests/
-│   ├── auth/
-│   ├── setup.ts
-│   ├── components/
-│   │   ├── data-table/
-│   │   └── toast/
-│   └── mocks/
 ├── src/
 │   ├── app/
 │   │   ├── layouts/
 │   │   └── router/
-│   ├── config/
 │   ├── components/
 │   │   ├── data-table/
+│   │   ├── shared/
 │   │   ├── sidebar/
 │   │   ├── toast/
 │   │   └── ui/
-│   ├── assets/
-│   │   └── brand/
+│   ├── config/
 │   ├── features/
-│   │   ├── auth/
+│   │   ├── access-requests/
 │   │   ├── audit/
-│   │   ├── profile/
-│   │   ├── users/
-│   │   └── data-table/
-│   │       ├── columns/
-│   │       ├── components/
-│   │       ├── routes/
-│   │       │   ├── clients/
-│   │       │   ├── units/
-│   │       │   └── users/
-│   │       ├── table-details.ts
-│   │       └── table-config.ts
-│   ├── mocks/
-│   │   └── table-data/
+│   │   ├── auth/
+│   │   ├── clients/
+│   │   ├── notifications/
+│   │   ├── permissions/
+│   │   ├── prices/
+│   │   ├── rules/
+│   │   ├── settings/
+│   │   ├── units/
+│   │   └── users/
+│   ├── hooks/
 │   ├── lib/
 │   ├── App.tsx
-│   ├── index.css
 │   └── main.tsx
-└── componentes e configs do projeto
+├── supabase/
+│   ├── functions/
+│   └── migrations/
+└── tests/
 ```
 
 ## Responsabilidades
 
-- `src/components/data-table/`: engine genérica da tabela. Não importa mocks, rotas ou colunas de domínio.
-- `src/components/sidebar/`: shell lateral e header do produto, composto sobre componentes shadcn/ui.
-- `src/components/toast/`: API central de notificações com sanitização e tradução antes de exibir mensagens.
-- `src/components/ui/`: componentes shadcn/ui do projeto.
-- `src/app/router/route-definitions.ts`: fonte única dos metadados de rotas.
-- `src/features/auth/`: fluxo progressivo CPF, passkey, senha fallback e recuperação de acesso.
-- `src/features/users/`: cadastro administrativo e regras de perfil/unidade.
-- `src/features/profile/`: senha fallback, telefone, passkeys e sessões do usuário.
-- `src/features/audit/`: logs de login e logs do sistema.
-- `src/features/data-table/`: implementação do domínio atual de tabelas, incluindo rotas, colunas, configuração e mapeamento de detalhes.
-- `supabase/migrations/`: schema, RLS, auditoria, rate limit e recuperação.
-- `supabase/functions/`: Edge Functions públicas e administrativas.
-- `tests/`: testes fora de `src`, separados por contexto.
-- `docs/`: relatórios de validação e auditoria.
+- `src/components/data-table/`: engine genérica de tabela; não importa mocks, rotas nem features.
+- `src/components/sidebar/`: shell lateral, navegação, perfil e popover de notificações.
+- `src/components/toast/`: API central de feedback com sanitização antes de exibir mensagens.
+- `src/app/router/`: metadados de rota, lazy loading, guards, fallbacks e error boundary.
+- `src/features/auth/`: sessão, autenticação por CPF/senha, recuperação, permissões e inatividade.
+- `src/features/prices/`: tabelas comerciais versionadas via RPC `create_commercial_price_table`.
+- `src/features/rules/`: regras VIP versionadas via RPC `save_vip_rule_version`.
+- `src/features/users/`: administração de usuários, bloqueio, fatores e sessões via Edge Functions.
+- `supabase/functions/`: funções públicas de auth e funções administrativas com JWT.
+- `supabase/migrations/`: schema, RLS, permissões, RPCs, auditoria e restrições comerciais.
+- `tests/`: testes unitários e de rota fora de `src`.
+- `scripts/validate-package.mjs`: validador estrutural contra regressões auditadas.
+
+## Ambiente
+
+Copie as variáveis necessárias a partir de `.env.example`.
+
+- `VITE_SUPABASE_URL`
+- `VITE_SUPABASE_ANON_KEY`
+- `VITE_APP_ORIGIN`
+- `APP_HMAC_SECRET`
+- `APP_ALLOWED_ORIGINS`
+
+Em produção, `VITE_APP_ORIGIN` e `VITE_SUPABASE_URL` devem usar HTTPS. O client valida a origem em runtime para evitar execução em domínio não autorizado.
+
+## Supabase
+
+Configuração local principal em `supabase/config.toml`:
+
+- signup público desabilitado;
+- senha mínima de 12 caracteres com letras maiúsculas, minúsculas, números e símbolos;
+- troca de senha com reautenticação;
+- sessão limitada por inatividade de 15 minutos e timebox de 24 horas;
+- funções `auth-password` e `auth-recovery-request` públicas com CORS/HMAC;
+- função `admin-user-auth-factors` protegida por JWT;
+- permissões comerciais `prices.manage` e `rules.manage` aplicadas em RLS e RPCs.
+
+Antes de usar o ambiente remoto, aplique as migrations e publique as Edge Functions correspondentes ao mesmo commit.
 
 ## Comandos
 
@@ -110,68 +130,28 @@ pnpm dev
 pnpm validate
 pnpm lint
 pnpm typecheck
+pnpm typecheck:test
 pnpm test
 pnpm build
 ```
 
-## Checklist de habilitação de passkey
+Para checar funções Supabase localmente:
 
-1. Ative Passkeys no Supabase Dashboard em Authentication > Providers > Passkey.
-2. Em desenvolvimento, use uma origin HTTP local consistente (`http://localhost:5173` ou `http://localhost:5174`).
-3. Ajuste `VITE_APP_ORIGIN` para a origin real usada no navegador.
-4. Mantenha `VITE_WEBAUTHN_RP_ID=localhost` no ambiente local.
-5. Garanta que a URL local esteja permitida em `additional_redirect_urls` no `supabase/config.toml`.
-6. Valide login: clicar em Entrar com passkey deve abrir o prompt WebAuthn, sem erro `Passkeys are disabled`.
-7. Se aparecer `Passkeys are disabled`, o problema e de configuracao do projeto Supabase, nao do frontend.
+```bash
+deno check supabase/functions/<function-name>/index.ts
+```
 
-## Checklist de integração ERP de unidades
+## CI
 
-1. Confirmar credenciais Basic Auth válidas do Hub API (usuário e senha).
-2. Configurar secrets no Supabase para Edge Functions:
-
-- ERP_BASE_URL
-- ERP_UNITS_ENDPOINT
-- ERP_CLIENTS_ENDPOINT
-- ERP_CLIENT_VEHICLES_ENDPOINT
-- ERP_REQUEST_TIMEOUT_MS
-- ERP_API_TOKEN (preferencial)
-- ERP_BEARER_TOKEN (alternativa)
-- ERP_BASIC_USERNAME
-- ERP_BASIC_PASSWORD
-- UNITS_SYNC_SECRET
-- CLIENTS_SYNC_SECRET
-
-3. Regras de segurança para URL e ambiente:
-
-- Em produção, `ERP_BASE_URL` deve ser HTTPS e nunca apontar para `localhost`.
-- Em desenvolvimento local, use `http://localhost:5173` para o frontend e mantenha `VITE_APP_ORIGIN` consistente com a URL aberta no navegador.
-- Não versionar tokens/senhas em arquivos `.env` rastreados no Git.
-
-3. Publicar a função units-sync no projeto remoto.
-2. Executar migrations 0007 e 0008 no banco remoto.
-3. Configurar os crons chamando a função SQL:
-
-- select private.configure_units_sync_cron('https://<project-ref>.supabase.co', '<UNITS_SYNC_SECRET>', '*/30 * * * *', '0 3 * * *');
-
-6. Validar execução manual na UI de Unidades pelo botão Sincronizar.
-
-- Em caso de timeout do ERP, a API retorna 504 e o usuário deve tentar novamente.
-
-7. Validar histórico na modal Histórico e conferência dos contadores.
-2. Validar trilha de auditoria para eventos unit.synced e unit.yard_updated.
-3. Não versionar tokens/senhas em arquivos .env versionados.
+`.github/workflows/ci.yml` executa instalação congelada, validação estrutural, lint, typecheck da aplicação, typecheck dos testes, Vitest, build e `deno check` das Edge Functions.
 
 ## Decisões
 
 - Imports shadcn usam `@/components/ui/*`.
-- Alias `@` aponta para `src` também no `tsconfig.json` raiz, para o shadcn CLI resolver `src/components/ui`.
+- Alias `@` aponta para `src`.
 - A aplicação usa modo claro por padrão.
 - O azul da marca é `oklch(0.7188 0.1679 216.84)`.
-- Cada tabela possui um único campo de busca via `globalSearch`.
-- As tabelas atuais não exibem coluna de seleção por checkbox.
-- O rodapé da tabela exibe `Exibindo X de X item/itens`.
-- Veículos são um recurso contextual de Clientes e não possuem rota direta de navegação.
-- Login usa CPF como entrada, mas CPF completo não é persistido no frontend, URL, JWT ou auditoria.
-- RP ID de produção para passkeys: `estacionamento.redemontecarlo.com.br`.
-- Usuários internos só acessam rotas protegidas com status empresarial `active`.
-- Dados mockados permanecem até a estrutura de shell, formulários e integração real ser definida.
+- Veículos são recurso contextual de Clientes e não têm rota de navegação direta.
+- CPF completo não deve ser persistido em frontend, URL, JWT ou auditoria.
+- Barrels não exportam componentes de rota carregados por `React.lazy`.
+- Escritas comerciais críticas são transacionais no banco, versionadas e auditadas.

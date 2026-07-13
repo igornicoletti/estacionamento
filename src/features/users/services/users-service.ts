@@ -107,7 +107,22 @@ function assertAdminFunctionResponse(
     throw new Error(getResponseMessage(response.data) ?? fallbackMessage)
   }
 
-  return response.data as AdminFunctionResponse
+  return {
+    ok: true,
+    appUserId:
+      typeof response.data.appUserId === "string"
+        ? response.data.appUserId
+        : undefined,
+    authUserId:
+      typeof response.data.authUserId === "string"
+        ? response.data.authUserId
+        : undefined,
+    id: typeof response.data.id === "string" ? response.data.id : undefined,
+    message:
+      typeof response.data.message === "string"
+        ? response.data.message
+        : undefined,
+  }
 }
 
 function getAdminReturnedId(response: AdminFunctionResponse) {
@@ -146,11 +161,21 @@ async function listUnitsCatalog(): Promise<UnitCatalogItem[]> {
 }
 
 function isRemoteUsersEnabled() {
-  if (import.meta.env.MODE === "test") {
+  if (isMemoryUsersEnabled()) {
     return false
   }
 
   return Boolean(getSupabaseBrowserClient()) && !shouldBypassAuthInDev()
+}
+
+function isMemoryUsersEnabled() {
+  return import.meta.env.MODE === "test"
+}
+
+function assertUsersBackendConfigured() {
+  if (!isRemoteUsersEnabled() && !isMemoryUsersEnabled()) {
+    throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)
+  }
 }
 
 function getRelatedUnitId(value: RawAppUserRow["app_user_units"]) {
@@ -223,7 +248,7 @@ async function listLastAccessByAuthUserId() {
   }
 
   if (response.error) {
-    return new Map<string, string | null>()
+    throw new Error(usersCopy.errors.load)
   }
 
   return new Map((response.data ?? []).map((row) => [row.auth_user_id, row.last_sign_in_at]))
@@ -244,7 +269,7 @@ async function listAuthFactorsByAuthUserId() {
   }
 
   if (response.error || !response.data) {
-    return new Map<string, RawAuthFactorRow>()
+    throw new Error(usersCopy.errors.load)
   }
 
   return new Map((response.data.factors ?? []).map((factor) => [factor.auth_user_id, factor]))
@@ -363,7 +388,7 @@ async function createUserInSupabase(input: CreateUserInput): Promise<UserRecord>
     }
   )
   const response = assertAdminFunctionResponse(
-    createResponse as { data: unknown; error: unknown },
+    createResponse,
     usersCopy.errors.create
   )
   const returnedId = getAdminReturnedId(response)
@@ -410,7 +435,7 @@ async function updateUserInSupabase(input: UpdateUserInput): Promise<UserRecord>
     }
   )
   assertAdminFunctionResponse(
-    updateResponse as { data: unknown; error: unknown },
+    updateResponse,
     usersCopy.errors.update
   )
 
@@ -453,7 +478,7 @@ async function invokeAdminUserAction(
     }
   )
   assertAdminFunctionResponse(
-    actionResponse as { data: unknown; error: unknown },
+    actionResponse,
     errorMessage
   )
 
@@ -574,23 +599,27 @@ export async function listUsers(): Promise<UserRecord[]> {
     return listUsersFromSupabase()
   }
 
+  assertUsersBackendConfigured()
   return getUsersGateway().list()
 }
 
 export async function createUser(input: CreateUserInput): Promise<UserRecord> {
   assertValidUserInput(input, { requireFirstAccessPassword: true })
 
+  assertUsersBackendConfigured()
   return isRemoteUsersEnabled() ? createUserInSupabase(input) : createUserInMemory(input)
 }
 
 export async function updateUser(input: UpdateUserInput): Promise<UserRecord> {
   assertValidUserInput(input, { requireFirstAccessPassword: false })
 
+  assertUsersBackendConfigured()
   return isRemoteUsersEnabled() ? updateUserInSupabase(input) : updateUserInMemory(input)
 }
 
 export async function blockUser(userId: string): Promise<UserRecord> {
   assertActionUserId(userId)
+  assertUsersBackendConfigured()
 
   return isRemoteUsersEnabled()
     ? invokeAdminUserAction("admin-user-block", userId, BLOCK_USER_REASON, usersCopy.feedback.block.error)
@@ -599,6 +628,7 @@ export async function blockUser(userId: string): Promise<UserRecord> {
 
 export async function resetUserAccess(userId: string): Promise<UserRecord> {
   assertActionUserId(userId)
+  assertUsersBackendConfigured()
 
   return isRemoteUsersEnabled()
     ? invokeAdminUserAction("admin-user-reset-password", userId, RESET_ACCESS_REASON, usersCopy.feedback.reset.error)

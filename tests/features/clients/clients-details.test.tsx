@@ -85,7 +85,7 @@ describe("ClientsRoute details", () => {
       screen.getAllByRole("button", { name: "Abrir ações da linha" })[0]
     )
 
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Informações" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Detalhes" }))
 
     expect(screen.getAllByText("Código do cliente").length).toBeGreaterThan(0)
   })

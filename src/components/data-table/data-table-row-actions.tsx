@@ -19,24 +19,16 @@ type DataTableRowActionVariant = "default" | "destructive"
 interface DataTableBaseRowAction {
   id: string
   label: string
+  disabled?: boolean
+  onSelect?: (row: Row<unknown>) => void
   shortcut?: string
   variant?: DataTableRowActionVariant
   separatorBefore?: boolean
 }
 
-interface EnabledDataTableRowAction<TData> extends DataTableBaseRowAction {
-  disabled?: false
-  onSelect: (row: Row<TData>) => void
+export interface DataTableRowAction<TData> extends Omit<DataTableBaseRowAction, "onSelect"> {
+  onSelect?: (row: Row<TData>) => void
 }
-
-interface DisabledDataTableRowAction extends DataTableBaseRowAction {
-  disabled: true
-  onSelect?: never
-}
-
-export type DataTableRowAction<TData> =
-  | EnabledDataTableRowAction<TData>
-  | DisabledDataTableRowAction
 
 interface DataTableRowActionsProps<TData> {
   row: Row<TData>
@@ -105,7 +97,7 @@ export function DataTableRowActions<TData>({
               onSelect={(event) => {
                 event.stopPropagation()
 
-                if (!action.disabled) {
+                if (!action.disabled && action.onSelect) {
                   action.onSelect(row)
                 }
               }}

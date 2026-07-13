@@ -9,19 +9,13 @@ import {
   type NotificationRecord,
 } from "@/features/notifications"
 import {
-  createMemoryVipRulesGateway,
-  setVipRulesGateway,
-} from "@/features/rules"
-import {
   resetUsersGateway,
   setUsersGateway,
   type UserRecord,
 } from "@/features/users"
 
-const testAuthSession = {
-  isAuthenticated: true,
-  isLoading: false,
-  profile: {
+const { testAuthContext, testAuthSession } = vi.hoisted(() => {
+  const profile = {
     authUserId: "test-auth-user",
     avatarUrl: null,
     cpfMasked: "***.***.***-25",
@@ -30,14 +24,68 @@ const testAuthSession = {
     name: "Igor Nicoletti",
     passkeyStatus: "active",
     phoneMasked: "(17) 99130-4197",
+    permissions: ["*"],
     role: "owner",
     status: "active",
     unitId: null,
     unitName: null,
-  },
-  refresh: vi.fn(async () => { }),
-  signOut: vi.fn(async () => { }),
-}
+  }
+  const hasPermission = () => true
+  const refresh = vi.fn(() => Promise.resolve(undefined))
+  const signOut = vi.fn(() => Promise.resolve(undefined))
+
+  return {
+    testAuthContext: {
+      access: {
+        hasAllPermissions: () => true,
+        hasAnyPermission: () => true,
+        hasPermission,
+        permissions: profile.permissions,
+      },
+      actions: {
+        clearRequiredPasswordChallenge: vi.fn(),
+        completeRequiredPassword: vi.fn(() => Promise.resolve({
+          flowId: null,
+          message: "ok",
+          nextAction: "authenticated",
+          profile: null,
+        })),
+        logout: vi.fn(),
+        logoutAsync: signOut,
+        refreshProfile: refresh,
+        signInWithPassword: vi.fn(() => Promise.resolve({
+          flowId: null,
+          message: "ok",
+          nextAction: "authenticated",
+          profile: null,
+        })),
+      },
+      error: null,
+      inactivity: {
+        consumeExpired: () => false,
+        continueSession: vi.fn(),
+        isWarningOpen: false,
+        markExpired: vi.fn(),
+        secondsRemaining: 0,
+      },
+      isAuthenticated: true,
+      isLoading: false,
+      isSubmitting: false,
+      passwordChange: {
+        required: false,
+      },
+      profile,
+      status: "authenticated",
+    },
+    testAuthSession: {
+      isAuthenticated: true,
+      isLoading: false,
+      profile,
+      refresh,
+      signOut,
+    },
+  }
+})
 
 const seedUsers: UserRecord[] = [
   {
@@ -99,17 +147,12 @@ const seedNotifications: NotificationRecord[] = [
   },
 ]
 
-vi.mock("@/features/auth/context/auth-session-context", async (importOriginal) => {
-  const actual = await importOriginal<typeof import("@/features/auth/context/auth-session-context")>()
+vi.mock("@/features/auth", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/auth")>()
 
   return {
     ...actual,
-    useAuthSession: () => testAuthSession,
-  }
-})
-
-vi.mock("@/features/auth/hooks", () => {
-  return {
+    useAuth: () => testAuthContext,
     useAuthSession: () => testAuthSession,
   }
 })
@@ -132,7 +175,6 @@ vi.mock("@/components/ui/tooltip", async (importOriginal) => {
 
 beforeEach(() => {
   setNotificationsGateway(createMemoryNotificationsGateway(seedNotifications))
-  setVipRulesGateway(createMemoryVipRulesGateway())
 
   const currentUsers = seedUsers.map((user) => ({ ...user }))
 

@@ -75,6 +75,27 @@ function buildVipRulePayload(input: SaveVipRuleInput) {
   }
 }
 
+async function getVipRuleById(id: string): Promise<VipRule> {
+  const supabase = getSupabaseOrThrow()
+  const { data, error } = await supabase
+    .from("commercial_rules")
+    .select(vipRuleSelect)
+    .eq("id", id)
+    .single()
+
+  if (error) {
+    throw new Error(rulesCopy.feedback.save.error, { cause: error })
+  }
+
+  const rule = parseVipRule(data)
+
+  if (!rule) {
+    throw new Error(rulesCopy.feedback.save.error)
+  }
+
+  return rule
+}
+
 const vipRuleSelect = [
   "id",
   "target_type",
@@ -109,23 +130,26 @@ export async function listVipRules(): Promise<VipRule[]> {
 
 export async function saveVipRule(input: SaveVipRuleInput): Promise<VipRule> {
   const supabase = getSupabaseOrThrow()
-  const { data, error } = await supabase
-    .from("commercial_rules")
-    .upsert(buildVipRulePayload(input), { onConflict: "id" })
-    .select(vipRuleSelect)
-    .single()
+  const payload = buildVipRulePayload(input)
+  const response = await supabase.rpc("save_vip_rule_version", {
+    p_active: payload.status === "active",
+    p_applies_to_all_units: payload.applies_to_all_units,
+    p_client_id: payload.client_id,
+    p_client_name: payload.client_name,
+    p_notes: payload.notes,
+    p_reason: payload.reason,
+    p_target_type: payload.target_type,
+    p_unit_ids: payload.unit_ids,
+    p_vehicle_id: payload.vehicle_id,
+    p_vehicle_plate: payload.vehicle_plate,
+  }) as { data: unknown; error: unknown }
+  const { data, error } = response
 
-  if (error) {
+  if (error || typeof data !== "string") {
     throw new Error(rulesCopy.feedback.save.error, { cause: error })
   }
 
-  const rule = parseVipRule(data)
-
-  if (!rule) {
-    throw new Error(rulesCopy.feedback.save.error)
-  }
-
-  return rule
+  return getVipRuleById(data)
 }
 
 export function getVipRuleScopeLabel(rule: VipRule) {

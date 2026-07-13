@@ -14,10 +14,16 @@ type AuditScope = "login" | "system"
 type AuditSeverity = "info" | "warning" | "critical"
 type PermissionSource = "system" | "custom"
 
-type TableDefinition<Row, Insert = Row, Update = Partial<Insert>> = {
-  Row: Row
-  Insert: Insert
-  Update: Update
+type DbRecord<T extends object> = T & Record<string, unknown>
+
+type TableDefinition<
+  Row extends object,
+  Insert extends object = Row,
+  Update extends object = Partial<Insert>,
+> = {
+  Row: DbRecord<Row>
+  Insert: DbRecord<Insert>
+  Update: DbRecord<Update>
   Relationships: []
 }
 
@@ -126,6 +132,56 @@ interface AuthSessionRow {
   id: string
 }
 
+interface AuthMfaFactorRow {
+  id: string
+  user_id: string
+  factor_type: string
+  status: string
+  created_at: string
+  updated_at: string
+}
+
+interface AuthFlowAttemptRow {
+  id: string
+  flow_id: string
+  cpf_hmac: string
+  app_user_id: string | null
+  purpose: "login" | "first_access" | "password_reset" | "passkey_reset"
+  consumed_at: string | null
+  expires_at: string
+  created_at: string
+  request_ip_hash: string | null
+  user_agent_hash: string | null
+}
+
+type AuthFlowAttemptInsert = Partial<AuthFlowAttemptRow> & {
+  cpf_hmac: string
+  expires_at: string
+  purpose: AuthFlowAttemptRow["purpose"]
+}
+
+interface AccessRecoveryRequestRow {
+  id: string
+  cpf_hmac: string
+  phone_masked: string
+  email: string | null
+  reason: "lost_phone" | "forgot_password" | "attempts_blocked" | "other"
+  description: string | null
+  status: "pending" | "approved" | "denied" | "completed"
+  reviewed_by: string | null
+  reviewed_at: string | null
+  review_reason: string | null
+  request_ip_hash: string | null
+  user_agent_hash: string | null
+  created_at: string
+}
+
+type AccessRecoveryRequestInsert = Partial<AccessRecoveryRequestRow> & {
+  cpf_hmac: string
+  phone_masked: string
+  reason: AccessRecoveryRequestRow["reason"]
+}
+
 export interface EdgeDatabase {
   public: {
     Tables: {
@@ -136,6 +192,16 @@ export interface EdgeDatabase {
         Partial<AppUserUnitRow>
       >
       audit_events: TableDefinition<AuditEventRow, AuditEventInsert, Partial<AuditEventInsert>>
+      access_recovery_requests: TableDefinition<
+        AccessRecoveryRequestRow,
+        AccessRecoveryRequestInsert,
+        Partial<AccessRecoveryRequestInsert>
+      >
+      auth_flow_attempts: TableDefinition<
+        AuthFlowAttemptRow,
+        AuthFlowAttemptInsert,
+        Partial<AuthFlowAttemptInsert>
+      >
       permission_groups: TableDefinition<PermissionGroupRow>
       permissions: TableDefinition<PermissionRow>
       role_permissions: TableDefinition<RolePermissionRow>
@@ -152,6 +218,7 @@ export interface EdgeDatabase {
   }
   auth: {
     Tables: {
+      mfa_factors: TableDefinition<AuthMfaFactorRow>
       sessions: TableDefinition<AuthSessionRow>
     }
     Views: Record<string, never>

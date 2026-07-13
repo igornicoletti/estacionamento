@@ -268,7 +268,7 @@ export const authenticatedRouteRegistry = [
     description: appCopy.routes.notifications.description,
     requiredPermissions: [appPermissionKeys.notificationsRead],
     lazy: () =>
-      import("@/features/notifications").then((module) => ({
+      import("@/features/notifications/routes/notifications-route").then((module) => ({
         Component: module.NotificationsRoute,
       })),
     navigation: {

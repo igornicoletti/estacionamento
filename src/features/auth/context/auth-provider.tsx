@@ -15,14 +15,13 @@ import {
   signOutCurrentSession,
   subscribeToAuthSessionChanges,
 } from "../api"
+import { clearAsyncSnapshotCache } from "@/hooks/use-async-snapshot"
 import type { AuthPasswordResponse, AuthProfile } from "../types/auth-types"
 import type { AuthLoginPayload } from "../validation/auth-validation"
 
 export type AuthSessionStatus = "loading" | "anonymous" | "authenticated"
 
 export interface RequiredPasswordChallenge {
-  cpf: string
-  currentPassword: string
   flowId: string | null
 }
 
@@ -124,6 +123,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [error, setError] = React.useState<string | null>(null)
   const [requiredPasswordChallenge, setRequiredPasswordChallenge] =
     React.useState<RequiredPasswordChallenge | null>(null)
+  const requiredPasswordCredentialsRef = React.useRef<{
+    cpf: string
+    currentPassword: string
+  } | null>(null)
   const [isWarningOpen, setIsWarningOpen] = React.useState(false)
   const [secondsRemaining, setSecondsRemaining] = React.useState(
     Math.ceil(AUTH_INACTIVITY.warningMs / 1000)
@@ -138,7 +141,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null)
     const nextProfile = await getCurrentAuthProfile()
 
-    setProfile(nextProfile)
+    setProfile((currentProfile) => {
+      if (currentProfile?.authUserId !== nextProfile?.authUserId) {
+        clearAsyncSnapshotCache()
+      }
+
+      return nextProfile
+    })
     setStatus(nextProfile ? "authenticated" : "anonymous")
   }, [])
 
@@ -150,7 +159,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const nextProfile = await getCurrentAuthProfile()
 
         if (!cancelled) {
-          setProfile(nextProfile)
+          setProfile((currentProfile) => {
+            if (currentProfile?.authUserId !== nextProfile?.authUserId) {
+              clearAsyncSnapshotCache()
+            }
+
+            return nextProfile
+          })
           setStatus(nextProfile ? "authenticated" : "anonymous")
         }
       } catch (caughtError) {
@@ -174,13 +189,25 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [])
 
-  const logoutAsync = React.useCallback(async () => {
-    await signOutCurrentSession()
+  const clearLocalAuthState = React.useCallback(() => {
     setProfile(null)
+    clearAsyncSnapshotCache()
     setStatus("anonymous")
     setRequiredPasswordChallenge(null)
+    requiredPasswordCredentialsRef.current = null
     setIsWarningOpen(false)
   }, [])
+
+  const logoutAsync = React.useCallback(async () => {
+    try {
+      await signOutCurrentSession()
+      setError(null)
+    } catch (caughtError) {
+      setError(resolveErrorMessage(caughtError))
+    } finally {
+      clearLocalAuthState()
+    }
+  }, [clearLocalAuthState])
 
   const logout = React.useCallback(() => {
     void logoutAsync()
@@ -255,9 +282,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const response = await signInWithPassword(payload)
 
         if (response.nextAction === AUTH_NEXT_ACTION.setNewPassword) {
-          setRequiredPasswordChallenge({
+          requiredPasswordCredentialsRef.current = {
             cpf: payload.cpf,
             currentPassword: payload.password,
+          }
+          setRequiredPasswordChallenge({
             flowId: response.flowId,
           })
           return response
@@ -284,16 +313,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         throw new Error("Não há troca de senha pendente.")
       }
 
+      const credentials = requiredPasswordCredentialsRef.current
+
+      if (!credentials) {
+        throw new Error("Credenciais temporárias expiradas. Faça login novamente.")
+      }
+
       setIsSubmitting(true)
       setError(null)
 
       try {
         const response = await completeRequiredPassword({
-          ...requiredPasswordChallenge,
+          ...credentials,
+          flowId: requiredPasswordChallenge.flowId,
           newPassword,
         })
 
         setRequiredPasswordChallenge(null)
+        requiredPasswordCredentialsRef.current = null
         await signOutCurrentSession()
         setProfile(null)
         setStatus("anonymous")
@@ -302,6 +339,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         setError(resolveErrorMessage(caughtError))
         throw caughtError
       } finally {
+        requiredPasswordCredentialsRef.current = null
+        setRequiredPasswordChallenge(null)
         setIsSubmitting(false)
       }
     },
@@ -366,7 +405,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         refreshProfile,
         signInWithPassword: signIn,
         completeRequiredPassword: completePassword,
-        clearRequiredPasswordChallenge: () => setRequiredPasswordChallenge(null),
+        clearRequiredPasswordChallenge: () => {
+          requiredPasswordCredentialsRef.current = null
+          setRequiredPasswordChallenge(null)
+        },
         logout,
         logoutAsync,
       },

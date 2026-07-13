@@ -10,7 +10,7 @@ import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
-import { AUTH_ROLE_KEY, useAuth } from "@/features/auth"
+import { AUTH_PERMISSION, useAuth } from "@/features/auth"
 
 import { createVipRulesColumns } from "../columns/vip-rules-columns"
 import { VipRuleFormDialog } from "../components/vip-rule-form-dialog"
@@ -28,13 +28,9 @@ import {
 
 const RULES_TABLE_STATE_KEY = "rmc.table.rules.state.v3"
 
-function canManageCommercial(profileRole: string | undefined) {
-  return profileRole === AUTH_ROLE_KEY.owner || profileRole === AUTH_ROLE_KEY.admin
-}
-
 export function RulesRoute() {
-  const { profile } = useAuth()
-  const canManage = canManageCommercial(profile?.role)
+  const auth = useAuth()
+  const canManage = auth.access.hasPermission(AUTH_PERMISSION.rulesManage)
   const {
     data: rules,
     error,

@@ -75,7 +75,7 @@ describe("Unit users route", () => {
       ).toBeInTheDocument()
     })
 
-    expect(screen.getByText("00.000.000/0001-00")).toBeInTheDocument()
+    expect(screen.getByText("Posto Monte Carlo Centro Ltda")).toBeInTheDocument()
     expect(screen.getByRole("heading", { name: "Monte Carlo Centro" })).toBeInTheDocument()
   }, 15_000)
 

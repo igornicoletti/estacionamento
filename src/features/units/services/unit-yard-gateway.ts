@@ -65,7 +65,7 @@ function createSupabaseUnitYardGateway(): UnitYardGateway {
         throw new Error(error?.message ?? "Não foi possível salvar a configuração de pátio.")
       }
 
-      return mapUnitYardConfig(data as RawUnitYardConfigRow)
+      return mapUnitYardConfig(data)
     },
   }
 }

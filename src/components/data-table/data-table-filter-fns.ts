@@ -1,23 +1,40 @@
 import { type Row } from "@tanstack/react-table"
 
+function stringifyFilterValue(value: unknown) {
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value)
+  }
+
+  if (value instanceof Date) {
+    return value.toISOString()
+  }
+
+  return ""
+}
+
 function normalizeSelectedFilterValues(value: unknown) {
   if (!Array.isArray(value) || value.length === 0) {
     return []
   }
 
-  return value.map((item) => String(item))
+  return value.map(stringifyFilterValue).filter(Boolean)
 }
 
 function normalizeRowFilterValues(value: unknown) {
   if (Array.isArray(value)) {
-    return value.map((item) => String(item))
+    return value.map(stringifyFilterValue).filter(Boolean)
   }
 
   if (value === null || value === undefined || value === "") {
     return []
   }
 
-  return [String(value)]
+  return [stringifyFilterValue(value)].filter(Boolean)
 }
 
 export function includesSelectedValue<TData>(

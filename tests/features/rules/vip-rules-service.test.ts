@@ -1,73 +1,55 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  formatVipRuleUnitScope,
   getClientVipStatus,
   getVehicleVipStatus,
-  listVipRules,
-  toggleClientVip,
-  toggleVehicleVip,
+  getVipRuleVehicleScopeLabel,
+  isClientVipFromRules,
+  isVehicleVipFromRules,
+  type VipRule,
 } from "@/features/rules"
 
-describe("vip rules service", () => {
-  it("persists and resolves client and vehicle vip states locally", async () => {
-    const createdClientRule = await toggleClientVip({
-      clientId: 1001,
-      clientName: "Cliente VIP",
-      enabled: true,
-    })
-    const createdVehicleRule = await toggleVehicleVip({
-      clientId: 1001,
-      clientName: "Cliente VIP",
-      vehicleId: 2002,
-      vehiclePlate: "ABC1D23",
-      enabled: true,
-    })
+const clientRule: VipRule = {
+  active: true,
+  appliesToAllUnits: true,
+  appliesToAllVehicles: true,
+  clientId: 1001,
+  clientName: "Cliente VIP",
+  id: "vip-client:1001",
+  notes: null,
+  reason: "Regra administrativa validada.",
+  targetType: "client",
+  unitIds: [],
+  updatedAt: "2026-07-01T12:00:00.000Z",
+  vehicleId: null,
+  vehicleIds: [],
+  vehiclePlate: null,
+}
 
-    const rules = await listVipRules()
+const vehicleRule: VipRule = {
+  ...clientRule,
+  appliesToAllVehicles: false,
+  id: "vip-vehicle:1001:2002",
+  targetType: "vehicle",
+  vehicleId: 2002,
+  vehicleIds: [2002],
+  vehiclePlate: "ABC1D23",
+}
 
-    expect(getClientVipStatus({ cod_pessoa: 1001 } as never, rules)).toBe(true)
-    expect(
-      getVehicleVipStatus({ cod_pessoa: 1001, cod_veiculo: 2002 } as never, rules)
-    ).toBe(true)
-    expect(rules.some((rule) => rule.id === createdClientRule.id)).toBe(true)
-    expect(rules.some((rule) => rule.id === createdVehicleRule.id)).toBe(true)
+describe("vip rules model", () => {
+  it("resolves client and vehicle vip states from active rules", () => {
+    expect(getClientVipStatus({ cod_pessoa: 1001 } as never, [clientRule])).toBe(true)
+    expect(getVehicleVipStatus({ cod_pessoa: 1001, cod_veiculo: 2002 } as never, [clientRule])).toBe(true)
+    expect(isClientVipFromRules([vehicleRule], 1001)).toBe(false)
+    expect(isVehicleVipFromRules([vehicleRule], 1001, 2002)).toBe(true)
   })
 
-  it("updates the same client rule instead of creating duplicates", async () => {
-    const activeRule = await toggleClientVip({
-      clientId: 1001,
-      clientName: "Cliente VIP",
-      enabled: true,
-    })
-    const inactiveRule = await toggleClientVip({
-      clientId: 1001,
-      clientName: "Cliente VIP",
-      enabled: false,
-    })
+  it("ignores inactive rules and formats scopes for operators", () => {
+    const inactive = { ...clientRule, active: false }
 
-    const rules = await listVipRules()
-
-    expect(activeRule.id).toBe("vip-client:1001")
-    expect(inactiveRule.id).toBe(activeRule.id)
-    expect(rules).toHaveLength(1)
-    expect(rules[0].active).toBe(false)
-    expect(getClientVipStatus({ cod_pessoa: 1001 } as never, rules)).toBe(false)
-  })
-
-  it("does not mark the whole client as VIP when only one vehicle is VIP", async () => {
-    await toggleVehicleVip({
-      clientId: 1001,
-      clientName: "Cliente VIP",
-      vehicleId: 2002,
-      vehiclePlate: "ABC1D23",
-      enabled: true,
-    })
-
-    const rules = await listVipRules()
-
-    expect(getClientVipStatus({ cod_pessoa: 1001 } as never, rules)).toBe(false)
-    expect(
-      getVehicleVipStatus({ cod_pessoa: 1001, cod_veiculo: 2002 } as never, rules)
-    ).toBe(true)
+    expect(isClientVipFromRules([inactive], 1001)).toBe(false)
+    expect(formatVipRuleUnitScope(clientRule)).toBe("Todas as unidades")
+    expect(getVipRuleVehicleScopeLabel(vehicleRule)).toBe("ABC1D23")
   })
 })

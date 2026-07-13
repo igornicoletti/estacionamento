@@ -93,6 +93,27 @@ function createPricePayload(input: SavePriceTableInput) {
   }
 }
 
+async function getPriceTableById(id: string): Promise<PriceTable> {
+  const supabase = getSupabaseOrThrow()
+  const { data, error } = await supabase
+    .from("commercial_price_tables")
+    .select(priceTableSelect)
+    .eq("id", id)
+    .single()
+
+  if (error) {
+    throw new Error(pricesCopy.feedback.save.error, { cause: error })
+  }
+
+  const price = parsePriceTable(data)
+
+  if (!price) {
+    throw new Error(pricesCopy.feedback.save.error)
+  }
+
+  return price
+}
+
 export async function listPriceTables(): Promise<PriceTable[]> {
   const supabase = getSupabaseOrThrow()
   const { data, error } = await supabase
@@ -109,21 +130,27 @@ export async function listPriceTables(): Promise<PriceTable[]> {
 
 export async function savePriceTable(input: SavePriceTableInput): Promise<PriceTable> {
   const supabase = getSupabaseOrThrow()
-  const { data, error } = await supabase
-    .from("commercial_price_tables")
-    .insert(createPricePayload(input))
-    .select(priceTableSelect)
-    .single()
+  const payload = createPricePayload(input)
+  const response = await supabase.rpc("create_commercial_price_table", {
+    p_amount: payload.amount,
+    p_cycle_hours: payload.cycle_hours,
+    p_ends_at: payload.ends_at,
+    p_grace_minutes: payload.grace_minutes,
+    p_notes: payload.notes,
+    p_reason: payload.reason,
+    p_scope: payload.scope,
+    p_starts_at: payload.starts_at,
+    p_status: payload.status,
+    p_tiers: [],
+    p_tolerance_minutes: payload.tolerance_minutes,
+    p_unit_id: payload.unit_id,
+    p_unit_name: payload.unit_name,
+  }) as { data: unknown; error: unknown }
+  const { data, error } = response
 
-  if (error) {
+  if (error || typeof data !== "string") {
     throw new Error(pricesCopy.feedback.save.error, { cause: error })
   }
 
-  const price = parsePriceTable(data)
-
-  if (!price) {
-    throw new Error(pricesCopy.feedback.save.error)
-  }
-
-  return price
+  return getPriceTableById(data)
 }

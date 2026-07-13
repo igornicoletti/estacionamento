@@ -81,7 +81,11 @@ const projectCodeFiles = files.filter(
   (file) =>
     file === "vite.config.ts" ||
     file === "eslint.config.js" ||
-    ((file.startsWith("src/") || file.startsWith("tests/")) && /\.(ts|tsx|js)$/.test(file))
+    (
+      file.startsWith("src/") ||
+      file.startsWith("tests/") ||
+      file.startsWith("supabase/functions/")
+    ) && /\.(ts|tsx|js)$/.test(file)
 )
 const migrationFiles = files.filter((file) => file.startsWith("supabase/migrations/"))
 
@@ -96,17 +100,27 @@ for (const requiredFile of [
   "src/components/data-table/data-table-toolbar.tsx",
   "src/components/data-table/data-table-scroll-container.tsx",
   "src/components/ui/table.tsx",
-  "src/features/auth/components/auth-inactivity-guard.tsx",
-  "src/features/auth/components/auth-session-expired-dialog.tsx",
-  "src/features/auth/hooks/auth-use-inactivity-logout.ts",
+  "src/app/app-providers.tsx",
+  "src/features/auth/api/auth-api.ts",
+  "src/features/auth/context/auth-provider.tsx",
+  "src/features/auth/contracts/auth-contracts.ts",
   "src/features/users/routes/users-route.tsx",
   "src/features/users/services/users-service.ts",
   "src/features/users/columns/users-columns.tsx",
+  "src/features/notifications/context/notifications-provider.tsx",
+  "supabase/functions/_shared/index.ts",
+  "supabase/functions/_shared/auth-cors.ts",
+  "supabase/functions/_shared/auth-supabase-admin.ts",
+  "supabase/functions/auth-password/index.ts",
+  "supabase/functions/auth-recovery-request/index.ts",
   "supabase/functions/admin-user-auth-factors/index.ts",
   "supabase/functions/admin-user-create/index.ts",
   "supabase/functions/admin-user-update/index.ts",
+  "supabase/functions/list-permission-matrix/index.ts",
   "supabase/migrations/0001_auth_domain_schema.sql",
   "supabase/migrations/0002_auth_rls_policies.sql",
+  "supabase/migrations/20260713170614_unify_permission_authorization.sql",
+  ".github/workflows/ci.yml",
 ]) {
   requireFile(requiredFile)
 }
@@ -175,16 +189,16 @@ if (frontendSecretLeaks.length > 0) {
 }
 
 requireContent(
-  "src/features/auth/hooks/auth-use-inactivity-logout.ts",
-  "45 * 60_000",
-  "45 minute inactivity timeout"
+  "src/features/auth/contracts/auth-contracts.ts",
+  "timeoutMs: 15 * 60 * 1000",
+  "15 minute inactivity timeout"
 )
 requireContent(
-  "src/features/auth/components/auth-inactivity-guard.tsx",
-  "markInactivitySessionExpired()",
+  "src/features/auth/context/auth-provider.tsx",
+  "markAuthInactivitySessionExpired",
   "inactivity-expired session flag"
 )
-if (read("src/features/auth/components/auth-inactivity-guard.tsx").includes("notify.")) {
+if (read("src/features/auth/context/auth-provider.tsx").includes("notify.")) {
   errors.push("Inactivity timeout must not use toast notifications")
 }
 
@@ -192,11 +206,10 @@ for (const [file, needles] of [
   [
     "src/components/data-table/data-table.tsx",
     [
-      "DataTableStateRow",
       "sourceRowCount",
       "enableExport",
       "max-h-[min(70svh,42rem)]",
-      "--data-table-scroll-viewport-width",
+      "DataTableDefaultState",
     ],
   ],
   [
@@ -205,7 +218,7 @@ for (const [file, needles] of [
   ],
   [
     "src/components/data-table/data-table-scroll-container.tsx",
-    ["ResizeObserver", "--data-table-scroll-viewport-width"],
+    ["setPointerCapture", "data-dragging", "suppressClick"],
   ],
   [
     "src/components/ui/table.tsx",
@@ -217,7 +230,7 @@ for (const [file, needles] of [
   ],
   [
     "src/features/users/routes/users-route.tsx",
-    ["emptyOption", "admin.users.export", "admin.users.resetPasskey"],
+    ["emptyOption", "enableExport={canExportUsers}", "resetPasskey"],
   ],
   [
     "src/features/users/columns/users-columns.tsx",
@@ -225,11 +238,86 @@ for (const [file, needles] of [
   ],
   [
     "src/features/notifications/services/notifications-service.ts",
-    ["notification_deliveries", "notification_events", "set_notification_read_status"],
+    ["notification_deliveries", "notification_events", "set_notification_read_status", "getNotificationById"],
   ],
   [
     "supabase/migrations/20260708182449_notifications_passkey_auth_hardening.sql",
     ["notification_events", "notification_deliveries", "enable row level security", "grant select on table public.notification_events to authenticated"],
+  ],
+]) {
+  const content = read(file)
+
+  for (const needle of needles) {
+    if (!content.includes(needle)) {
+      errors.push(`Missing invariant "${needle}" in ${file}`)
+    }
+  }
+}
+
+for (const [file, needles] of [
+  [
+    "src/app/app-providers.tsx",
+    ["NotificationsProvider", "AuthProvider"],
+  ],
+  [
+    "src/features/auth/api/auth-api.ts",
+    ["AUTH_FUNCTIONS.password", "AUTH_FUNCTIONS.recovery", "signOut({ scope: \"local\" })"],
+  ],
+  [
+    "src/features/auth/context/auth-provider.tsx",
+    ["requiredPasswordCredentialsRef", "clearAsyncSnapshotCache", "AUTH_INACTIVITY"],
+  ],
+  [
+    "src/features/auth/contracts/auth-contracts.ts",
+    ["prices.manage", "rules.manage", "knownAuthPermissions"],
+  ],
+  [
+    "src/features/prices/services/prices-service.ts",
+    ["create_commercial_price_table"],
+  ],
+  [
+    "src/features/rules/services/vip-rules-service.ts",
+    ["save_vip_rule_version"],
+  ],
+  [
+    "supabase/config.toml",
+    [
+      "enable_signup = false",
+      "minimum_password_length = 12",
+      "password_requirements = \"lower_upper_letters_digits_symbols\"",
+      "secure_password_change = true",
+      "inactivity_timeout = \"15m\"",
+      "[functions.auth-password]",
+      "[functions.auth-recovery-request]",
+      "[functions.admin-user-auth-factors]",
+    ],
+  ],
+  [
+    "supabase/functions/_shared/index.ts",
+    ["APP_HMAC_SECRET", "genericAuthError", "requireAdminActor", "writeAuditEvent"],
+  ],
+  [
+    "supabase/functions/auth-password/index.ts",
+    ["auth_flow_attempts", "signInWithPassword", "locked_until"],
+  ],
+  [
+    "supabase/functions/auth-recovery-request/index.ts",
+    ["access_recovery_requests", "hashSensitiveValue", "writeAuditEvent"],
+  ],
+  [
+    "supabase/migrations/20260713170614_unify_permission_authorization.sql",
+    [
+      "private.has_current_user_permission",
+      "create_commercial_price_table",
+      "save_vip_rule_version",
+      "prices.manage",
+      "rules.manage",
+      "exclude using gist",
+    ],
+  ],
+  [
+    ".github/workflows/ci.yml",
+    ["pnpm validate", "pnpm test", "pnpm build", "deno check"],
   ],
 ]) {
   const content = read(file)

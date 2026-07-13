@@ -63,8 +63,6 @@ export {
 } from "./context/auth-provider"
 
 export { AuthPageCard } from "./components/auth-page-card"
-export { AuthLoginRoute } from "./routes/auth-login-route"
-export { AuthRecoveryRoute } from "./routes/auth-recovery-route"
 
 export {
   authCpfSchema,

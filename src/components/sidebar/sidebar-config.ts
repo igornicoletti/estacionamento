@@ -75,9 +75,24 @@ interface SidebarNavigationItemWithGroup extends SidebarNavigationItem {
   order: number
 }
 
+interface NavigableRoute extends AppRouteRegistryItem {
+  href: AppRoutePath
+  navigation: {
+    group: AppRouteGroupId
+    order: number
+  }
+}
+
+function isNavigableRoute(route: AppRouteRegistryItem): route is NavigableRoute {
+  return Boolean(route.href && route.navigation)
+}
+
+const authenticatedRoutes: readonly AppRouteRegistryItem[] =
+  authenticatedRouteRegistry
+
 const navigationItems: readonly SidebarNavigationItemWithGroup[] =
-  authenticatedRouteRegistry.flatMap((route) => {
-    if (!route.href || !route.navigation) {
+  authenticatedRoutes.flatMap((route) => {
+    if (!isNavigableRoute(route)) {
       return []
     }
 

@@ -12,12 +12,15 @@ import {
 } from "vitest"
 
 import { NotificationsPopover } from "@/components/sidebar/sidebar-notifications-popover"
+import { NotificationsProvider } from "@/features/notifications/context/notifications-provider"
 
 describe("NotificationsPopover", () => {
   it("abre o popover e exibe as acoes principais de notificacoes", async () => {
     render(
       <MemoryRouter>
-        <NotificationsPopover />
+        <NotificationsProvider>
+          <NotificationsPopover />
+        </NotificationsProvider>
       </MemoryRouter>
     )
 

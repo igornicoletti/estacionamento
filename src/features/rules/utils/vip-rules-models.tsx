@@ -65,6 +65,8 @@ export function formatVipRuleVehicleScope(rule: VipRule) {
   return rulesCopy.labels.notConfigured
 }
 
+export const getVipRuleVehicleScopeLabel = formatVipRuleVehicleScope
+
 export function buildVipRuleDetails(rule: VipRule): readonly AppDetailsSheetItem[] {
   return [
     { label: rulesCopy.table.type, value: getVipRuleTargetTypeLabel(rule.targetType) },

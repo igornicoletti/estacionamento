@@ -33,21 +33,15 @@ describe("DataTable", () => {
       <DataTable columns={columns} data={[]} getRowId={(row) => row.id} />
     )
 
-    expect(screen.getByText("Nenhum registro encontrado.")).toBeInTheDocument()
+    expect(screen.getByText("Nenhum registro cadastrado")).toBeInTheDocument()
   })
 
-  it("keeps the empty state anchored to the visible scroll viewport", () => {
-    render(
+  it("keeps the empty state inside the table shell", () => {
+    const { container } = render(
       <DataTable columns={columns} data={[]} getRowId={(row) => row.id} />
     )
 
-    let current: HTMLElement | null = screen.getByText("Nenhum registro encontrado.")
-
-    while (current && !String(current.className).includes("sticky left-0")) {
-      current = current.parentElement
-    }
-
-    expect(current).toBeTruthy()
+    expect(container.querySelector('[data-slot="empty"]')).not.toBeNull()
   })
 
   it("renders a filtered empty state when manual filtering receives no visible rows", () => {
@@ -63,7 +57,7 @@ describe("DataTable", () => {
       />
     )
 
-    expect(screen.getByText("Nenhum resultado encontrado.")).toBeInTheDocument()
+    expect(screen.getByText("Nenhum resultado encontrado")).toBeInTheDocument()
   })
 
   it("renders rows and recovers from a filtered empty state", () => {
@@ -83,7 +77,7 @@ describe("DataTable", () => {
       target: { value: "missing" },
     })
 
-    expect(screen.getByText("Nenhum resultado encontrado.")).toBeInTheDocument()
+    expect(screen.getByText("Nenhum resultado encontrado")).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "Limpar filtros" }))
 

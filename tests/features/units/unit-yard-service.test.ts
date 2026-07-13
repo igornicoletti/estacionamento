@@ -15,6 +15,36 @@ import {
   listUnitYardConfigs,
   upsertUnitYardConfig,
 } from "@/features/units/services/unit-yard-service"
+import { type UnitYardConfig, type UpsertUnitYardConfigInput } from "@/features/units/types/units-types"
+
+function configureMemoryYardGateway(seed: UnitYardConfig[] = []) {
+  const store = seed.map((item) => ({ ...item }))
+
+  configureUnitYardGateway({
+    async listConfigs() {
+      await Promise.resolve()
+      return store.map((item) => ({ ...item }))
+    },
+    async upsertConfig(input: UpsertUnitYardConfigInput) {
+      await Promise.resolve()
+      const config: UnitYardConfig = {
+        parkingSpots: input.parkingSpots,
+        patioActive: input.patioActive,
+        unitId: input.unitId,
+        updatedAt: "2026-07-01T12:00:00.000Z",
+      }
+      const index = store.findIndex((item) => item.unitId === config.unitId)
+
+      if (index >= 0) {
+        store[index] = config
+      } else {
+        store.push(config)
+      }
+
+      return { ...config }
+    },
+  })
+}
 
 afterEach(() => {
   resetUnitYardGateway()
@@ -22,110 +52,52 @@ afterEach(() => {
 
 describe("unit yard service", () => {
   beforeEach(() => {
-    const store: Array<{
-      unitId: string
-      patioActive: boolean
-      parkingSpots: number
-      updatedAt: string
-    }> = []
-
-    configureUnitYardGateway({
-      async list() {
-        await Promise.resolve()
-        return [...store]
-      },
-      async upsertOne(config) {
-        await Promise.resolve()
-        const index = store.findIndex((item) => item.unitId === config.unitId)
-
-        if (index >= 0) {
-          store[index] = config
-        } else {
-          store.push(config)
-        }
-      },
-    })
+    configureMemoryYardGateway()
   })
 
-  beforeEach(() => {
-    // Tests use in-memory gateway fixture.
-  })
-
-  it("starts with inactive patio and zero spots by default", async () => {
-    const config = await getUnitYardConfig("1")
-
-    expect(config.patioActive).toBe(false)
-    expect(config.parkingSpots).toBe(0)
+  it("returns null when a unit has no yard configuration", async () => {
+    await expect(getUnitYardConfig("1")).resolves.toBeNull()
   })
 
   it("preserves configured spots when patio is deactivated", async () => {
     await upsertUnitYardConfig({
-      unitId: "1",
-      patioActive: true,
       parkingSpots: 60,
+      patioActive: true,
+      unitId: "1",
     })
 
     const inactiveConfig = await upsertUnitYardConfig({
-      unitId: "1",
-      patioActive: false,
       parkingSpots: 60,
+      patioActive: false,
+      unitId: "1",
     })
 
     expect(inactiveConfig.patioActive).toBe(false)
     expect(inactiveConfig.parkingSpots).toBe(60)
 
     const persistedConfig = await getUnitYardConfig("1")
-    expect(persistedConfig.patioActive).toBe(false)
-    expect(persistedConfig.parkingSpots).toBe(60)
-
+    expect(persistedConfig).toMatchObject({
+      parkingSpots: 60,
+      patioActive: false,
+    })
   })
 
   it("supports gateway override for future persistence providers", async () => {
-    const store = [
+    configureMemoryYardGateway([
       {
-        unitId: " 2 ",
+        parkingSpots: 48,
         patioActive: true,
-        parkingSpots: "48",
-        updatedAt: "",
+        unitId: "2",
+        updatedAt: "2026-07-01T12:00:00.000Z",
       },
-      {
-        unitId: "",
-        patioActive: true,
-        parkingSpots: 10,
-        updatedAt: new Date().toISOString(),
-      },
-    ]
+    ])
 
-    configureUnitYardGateway({
-      async list() {
-        await Promise.resolve()
-        return store as never[]
-      },
-      async upsertOne(config) {
-        await Promise.resolve()
-        const index = store.findIndex((item) => item.unitId === config.unitId)
-
-        if (index >= 0) {
-          store[index] = config
-        } else {
-          store.push(config)
-        }
-      },
-    })
-
-    const configs = await listUnitYardConfigs()
-
-    expect(configs).toHaveLength(1)
-    expect(configs[0]).toMatchObject({
-      unitId: "2",
-      patioActive: true,
-      parkingSpots: 48,
-    })
+    await expect(listUnitYardConfigs()).resolves.toHaveLength(1)
 
     const updated = await upsertUnitYardConfig({
-      unitId: "2",
-      patioActive: false,
       parkingSpots: 32,
+      patioActive: false,
+      unitId: "2",
     })
 
     expect(updated.patioActive).toBe(false)

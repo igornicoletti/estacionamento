@@ -1,14 +1,46 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { describe, expect, it } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { PermissionsRoute } from "@/features/permissions"
+import {
+  PermissionsRoute,
+  createPermissionRoleAccess,
+  type PermissionMatrixRow,
+} from "@/features/permissions"
+
+const { listPermissionMatrixMock } = vi.hoisted(() => ({
+  listPermissionMatrixMock: vi.fn<() => Promise<PermissionMatrixRow[]>>(),
+}))
+
+vi.mock("@/features/permissions/services/permissions-service", () => ({
+  listPermissionMatrix: listPermissionMatrixMock,
+}))
+
+const auditPermission: PermissionMatrixRow = {
+  accessFilters: ["with_access", "without_access"],
+  description: "Permite consultar eventos de auditoria.",
+  groupKey: "audit",
+  groupLabel: "Auditoria",
+  id: "permission-audit-read",
+  isCritical: true,
+  key: "audit.read",
+  label: "Visualizar auditoria",
+  roleAccess: createPermissionRoleAccess(["owner", "admin", "auditor"]),
+  roleCount: 3,
+  roleLabels: "Proprietário, Administrador, Auditor",
+  roles: ["owner", "admin", "auditor"],
+  source: "system",
+}
 
 describe("PermissionsRoute", () => {
+  beforeEach(() => {
+    listPermissionMatrixMock.mockResolvedValue([auditPermission])
+  })
+
   it("renders the permissions matrix header and capabilities", async () => {
     render(<PermissionsRoute />)
 
     expect(
-      screen.getByRole("heading", { name: "Perfil e Permissões" })
+      screen.getByRole("heading", { name: "Perfis e permissões" })
     ).toBeInTheDocument()
 
     await waitFor(() => {
@@ -18,9 +50,9 @@ describe("PermissionsRoute", () => {
     })
 
     expect(screen.getAllByText("Visualizar auditoria").length).toBeGreaterThan(0)
-  }, 15_000)
+  })
 
-  it("opens permission details without exposing technical identifiers", async () => {
+  it("opens permission details with role summaries", async () => {
     render(<PermissionsRoute />)
 
     const trigger = await screen.findByRole("button", {
@@ -29,12 +61,13 @@ describe("PermissionsRoute", () => {
 
     fireEvent.click(trigger)
 
-    expect(screen.getByText("Grupo: Auditoria")).toBeInTheDocument()
+    expect(screen.getAllByText("Grupo").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Auditoria").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Perfis com acesso").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Perfis sem acesso").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Visualizar auditoria").length).toBeGreaterThan(0)
-    expect(screen.queryByText("Chave da permissão")).not.toBeInTheDocument()
-    expect(screen.queryByText("audit.read")).not.toBeInTheDocument()
+    expect(screen.getAllByText("Chave").length).toBeGreaterThan(0)
+    expect(screen.getByText("audit.read")).toBeInTheDocument()
     expect(screen.getAllByLabelText("Perfil com acesso").length).toBeGreaterThan(0)
   })
 })

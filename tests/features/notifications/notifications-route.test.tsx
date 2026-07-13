@@ -2,13 +2,16 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
 import { describe, expect, it } from "vitest"
 
-import { NotificationsRoute } from "@/features/notifications"
+import { NotificationsProvider } from "@/features/notifications/context/notifications-provider"
+import { NotificationsRoute } from "@/features/notifications/routes/notifications-route"
 
 describe("NotificationsRoute", () => {
   it("renders notifications with standardized labels and hides raw identifiers in details", async () => {
     render(
       <MemoryRouter>
-        <NotificationsRoute />
+        <NotificationsProvider>
+          <NotificationsRoute />
+        </NotificationsProvider>
       </MemoryRouter>
     )
 

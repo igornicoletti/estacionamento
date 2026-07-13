@@ -9,7 +9,6 @@ export default tseslint.config(
     ignores: [
       "dist",
       "node_modules",
-      "supabase/functions",
       "src/components/ui/carousel.tsx",
       "src/components/ui/chart.tsx",
       "src/hooks/use-mobile.ts",
@@ -17,7 +16,7 @@ export default tseslint.config(
   },
   {
     extends: [js.configs.recommended, ...tseslint.configs.recommendedTypeChecked],
-    files: ["**/*.{ts,tsx}"],
+    files: ["src/**/*.{ts,tsx}", "tests/**/*.{ts,tsx}", "*.ts"],
     languageOptions: {
       ecmaVersion: 2022,
       globals: globals.browser,
@@ -40,6 +39,20 @@ export default tseslint.config(
     files: ["scripts/**/*.mjs", "vite.config.ts"],
     languageOptions: {
       globals: globals.node,
+    },
+  },
+  {
+    extends: [js.configs.recommended, ...tseslint.configs.recommended],
+    files: ["supabase/functions/**/*.ts"],
+    languageOptions: {
+      ecmaVersion: 2022,
+      globals: {
+        ...globals.browser,
+        Deno: "readonly",
+      },
+      parserOptions: {
+        sourceType: "module",
+      },
     },
   }
 )

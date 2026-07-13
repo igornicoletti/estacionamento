@@ -39,7 +39,9 @@ export const AUTH_PERMISSION = {
   clientsRead: "clients.read",
   clientVehiclesRead: "client_vehicles.read",
   pricesRead: "prices.read",
+  pricesManage: "prices.manage",
   rulesRead: "rules.read",
+  rulesManage: "rules.manage",
   usersRead: "users.read",
   usersManage: "users.manage",
   accessRequestsRead: "access_requests.read",
@@ -59,7 +61,9 @@ export const AUTH_ROLE_KEY = {
 export type AuthStatus = (typeof AUTH_STATUS)[keyof typeof AUTH_STATUS]
 export type AuthNextAction = (typeof AUTH_NEXT_ACTION)[keyof typeof AUTH_NEXT_ACTION]
 export type AuthRoleKey = (typeof AUTH_ROLE_KEY)[keyof typeof AUTH_ROLE_KEY]
-export type AuthPermission = string
+export type AuthPermission = (typeof AUTH_PERMISSION)[keyof typeof AUTH_PERMISSION]
+
+const knownAuthPermissions = new Set<string>(Object.values(AUTH_PERMISSION))
 
 const operatorPermissions = [
   AUTH_PERMISSION.profileReadSelf,
@@ -83,6 +87,8 @@ const auditorPermissions = [
 
 const adminPermissions = [
   ...auditorPermissions,
+  AUTH_PERMISSION.pricesManage,
+  AUTH_PERMISSION.rulesManage,
   AUTH_PERMISSION.usersManage,
   AUTH_PERMISSION.accessRequestsReview,
 ] as const
@@ -110,11 +116,17 @@ export function normalizeAuthStatus(value: unknown): AuthStatus | null {
 }
 
 export function isAuthPermission(value: unknown): value is AuthPermission {
-  return typeof value === "string" && value.trim().length > 0
+  return typeof value === "string" && knownAuthPermissions.has(value.trim())
 }
 
 export function normalizeAuthPermission(value: unknown): AuthPermission | null {
-  return isAuthPermission(value) ? value.trim() : null
+  if (typeof value !== "string") {
+    return null
+  }
+
+  const permission = value.trim()
+
+  return isAuthPermission(permission) ? permission : null
 }
 
 export function normalizeAuthPermissions(value: unknown): readonly AuthPermission[] {
@@ -164,7 +176,9 @@ export function resolveAuthProfilePermissions({
     return resolvedPermissions
   }
 
-  return getRoleFallbackPermissions(roleKey)
+  return permissions === null || permissions === undefined
+    ? getRoleFallbackPermissions(roleKey)
+    : []
 }
 
 export function canAccessProtectedApp(status: AuthStatus | null | undefined) {

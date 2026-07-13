@@ -26,12 +26,15 @@ type EnvErrorCode =
   | "ENV_BOOLEAN_INVALID"
   | "ENV_APP_ORIGIN_REQUIRED"
   | "ENV_APP_ORIGIN_INVALID"
+  | "ENV_APP_ORIGIN_INSECURE"
+  | "ENV_APP_ORIGIN_RUNTIME_MISMATCH"
   | "ENV_WEBAUTHN_RP_ID_EMPTY"
   | "ENV_WEBAUTHN_RP_ID_FORMAT"
   | "ENV_WEBAUTHN_RP_ID_IP"
   | "ENV_WEBAUTHN_RP_ID_ORIGIN_MISMATCH"
   | "ENV_AUTH_BYPASS_PROD"
   | "ENV_SUPABASE_URL_INVALID"
+  | "ENV_SUPABASE_URL_INSECURE"
   | "ENV_SUPABASE_CONFIG_PARTIAL"
   | "ENV_SUPABASE_KEY_SECRET"
   | "ENV_SUPABASE_KEY_SERVICE_ROLE"
@@ -107,6 +110,36 @@ function parseHttpOrigin(value: string, variableName: string) {
       `Invalid origin format for ${variableName}.`
     )
   }
+}
+
+function isLocalHostname(hostname: string) {
+  return (
+    hostname === "localhost" ||
+    hostname === "127.0.0.1" ||
+    hostname === "::1" ||
+    hostname.endsWith(".localhost")
+  )
+}
+
+function assertSecureUrl(url: URL, variableName: string) {
+  if (url.protocol === "https:") {
+    return
+  }
+
+  if (runtimeEnv.DEV && isLocalHostname(url.hostname.toLowerCase())) {
+    return
+  }
+
+  const code =
+    variableName === "VITE_SUPABASE_URL"
+      ? "ENV_SUPABASE_URL_INSECURE"
+      : "ENV_APP_ORIGIN_INSECURE"
+
+  throwEnvError(
+    code,
+    `${variableName} deve usar HTTPS fora de localhost em desenvolvimento.`,
+    `${variableName} uses insecure protocol for non-local host.`
+  )
 }
 
 function isValidHttpUrl(value: string) {
@@ -287,9 +320,26 @@ function createClientEnv(): ClientEnv {
     )
   }
 
+  if (supabaseUrl) {
+    assertSecureUrl(new URL(supabaseUrl), "VITE_SUPABASE_URL")
+  }
+
   assertSupabasePublishableKey(supabasePublishableKey)
 
   const appOrigin = resolveAppOrigin()
+  const appOriginUrl = new URL(appOrigin)
+  assertSecureUrl(appOriginUrl, "VITE_APP_ORIGIN")
+
+  const runtimeOrigin = getRuntimeOrigin()
+
+  if (runtimeOrigin && appOrigin !== runtimeOrigin) {
+    throwEnvError(
+      "ENV_APP_ORIGIN_RUNTIME_MISMATCH",
+      "VITE_APP_ORIGIN deve corresponder à origin aberta no navegador.",
+      "Configured application origin differs from window.location.origin."
+    )
+  }
+
   const webauthnRpId = resolveWebAuthnRpId(appOrigin)
 
   assertWebAuthnRpIdMatchesOrigin(appOrigin, webauthnRpId)

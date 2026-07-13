@@ -1,10 +1,17 @@
 import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
 
 import { auditCopy } from "../audit-copy"
-import { listAuditEvents } from "../services/audit-service"
-import { type AuditEvent } from "../types/audit-types"
+import {
+  listAuditEvents,
+  type AuditEventsResult,
+} from "../services/audit-service"
 
 const auditLoadError = auditCopy.feedback.loadError
+const initialAuditEventsResult: AuditEventsResult = {
+  events: [],
+  isTruncated: false,
+  limit: 500,
+}
 
 export function useAudit() {
   const {
@@ -12,12 +19,19 @@ export function useAudit() {
     error,
     isLoading,
     refetch,
-  } = useAsyncSnapshot<AuditEvent[]>({
+  } = useAsyncSnapshot<AuditEventsResult>({
     cacheKey: "audit:list",
-    initialData: [],
+    initialData: initialAuditEventsResult,
     loadData: listAuditEvents,
     errorMessage: auditLoadError,
   })
 
-  return { data, error, isLoading, refetch }
+  return {
+    data: data.events,
+    error,
+    isLoading,
+    isTruncated: data.isTruncated,
+    limit: data.limit,
+    refetch,
+  }
 }

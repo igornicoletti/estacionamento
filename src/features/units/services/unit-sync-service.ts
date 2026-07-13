@@ -48,7 +48,10 @@ async function readInvokeErrorMessage(error: unknown) {
   return readErrorMessage(error)
 }
 
-function parseSyncResponse(value: unknown, fallbackMessage: string) {
+function parseSyncResponse(
+  value: unknown,
+  fallbackMessage: string
+): TriggerUnitsSyncResult {
   const response = asRecord(value)
 
   if (!response) {

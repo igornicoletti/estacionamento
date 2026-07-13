@@ -6,18 +6,35 @@ import {
   DataTable,
 } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
-import { createAuditColumns } from "../columns/audit-columns"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+
+import { createAuditColumns, getAuditEventDetails } from "../columns/audit-columns"
 import { useAudit } from "../hooks/use-audit"
-import { auditScopeLabels, auditSeverityLabels } from "../types/audit-types"
+import {
+  auditScopeLabels,
+  auditSeverityLabels,
+  type AuditEvent,
+} from "../types/audit-types"
 import { filterAuditEvents } from "../utils/audit-filter-utils"
 
 const AUDIT_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.audit.columns.v1"
 
 export function AuditRoute() {
-  const { data: events, error, isLoading, refetch } = useAudit()
+  const {
+    data: events,
+    error,
+    isLoading,
+    isTruncated,
+    limit,
+    refetch,
+  } = useAudit()
+  const [selectedEvent, setSelectedEvent] = React.useState<AuditEvent | null>(null)
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const columns = React.useMemo(() => createAuditColumns(), [])
+  const columns = React.useMemo(
+    () => createAuditColumns({ onOpenDetails: setSelectedEvent }),
+    []
+  )
 
   const filteredEvents = React.useMemo(
     () => filterAuditEvents(events, columnFilters, globalFilter),
@@ -58,7 +75,11 @@ export function AuditRoute() {
     <PageSection>
       <PageHeader
         title="Auditoria"
-        subtitle="Acompanhe os eventos de segurança e as ações realizadas no sistema."
+        subtitle={
+          isTruncated
+            ? `Acompanhe os eventos de segurança e ações realizadas. Exibindo os ${limit} eventos mais recentes.`
+            : "Acompanhe os eventos de segurança e as ações realizadas no sistema."
+        }
       />
 
       <DataTable
@@ -101,6 +122,18 @@ export function AuditRoute() {
         }}
         enablePagination
         enableViewOptions
+      />
+
+      <AppDetailsSheet
+        open={Boolean(selectedEvent)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedEvent(null)
+          }
+        }}
+        title={selectedEvent ? `${selectedEvent.eventLabel} · ${selectedEvent.actorName}` : undefined}
+        description={selectedEvent?.reason || "Sem informações adicionais."}
+        items={selectedEvent ? getAuditEventDetails(selectedEvent) : []}
       />
     </PageSection>
   )

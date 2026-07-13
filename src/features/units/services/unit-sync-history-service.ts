@@ -39,6 +39,42 @@ function mapUnitSyncHistory(row: RawUnitSyncRunRow): UnitSyncHistoryEntry {
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
+
+function isSyncMode(value: unknown): value is RawUnitSyncRunRow["mode"] {
+  return value === "full" || value === "incremental"
+}
+
+function isSyncTrigger(value: unknown): value is RawUnitSyncRunRow["trigger"] {
+  return value === "automatic" || value === "manual"
+}
+
+function isSyncStatus(value: unknown): value is RawUnitSyncRunRow["status"] {
+  return value === "success" || value === "warning" || value === "failed"
+}
+
+function isRawUnitSyncRunRow(value: unknown): value is RawUnitSyncRunRow {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    isSyncMode(value.mode) &&
+    isSyncTrigger(value.trigger) &&
+    isSyncStatus(value.status) &&
+    typeof value.started_at === "string" &&
+    (typeof value.finished_at === "string" || value.finished_at === null) &&
+    (typeof value.duration_seconds === "number" || value.duration_seconds === null) &&
+    typeof value.message === "string" &&
+    typeof value.counters_received === "number" &&
+    typeof value.counters_created === "number" &&
+    typeof value.counters_updated === "number" &&
+    typeof value.counters_unchanged === "number" &&
+    typeof value.counters_failed === "number" &&
+    typeof value.consecutive_failures === "number"
+  )
+}
+
 export async function listUnitSyncHistory(): Promise<UnitSyncHistoryEntry[]> {
   const supabase = getSupabaseBrowserClient()
 
@@ -71,5 +107,9 @@ export async function listUnitSyncHistory(): Promise<UnitSyncHistoryEntry[]> {
     throw new Error(error.message)
   }
 
-  return ((data ?? []) as RawUnitSyncRunRow[]).map(mapUnitSyncHistory)
+  const rows: unknown = data
+
+  return (Array.isArray(rows) ? rows : [])
+    .filter(isRawUnitSyncRunRow)
+    .map(mapUnitSyncHistory)
 }

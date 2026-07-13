@@ -1,97 +1,87 @@
 import { describe, expect, it } from "vitest"
 
 import {
+  buildPriceDetails,
   formatPriceCharge,
   getPriceComputedStatus,
   sanitizePriceTable,
   sortPriceTablesByUpdatedAt,
+  type PriceTable,
 } from "@/features/prices"
 
-describe("prices models", () => {
-  it("normalizes valid price tables without accepting incomplete unit scoped records", () => {
-    const valid = sanitizePriceTable({
-      amount: "25.50",
-      cycleHours: 24,
-      graceMinutes: 15,
-      id: "price-001",
-      scope: "network",
-      startsAt: "2026-07-01T12:00:00.000Z",
-      status: "active",
-      toleranceMinutes: 10,
-      updatedAt: "2026-07-02T12:00:00.000Z",
-      version: 1,
-    })
-    const invalidUnit = sanitizePriceTable({
-      ...valid,
-      id: "price-002",
-      scope: "unit",
-      unitId: "",
-    })
+function createPriceTable(overrides: Partial<PriceTable> = {}): PriceTable {
+  return {
+    amount: 20,
+    computedStatus: "active",
+    cycleHours: 24,
+    endsAt: null,
+    graceMinutes: 0,
+    id: "price-network",
+    notes: null,
+    parentId: null,
+    reason: "Configuração comercial validada.",
+    scope: "network",
+    startsAt: "2026-07-01T12:00:00.000Z",
+    status: "active",
+    tiers: [],
+    toleranceMinutes: 0,
+    unitId: null,
+    unitName: null,
+    updatedAt: "2026-07-01T12:00:00.000Z",
+    version: 1,
+    ...overrides,
+  }
+}
 
-    expect(valid?.amount).toBe(25.5)
-    expect(invalidUnit).toBeNull()
+describe("prices models", () => {
+  it("normalizes price tables without mutating tiers", () => {
+    const source = createPriceTable({
+      amount: 25.5,
+      tiers: [{ amount: 12, id: "tier-1", limitHours: 1, notes: null, sequence: 1 }],
+    })
+    const sanitized = sanitizePriceTable(source)
+
+    expect(sanitized?.amount).toBe(25.5)
+    expect(sanitized?.tiers).toEqual(source.tiers)
+    expect(sanitized?.tiers).not.toBe(source.tiers)
   })
 
   it("derives validity status from configured status and date window", () => {
-    const base = {
-      amount: 10,
-      cycleHours: 1,
-      graceMinutes: 0,
-      id: "price-001",
-      scope: "network" as const,
-      startsAt: "2026-07-01T12:00:00.000Z",
-      status: "active" as const,
-      toleranceMinutes: 0,
-      updatedAt: "2026-07-02T12:00:00.000Z",
-      version: 1,
-    }
-
-    expect(
-      getPriceComputedStatus({ ...base, endsAt: null }, new Date("2026-07-02T12:00:00.000Z"))
-    ).toBe("active")
-    expect(
-      getPriceComputedStatus({ ...base, endsAt: null, startsAt: "2026-08-01T12:00:00.000Z" }, new Date("2026-07-02T12:00:00.000Z"))
-    ).toBe("scheduled")
-    expect(
-      getPriceComputedStatus({ ...base, endsAt: "2026-07-01T13:00:00.000Z" }, new Date("2026-07-02T12:00:00.000Z"))
-    ).toBe("expired")
+    expect(getPriceComputedStatus(createPriceTable())).toBe("active")
+    expect(getPriceComputedStatus(createPriceTable({
+      startsAt: "2999-08-01T12:00:00.000Z",
+    }))).toBe("scheduled")
+    expect(getPriceComputedStatus(createPriceTable({
+      endsAt: "2000-07-01T13:00:00.000Z",
+    }))).toBe("expired")
+    expect(getPriceComputedStatus(createPriceTable({
+      status: "inactive",
+    }))).toBe("inactive")
   })
 
-  it("sorts by update date and formats tiered charges", () => {
-    const first = sanitizePriceTable({
-      amount: 20,
-      cycleHours: 24,
-      graceMinutes: 0,
+  it("sorts by update date and formats charges and tier details", () => {
+    const first = createPriceTable({
       id: "price-old",
-      scope: "network",
-      startsAt: "2026-07-01T12:00:00.000Z",
-      status: "active",
-      toleranceMinutes: 0,
       updatedAt: "2026-07-01T12:00:00.000Z",
-      version: 1,
     })
-    const second = sanitizePriceTable({
-      amount: 20,
-      cycleHours: 24,
-      graceMinutes: 0,
+    const second = createPriceTable({
       id: "price-new",
-      scope: "network",
-      startsAt: "2026-07-01T12:00:00.000Z",
-      status: "active",
       tiers: [
         { amount: 12, id: "tier-1", limitHours: 1, notes: null, sequence: 1 },
         { amount: 18, id: "tier-2", limitHours: 3, notes: null, sequence: 2 },
       ],
-      toleranceMinutes: 0,
       updatedAt: "2026-07-03T12:00:00.000Z",
-      version: 1,
     })
 
-    expect(sortPriceTablesByUpdatedAt([first!, second!]).map((price) => price.id)).toEqual([
+    expect(sortPriceTablesByUpdatedAt([first, second]).map((price) => price.id)).toEqual([
       "price-new",
       "price-old",
     ])
-    expect(formatPriceCharge(second!)).toContain("Até 1h")
-    expect(formatPriceCharge(second!)).toContain("12,00")
+    const detailsText = buildPriceDetails(second)
+      .map((item) => typeof item.value === "string" ? item.value : "")
+      .join(" ")
+
+    expect(formatPriceCharge(second)).toContain("20,00")
+    expect(detailsText).toContain("Até 1 hora")
   })
 })

@@ -5,7 +5,6 @@ export {
   type NotificationsContextValue,
 } from "./context/notifications-provider"
 export { notificationsCopy } from "./notifications-copy"
-export { NotificationsRoute } from "./routes/notifications-route"
 export {
   countUnreadNotifications,
   createMemoryNotificationsGateway,

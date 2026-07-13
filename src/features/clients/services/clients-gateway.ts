@@ -8,6 +8,31 @@ export interface ClientsGateway {
 
 const defaultBatchSize = 500
 const maxBatches = 20
+const clientPayloadKeys = [
+  "cod_pessoa",
+  "nom_pessoa",
+  "nom_fantasia",
+  "num_cnpj_cpf",
+  "des_email_1",
+  "num_telefone_1",
+  "nom_cidade",
+  "sgl_estado",
+  "dta_cadastro",
+  "ind_pessoa_ativa",
+  "bloqueio_financeiro",
+  "qtd_veiculos",
+  "dta_ultima_compra",
+] as const
+const clientVehiclePayloadKeys = [
+  "cod_veiculo",
+  "cod_pessoa",
+  "nom_pessoa",
+  "nom_fantasia",
+  "num_cnpj_cpf",
+  "num_placa",
+  "des_veiculo",
+  "nom_motorista",
+] as const
 
 async function fetchAllBatches<TRow>(loader: (from: number, to: number) => Promise<readonly TRow[]>) {
   const rows: TRow[] = []
@@ -63,7 +88,7 @@ function createSupabaseClientsGateway(): ClientsGateway {
           throw new Error(error.message)
         }
 
-        return (data ?? []) as readonly ErpClientPayload[]
+        return normalizeErpRows<ErpClientPayload>(data, clientPayloadKeys)
       })
     },
     async listClientVehiclesPayload() {
@@ -94,10 +119,41 @@ function createSupabaseClientsGateway(): ClientsGateway {
           throw new Error(error.message)
         }
 
-        return (data ?? []) as readonly ErpClientVehiclePayload[]
+        return normalizeErpRows<ErpClientVehiclePayload>(
+          data,
+          clientVehiclePayloadKeys
+        )
       })
     },
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
+
+function hasKeys(
+  value: Record<string, unknown>,
+  keys: readonly string[]
+): boolean {
+  return keys.every((key) => key in value)
+}
+
+function normalizeErpRows<TPayload>(
+  value: unknown,
+  keys: readonly string[]
+): readonly TPayload[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.reduce<TPayload[]>((rows, row) => {
+    if (isRecord(row) && hasKeys(row, keys)) {
+      rows.push(row as TPayload)
+    }
+
+    return rows
+  }, [])
 }
 
 let clientsGateway: ClientsGateway = createSupabaseClientsGateway()

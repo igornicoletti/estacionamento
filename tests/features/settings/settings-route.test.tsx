@@ -7,20 +7,15 @@ describe("SettingsRoute", () => {
   it("renders profile, password and passkey sections with standardized copy", async () => {
     render(<SettingsRoute />)
 
-    expect(screen.getByRole("heading", { name: "Configurações" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Meu perfil" })).toBeInTheDocument()
 
     await waitFor(() => {
-      expect(screen.getByText("Informações de perfil")).toBeInTheDocument()
+      expect(screen.getByText("Informações da conta")).toBeInTheDocument()
     })
 
-    expect(screen.getByText("Credenciais de acesso")).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "Alterar senha" })
-    ).toBeInTheDocument()
-
-    expect(
-      screen.getByText("Passkey")
-    ).toBeInTheDocument()
+    expect(screen.getByText("Segurança e credenciais")).toBeInTheDocument()
+    expect(screen.getByText("Modo somente leitura")).toBeInTheDocument()
+    expect(screen.getByText("Passkey")).toBeInTheDocument()
     expect(screen.getByText("Ativa")).toBeInTheDocument()
   })
 })

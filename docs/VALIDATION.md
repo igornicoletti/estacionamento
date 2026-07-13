@@ -1,53 +1,51 @@
 # Validation Report
 
+Data da revisão: 2026-07-13
+
 ## Comandos
 
 ```bash
 pnpm validate
 pnpm lint
 pnpm typecheck
+pnpm typecheck:test
 pnpm test
 pnpm build
 ```
 
+Para Supabase Functions:
+
+```bash
+deno check supabase/functions/<function-name>/index.ts
+```
+
 ## O Que O Validador Confirma
 
-- A aplicação usa Vite, React, TypeScript, Tailwind CSS 4, shadcn/ui, Zod, React Router e TanStack Table.
-- O shadcn resolve `@/components/ui` para `src/components/ui`.
-- `docs/` contém relatórios e `tests/` contém os testes automatizados.
-- Não existem imports antigos de registry nem diretórios legados de exemplos.
-- Existe uma única exportação pública de `DataTable`.
-- O core `src/components/data-table/` não importa mocks nem features.
-- Tabelas de domínio reutilizam `DataTable`; markup manual de tabela fora do core é bloqueado.
-- Clientes, veículos do cliente, unidades, usuários e auditoria usam o padrão central de tabela.
-- Auditoria usa `createActionsColumn`, `createDataTableDetailsAction` e `DataTableDetailsTextTrigger`.
-- Todas as tabelas com linha de ações mantêm o item `Informações` abrindo o Sheet centralizado.
-- Rotas usam `React.lazy`, `Suspense`, `ProtectedRoute` e metadados centralizados.
-- A página 404 lê opções de navegação de `appRouteDefinitions`.
-- Veículos não existem como rota direta; são acessados por `/clientes/:id`.
-- As rotas de tabela não usam `searchFields`, `toolbarActions`, botão adicionar ou seleção de linha.
-- Busca global cobre múltiplas colunas relevantes e preserva espaços durante a digitação.
-- Filtros e células de opções não exibem ícones.
-- MFA usa apenas `active/inactive`, exibidos como `Ativo/Inativo`.
-- O menu de colunas não exibe o rótulo extra.
-- O rodapé da tabela exibe `Exibindo X de X item/itens`.
-- Toasts passam pela API central com sanitização e tradução.
-- `Meu perfil` mantém dados atuais em inputs disabled e expõe senha/MFA apenas por `Dialog`.
-- Upload de avatar em `Meu perfil` usa `Empty` e serviço centralizado.
-- O tema usa o azul da marca e sombras suaves.
-- Datasets mockados são não vazios e mantêm referências consistentes.
-- Hooks de snapshot assíncrono compartilham a mesma base (`useAsyncSnapshot`) para reduzir duplicação entre features.
-- O domínio de usuários usa gateway injetável para facilitar transição de mock para persistência real.
-- O favicon foi alinhado para servir `svg` com fallback `ico`, evitando inconsistência de tipo de asset.
+- Arquivos críticos de auth, notificações, rotas, Supabase Functions, migration comercial e CI existem.
+- `tsconfig.app.json` não inclui testes.
+- `tsconfig.test.json` cobre a suíte de testes.
+- `NotificationsProvider` está registrado em `AppProviders`.
+- Permissões `prices.manage` e `rules.manage` existem no contrato e na migration.
+- Perfil autenticado trata permissões explicitamente inválidas como negação.
+- `auth-password`, `auth-recovery-request` e `admin-user-auth-factors` estão configuradas em `supabase/config.toml`.
+- Signup está desabilitado, senha forte está ativa e sessões têm inatividade/timebox configurados.
+- Salvamento comercial usa `create_commercial_price_table` e `save_vip_rule_version`.
+- Funções Supabase usam `_shared/index.ts` e `_shared/auth-cors.ts`.
+- O cache de `useAsyncSnapshot` pode ser limpo e não aplica resposta obsoleta.
+- O serviço de usuários não usa gateway em memória fora de testes.
+- A suíte possui cobertura para rotas, serviços, permissões, notificações, unidades, clientes, preços, regras e auth contracts.
 
 ## Testes Automatizados
 
-- Utilitários de filtro: normalização, busca sem acento/case e dedupe.
-- `DataTable`: renderização de linhas, busca, estado filtrado vazio e recuperação com clear filters.
-- Auditoria: detalhes abrem pelo texto principal e pelo menu de ações.
-- Perfil: dados atuais disabled, upload por `Empty` e formulários sensíveis somente em dialogs.
-- Toast: sanitização, fallback e tradução de mensagens.
-- Mock data: loaders aplicam sanitização de telefone/CEP e MFA fica em `Ativo/Inativo`.
-- Hooks compartilhados: `useAsyncSnapshot` cobre carregamento inicial, `refetch`, fallback de erro e cancelamento por unmount.
-- Sidebar: popover de notificações possui cobertura de abertura e ações primárias.
-- Usuários: diálogo de cadastro possui cobertura de validações obrigatórias no submit.
+- Auth: validação de CPF/senha/recuperação e normalização estrita de permissões.
+- DataTable: renderização, busca, estado vazio filtrado e ações de linha.
+- Router: error boundary, acesso negado e fallbacks.
+- Notificações: provider, popover, rota e serviço.
+- Permissões: matriz de perfis/permissões e rota.
+- Preços: serviço RPC e rota.
+- Regras VIP: escopo, labels, persistência e versionamento via serviço.
+- Unidades e clientes: rotas, detalhes e serviços.
+
+## CI
+
+O workflow `.github/workflows/ci.yml` executa instalação com `pnpm --frozen-lockfile`, validação estrutural, lint, typechecks, Vitest, build e `deno check` das Edge Functions.

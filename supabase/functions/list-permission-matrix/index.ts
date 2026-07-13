@@ -98,14 +98,14 @@ function parseRolePermission(value: unknown): RolePermissionRow | null {
     : null
 }
 
-function createEmptyRoleAccess() {
+function createEmptyRoleAccess(): Record<PermissionRole, boolean> {
   return {
     admin: false,
     auditor: false,
     manager: false,
     operator: false,
     owner: false,
-  } satisfies Record<PermissionRole, boolean>
+  }
 }
 
 Deno.serve(async (req) => {

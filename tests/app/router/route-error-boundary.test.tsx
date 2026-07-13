@@ -20,18 +20,8 @@ vi.mock("react-router", async () => {
 
   return {
     ...actual,
+    useRevalidator: () => ({ revalidate: vi.fn() }),
     useRouteError: vi.fn(),
-  }
-})
-
-vi.mock("@/features/auth/hooks", () => {
-  return {
-    useAuthSession: () => ({
-      profile: {
-        role: "admin",
-        status: "active",
-      },
-    }),
   }
 })
 
@@ -53,15 +43,13 @@ describe("RouteErrorBoundary", () => {
 
     expect(screen.getByText("Erro inesperado")).toBeInTheDocument()
     expect(
-      screen.getByText(
-        "A aplicação encontrou uma falha inesperada ao renderizar esta rota. Tente novamente ou retorne para a página inicial."
-      )
+      screen.getByText(/A aplicação encontrou uma falha inesperada ao renderizar esta rota\. Código:/)
     ).toBeInTheDocument()
 
     const empty = container.querySelector('[data-slot="empty"]')
     expect(empty).not.toBeNull()
 
     const backLink = screen.getByRole("link", { name: "Voltar para o início" })
-    expect(backLink).toHaveAttribute("href", "/unidades")
+    expect(backLink).toHaveAttribute("href", "/")
   })
 })

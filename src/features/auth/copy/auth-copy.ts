@@ -22,6 +22,7 @@ export const authCopy = {
     unavailable: "Serviço indisponível no momento.",
     invalidCredentials: "Não foi possível autenticar com os dados informados.",
     sessionLoadFailed: "Não foi possível carregar a sessão atual.",
+    logoutFailed: "Não foi possível revogar a sessão remota. A sessão local foi encerrada.",
     recoveryFailed: "Não foi possível registrar a solicitação de recuperação.",
     unsupportedNextAction: "Este fluxo de autenticação não está disponível nesta interface.",
     passkeyRequired:

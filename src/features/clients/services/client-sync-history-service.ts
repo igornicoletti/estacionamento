@@ -49,6 +49,47 @@ function mapClientSyncHistory(row: RawClientSyncRunRow): ClientSyncHistoryEntry 
   }
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
+
+function isSyncMode(value: unknown): value is RawClientSyncRunRow["mode"] {
+  return value === "full" || value === "incremental"
+}
+
+function isSyncTrigger(value: unknown): value is RawClientSyncRunRow["trigger"] {
+  return value === "automatic" || value === "manual"
+}
+
+function isSyncStatus(value: unknown): value is RawClientSyncRunRow["status"] {
+  return value === "success" || value === "warning" || value === "failed"
+}
+
+function isRawClientSyncRunRow(value: unknown): value is RawClientSyncRunRow {
+  return (
+    isRecord(value) &&
+    typeof value.id === "string" &&
+    isSyncMode(value.mode) &&
+    isSyncTrigger(value.trigger) &&
+    isSyncStatus(value.status) &&
+    typeof value.started_at === "string" &&
+    (typeof value.finished_at === "string" || value.finished_at === null) &&
+    (typeof value.duration_seconds === "number" || value.duration_seconds === null) &&
+    typeof value.message === "string" &&
+    typeof value.counters_clients_received === "number" &&
+    typeof value.counters_clients_created === "number" &&
+    typeof value.counters_clients_updated === "number" &&
+    typeof value.counters_clients_unchanged === "number" &&
+    typeof value.counters_clients_failed === "number" &&
+    typeof value.counters_vehicles_received === "number" &&
+    typeof value.counters_vehicles_created === "number" &&
+    typeof value.counters_vehicles_updated === "number" &&
+    typeof value.counters_vehicles_unchanged === "number" &&
+    typeof value.counters_vehicles_failed === "number" &&
+    typeof value.consecutive_failures === "number"
+  )
+}
+
 export async function listClientSyncHistory(): Promise<ClientSyncHistoryEntry[]> {
   const supabase = getSupabaseBrowserClient()
 
@@ -86,5 +127,9 @@ export async function listClientSyncHistory(): Promise<ClientSyncHistoryEntry[]>
     throw new Error(error.message)
   }
 
-  return ((data ?? []) as RawClientSyncRunRow[]).map(mapClientSyncHistory)
+  const rows: unknown = data
+
+  return (Array.isArray(rows) ? rows : [])
+    .filter(isRawClientSyncRunRow)
+    .map(mapClientSyncHistory)
 }

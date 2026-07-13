@@ -1,5 +1,5 @@
 {
-  "name": "shadcn-data-table-generic",
+  "name": "estacionamento",
   "private": true,
   "type": "module",
   "scripts": {
@@ -10,6 +10,7 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "typecheck": "tsc -b",
+    "typecheck:test": "tsc -p tsconfig.test.json",
     "validate": "node scripts/validate-package.mjs"
   },
   "dependencies": {

@@ -40,6 +40,10 @@ type NotificationsAction =
   | { type: "status-update-finished"; id: string }
   | { type: "reset" }
 
+function assertNever(value: never): never {
+  throw new Error(`Ação de notificações não tratada: ${JSON.stringify(value)}`)
+}
+
 export interface NotificationsContextValue extends NotificationsState {
   refetch: () => Promise<void>
   updateStatus: (
@@ -131,90 +135,79 @@ function notificationsReducer(
   state: NotificationsState,
   action: NotificationsAction
 ): NotificationsState {
-  if (action.type === "load-started") {
-    return {
-      ...state,
-      error: null,
-      isLoading: action.mode === "loading",
-      isRefreshing: action.mode === "refreshing",
-    }
+  switch (action.type) {
+    case "load-started":
+      return {
+        ...state,
+        error: null,
+        isLoading: action.mode === "loading",
+        isRefreshing: action.mode === "refreshing",
+      }
+    case "loaded":
+      return {
+        ...state,
+        data: action.data,
+        error: null,
+        unreadCount: action.unreadCount,
+        isLoading: false,
+        isRefreshing: false,
+      }
+    case "failed":
+      return {
+        ...state,
+        error: action.error,
+        isLoading: false,
+        isRefreshing: false,
+      }
+    case "batch-started":
+      return {
+        ...state,
+        isUpdatingBatch: true,
+      }
+    case "batch-finished":
+      return {
+        ...state,
+        isUpdatingBatch: false,
+      }
+    case "status-update-started":
+      return {
+        ...state,
+        data: updateNotificationStatus(state.data, action.id, action.status),
+        unreadCount: resolveUnreadCountAfterStatusChange(
+          state.data,
+          state.unreadCount,
+          action.id,
+          action.status
+        ),
+        updatingNotificationIds: createNextUpdatingIds(
+          state.updatingNotificationIds,
+          "add",
+          action.id
+        ),
+      }
+    case "all-read-started":
+      return {
+        ...state,
+        data: state.data.map((notification) => ({
+          ...notification,
+          status: "read",
+        })),
+        unreadCount: 0,
+      }
+    case "status-update-finished":
+      return {
+        ...state,
+        updatingNotificationIds: createNextUpdatingIds(
+          state.updatingNotificationIds,
+          "delete",
+          action.id
+        ),
+      }
+    case "reset":
+      return inactiveState
+    default:
+      return assertNever(action)
   }
-
-  if (action.type === "loaded") {
-    return {
-      ...state,
-      data: action.data,
-      error: null,
-      unreadCount: action.unreadCount,
-      isLoading: false,
-      isRefreshing: false,
-    }
-  }
-
-  if (action.type === "failed") {
-    return {
-      ...state,
-      error: action.error,
-      isLoading: false,
-      isRefreshing: false,
-    }
-  }
-
-  if (action.type === "batch-started") {
-    return {
-      ...state,
-      isUpdatingBatch: true,
-    }
-  }
-
-  if (action.type === "batch-finished") {
-    return {
-      ...state,
-      isUpdatingBatch: false,
-    }
-  }
-
-  if (action.type === "status-update-started") {
-    return {
-      ...state,
-      data: updateNotificationStatus(state.data, action.id, action.status),
-      unreadCount: resolveUnreadCountAfterStatusChange(
-        state.data,
-        state.unreadCount,
-        action.id,
-        action.status
-      ),
-      updatingNotificationIds: createNextUpdatingIds(
-        state.updatingNotificationIds,
-        "add",
-        action.id
-      ),
-    }
-  }
-
-  if (action.type === "all-read-started") {
-    return {
-      ...state,
-      data: state.data.map((notification) => ({
-        ...notification,
-        status: "read",
-      })),
-      unreadCount: 0,
-    }
-  }
-
-  if (action.type === "status-update-finished") {
-    return {
-      ...state,
-      updatingNotificationIds: createNextUpdatingIds(
-        state.updatingNotificationIds,
-        "delete",
-        action.id
-      ),
-    }
-  }
-
-  return inactiveState
 }
 
 export function NotificationsProvider({ children }: { children: React.ReactNode }) {

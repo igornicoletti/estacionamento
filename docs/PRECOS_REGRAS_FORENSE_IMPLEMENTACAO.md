@@ -2,6 +2,8 @@
 
 Data: 2026-07-09
 
+Atualização de 2026-07-13: a implementação comercial foi endurecida pela auditoria forense. Escritas de preço e regra VIP agora passam por RPCs Supabase transacionais, permissões `prices.manage`/`rules.manage`, RLS por permissão, auditoria e bloqueio de sobreposição de preços ativos.
+
 ## Escopo
 
 Este documento consolida a análise crítica dos arquivos de preços e regras comerciais nos repositórios `projetosmc/estacionamento` e `igornicoletti/estacionamento`, as fontes externas consultadas e as decisões dedutivas usadas para implementar a base de preços e regras na nova aplicação.
@@ -56,9 +58,9 @@ Arquivos analisados em `igornicoletti/estacionamento`:
 - `src/features/rules/columns/vip-rules-columns.tsx`: já usava o `DataTable` central.
 - `src/features/clients/routes/clients-route.tsx` e `src/features/clients/routes/client-vehicles-route.tsx`: já consumiam o serviço de VIP para cliente/veículo.
 - `src/components/data-table/*`, `src/components/page/*`, `src/components/ui/*`: padrão local de tabela, cabeçalho, seção, badges e sheet de detalhes.
-- `src/features/auth/authorization/authorization-policy.ts`: rotas comerciais protegidas por `commercial.prices.read` e `commercial.rules.read`.
+- `src/features/auth/contracts/auth-contracts.ts` e `src/app/router/route-registry.ts`: rotas comerciais protegidas por `prices.read`/`rules.read`; ações de escrita protegidas por `prices.manage`/`rules.manage`.
 
-Dedução: a implementação deveria reutilizar `DataTable`, `PageHeader`, `PageSection`, `Badge`, `DataTableDetails`, hooks com `useAsyncSnapshot` e gateways injetáveis para manter consistência com unidades, clientes e usuários.
+Dedução: a implementação deveria reutilizar `DataTable`, `PageHeader`, `PageSection`, `Badge`, `AppDetailsSheet`, hooks com `useAsyncSnapshot` e serviços de domínio para manter consistência com unidades, clientes e usuários.
 
 ## Fontes Externas Consultadas
 
@@ -101,13 +103,13 @@ Dedução: a implementação deveria reutilizar `DataTable`, `PageHeader`, `Page
    - `isVehicleVipFromRules` considera regra ativa de veículo ou regra ativa de cliente cobrindo todos os veículos.
 
 5. Supabase deve ser a fonte de produção.
-   - Criada migration para `commercial_price_tables`, `commercial_price_tiers` e `commercial_rules`.
-   - RLS habilitado, grants explícitos para `authenticated` e políticas por papel ativo em `app_users`.
-   - `owner`, `admin` e `auditor` podem ler; somente `owner` e `admin` podem mutar.
+   - Criadas migrations para `commercial_price_tables`, `commercial_price_tiers`, `commercial_rules`, permissões comerciais e RPCs de escrita.
+   - RLS habilitado, grants explícitos para `authenticated` e políticas por permissão efetiva do usuário.
+   - Leitura e mutação são controladas por `prices.read`, `prices.manage`, `rules.read` e `rules.manage`.
 
 6. Fallback local não é autoridade.
-   - `localStorage` permanece como fallback quando Supabase não está configurado no browser, com tratamento de erro.
-   - Testes usam gateway in-memory injetável, não dados globais compartilhados.
+   - Serviços comerciais falham quando o Supabase client não está configurado, evitando gravação operacional em `localStorage`.
+   - Testes mockam a camada Supabase/RPC em vez de depender de dados globais compartilhados.
 
 7. Benefício de abastecimento foi modelado no banco, mas não exposto como CRUD.
    - A evidência mostra que a regra existe, mas os parâmetros operacionais de produção precisam ser confirmados antes de criar tela de cadastro.
@@ -121,12 +123,15 @@ Dedução: a implementação deveria reutilizar `DataTable`, `PageHeader`, `Page
 - `src/features/prices/hooks/use-prices.ts`: hook baseado em `useAsyncSnapshot`.
 - `src/features/prices/columns/prices-columns.tsx`: colunas com badges, detalhes e formatação.
 - `src/features/prices/routes/prices-route.tsx`: página real de preços usando `DataTable`.
-- `src/features/rules/services/vip-rules-service.ts`: gateway Supabase/local/in-memory, ids determinísticos, deduplicação e escopo correto de VIP.
+- `src/features/prices/services/prices-service.ts`: criação via RPC `create_commercial_price_table`.
+- `src/features/rules/services/vip-rules-service.ts`: serviço Supabase com ids determinísticos, deduplicação e escopo correto de VIP.
+- `src/features/rules/services/vip-rules-service.ts`: salvamento via RPC `save_vip_rule_version`.
 - `src/features/rules/columns/vip-rules-columns.tsx`: coluna de abrangência e ação de ativar/inativar.
 - `src/features/rules/routes/rules-route.tsx`: página ajustada para regras comerciais.
 - `supabase/migrations/20260709084549_commercial_prices_rules.sql`: schema comercial, checks, índices, triggers, RLS, grants e policies.
+- `supabase/migrations/20260713170614_unify_permission_authorization.sql`: permissões comerciais, RLS por permissão, constraints de sobreposição, RPCs versionadas e auditoria.
 - `tests/features/prices/*` e `tests/features/rules/vip-rules-service.test.ts`: cobertura de normalização, status, página e regras VIP.
-- `tests/setup.ts`: isolamento de gateway in-memory para regras nos testes.
+- `tests/setup.ts`: isolamento de mocks e providers usados pela suíte.
 
 ## Checklist de Produção
 
@@ -137,23 +142,22 @@ Dedução: a implementação deveria reutilizar `DataTable`, `PageHeader`, `Page
 - Popular `commercial_price_tables` somente com dados comerciais homologados.
 - Registrar motivo em alterações de preço/regra quando houver fluxo de escrita.
 - Confirmar requisitos de benefício de abastecimento antes de expor CRUD.
-- Executar `pnpm validate`, `pnpm lint`, `pnpm typecheck`, `pnpm test` e `pnpm build` antes de entrega.
+- Executar `pnpm validate`, `pnpm lint`, `pnpm typecheck`, `pnpm typecheck:test`, `pnpm test`, `pnpm build` e `deno check` das funções antes de entrega.
 
 ## Validação Desta Revisão
 
 - `pnpm validate`: aprovado.
 - `pnpm lint`: aprovado.
 - `pnpm typecheck`: aprovado.
-- `pnpm vitest run tests/features/prices/prices-service.test.ts tests/features/prices/prices-route.test.tsx tests/features/rules/vip-rules-service.test.ts`: 3 arquivos, 7 testes aprovados.
-- `pnpm test`: 39 arquivos, 106 testes aprovados.
+- `pnpm typecheck:test`: aprovado.
+- `pnpm test`: suíte completa aprovada.
 - `pnpm build`: aprovado.
-
-Observação: o build informa avisos não bloqueantes de import dinâmico inefetivo para rotas de auth que também são importadas estaticamente pelo barrel de auth. Isso não foi introduzido pela implementação comercial.
+- `deno check` das funções Supabase: aprovado.
 
 ## Riscos e Dependências
 
 - O projeto Supabase conectado não possuía tabelas comerciais reais no momento da inspeção de catálogo.
-- A migration foi criada localmente, mas não aplicada no banco remoto nesta revisão.
-- A página de preços é consulta segura e preparada para produção; criação/edição de preço não foi exposta sem requisitos formais de aprovação, auditoria e dados homologados.
+- As migrations foram criadas localmente, mas não aplicadas no banco remoto nesta revisão.
+- A página de preços é preparada para produção e criação/edição passa por RPC com motivo, versionamento e auditoria.
 - Regras comerciais além de VIP foram modeladas em banco para evolução, mas a UI atual preserva somente o fluxo existente de VIP.
 - Valores operacionais observados no projeto antigo foram tratados como evidência histórica, não como default da nova aplicação.

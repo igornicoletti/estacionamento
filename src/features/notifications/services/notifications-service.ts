@@ -239,6 +239,30 @@ function createSupabaseNotificationsGateway(): NotificationsGateway {
       .filter((notification): notification is NotificationRecord => Boolean(notification))
   }
 
+  async function getNotificationById(notificationId: string) {
+    const response = await supabaseClient
+      .from("notification_deliveries")
+      .select(
+        "id, created_at, read_at, notification_events(created_at, description, href, title, type)"
+      )
+      .eq("id", notificationId)
+      .maybeSingle()
+
+    if (response.error) {
+      throw new Error(notificationsCopy.feedback.loadError, { cause: response.error })
+    }
+
+    const notification = isRawNotificationDeliveryRow(response.data)
+      ? mapNotificationDelivery(response.data)
+      : null
+
+    if (!notification) {
+      throw new Error("Notificação não encontrada.")
+    }
+
+    return notification
+  }
+
   async function countUnreadNotifications() {
     const response = await supabaseClient
       .from("notification_deliveries")
@@ -269,30 +293,11 @@ function createSupabaseNotificationsGateway(): NotificationsGateway {
       throw new Error(message, { cause: response.error })
     }
 
-    const notifications = await listNotifications()
-    const updatedNotification = notifications.find(
-      (notification) => notification.id === notificationId
-    )
-
-    if (!updatedNotification) {
-      throw new Error("Notificação não encontrada.")
-    }
-
-    return updatedNotification
+    return getNotificationById(notificationId)
   }
 
 
   async function markAllNotificationsAsRead() {
-    const unreadCountBeforeUpdate = await countUnreadNotifications()
-
-    if (unreadCountBeforeUpdate === 0) {
-      return {
-        failed: [],
-        total: 0,
-        updated: 0,
-      }
-    }
-
     const response: unknown = await supabaseClient.rpc("set_all_notifications_read_status", {
       is_read: true,
     })
@@ -309,7 +314,7 @@ function createSupabaseNotificationsGateway(): NotificationsGateway {
 
     return {
       failed: [],
-      total: unreadCountBeforeUpdate,
+      total: updatedIds.length,
       updated: updatedIds.length,
     }
   }

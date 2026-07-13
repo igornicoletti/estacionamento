@@ -37,9 +37,47 @@ function createSupabaseUnitsGateway(): UnitsGateway {
         throw new Error(error.message)
       }
 
-      return (data ?? []) as readonly ErpUnitPayload[]
+      return normalizeErpRows(data, [
+        "cod_empresa",
+        "nom_razao_social",
+        "nom_fantasia",
+        "num_cnpj",
+        "cod_bandeira",
+        "des_bandeira",
+        "cod_cidade",
+        "nom_cidade",
+        "nom_estado",
+        "sgl_estado",
+        "des_coordenada_empresa",
+        "ip_rede",
+        "nom_banco_dados",
+      ])
     },
   }
+}
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+}
+
+function hasKeys(
+  value: Record<string, unknown>,
+  keys: readonly string[]
+): value is Record<keyof ErpUnitPayload, unknown> {
+  return keys.every((key) => key in value)
+}
+
+function normalizeErpRows(
+  value: unknown,
+  keys: readonly string[]
+): readonly ErpUnitPayload[] {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.filter(
+    (row): row is ErpUnitPayload => isRecord(row) && hasKeys(row, keys)
+  )
 }
 
 let unitsGateway: UnitsGateway = createSupabaseUnitsGateway()

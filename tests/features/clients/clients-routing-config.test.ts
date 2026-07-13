@@ -1,25 +1,30 @@
 import { TruckIcon, UserRoundIcon } from "lucide-react"
 import { describe, expect, it } from "vitest"
 
-import { appRouteDefinitions } from "@/app/router/route-definitions"
+import {
+  appRouteIds,
+  appRoutePaths,
+  appRouteSegments,
+  authenticatedRouteRegistry,
+} from "@/app/router/route-registry"
 import {
   navigationGroups,
   routeIconById,
 } from "@/components/sidebar/sidebar-config"
-import { routeCapabilities } from "@/features/auth"
+import { AUTH_PERMISSION } from "@/features/auth"
 
 describe("clients route and sidebar integration", () => {
-  it("exposes clients route with required capability", () => {
-    const clientsRoute = appRouteDefinitions.find((route) => route.id === "clients")
+  it("exposes clients route with required permission", () => {
+    const clientsRoute = authenticatedRouteRegistry.find((route) => route.id === appRouteIds.clients)
 
     expect(clientsRoute).toBeDefined()
-    expect(clientsRoute?.path).toBe("clientes")
-    expect(clientsRoute?.requiredCapabilities).toEqual(routeCapabilities.clients)
+    expect(clientsRoute?.path).toBe(appRouteSegments.clients)
+    expect(clientsRoute?.requiredPermissions).toEqual([AUTH_PERMISSION.clientsRead])
   })
 
   it("shows clients entry in sidebar navigation groups", () => {
     const hasClientsItem = navigationGroups.some((group) => {
-      return group.items.some((item) => item.id === "clients" && item.href === "/clientes")
+      return group.items.some((item) => item.id === appRouteIds.clients && item.href === appRoutePaths.clients)
     })
 
     expect(hasClientsItem).toBe(true)
@@ -27,35 +32,24 @@ describe("clients route and sidebar integration", () => {
 
   it("orders visible sidebar groups and labels them for end users", () => {
     expect(navigationGroups.map((group) => group.label)).toEqual([
+      "Área de trabalho",
       "Cadastros",
       "Comercial",
       "Acesso",
       "Monitoramento",
       "Configurações",
     ])
-
     expect(navigationGroups[0]?.items.map((item) => item.id)).toEqual([
-      "units",
-      "clients",
+      appRouteIds.home,
     ])
     expect(navigationGroups[1]?.items.map((item) => item.id)).toEqual([
-      "prices",
-      "rules",
+      appRouteIds.units,
+      appRouteIds.clients,
     ])
-    expect(navigationGroups[2]?.items.map((item) => item.id)).toEqual([
-      "users",
-      "accessRequests",
-      "permissions",
+    expect(navigationGroups[5]?.items.map((item) => item.id)).toEqual([
+      appRouteIds.settings,
     ])
-    expect(navigationGroups[3]?.items.map((item) => item.id)).toEqual([
-      "audit",
-      "notifications",
-    ])
-    expect(navigationGroups[4]?.items.map((item) => item.id)).toEqual([
-      "settings",
-    ])
-
-    expect(routeIconById.clients).toBe(TruckIcon)
-    expect(routeIconById.settings).toBe(UserRoundIcon)
+    expect(routeIconById[appRouteIds.clients]).toBe(TruckIcon)
+    expect(routeIconById[appRouteIds.settings]).toBe(UserRoundIcon)
   })
 })

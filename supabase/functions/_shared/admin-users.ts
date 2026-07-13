@@ -3,6 +3,7 @@ import {
   createAdminClient,
   createAuthorizedClient,
   type EdgeSupabaseClient,
+  type Json,
 } from "./auth-supabase-admin.ts"
 
 export type AdminRole = "owner" | "admin" | "auditor" | "manager" | "operator"
@@ -22,6 +23,8 @@ export interface AdminActionContext {
   reason: string | null
   request: Request
 }
+
+type AuditMetadata = { [key: string]: Json | undefined }
 
 export function handleAdminCors(request: Request) {
   return handleCors(request)
@@ -59,6 +62,40 @@ function isManagementRole(role: string | null | undefined) {
 
 export function isGlobalRole(role: string) {
   return role === "owner" || role === "admin" || role === "auditor"
+}
+
+function readString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null
+}
+
+function readAdminRole(value: unknown): AdminRole | null {
+  return value === "owner" ||
+      value === "admin" ||
+      value === "auditor" ||
+      value === "manager" ||
+      value === "operator"
+    ? value
+    : null
+}
+
+function parseAppUserRow(value: Record<string, unknown>): AppUserRow {
+  const id = readString(value.id)
+  const authUserId = readString(value.auth_user_id)
+  const name = readString(value.name)
+  const role = readAdminRole(value.role)
+  const status = readString(value.status)
+
+  if (!id || !authUserId || !name || !role || !status) {
+    throw new Error("Cadastro de usuário inválido.")
+  }
+
+  return {
+    id,
+    auth_user_id: authUserId,
+    name,
+    role,
+    status,
+  }
 }
 
 export function canAssignRole(actor: AppUserRow, role: string) {
@@ -112,7 +149,7 @@ export async function getAppUserByAuthUserId(
     throw new Error("Usuário não encontrado.")
   }
 
-  return response.data satisfies AppUserRow
+  return parseAppUserRow(response.data)
 }
 
 async function recordAudit(
@@ -122,7 +159,7 @@ async function recordAudit(
   target: AppUserRow | null,
   reason: string | null,
   success: boolean,
-  metadata: Record<string, unknown> = {}
+  metadata: AuditMetadata = {}
 ) {
   await admin.from("audit_events").insert({
     actor: actor?.name ?? "unknown",
@@ -176,7 +213,7 @@ export async function createAdminActionContext(
 export async function completeAdminAction(
   context: AdminActionContext,
   event: string,
-  metadata: Record<string, unknown> = {}
+  metadata: AuditMetadata = {}
 ) {
   await recordAudit(context.admin, context.actor, event, context.target, context.reason, true, {
     actorRole: context.actor.role,

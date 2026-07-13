@@ -71,15 +71,18 @@ export async function reviewRecoveryRequest(
 ) {
   const errorMessage = getReviewErrorMessage("recovery", decision)
   const supabase = getSupabaseOrThrow(errorMessage)
-  const { error } = await supabase.functions.invoke("admin-recovery-review", {
+  const response: { error: unknown } = await supabase.functions.invoke(
+    "admin-recovery-review",
+    {
     body: {
       decision,
       requestId,
       reviewReason,
     },
-  })
+    }
+  )
 
-  if (error) {
+  if (response.error) {
     throw new Error(errorMessage)
   }
 }
@@ -90,14 +93,17 @@ export async function reviewPhoneChange(
 ) {
   const errorMessage = getReviewErrorMessage("phoneChanges", decision)
   const supabase = getSupabaseOrThrow(errorMessage)
-  const { error } = await supabase.functions.invoke("admin-phone-change-review", {
+  const response: { error: unknown } = await supabase.functions.invoke(
+    "admin-phone-change-review",
+    {
     body: {
       decision,
       targetUserId,
     },
-  })
+    }
+  )
 
-  if (error) {
+  if (response.error) {
     throw new Error(errorMessage)
   }
 }

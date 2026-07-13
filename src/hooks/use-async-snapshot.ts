@@ -12,6 +12,10 @@ interface CacheEntry {
 
 const asyncSnapshotCache = new Map<string, CacheEntry>()
 
+export function clearAsyncSnapshotCache() {
+  asyncSnapshotCache.clear()
+}
+
 function getCachedData<TData>(key: string): TData | undefined {
   const entry = asyncSnapshotCache.get(key)
 
@@ -71,6 +75,7 @@ export function useAsyncSnapshot<TData>({
   })
   const [isLoading, setIsLoading] = React.useState(!hasCachedData)
   const [error, setError] = React.useState<Error | null>(null)
+  const requestVersionRef = React.useRef(0)
 
   const setData = React.useCallback<React.Dispatch<React.SetStateAction<TData>>>(
     (value) => {
@@ -92,6 +97,10 @@ export function useAsyncSnapshot<TData>({
     options: { setLoading?: boolean } = {}
   ) => {
     const shouldSetLoading = options.setLoading ?? true
+    const requestVersion = requestVersionRef.current + 1
+    requestVersionRef.current = requestVersion
+    const shouldApplyResult = () =>
+      isCurrent() && requestVersionRef.current === requestVersion
 
     try {
       if (shouldSetLoading) {
@@ -101,15 +110,15 @@ export function useAsyncSnapshot<TData>({
       setError(null)
       const snapshot = await loadData()
 
-      if (isCurrent()) {
+      if (shouldApplyResult()) {
         setData(snapshot)
       }
     } catch (caughtError) {
-      if (isCurrent()) {
+      if (shouldApplyResult()) {
         setError(toError(caughtError, errorMessage))
       }
     } finally {
-      if (isCurrent()) {
+      if (shouldApplyResult()) {
         setIsLoading(false)
       }
     }

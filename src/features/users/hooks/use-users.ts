@@ -156,7 +156,7 @@ export function useUsers() {
   React.useEffect(() => {
     let isMounted = true
 
-    void loadUsers(() => isMounted)
+    void Promise.resolve().then(() => loadUsers(() => isMounted))
 
     return () => {
       isMounted = false

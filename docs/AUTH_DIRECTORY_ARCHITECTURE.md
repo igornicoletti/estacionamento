@@ -1,58 +1,63 @@
-# Arquitetura de Diretórios de Auth
+# Arquitetura de Auth e Acesso
+
+Data da revisão: 2026-07-13
 
 ```txt
 src/features/auth/
+├── api/
 ├── components/
+├── context/
+├── contracts/
+├── copy/
+├── routes/
+├── types/
+├── validation/
+└── index.ts
+
+src/features/users/
+├── columns/
 ├── hooks/
 ├── routes/
 ├── schemas/
 ├── services/
 ├── types/
+├── utils/
 └── index.ts
 
-src/features/users/
-├── components/
-├── schemas/
-├── services/
-├── types/
-└── index.ts
-
-src/features/profile/
-├── components/
-│   ├── profile-action-row.tsx
-│   ├── profile-avatar-upload.tsx
-│   ├── profile-identity-form.tsx
-│   ├── profile-mfa-change-form.tsx
-│   ├── profile-passkey-list.tsx
-│   ├── profile-password-form.tsx
-│   ├── profile-session-list.tsx
-│   └── index.ts
-├── routes/
-├── schemas/
-├── services/
-└── index.ts
-
-src/features/audit/
-├── components/
+src/features/access-requests/
 ├── columns/
+├── hooks/
 ├── routes/
 ├── services/
 ├── types/
-├── audit-copy.ts
-├── audit-details.ts
-├── table-config.ts
+├── utils/
 └── index.ts
 
-supabase/
-├── migrations/
-└── functions/
-    ├── _shared/
-    ├── auth-start/
-    ├── auth-password/
-    ├── auth-complete-passkey/
-    ├── auth-register-passkey/
-    ├── auth-recovery-request/
-    └── admin-*/
+src/features/settings/
+├── hooks/
+├── routes/
+├── sections/
+├── types/
+├── utils/
+└── index.ts
+
+supabase/functions/
+├── _shared/
+├── auth-password/
+├── auth-recovery-request/
+├── admin-phone-change-review/
+├── admin-recovery-review/
+├── admin-user-auth-factors/
+├── admin-user-block/
+├── admin-user-clear-lock/
+├── admin-user-create/
+├── admin-user-reset-passkey/
+├── admin-user-reset-password/
+├── admin-user-revoke-sessions/
+├── admin-user-update/
+└── list-permission-matrix/
 ```
 
-Barrels exportam apenas a API pública de cada contexto. Helpers server-side sensíveis ficam dentro de `supabase/functions/_shared`.
+Barrels exportam APIs públicas de domínio, mas não exportam componentes de rota que são carregados por `React.lazy`. Helpers server-side sensíveis ficam em `supabase/functions/_shared`.
+
+O contrato central de autorização é `src/features/auth/contracts/auth-contracts.ts`. O registro de rotas consome esse contrato em `src/app/router/route-registry.ts`.

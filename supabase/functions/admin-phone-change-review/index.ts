@@ -128,7 +128,7 @@ async function getActor(request: Request): Promise<Actor | null> {
   }
 }
 
-function canReviewAccessRequests(actor: Actor | null) {
+function canReviewAccessRequests(actor: Actor | null): actor is Actor {
   return (
     actor !== null &&
     actor.status === "active" &&

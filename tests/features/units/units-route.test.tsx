@@ -62,7 +62,8 @@ describe("UnitsRoute", () => {
     fireEvent.click(screen.getByRole("button", { name: "Monte Carlo Centro" }))
 
     expect(screen.getAllByText("Código").length).toBeGreaterThan(0)
-    expect(screen.getByRole("heading", { name: "Posto Monte Carlo Centro Ltda" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Monte Carlo Centro" })).toBeInTheDocument()
+    expect(screen.getAllByText("Posto Monte Carlo Centro Ltda").length).toBeGreaterThan(0)
 
     fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
     expect(

@@ -1,50 +1,49 @@
-# Final Audit
+# Auditoria Final
+
+Data da revisão: 2026-07-13
 
 ## Parecer
 
-O projeto está organizado como uma aplicação Vite funcional com React, TypeScript, Tailwind CSS 4, shadcn/ui, TanStack Table, Sonner, Zod, React Router e Supabase preparado para autenticação. A `DataTable` permanece como engine genérica e reutilizável, separada das features, rotas, modelos e dados mockados.
+As correções auditadas foram aplicadas em código, Supabase, testes, validação e documentação. O projeto agora compila com rotas carregadas por lazy import efetivo, providers obrigatórios registrados, permissões estritas, funções Supabase compartilhadas, configuração de Auth endurecida e escritas comerciais transacionais.
 
-## Decisões Implementadas
+## Correções Implementadas
 
-- Rotas principais usam `React.lazy`, `Suspense`, `ProtectedRoute` e metadados centralizados.
-- `/clientes`, `/clientes/:id`, `/usuarios`, `/unidades`, `/auditoria` e `/perfil` seguem a estrutura atual.
-- Veículos não possuem rota direta; a tabela de veículos é contextual ao cliente em `/clientes/:id`.
-- Página 404 usa `appRouteDefinitions`, sem duplicar paths.
-- Sidebar/header ficam no shell autenticado; 404 pública não fica dentro do layout autenticado.
-- Cada tabela de domínio reutiliza `DataTable`; markup manual de tabela fora do core é bloqueado no validador.
-- Auditoria usa as mesmas ações e o mesmo Sheet de detalhes das tabelas de unidades, clientes, usuários e veículos.
-- Filtros e células de opções exibem texto sem ícones.
-- MFA foi normalizado para `Ativo/Inativo`.
-- Colunas foram reorganizadas para priorizar dados críticos.
-- Colunas de checkbox e botões de adicionar permanecem fora das tabelas atuais.
-- O rodapé exibe `Exibindo X de X item/itens`.
-- Cabeçalhos ordenáveis alternam entre padrão, ascendente e descendente por clique.
-- Sonner permanece centralizado em `src/components/toast`, com sanitização e tradução.
-- `Meu perfil` usa uma única seção com borda, `Separator`, `Empty` para avatar, `Alert` informativo e `Dialog` para ações sensíveis.
-- Senha e MFA não ficam expostos diretamente na página de perfil.
-- `tsconfig`, aliases e `components.json` estão alinhados com VS Code e shadcn CLI.
-- Hooks de leitura assíncrona passaram a usar base compartilhada para reduzir duplicação e facilitar testes de `refetch`/erro/cancelamento.
-- `src/lib` foi consolidado com helpers de normalização e redução de superfície pública não utilizada.
-- `users` mantém contrato consolidado entre schema, service e UI com gateway preparado para fase de persistência real.
-- Assets de favicon foram alinhados com `svg` primário e fallback `ico`.
+- `AppProviders` inclui `NotificationsProvider`.
+- Barrels de auth e notificações não exportam mais rotas lazy.
+- Contrato de permissões usa união fechada de `AUTH_PERMISSION`.
+- Perfil autenticado não cai para fallback de papel quando recebe permissões explícitas inválidas.
+- Logout usa escopo local e limpa cache assíncrono.
+- Senha exigida em desafio de autenticação não fica em React state.
+- `useAsyncSnapshot` descarta respostas obsoletas e expõe limpeza de cache.
+- Notificações têm reducer exaustivo e atualização por item/batch sem relistar dados de forma frágil.
+- Serviços de usuários falham fora de testes quando o backend administrativo não está configurado.
+- Rotas de preços e regras usam permissões `prices.manage` e `rules.manage`.
+- Salvamento de preços e regras VIP passa por RPCs Supabase versionadas e auditadas.
+- RLS comercial usa permissões do banco em vez de papel hardcoded.
+- Sobreposição de preços ativos por escopo é bloqueada por constraint.
+- Edge Functions compartilham CORS, HMAC e cliente admin tipado.
+- CI valida aplicação, testes e funções Deno.
+- Documentos principais foram atualizados para a arquitetura atual.
 
-## Validação
+## Contratos Antirregressão
 
-Executar:
+- Não exportar rotas lazy por barrels importados estaticamente.
+- Não conceder permissão por fallback quando o backend retornou lista explícita inválida.
+- Não salvar preço ou regra comercial crítica fora de RPC transacional.
+- Não depender de `localStorage` como autoridade de produção para regra comercial.
+- Não manter senha atual em estado React após desafio de autenticação.
+- Não ignorar erros de perfil autenticado, fatores MFA ou funções administrativas.
+- Não publicar Edge Function sem `deno check`.
+
+## Validação Esperada
 
 ```bash
 pnpm validate
 pnpm lint
 pnpm typecheck
+pnpm typecheck:test
 pnpm test
 pnpm build
 ```
 
-## Contratos Antirregressão
-
-- Não criar tabelas manuais para páginas que são listagens.
-- Não duplicar Sheet de detalhes fora de `src/components/data-table/data-table-details.tsx`.
-- Não adicionar ícones em filtros de opção ou células de opção.
-- Não reintroduzir MFA `required`, `not_required` ou `enabled`.
-- Não expor campos de senha/MFA diretamente em `Meu perfil`.
-- Não alterar componentes existentes em `src/components/ui/**`; adicionar novos componentes UI somente quando solicitado.
+Além disso, todas as funções em `supabase/functions/*/index.ts` devem passar em `deno check`.

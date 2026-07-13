@@ -6,7 +6,6 @@ import {
   AUTH_STATUS,
   normalizeAuthStatus,
   resolveAuthProfilePermissions,
-  type AuthNextAction,
 } from "../contracts/auth-contracts"
 import { authCopy } from "../copy/auth-copy"
 import type {
@@ -169,31 +168,15 @@ export async function getCurrentAuthProfile() {
 
   const profileResponse = await supabase.rpc("get_current_auth_profile")
 
-  if (!profileResponse.error && profileResponse.data) {
-    const profile = Array.isArray(profileResponse.data)
-      ? mapAuthProfile(profileResponse.data[0])
-      : mapAuthProfile(profileResponse.data)
-
-    if (profile) {
-      return profile
-    }
+  if (profileResponse.error) {
+    throw new AuthApiError(authCopy.errors.sessionLoadFailed)
   }
 
-  const appUserResponse = await supabase
-    .from("app_users")
-    .select("id, auth_user_id, name, role, status, phone_masked, cpf_masked, email")
-    .eq("auth_user_id", user.id)
-    .maybeSingle()
+  const profile = Array.isArray(profileResponse.data)
+    ? mapAuthProfile(profileResponse.data[0])
+    : mapAuthProfile(profileResponse.data)
 
-  if (appUserResponse.error || !appUserResponse.data) {
-    return null
-  }
-
-  return mapAuthProfile({
-    ...appUserResponse.data,
-    permissions: [],
-    passkey_status: "inactive",
-  })
+  return profile
 }
 
 export async function signInWithPassword(payload: AuthLoginPayload) {
@@ -251,5 +234,9 @@ export async function requestAccessRecovery(payload: AuthRecoveryPayload) {
 
 export async function signOutCurrentSession() {
   const supabase = getSupabaseOrThrow()
-  await supabase.auth.signOut()
+  const { error } = await supabase.auth.signOut({ scope: "local" })
+
+  if (error) {
+    throw new AuthApiError(authCopy.errors.logoutFailed)
+  }
 }
