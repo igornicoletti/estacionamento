@@ -1,79 +1,46 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
-import {
-  appUserStatusLabels,
-  userRoleLabels,
-} from "@/features/auth"
-import {
-  resolveLastAccessLabel,
-  resolvePasskeyLabel,
-} from "@/features/users/utils/users-models"
-import { type UserRecord } from "@/features/users"
-
-import {
-  createActionsColumn,
-  createDataTableDetailsAction,
-  DataTableDetails,
-  DataTableDetailsTextTrigger,
-} from "@/components/data-table"
+import { createActionsColumn } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { appUserStatusLabels, userRoleLabels, type UserRecord } from "@/features/users/types/users-types"
+import { resolveLastAccessLabel, resolvePasskeyLabel } from "@/features/users/utils/users-models"
 import { getBadgeToneClassName } from "@/lib"
 import { unitsCopy } from "../units-copy"
 
-function getUserDetails(user: UserRecord) {
-  return {
-    title: user.name,
-    description: user.email || unitsCopy.table.noEmail,
-    items: [
-      { label: "Nome", value: user.name },
-      { label: "CPF", value: user.cpf },
-      { label: unitsCopy.table.email, value: user.email || "-" },
-      { label: unitsCopy.table.phone, value: user.phoneMasked || "-" },
-      { label: unitsCopy.table.profile, value: userRoleLabels[user.role] },
-      { label: unitsCopy.table.status, value: appUserStatusLabels[user.status] },
-      { label: unitsCopy.table.passkey, value: resolvePasskeyLabel(user.passkeyStatus) },
-      { label: unitsCopy.table.lastAccess, value: resolveLastAccessLabel(user.lastAccessAt) },
-    ],
-  }
+interface CreateUnitUsersColumnsOptions {
+  onOpenDetails: (user: UserRecord) => void
 }
 
-export function createUnitUsersColumns(): ColumnDef<UserRecord>[] {
-  const detailsAction = createDataTableDetailsAction<UserRecord>((row) =>
-    getUserDetails(row.original)
-  )
-
+export function createUnitUsersColumns(options: CreateUnitUsersColumnsOptions): ColumnDef<UserRecord>[] {
   return [
     {
       accessorKey: "name",
       meta: { label: "Nome" },
       header: "Nome",
       cell: ({ row }) => (
-        <DataTableDetails
-          {...getUserDetails(row.original)}
-          trigger={
-            <DataTableDetailsTextTrigger>
-              {row.original.name}
-            </DataTableDetailsTextTrigger>
-          }
-        />
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto justify-start px-0 text-left font-medium"
+          onClick={() => options.onOpenDetails(row.original)}
+        >
+          {row.original.name}
+        </Button>
       ),
     },
-    {
-      accessorKey: "cpf",
-      meta: { label: "CPF" },
-      header: "CPF",
-    },
+    { accessorKey: "cpf", meta: { label: "CPF" }, header: "CPF" },
     {
       accessorKey: "email",
       meta: { label: unitsCopy.table.email },
       header: unitsCopy.table.email,
-      cell: ({ row }) => row.original.email || "-",
+      cell: ({ row }) => row.original.email || unitsCopy.table.noEmail,
     },
     {
       accessorKey: "phoneMasked",
       meta: { label: unitsCopy.table.phone },
       header: unitsCopy.table.phone,
-      cell: ({ row }) => row.original.phoneMasked || "-",
+      cell: ({ row }) => row.original.phoneMasked || "—",
     },
     {
       accessorKey: "role",
@@ -84,21 +51,14 @@ export function createUnitUsersColumns(): ColumnDef<UserRecord>[] {
     {
       accessorKey: "status",
       meta: { label: unitsCopy.table.status },
-      header: () => (
-        <div className="text-center">
-          {unitsCopy.table.status}
-        </div>
-      ),
+      header: () => <div className="text-center">{unitsCopy.table.status}</div>,
       enableSorting: false,
       cell: ({ row }) => {
         const isActive = row.original.status === "active"
 
         return (
           <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(isActive ? "success" : undefined)}
-            >
+            <Badge variant="secondary" className={getBadgeToneClassName(isActive ? "success" : undefined)}>
               {appUserStatusLabels[row.original.status]}
             </Badge>
           </div>
@@ -108,21 +68,14 @@ export function createUnitUsersColumns(): ColumnDef<UserRecord>[] {
     {
       accessorKey: "passkeyStatus",
       meta: { label: unitsCopy.table.passkey },
-      header: () => (
-        <div className="text-center">
-          {unitsCopy.table.passkey}
-        </div>
-      ),
+      header: () => <div className="text-center">{unitsCopy.table.passkey}</div>,
       enableSorting: false,
       cell: ({ row }) => {
         const isActive = row.original.passkeyStatus === "active"
 
         return (
           <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(isActive ? "success" : undefined)}
-            >
+            <Badge variant="secondary" className={getBadgeToneClassName(isActive ? "success" : undefined)}>
               {resolvePasskeyLabel(row.original.passkeyStatus)}
             </Badge>
           </div>
@@ -135,6 +88,12 @@ export function createUnitUsersColumns(): ColumnDef<UserRecord>[] {
       header: unitsCopy.table.lastAccess,
       cell: ({ row }) => resolveLastAccessLabel(row.original.lastAccessAt),
     },
-    createActionsColumn<UserRecord>([detailsAction]),
+    createActionsColumn<UserRecord>([
+      {
+        id: "details",
+        label: "Detalhes",
+        onSelect: (row) => options.onOpenDetails(row.original),
+      },
+    ]),
   ]
 }

@@ -1,64 +1,24 @@
-import { toError } from "@/lib"
-
-import {
-  type UnitYardConfig,
-  type UpsertUnitYardConfigInput,
-} from "../types/units-types"
 import { unitsCopy } from "../units-copy"
-import {
-  normalizeUnitYardConfig,
-  resolveDefaultUnitYardConfig,
-  sanitizeParkingSpots,
-} from "../utils/units-models"
+import { type UnitYardConfig, type UpsertUnitYardConfigInput } from "../types/units-types"
+import { sanitizeParkingSpots } from "../utils/units-models"
 import { getUnitYardGateway } from "./unit-yard-gateway"
 
-async function listSanitizedConfigs() {
-  const rawConfigs = await getUnitYardGateway().list()
-
-  return rawConfigs
-    .map(normalizeUnitYardConfig)
-    .filter((config): config is UnitYardConfig => Boolean(config))
-}
-
 export async function listUnitYardConfigs(): Promise<UnitYardConfig[]> {
-  return listSanitizedConfigs()
+  return [...await getUnitYardGateway().listConfigs()]
 }
 
-export async function getUnitYardConfig(unitId: string): Promise<UnitYardConfig> {
-  const normalizedUnitId = unitId.trim()
-
-  if (!normalizedUnitId) {
-    return resolveDefaultUnitYardConfig("")
-  }
-
-  const current = (await listSanitizedConfigs()).find(
-    (config) => config.unitId === normalizedUnitId
-  )
-
-  return current ?? resolveDefaultUnitYardConfig(normalizedUnitId)
+export async function getUnitYardConfig(unitId: string) {
+  const configs = await listUnitYardConfigs()
+  return configs.find((config) => config.unitId === unitId) ?? null
 }
 
-export async function upsertUnitYardConfig(
-  input: UpsertUnitYardConfigInput
-): Promise<UnitYardConfig> {
-  const normalizedUnitId = input.unitId.trim()
-
-  if (!normalizedUnitId) {
+export async function upsertUnitYardConfig(input: UpsertUnitYardConfigInput) {
+  if (!input.unitId.trim()) {
     throw new Error(unitsCopy.errors.unitYardInvalidUnit)
   }
 
-  const nextConfig: UnitYardConfig = {
-    unitId: normalizedUnitId,
-    patioActive: input.patioActive,
+  return getUnitYardGateway().upsertConfig({
+    ...input,
     parkingSpots: sanitizeParkingSpots(input.parkingSpots),
-    updatedAt: new Date().toISOString(),
-  }
-
-  try {
-    await getUnitYardGateway().upsertOne(nextConfig)
-  } catch (caughtError) {
-    throw toError(caughtError, unitsCopy.errors.unitYardSave)
-  }
-
-  return nextConfig
+  })
 }

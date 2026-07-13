@@ -7,9 +7,7 @@ import {
 } from "@/components/sync-history/sync-history-types"
 
 export type ClientSyncRunMode = SyncRunMode
-
 export type ClientSyncTrigger = SyncRunTrigger
-
 export type ClientSyncRunStatus = SyncRunStatus
 
 export interface ClientSyncCounters {

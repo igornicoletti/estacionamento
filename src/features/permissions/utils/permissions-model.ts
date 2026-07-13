@@ -1,16 +1,23 @@
 import {
   permissionRoleLabels,
   permissionRoleValues,
+  permissionSourceValues,
   type PermissionAccessFilter,
   type PermissionMatrixRow,
   type PermissionRole,
+  type PermissionRoleAccess,
+  type PermissionSource,
 } from "../types/permissions-types"
 
 export function isPermissionRole(value: unknown): value is PermissionRole {
-  return permissionRoleValues.includes(value as PermissionRole)
+  return permissionRoleValues.some((role) => role === value)
 }
 
-export function createEmptyRoleAccess(): Record<PermissionRole, boolean> {
+export function isPermissionSource(value: unknown): value is PermissionSource {
+  return permissionSourceValues.some((source) => source === value)
+}
+
+export function createEmptyRoleAccess(): PermissionRoleAccess {
   return {
     admin: false,
     auditor: false,
@@ -20,9 +27,31 @@ export function createEmptyRoleAccess(): Record<PermissionRole, boolean> {
   }
 }
 
+export function sortPermissionRoles(
+  roles: readonly PermissionRole[]
+): PermissionRole[] {
+  const roleSet = new Set(roles)
+
+  return permissionRoleValues.filter((role) => roleSet.has(role))
+}
+
+export function createPermissionRoleAccess(
+  roles: readonly PermissionRole[]
+): PermissionRoleAccess {
+  const roleAccess = createEmptyRoleAccess()
+
+  for (const role of sortPermissionRoles(roles)) {
+    roleAccess[role] = true
+  }
+
+  return roleAccess
+}
+
 export function formatPermissionRoles(roles: readonly PermissionRole[]) {
-  return roles.length > 0
-    ? roles.map((role) => permissionRoleLabels[role]).join(", ")
+  const sortedRoles = sortPermissionRoles(roles)
+
+  return sortedRoles.length > 0
+    ? sortedRoles.map((role) => permissionRoleLabels[role]).join(", ")
     : "Nenhum perfil"
 }
 
@@ -37,7 +66,9 @@ export function formatPermissionRolesWithoutAccess(
     : "Nenhum"
 }
 
-function resolveAccessFilters(roles: readonly PermissionRole[]): PermissionAccessFilter[] {
+function resolveAccessFilters(
+  roles: readonly PermissionRole[]
+): PermissionAccessFilter[] {
   const filters: PermissionAccessFilter[] = []
 
   if (roles.length > 0) {
@@ -54,21 +85,14 @@ function resolveAccessFilters(roles: readonly PermissionRole[]): PermissionAcces
 export function normalizePermissionMatrixRow(
   row: PermissionMatrixRow
 ): PermissionMatrixRow {
-  const normalizedRoles = permissionRoleValues.filter((role) =>
-    row.roles.includes(role)
-  )
-  const roleAccess = createEmptyRoleAccess()
-
-  for (const role of normalizedRoles) {
-    roleAccess[role] = true
-  }
+  const roles = sortPermissionRoles(row.roles)
 
   return {
     ...row,
-    accessFilters: resolveAccessFilters(normalizedRoles),
-    roles: normalizedRoles,
-    roleAccess,
-    roleLabels: formatPermissionRoles(normalizedRoles),
-    roleCount: normalizedRoles.length,
+    accessFilters: resolveAccessFilters(roles),
+    roleAccess: createPermissionRoleAccess(roles),
+    roleCount: roles.length,
+    roleLabels: formatPermissionRoles(roles),
+    roles,
   }
 }

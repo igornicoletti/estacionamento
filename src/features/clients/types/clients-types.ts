@@ -32,12 +32,12 @@ export interface Client {
   is_active_120d: boolean
 }
 
+export type VipFlag = "sim" | "nao"
+
 export interface ClientTableRow extends Client {
   status: "ativo" | "inativo"
   vip: VipFlag
 }
-
-export type VipFlag = "sim" | "nao"
 
 export interface ErpClientVehiclePayload {
   cod_veiculo: unknown

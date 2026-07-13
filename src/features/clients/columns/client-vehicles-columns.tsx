@@ -1,103 +1,76 @@
 import { type ColumnDef } from "@tanstack/react-table"
 import { CrownIcon } from "lucide-react"
 
-import {
-  createActionsColumn,
-  createDataTableDetailsAction,
-  DataTableDetails,
-  DataTableDetailsTextTrigger,
-} from "@/components/data-table"
+import { createActionsColumn } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { getBadgeToneClassName } from "@/lib"
 
+import { clientsCopy } from "../clients-copy"
 import { type ClientVehicleTableRow } from "../types/clients-types"
 
 interface CreateClientVehiclesColumnsOptions {
+  onOpenDetails: (vehicle: ClientVehicleTableRow) => void
   onToggleVip?: (vehicle: ClientVehicleTableRow) => void
   vipActionLabel?: string
 }
 
-function getClientVehicleDetails(vehicle: ClientVehicleTableRow) {
-  return {
-    title: vehicle.nom_pessoa,
-    description: vehicle.num_cnpj_cpf,
-    items: [
-      { label: "Código do veículo", value: vehicle.cod_veiculo },
-      { label: "Código do cliente", value: vehicle.cod_pessoa },
-      { label: "Nome/Razão social", value: vehicle.nom_pessoa },
-      { label: "Nome fantasia", value: vehicle.nom_fantasia },
-      { label: "Documento", value: vehicle.num_cnpj_cpf },
-      { label: "Placa", value: vehicle.num_placa },
-      { label: "Veículo", value: vehicle.des_veiculo },
-      { label: "Motorista", value: vehicle.nom_motorista },
-      { label: "VIP", value: vehicle.vip === "sim" ? "Ativo" : "Inativo" },
-    ],
-  }
-}
-
-export function createClientVehiclesColumns(
-  options: CreateClientVehiclesColumnsOptions = {}
-): ColumnDef<ClientVehicleTableRow>[] {
-  const detailsAction = createDataTableDetailsAction<ClientVehicleTableRow>((row) =>
-    getClientVehicleDetails(row.original)
-  )
-
+export function createClientVehiclesColumns(options: CreateClientVehiclesColumnsOptions): ColumnDef<ClientVehicleTableRow>[] {
   return [
     {
       accessorKey: "cod_veiculo",
-      meta: { label: "Código" },
-      header: "Código",
+      meta: { label: clientsCopy.table.code },
+      header: clientsCopy.table.code,
       size: 120,
     },
     {
       accessorKey: "nom_pessoa",
-      meta: { label: "Cliente" },
-      header: "Cliente",
+      meta: { label: clientsCopy.table.client },
+      header: clientsCopy.table.client,
       size: 220,
       cell: ({ row }) => (
-        <DataTableDetails
-          {...getClientVehicleDetails(row.original)}
-          trigger={
-            <DataTableDetailsTextTrigger>
-              <span className="inline-flex items-center gap-1">
-                {row.original.nom_pessoa}
-                {row.original.vip === "sim" ? (
-                  <CrownIcon aria-label="Veículo VIP" className="size-4 text-amber-500" />
-                ) : null}
-              </span>
-            </DataTableDetailsTextTrigger>
-          }
-        />
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto justify-start px-0 text-left font-medium"
+          onClick={() => options.onOpenDetails(row.original)}
+        >
+          <span className="inline-flex items-center gap-1">
+            {row.original.nom_pessoa}
+            {row.original.vip === "sim" ? <CrownIcon aria-label="Veículo VIP" className="size-4 text-amber-500" /> : null}
+          </span>
+        </Button>
       ),
     },
     {
       accessorKey: "num_cnpj_cpf",
-      meta: { label: "CNPJ/CPF" },
-      header: "CNPJ/CPF",
+      meta: { label: clientsCopy.table.document },
+      header: clientsCopy.table.document,
       size: 160,
     },
     {
       accessorKey: "num_placa",
-      meta: { label: "Placa" },
-      header: "Placa",
+      meta: { label: clientsCopy.table.plate },
+      header: clientsCopy.table.plate,
       size: 100,
     },
     {
       accessorKey: "des_veiculo",
-      meta: { label: "Veículo" },
-      header: "Veículo",
+      meta: { label: clientsCopy.table.vehicle },
+      header: clientsCopy.table.vehicle,
       size: 160,
     },
     {
       accessorKey: "nom_motorista",
-      meta: { label: "Motorista" },
-      header: "Motorista",
+      meta: { label: clientsCopy.table.driver },
+      header: clientsCopy.table.driver,
       size: 160,
+      cell: ({ row }) => row.original.nom_motorista || "—",
     },
     {
       accessorKey: "vip",
-      meta: { label: "VIP" },
-      header: () => <div className="text-center">VIP</div>,
+      meta: { label: clientsCopy.table.vip },
+      header: () => <div className="text-center">{clientsCopy.table.vip}</div>,
       size: 80,
       enableSorting: false,
       cell: ({ row }) => {
@@ -105,29 +78,20 @@ export function createClientVehiclesColumns(
 
         return (
           <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(isVip ? "success" : undefined)}
-            >
-              {isVip ? "Sim" : "Não"}
+            <Badge variant="secondary" className={getBadgeToneClassName(isVip ? "success" : undefined)}>
+              {isVip ? clientsCopy.table.yes : clientsCopy.table.no}
             </Badge>
           </div>
         )
       },
     },
     createActionsColumn<ClientVehicleTableRow>([
-      detailsAction,
-      ...(options.onToggleVip
-        ? [
-          {
-            id: "vip" as const,
-            label: options.vipActionLabel ?? "Veículo VIP",
-            onSelect: (row: { original: ClientVehicleTableRow }) => {
-              options.onToggleVip?.(row.original)
-            },
-          },
-        ]
-        : []),
+      {
+        id: "details",
+        label: "Detalhes",
+        onSelect: (row) => options.onOpenDetails(row.original),
+      },
+      ...(options.onToggleVip ? [{ id: "vip" as const, label: options.vipActionLabel ?? clientsCopy.actions.toggleVehicleVip, onSelect: (row: { original: ClientVehicleTableRow }) => options.onToggleVip?.(row.original) }] : []),
     ]),
   ]
 }

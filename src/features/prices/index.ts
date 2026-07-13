@@ -1,12 +1,11 @@
 export { createPricesColumns } from "./columns/prices-columns"
+export { PriceTableFormDialog } from "./components/price-table-form-dialog"
 export { usePrices } from "./hooks/use-prices"
 export { PricesRoute } from "./routes/prices-route"
+export { pricesCopy } from "./prices-copy"
 export {
-  createMemoryPricesGateway,
   listPriceTables,
-  resetPricesGateway,
-  setPricesGateway,
-  type PricesGateway,
+  savePriceTable,
 } from "./services/prices-service"
 export type {
   PriceComputedStatus,
@@ -14,8 +13,10 @@ export type {
   PriceTable,
   PriceTableScope,
   PriceTier,
+  SavePriceTableInput,
 } from "./types/prices-types"
 export {
+  buildPriceDetails,
   formatPriceCharge,
   formatPriceDate,
   formatPriceDateTime,

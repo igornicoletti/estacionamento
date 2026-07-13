@@ -1,38 +1,34 @@
 export { createUnitUsersColumns } from "./columns/unit-users-columns"
 export { createUnitsColumns } from "./columns/units-columns"
+export { UnitsSyncHistoryDialog } from "./components/units-sync-history-dialog"
+export { useUnitSyncHistory } from "./hooks/use-unit-sync-history"
 export { useUnitUsers } from "./hooks/use-unit-users"
 export { useUnitYardConfigs } from "./hooks/use-unit-yard-configs"
 export { useUnits } from "./hooks/use-units"
 export { UnitUsersRoute } from "./routes/unit-users-route"
 export { UnitsRoute } from "./routes/units-route"
-export {
-  triggerUnitsSync,
-  type UnitSyncMode
-} from "./services/unit-sync-service"
+export { listUnitSyncHistory } from "./services/unit-sync-history-service"
+export { triggerUnitsSync, type UnitSyncMode } from "./services/unit-sync-service"
 export {
   configureUnitYardGateway,
   getUnitYardGateway,
   resetUnitYardGateway,
-  type UnitYardGateway
+  type UnitYardGateway,
 } from "./services/unit-yard-gateway"
 export {
   getUnitYardConfig,
   listUnitYardConfigs,
-  upsertUnitYardConfig
+  upsertUnitYardConfig,
 } from "./services/unit-yard-service"
 export {
   configureUnitsGateway,
   getUnitsGateway,
   resetUnitsGateway,
-  type UnitsGateway
+  type UnitsGateway,
 } from "./services/units-gateway"
 export { listUnits } from "./services/units-service"
-export type {
-  ErpUnitPayload,
-  Unit,
-  UnitYardConfig,
-  UpsertUnitYardConfigInput
-} from "./types/units-types"
+export type { UnitSyncCounters, UnitSyncHistoryEntry } from "./types/units-sync-history-types"
+export type { ErpUnitPayload, Unit, UnitYardConfig, UpsertUnitYardConfigInput } from "./types/units-types"
 export { unitsCopy } from "./units-copy"
 export {
   buildActiveUnitUserStats,
@@ -43,11 +39,11 @@ export {
   normalizeUnitYardConfig,
   parseUnitRouteId,
   parseYardSpotsInput,
-  resolveDefaultUnitYardConfig, resolveUnitUsersSnapshot,
-  resolveUnitYardConfig, resolveYardStatusLabel,
-  sanitizeParkingSpots
+  resolveDefaultUnitYardConfig,
+  resolveUnitUsersSnapshot,
+  resolveUnitYardConfig,
+  resolveYardStatusLabel,
+  sanitizeParkingSpots,
 } from "./utils/units-models"
-export {
-  sanitizeErpUnitPayload,
-  sanitizeErpUnitsPayload
-} from "./utils/units-normalizers"
+export { getUnitDetailItems, getUnitUserDetailItems } from "./utils/units-details-model"
+export { sanitizeErpUnitPayload, sanitizeErpUnitsPayload } from "./utils/units-normalizers"

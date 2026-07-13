@@ -8,39 +8,34 @@ export { useClients } from "./hooks/use-clients"
 export { ClientVehiclesRoute } from "./routes/client-vehicles-route"
 export { ClientsRoute } from "./routes/clients-route"
 export { listClientSyncHistory } from "./services/client-sync-history-service"
-export {
-  triggerClientsSync,
-  type ClientSyncMode
-} from "./services/client-sync-service"
+export { triggerClientsSync, type ClientSyncMode } from "./services/client-sync-service"
 export {
   configureClientsGateway,
   getClientsGateway,
   resetClientsGateway,
-  type ClientsGateway
+  type ClientsGateway,
 } from "./services/clients-gateway"
-export {
-  listClients, listClientsSnapshot, listClientVehicles
-} from "./services/clients-service"
-export type {
-  ClientSyncCounters,
-  ClientSyncHistoryEntry
-} from "./types/clients-sync-history-types"
+export { listClients, listClientsSnapshot, listClientVehicles } from "./services/clients-service"
+export type { ClientSyncCounters, ClientSyncHistoryEntry } from "./types/clients-sync-history-types"
 export type {
   Client,
+  ClientTableRow,
   ClientVehicle,
+  ClientVehicleTableRow,
   ErpClientPayload,
   ErpClientVehiclePayload,
-  VipFlag
+  VipFlag,
 } from "./types/clients-types"
+export { getClientDetailItems, getClientVehicleDetailItems } from "./utils/clients-details-model"
 export {
   sanitizeErpClientPayload,
   sanitizeErpClientsPayload,
   sanitizeErpClientVehiclePayload,
-  sanitizeErpClientVehiclesPayload
+  sanitizeErpClientVehiclesPayload,
 } from "./utils/clients-normalizers"
 export {
   mapClientToTableRow,
   mapClientVehicleToTableRow,
   resolveClientStatus,
-  resolveVipFlag
+  resolveVipFlag,
 } from "./utils/clients-table-mappers"

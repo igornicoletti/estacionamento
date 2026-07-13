@@ -3,7 +3,8 @@ import { type RecoveryReason } from "@/features/auth"
 export const accessRequestsCopy = {
   page: {
     title: "Solicitações de acesso",
-    subtitle: "Revise pedidos pendentes de recuperação de acesso e alteração de telefone.",
+    subtitle:
+      "Revise solicitações pendentes de recuperação de acesso e alteração de telefone.",
   },
   tabs: {
     recovery: "Recuperação de acesso",
@@ -13,8 +14,10 @@ export const accessRequestsCopy = {
     approve: "Aprovar",
     deny: "Negar",
     cancel: "Cancelar",
+    details: "Detalhes",
     confirmApprove: "Aprovar solicitação",
     confirmDeny: "Negar solicitação",
+    retry: "Recarregar",
   },
   dialogs: {
     approveTitle: "Aprovar solicitação",
@@ -23,6 +26,12 @@ export const accessRequestsCopy = {
       "Informe o motivo da aprovação para registrar a análise administrativa.",
     denyDescription:
       "Informe o motivo da negativa para registrar a análise administrativa.",
+    phoneApproveTitle: "Aprovar alteração de telefone",
+    phoneDenyTitle: "Negar alteração de telefone",
+    phoneApproveDescription:
+      "A alteração solicitada será aplicada ao cadastro do usuário.",
+    phoneDenyDescription:
+      "A alteração solicitada será descartada e o telefone atual será mantido.",
     reviewReasonLabel: "Motivo da análise",
     reviewReasonPlaceholder: "Descreva a decisão tomada pela administração.",
     reviewReasonHint: "Informe pelo menos 10 caracteres.",
@@ -30,7 +39,12 @@ export const accessRequestsCopy = {
   tables: {
     recovery: {
       searchPlaceholder: "Buscar solicitações de recuperação...",
-      empty: "Nenhuma solicitação de recuperação pendente.",
+      emptyTitle: "Nenhuma solicitação de recuperação pendente",
+      emptyDescription:
+        "Não há solicitações de recuperação de acesso aguardando análise.",
+      filteredEmptyTitle: "Nenhuma recuperação encontrada",
+      filteredEmptyDescription:
+        "Ajuste a busca para localizar uma solicitação de recuperação.",
       columns: {
         createdAt: "Data/hora",
         reason: "Motivo",
@@ -41,7 +55,12 @@ export const accessRequestsCopy = {
     },
     phoneChanges: {
       searchPlaceholder: "Buscar solicitações de telefone...",
-      empty: "Nenhuma alteração de telefone pendente.",
+      emptyTitle: "Nenhuma alteração de telefone pendente",
+      emptyDescription:
+        "Não há solicitações de alteração de telefone aguardando análise.",
+      filteredEmptyTitle: "Nenhuma alteração encontrada",
+      filteredEmptyDescription:
+        "Ajuste a busca para localizar uma solicitação de telefone.",
       columns: {
         name: "Usuário",
         currentPhone: "Telefone atual",
@@ -50,8 +69,27 @@ export const accessRequestsCopy = {
       },
     },
   },
+  details: {
+    titleFallback: "Solicitação de acesso",
+    recoveryDescription: "Solicitação administrativa de recuperação de acesso.",
+    phoneDescription: "Solicitação administrativa de alteração de telefone.",
+    labels: {
+      id: "ID",
+      userId: "ID do usuário",
+      createdAt: "Data/hora",
+      requestedAt: "Solicitado em",
+      reason: "Motivo",
+      phone: "Telefone",
+      currentPhone: "Telefone atual",
+      pendingPhone: "Telefone solicitado",
+      email: "E-mail",
+      name: "Usuário",
+      description: "Descrição",
+    },
+  },
   feedback: {
     loadError: "Não foi possível carregar as solicitações pendentes.",
+    invalidResponse: "A resposta das solicitações de acesso é inválida.",
     recovery: {
       approved: {
         loading: "Aprovando solicitação de recuperação...",

@@ -1,26 +1,56 @@
-import { ClipboardListIcon, SearchXIcon } from "lucide-react"
+import { ClipboardListIcon, PlusIcon, SearchXIcon } from "lucide-react"
 import * as React from "react"
 
 import {
   createDataTableFilterOptions,
   DataTable,
-  DataTableEmptyState,
 } from "@/components/data-table"
-import { PageHeader, PageSection } from "@/components/page"
+import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
+import { Button } from "@/components/ui/button"
+import { AUTH_ROLE_KEY, useAuth } from "@/features/auth"
 
 import { createVipRulesColumns } from "../columns/vip-rules-columns"
+import { VipRuleFormDialog } from "../components/vip-rule-form-dialog"
 import { useVipRules } from "../hooks/use-vip-rules"
-import { type VipRule } from "../types/vip-rules-types"
+import { rulesCopy } from "../rules-copy"
+import {
+  type SaveVipRuleInput,
+  type VipRule,
+} from "../types/vip-rules-types"
+import {
+  buildVipRuleDetails,
+  getVipRuleStatusLabel,
+  getVipRuleTargetTypeLabel,
+} from "../utils/vip-rules-models"
 
-const RULES_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.rules.columns.v1"
+const RULES_TABLE_STATE_KEY = "rmc.table.rules.state.v3"
+
+function canManageCommercial(profileRole: string | undefined) {
+  return profileRole === AUTH_ROLE_KEY.owner || profileRole === AUTH_ROLE_KEY.admin
+}
 
 export function RulesRoute() {
-  const { data: rules, error, isLoading, isSaving, refetch, toggleClientVip, toggleVehicleVip } = useVipRules()
+  const { profile } = useAuth()
+  const canManage = canManageCommercial(profile?.role)
+  const {
+    data: rules,
+    error,
+    isLoading,
+    isSaving,
+    refetch,
+    saveRule,
+    toggleClientVip,
+    toggleVehicleVip,
+  } = useVipRules()
+  const [selectedRule, setSelectedRule] = React.useState<VipRule | null>(null)
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false)
 
   const handleToggleRuleActive = React.useCallback(
     (rule: VipRule) => {
-      void notify.promise(
+      void notify.track(
         rule.targetType === "client"
           ? toggleClientVip({
             clientId: rule.clientId,
@@ -34,22 +64,27 @@ export function RulesRoute() {
             vehiclePlate: rule.vehiclePlate ?? "",
             enabled: !rule.active,
           }),
-        {
-          loading: "Atualizando regra VIP...",
-          success: "Regra VIP atualizada.",
-          error: "Não foi possível atualizar a regra VIP.",
-        }
+        rulesCopy.feedback.toggle
       )
     },
     [toggleClientVip, toggleVehicleVip]
   )
 
+  const handleCreateRule = React.useCallback(
+    async (input: SaveVipRuleInput) => {
+      await notify.track(saveRule(input), rulesCopy.feedback.save)
+    },
+    [saveRule]
+  )
+
   const columns = React.useMemo(
     () =>
       createVipRulesColumns({
+        canManage,
+        onOpenDetails: setSelectedRule,
         onToggleRuleActive: handleToggleRuleActive,
       }),
-    [handleToggleRuleActive]
+    [canManage, handleToggleRuleActive]
   )
 
   const typeOptions = React.useMemo(
@@ -57,7 +92,7 @@ export function RulesRoute() {
       createDataTableFilterOptions(
         rules,
         (rule) => rule.targetType,
-        (rule) => (rule.targetType === "client" ? "Cliente" : "Veículo")
+        (rule) => getVipRuleTargetTypeLabel(rule.targetType)
       ),
     [rules]
   )
@@ -67,7 +102,7 @@ export function RulesRoute() {
       createDataTableFilterOptions(
         rules,
         (rule) => String(rule.active),
-        (rule) => (rule.active ? "Ativa" : "Inativa")
+        (rule) => getVipRuleStatusLabel(rule.active)
       ),
     [rules]
   )
@@ -75,45 +110,58 @@ export function RulesRoute() {
   return (
     <PageSection>
       <PageHeader
-        title="Regras comerciais"
-        subtitle="Consulte regras VIP e isenções aplicáveis a clientes, veículos e unidades."
+        title={rulesCopy.page.title}
+        subtitle={rulesCopy.page.subtitle}
+        actions={canManage ? (
+          <PageHeaderActions>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              onClick={() => setIsCreateDialogOpen(true)}
+            >
+              <PlusIcon aria-hidden="true" />
+              {rulesCopy.actions.add}
+            </Button>
+          </PageHeaderActions>
+        ) : null}
       />
 
       <DataTable
         columns={columns}
         data={rules}
-        columnVisibilityStorageKey={RULES_TABLE_COLUMN_VISIBILITY_KEY}
+        tableStateStorageKey={RULES_TABLE_STATE_KEY}
         getRowId={(rule) => rule.id}
         globalSearch={{
           columnIds: ["clientName", "vehiclePlate", "updatedAt"],
-          placeholder: "Buscar regras VIP...",
+          placeholder: rulesCopy.filters.searchPlaceholder,
         }}
         filterFields={[
           {
             id: "targetType",
-            title: "Tipo",
+            title: rulesCopy.filters.targetType,
             options: typeOptions,
           },
           {
             id: "active",
-            title: "Status",
+            title: rulesCopy.filters.status,
             options: statusOptions,
           },
         ]}
         isLoading={isLoading || isSaving}
         error={error}
         emptyState={(
-          <DataTableEmptyState
-            title="Nenhuma regra comercial cadastrada"
-            description="Nenhuma isenção VIP foi retornada para o escopo atual."
-            icon={<ClipboardListIcon />}
+          <AppEmptyState
+            media={<ClipboardListIcon />}
+            title={rulesCopy.empty.title}
+            description={rulesCopy.empty.description}
           />
         )}
         filteredEmptyState={(
-          <DataTableEmptyState
-            title="Nenhuma regra encontrada"
-            description="Ajuste a busca ou os filtros aplicados."
-            icon={<SearchXIcon />}
+          <AppEmptyState
+            media={<SearchXIcon />}
+            title={rulesCopy.filteredEmpty.title}
+            description={rulesCopy.filteredEmpty.description}
           />
         )}
         onRetry={() => {
@@ -122,6 +170,27 @@ export function RulesRoute() {
         enablePagination
         enableViewOptions
       />
+
+      <AppDetailsSheet
+        open={Boolean(selectedRule)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedRule(null)
+          }
+        }}
+        title={selectedRule?.clientName}
+        description={selectedRule ? getVipRuleTargetTypeLabel(selectedRule.targetType) : undefined}
+        items={selectedRule ? buildVipRuleDetails(selectedRule) : []}
+      />
+
+      {canManage ? (
+        <VipRuleFormDialog
+          open={isCreateDialogOpen}
+          onOpenChange={setIsCreateDialogOpen}
+          isSaving={isSaving}
+          onSubmit={handleCreateRule}
+        />
+      ) : null}
     </PageSection>
   )
 }

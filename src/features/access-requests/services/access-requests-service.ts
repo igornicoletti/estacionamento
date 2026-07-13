@@ -6,34 +6,34 @@ import {
   type AccessRequestReviewDecision,
   type PendingPhoneChangeRequestRecord,
 } from "../types/access-requests-types"
+import {
+  parsePhoneChangeRequests,
+  parseRecoveryRequests,
+} from "../utils/access-requests-parsers"
 
-type RawRecoveryRequestRow = {
-  created_at: string
-  description: string | null
-  email: string | null
-  id: string
-  phone_masked: string
-  reason: AccessRecoveryRequestRecord["reason"]
+function getSupabaseOrThrow(errorMessage: string) {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    throw new Error(errorMessage)
+  }
+
+  return supabase
 }
 
-type RawPendingPhoneChangeRow = {
-  auth_user_id: string
-  id: string
-  name: string
-  pending_phone_masked: string
-  phone_masked: string | null
-  updated_at: string
+function getReviewErrorMessage(
+  kind: "recovery" | "phoneChanges",
+  decision: AccessRequestReviewDecision
+) {
+  return kind === "recovery"
+    ? accessRequestsCopy.feedback.recovery[decision].error
+    : accessRequestsCopy.feedback.phoneChanges[decision].error
 }
 
 export async function listPendingRecoveryRequests(): Promise<
   AccessRecoveryRequestRecord[]
 > {
-  const supabase = getSupabaseBrowserClient()
-
-  if (!supabase) {
-    throw new Error(accessRequestsCopy.feedback.loadError)
-  }
-
+  const supabase = getSupabaseOrThrow(accessRequestsCopy.feedback.loadError)
   const { data, error } = await supabase
     .from("access_recovery_requests")
     .select("id, phone_masked, email, reason, description, created_at")
@@ -44,25 +44,13 @@ export async function listPendingRecoveryRequests(): Promise<
     throw new Error(accessRequestsCopy.feedback.loadError)
   }
 
-  return ((data ?? []) as RawRecoveryRequestRow[]).map((request) => ({
-    createdAt: request.created_at,
-    description: request.description,
-    email: request.email,
-    id: request.id,
-    phoneMasked: request.phone_masked,
-    reason: request.reason,
-  }))
+  return parseRecoveryRequests(data ?? [])
 }
 
 export async function listPendingPhoneChanges(): Promise<
   PendingPhoneChangeRequestRecord[]
 > {
-  const supabase = getSupabaseBrowserClient()
-
-  if (!supabase) {
-    throw new Error(accessRequestsCopy.feedback.loadError)
-  }
-
+  const supabase = getSupabaseOrThrow(accessRequestsCopy.feedback.loadError)
   const { data, error } = await supabase
     .from("app_users")
     .select("id, auth_user_id, name, phone_masked, pending_phone_masked, updated_at")
@@ -73,14 +61,7 @@ export async function listPendingPhoneChanges(): Promise<
     throw new Error(accessRequestsCopy.feedback.loadError)
   }
 
-  return ((data ?? []) as RawPendingPhoneChangeRow[]).map((request) => ({
-    authUserId: request.auth_user_id,
-    currentPhoneMasked: request.phone_masked,
-    id: request.id,
-    name: request.name,
-    pendingPhoneMasked: request.pending_phone_masked,
-    requestedAt: request.updated_at,
-  }))
+  return parsePhoneChangeRequests(data ?? [])
 }
 
 export async function reviewRecoveryRequest(
@@ -88,23 +69,18 @@ export async function reviewRecoveryRequest(
   decision: AccessRequestReviewDecision,
   reviewReason: string
 ) {
-  const supabase = getSupabaseBrowserClient()
-
-  if (!supabase) {
-    throw new Error(accessRequestsCopy.feedback.recovery[decision].error)
-  }
-
-  const response = await supabase.functions.invoke("admin-recovery-review", {
+  const errorMessage = getReviewErrorMessage("recovery", decision)
+  const supabase = getSupabaseOrThrow(errorMessage)
+  const { error } = await supabase.functions.invoke("admin-recovery-review", {
     body: {
       decision,
       requestId,
       reviewReason,
     },
   })
-  const { error } = response as { error: unknown }
 
   if (error) {
-    throw new Error(accessRequestsCopy.feedback.recovery[decision].error)
+    throw new Error(errorMessage)
   }
 }
 
@@ -112,21 +88,16 @@ export async function reviewPhoneChange(
   targetUserId: string,
   decision: AccessRequestReviewDecision
 ) {
-  const supabase = getSupabaseBrowserClient()
-
-  if (!supabase) {
-    throw new Error(accessRequestsCopy.feedback.phoneChanges[decision].error)
-  }
-
-  const response = await supabase.functions.invoke("admin-phone-change-review", {
+  const errorMessage = getReviewErrorMessage("phoneChanges", decision)
+  const supabase = getSupabaseOrThrow(errorMessage)
+  const { error } = await supabase.functions.invoke("admin-phone-change-review", {
     body: {
       decision,
       targetUserId,
     },
   })
-  const { error } = response as { error: unknown }
 
   if (error) {
-    throw new Error(accessRequestsCopy.feedback.phoneChanges[decision].error)
+    throw new Error(errorMessage)
   }
 }

@@ -1,106 +1,75 @@
 import * as React from "react"
 
+import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
+
+import { rulesCopy } from "../rules-copy"
 import {
   listVipRules,
+  saveVipRule,
   toggleClientVip,
   toggleVehicleVip,
 } from "../services/vip-rules-service"
-import { type VipRule } from "../types/vip-rules-types"
-
-const vipRulesLoadError = "Não foi possível carregar as regras VIP."
+import { type SaveVipRuleInput, type VipRule } from "../types/vip-rules-types"
 
 export function useVipRules() {
-  const [data, setData] = React.useState<VipRule[]>([])
-  const [isLoading, setIsLoading] = React.useState(true)
+  const snapshot = useAsyncSnapshot<VipRule[]>({
+    cacheKey: "rules:vip:v3",
+    errorMessage: rulesCopy.feedback.loadError,
+    initialData: [],
+    loadData: listVipRules,
+  })
   const [isSaving, setIsSaving] = React.useState(false)
-  const [error, setError] = React.useState<Error | null>(null)
 
-  const refetch = React.useCallback(async () => {
-    try {
-      setIsLoading(true)
-      setError(null)
-      const rules = await listVipRules()
-      setData(rules)
-    } catch (caughtError) {
-      setError(
-        caughtError instanceof Error ? caughtError : new Error(vipRulesLoadError)
-      )
-    } finally {
-      setIsLoading(false)
-    }
-  }, [])
+  const saveRule = React.useCallback(
+    async (input: SaveVipRuleInput) => {
+      setIsSaving(true)
 
-  const handleToggleClientVip = React.useCallback(
+      try {
+        const rule = await saveVipRule(input)
+        await snapshot.refetch()
+        return rule
+      } finally {
+        setIsSaving(false)
+      }
+    },
+    [snapshot]
+  )
+
+  const saveClientToggle = React.useCallback(
     async (input: Parameters<typeof toggleClientVip>[0]) => {
       setIsSaving(true)
+
       try {
-        const savedRule = await toggleClientVip(input)
-        setData((current) => {
-          const next = current.filter((rule) => rule.id !== savedRule.id)
-          return [savedRule, ...next]
-        })
-        return savedRule
+        const rule = await toggleClientVip(input)
+        await snapshot.refetch()
+        return rule
       } finally {
         setIsSaving(false)
       }
     },
-    []
+    [snapshot]
   )
 
-  const handleToggleVehicleVip = React.useCallback(
+  const saveVehicleToggle = React.useCallback(
     async (input: Parameters<typeof toggleVehicleVip>[0]) => {
       setIsSaving(true)
+
       try {
-        const savedRule = await toggleVehicleVip(input)
-        setData((current) => {
-          const next = current.filter((rule) => rule.id !== savedRule.id)
-          return [savedRule, ...next]
-        })
-        return savedRule
+        const rule = await toggleVehicleVip(input)
+        await snapshot.refetch()
+        return rule
       } finally {
         setIsSaving(false)
       }
     },
-    []
+    [snapshot]
   )
 
-  React.useEffect(() => {
-    let isMounted = true
-
-    void (async () => {
-      try {
-        const rules = await listVipRules()
-
-        if (isMounted) {
-          setData(rules)
-        }
-      } catch (caughtError) {
-        if (isMounted) {
-          setError(
-            caughtError instanceof Error
-              ? caughtError
-              : new Error(vipRulesLoadError)
-          )
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    })()
-
-    return () => {
-      isMounted = false
-    }
-  }, [])
-
   return {
-    data,
-    error,
-    isLoading,
+    ...snapshot,
     isSaving,
-    refetch,
-    toggleClientVip: handleToggleClientVip,
-    toggleVehicleVip: handleToggleVehicleVip,
+    saveRule,
+    toggleClientVip: saveClientToggle,
+    toggleVehicleVip: saveVehicleToggle,
   }
 }

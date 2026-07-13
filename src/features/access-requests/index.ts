@@ -11,7 +11,15 @@ export {
 } from "./services/access-requests-service"
 export type {
   AccessRecoveryRequestRecord,
+  AccessRequestDetailsTarget,
   AccessRequestReviewDecision,
   AccessRequestsSnapshot,
   PendingPhoneChangeRequestRecord,
 } from "./types/access-requests-types"
+export {
+  getAccessRequestDetailItems,
+  getAccessRequestDetailsDescription,
+  getAccessRequestDetailsTitle,
+  getPhoneChangeRequestDetailItems,
+  getRecoveryRequestDetailItems,
+} from "./utils/access-requests-details-model"

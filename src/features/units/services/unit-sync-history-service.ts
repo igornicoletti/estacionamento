@@ -18,6 +18,27 @@ type RawUnitSyncRunRow = {
   consecutive_failures: number
 }
 
+function mapUnitSyncHistory(row: RawUnitSyncRunRow): UnitSyncHistoryEntry {
+  return {
+    id: row.id,
+    mode: row.mode,
+    trigger: row.trigger,
+    status: row.status,
+    startedAt: row.started_at,
+    finishedAt: row.finished_at,
+    durationSeconds: row.duration_seconds,
+    message: row.message,
+    counters: {
+      received: row.counters_received,
+      created: row.counters_created,
+      updated: row.counters_updated,
+      unchanged: row.counters_unchanged,
+      failed: row.counters_failed,
+    },
+    consecutiveFailures: row.consecutive_failures,
+  }
+}
+
 export async function listUnitSyncHistory(): Promise<UnitSyncHistoryEntry[]> {
   const supabase = getSupabaseBrowserClient()
 
@@ -27,24 +48,22 @@ export async function listUnitSyncHistory(): Promise<UnitSyncHistoryEntry[]> {
 
   const { data, error } = await supabase
     .from("unit_sync_runs")
-    .select(
-      [
-        "id",
-        "mode",
-        "trigger",
-        "status",
-        "started_at",
-        "finished_at",
-        "duration_seconds",
-        "message",
-        "counters_received",
-        "counters_created",
-        "counters_updated",
-        "counters_unchanged",
-        "counters_failed",
-        "consecutive_failures",
-      ].join(",")
-    )
+    .select([
+      "id",
+      "mode",
+      "trigger",
+      "status",
+      "started_at",
+      "finished_at",
+      "duration_seconds",
+      "message",
+      "counters_received",
+      "counters_created",
+      "counters_updated",
+      "counters_unchanged",
+      "counters_failed",
+      "consecutive_failures",
+    ].join(","))
     .order("started_at", { ascending: false })
     .limit(50)
 
@@ -52,24 +71,5 @@ export async function listUnitSyncHistory(): Promise<UnitSyncHistoryEntry[]> {
     throw new Error(error.message)
   }
 
-  return ((data ?? []) as unknown as RawUnitSyncRunRow[]).map((row) => {
-    return {
-      id: row.id,
-      mode: row.mode,
-      trigger: row.trigger,
-      status: row.status,
-      startedAt: row.started_at,
-      finishedAt: row.finished_at,
-      durationSeconds: row.duration_seconds,
-      message: row.message,
-      counters: {
-        received: row.counters_received,
-        created: row.counters_created,
-        updated: row.counters_updated,
-        unchanged: row.counters_unchanged,
-        failed: row.counters_failed,
-      },
-      consecutiveFailures: row.consecutive_failures,
-    }
-  })
+  return ((data ?? []) as RawUnitSyncRunRow[]).map(mapUnitSyncHistory)
 }

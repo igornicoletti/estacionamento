@@ -1,114 +1,70 @@
 import { type ColumnDef } from "@tanstack/react-table"
 import { CrownIcon } from "lucide-react"
 
-import {
-  createActionsColumn,
-  createDataTableDetailsAction,
-  DataTableDetails,
-  DataTableDetailsTextTrigger,
-} from "@/components/data-table"
+import { createActionsColumn } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
 import { getBadgeToneClassName } from "@/lib"
 
-import {
-  type Client,
-  type ClientTableRow,
-} from "../types/clients-types"
-
-function mapYesNoToActive(value: string) {
-  return value.toUpperCase() === "S" ? "Ativo" : "Inativo"
-}
-
-function getClientDetails(
-  client: Client,
-  isVipClient: boolean
-) {
-  return {
-    title: client.nom_pessoa,
-    description: client.num_cnpj_cpf,
-    items: [
-      { label: "Código do cliente", value: client.cod_pessoa },
-      { label: "Nome/Razão social", value: client.nom_pessoa },
-      { label: "Nome fantasia", value: client.nom_fantasia },
-      { label: "Documento", value: client.num_cnpj_cpf },
-      { label: "E-mail", value: client.des_email_1 },
-      { label: "Telefone", value: client.num_telefone_1 },
-      { label: "Cidade", value: client.nom_cidade },
-      { label: "UF", value: client.sgl_estado },
-      { label: "Data de cadastro", value: client.dta_cadastro },
-      { label: "Cliente ativo", value: mapYesNoToActive(client.ind_pessoa_ativa) },
-      {
-        label: "Bloqueio financeiro",
-        value: mapYesNoToActive(client.bloqueio_financeiro),
-      },
-      { label: "Quantidade de veículos", value: client.qtd_veiculos },
-      { label: "Data da última compra", value: client.dta_ultima_compra },
-      { label: "VIP", value: isVipClient ? "Ativo" : "Inativo" },
-    ],
-  }
-}
+import { clientsCopy } from "../clients-copy"
+import { type ClientTableRow } from "../types/clients-types"
 
 interface CreateClientsColumnsOptions {
+  onOpenDetails: (client: ClientTableRow) => void
   onSelectVehicles?: (client: ClientTableRow) => void
   onToggleVip?: (client: ClientTableRow) => void
   vipActionLabel?: string
 }
 
-export function createClientsColumns(
-  options: CreateClientsColumnsOptions = {}
-): ColumnDef<ClientTableRow>[] {
-  const detailsAction = createDataTableDetailsAction<ClientTableRow>((row) =>
-    getClientDetails(row.original, row.original.vip === "sim")
-  )
+function formatCityState(client: ClientTableRow) {
+  return [client.nom_cidade, client.sgl_estado].filter(Boolean).join("/") || "—"
+}
 
+export function createClientsColumns(options: CreateClientsColumnsOptions): ColumnDef<ClientTableRow>[] {
   return [
     {
       accessorKey: "cod_pessoa",
-      meta: { label: "Código" },
-      header: "Código",
+      meta: { label: clientsCopy.table.code },
+      header: clientsCopy.table.code,
       size: 96,
     },
     {
       accessorKey: "nom_pessoa",
-      meta: { label: "Cliente" },
-      header: "Cliente",
+      meta: { label: clientsCopy.table.client },
+      header: clientsCopy.table.client,
       size: 220,
       cell: ({ row }) => (
-        <DataTableDetails
-          {...getClientDetails(row.original, row.original.vip === "sim")}
-          trigger={
-            <DataTableDetailsTextTrigger>
-              <span className="inline-flex items-center gap-1">
-                {row.original.nom_pessoa}
-                {row.original.vip === "sim" ? (
-                  <CrownIcon aria-label="Cliente VIP" className="size-4 text-amber-500" />
-                ) : null}
-              </span>
-            </DataTableDetailsTextTrigger>
-          }
-        />
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto justify-start px-0 text-left font-medium"
+          onClick={() => options.onOpenDetails(row.original)}
+        >
+          <span className="inline-flex items-center gap-1">
+            {row.original.nom_pessoa}
+            {row.original.vip === "sim" ? <CrownIcon aria-label="Cliente VIP" className="size-4 text-amber-500" /> : null}
+          </span>
+        </Button>
       ),
     },
     {
       accessorKey: "num_cnpj_cpf",
-      meta: { label: "CNPJ/CPF" },
-      header: "CNPJ/CPF",
+      meta: { label: clientsCopy.table.document },
+      header: clientsCopy.table.document,
       size: 160,
     },
     {
-      accessorKey: "nom_cidade",
-      meta: { label: "Cidade/UF" },
-      header: "Cidade/UF",
+      id: "cidadeUf",
+      accessorFn: (client) => formatCityState(client),
+      meta: { label: clientsCopy.table.cityState },
+      header: clientsCopy.table.cityState,
       size: 120,
-      cell: ({ row }) =>
-        [row.original.nom_cidade, row.original.sgl_estado]
-          .filter(Boolean)
-          .join("/") || "—",
+      cell: ({ row }) => formatCityState(row.original),
     },
     {
       accessorKey: "status",
-      meta: { label: "Status" },
-      header: () => <div className="text-center">Status</div>,
+      meta: { label: clientsCopy.table.status },
+      header: () => <div className="text-center">{clientsCopy.table.status}</div>,
       size: 96,
       enableSorting: false,
       cell: ({ row }) => {
@@ -116,11 +72,8 @@ export function createClientsColumns(
 
         return (
           <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(isActive ? "success" : undefined)}
-            >
-              {isActive ? "Ativo" : "Inativo"}
+            <Badge variant="secondary" className={getBadgeToneClassName(isActive ? "success" : undefined)}>
+              {isActive ? clientsCopy.table.active : clientsCopy.table.inactive}
             </Badge>
           </div>
         )
@@ -128,25 +81,24 @@ export function createClientsColumns(
     },
     {
       accessorKey: "qtd_veiculos",
-      meta: { label: "Veículos" },
-      header: "Veículos",
+      meta: { label: clientsCopy.table.vehicles },
+      header: clientsCopy.table.vehicles,
       size: 96,
       cell: ({ row }) => (
-        <button
+        <Button
           type="button"
-          className="cursor-pointer font-medium underline-offset-2 hover:underline"
-          onClick={() => {
-            options.onSelectVehicles?.(row.original)
-          }}
+          variant="link"
+          className="h-auto px-0 font-medium"
+          onClick={() => options.onSelectVehicles?.(row.original)}
         >
           {row.original.qtd_veiculos}
-        </button>
+        </Button>
       ),
     },
     {
       accessorKey: "vip",
-      meta: { label: "VIP" },
-      header: () => <div className="text-center">VIP</div>,
+      meta: { label: clientsCopy.table.vip },
+      header: () => <div className="text-center">{clientsCopy.table.vip}</div>,
       size: 80,
       enableSorting: false,
       cell: ({ row }) => {
@@ -154,36 +106,25 @@ export function createClientsColumns(
 
         return (
           <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(isVip ? "success" : undefined)}
-            >
-              {isVip ? "Sim" : "Não"}
+            <Badge variant="secondary" className={getBadgeToneClassName(isVip ? "success" : undefined)}>
+              {isVip ? clientsCopy.table.yes : clientsCopy.table.no}
             </Badge>
           </div>
         )
       },
     },
     createActionsColumn<ClientTableRow>([
-      detailsAction,
+      {
+        id: "details",
+        label: "Detalhes",
+        onSelect: (row) => options.onOpenDetails(row.original),
+      },
       {
         id: "vehicles",
-        label: "Veículos",
-        onSelect: (row) => {
-          options.onSelectVehicles?.(row.original)
-        },
+        label: clientsCopy.actions.openVehicles,
+        onSelect: (row) => options.onSelectVehicles?.(row.original),
       },
-      ...(options.onToggleVip
-        ? [
-          {
-            id: "vip" as const,
-            label: options.vipActionLabel ?? "Cliente VIP",
-            onSelect: (row: { original: ClientTableRow }) => {
-              options.onToggleVip?.(row.original)
-            },
-          },
-        ]
-        : []),
+      ...(options.onToggleVip ? [{ id: "vip" as const, label: options.vipActionLabel ?? clientsCopy.actions.toggleClientVip, onSelect: (row: { original: ClientTableRow }) => options.onToggleVip?.(row.original) }] : []),
     ]),
   ]
 }

@@ -1,91 +1,75 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
-import { formatDateTime } from "@/lib"
-
-import {
-  createActionsColumn,
-  createDataTableDetailsAction,
-  DataTableDetails,
-  DataTableDetailsTextTrigger,
-} from "@/components/data-table"
+import { createActionsColumn } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { getBadgeToneClassName } from "@/lib"
+import { Button } from "@/components/ui/button"
+import { formatDateTime, getBadgeToneClassName } from "@/lib"
 
+import { rulesCopy } from "../rules-copy"
 import {
-  getVipRuleScopeLabel,
+  formatVipRuleUnitScope,
+  getVipRuleStatusLabel,
+  getVipRuleTargetTypeLabel,
   getVipRuleVehicleScopeLabel,
-} from "../services/vip-rules-service"
+} from "../utils/vip-rules-models"
 import { type VipRule } from "../types/vip-rules-types"
 
 interface CreateVipRulesColumnsOptions {
+  onOpenDetails?: (rule: VipRule) => void
   onToggleRuleActive?: (rule: VipRule) => void
+  canManage?: boolean
 }
 
-function getRuleDetails(rule: VipRule) {
-  return {
-    title: rule.targetType === "client" ? rule.clientName : rule.vehiclePlate ?? rule.clientName,
-    description: rule.targetType === "client" ? "Regra VIP de cliente." : "Regra VIP de veículo.",
-    items: [
-      { label: "Tipo", value: rule.targetType === "client" ? "Cliente" : "Veículo" },
-      { label: "Cliente", value: rule.clientName },
-      { label: "Veículo", value: rule.vehiclePlate ?? "Todos os veículos" },
-      { label: "Abrangência de veículos", value: getVipRuleVehicleScopeLabel(rule) },
-      { label: "Abrangência de unidades", value: getVipRuleScopeLabel(rule) },
-      { label: "Status", value: rule.active ? "Ativa" : "Inativa" },
-      { label: "Atualizado em", value: formatDateTime(rule.updatedAt) },
-    ],
-  }
-}
-
-export function createVipRulesColumns(
-  options: CreateVipRulesColumnsOptions = {}
-): ColumnDef<VipRule>[] {
-  const detailsAction = createDataTableDetailsAction<VipRule>((row) =>
-    getRuleDetails(row.original)
-  )
-
+export function createVipRulesColumns({
+  onOpenDetails,
+  onToggleRuleActive,
+  canManage = false,
+}: CreateVipRulesColumnsOptions = {}): ColumnDef<VipRule>[] {
   return [
     {
       accessorKey: "targetType",
-      meta: { label: "Tipo" },
-      header: "Tipo",
+      meta: { label: rulesCopy.table.type },
+      header: rulesCopy.table.type,
       cell: ({ row }) => (
         <Badge variant="outline">
-          {row.original.targetType === "client" ? "Cliente" : "Veículo"}
+          {getVipRuleTargetTypeLabel(row.original.targetType)}
         </Badge>
       ),
     },
     {
       accessorKey: "clientName",
-      meta: { label: "Cliente" },
-      header: "Cliente",
+      meta: { label: rulesCopy.table.client },
+      header: rulesCopy.table.client,
       cell: ({ row }) => (
-        <DataTableDetails
-          {...getRuleDetails(row.original)}
-          trigger={
-            <DataTableDetailsTextTrigger>
-              {row.original.clientName}
-            </DataTableDetailsTextTrigger>
-          }
-        />
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto justify-start px-0 text-left font-medium"
+          onClick={() => {
+            onOpenDetails?.(row.original)
+          }}
+        >
+          {row.original.clientName}
+        </Button>
       ),
     },
     {
       accessorKey: "vehiclePlate",
-      meta: { label: "Veículo" },
-      header: "Veículo",
-      cell: ({ row }) => row.original.vehiclePlate ?? "Todos os veículos",
+      meta: { label: rulesCopy.table.vehicle },
+      header: rulesCopy.table.vehicle,
+      cell: ({ row }) => getVipRuleVehicleScopeLabel(row.original),
     },
     {
       id: "scope",
-      meta: { label: "Abrangência" },
-      header: "Abrangência",
-      cell: ({ row }) => getVipRuleScopeLabel(row.original),
+      meta: { label: rulesCopy.table.scope },
+      header: rulesCopy.table.scope,
+      accessorFn: (rule) => formatVipRuleUnitScope(rule),
+      cell: ({ row }) => formatVipRuleUnitScope(row.original),
     },
     {
       accessorKey: "active",
-      meta: { label: "Status" },
-      header: () => <div className="text-center">Status</div>,
+      meta: { label: rulesCopy.table.status },
+      header: () => <div className="text-center">{rulesCopy.table.status}</div>,
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
@@ -93,27 +77,37 @@ export function createVipRulesColumns(
             variant="secondary"
             className={getBadgeToneClassName(row.original.active ? "success" : undefined)}
           >
-            {row.original.active ? "Ativa" : "Inativa"}
+            {getVipRuleStatusLabel(row.original.active)}
           </Badge>
         </div>
       ),
     },
     {
       accessorKey: "updatedAt",
-      meta: { label: "Atualizado em" },
-      header: "Atualizado em",
+      meta: { label: rulesCopy.table.updatedAt },
+      header: rulesCopy.table.updatedAt,
       cell: ({ row }) => formatDateTime(row.original.updatedAt),
     },
     createActionsColumn<VipRule>((row) => [
-      detailsAction,
       {
-        id: "toggle-active",
-        label: row.original.active ? "Inativar regra" : "Ativar regra",
-        variant: row.original.active ? "destructive" : "default",
+        id: "details",
+        label: rulesCopy.actions.details,
         onSelect: () => {
-          options.onToggleRuleActive?.(row.original)
+          onOpenDetails?.(row.original)
         },
       },
+      ...(canManage
+        ? [
+          {
+            id: "toggle-active" as const,
+            label: row.original.active ? rulesCopy.actions.deactivate : rulesCopy.actions.activate,
+            variant: row.original.active ? "destructive" as const : "default" as const,
+            onSelect: () => {
+              onToggleRuleActive?.(row.original)
+            },
+          },
+        ]
+        : []),
     ]),
   ]
 }

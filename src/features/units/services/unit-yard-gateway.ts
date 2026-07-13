@@ -1,21 +1,30 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
-import { type UnitYardConfig } from "../types/units-types"
+import { type UnitYardConfig, type UpsertUnitYardConfigInput } from "../types/units-types"
 
-export interface UnitYardGateway {
-  list(): Promise<UnitYardConfig[]>
-  upsertOne(config: UnitYardConfig): Promise<void>
-}
-
-type RawUnitYardRow = {
-  unit_id: number | string
+type RawUnitYardConfigRow = {
+  unit_id: string
   patio_active: boolean
   parking_spots: number
   updated_at: string
 }
 
+export interface UnitYardGateway {
+  listConfigs: () => Promise<readonly UnitYardConfig[]>
+  upsertConfig: (input: UpsertUnitYardConfigInput) => Promise<UnitYardConfig>
+}
+
+function mapUnitYardConfig(row: RawUnitYardConfigRow): UnitYardConfig {
+  return {
+    unitId: row.unit_id,
+    patioActive: row.patio_active,
+    parkingSpots: row.parking_spots,
+    updatedAt: row.updated_at,
+  }
+}
+
 function createSupabaseUnitYardGateway(): UnitYardGateway {
   return {
-    async list() {
+    async listConfigs() {
       const supabase = getSupabaseBrowserClient()
 
       if (!supabase) {
@@ -25,46 +34,38 @@ function createSupabaseUnitYardGateway(): UnitYardGateway {
       const { data, error } = await supabase
         .from("unit_yard_configs")
         .select("unit_id, patio_active, parking_spots, updated_at")
+        .order("unit_id", { ascending: true })
 
       if (error) {
         throw new Error(error.message)
       }
 
-      return ((data ?? []) as RawUnitYardRow[]).map((row) => ({
-        unitId: String(row.unit_id),
-        patioActive: Boolean(row.patio_active),
-        parkingSpots: Number(row.parking_spots),
-        updatedAt: row.updated_at,
-      }))
+      return ((data ?? []) as RawUnitYardConfigRow[]).map(mapUnitYardConfig)
     },
-    async upsertOne(config) {
+    async upsertConfig(input) {
       const supabase = getSupabaseBrowserClient()
 
       if (!supabase) {
-        throw new Error("Supabase indisponível para salvar pátio.")
+        throw new Error("Supabase não configurado.")
       }
 
-      const unitId = Number(config.unitId)
-
-      if (!Number.isFinite(unitId)) {
-        throw new Error("Identificador de unidade inválido para salvar pátio.")
-      }
-
-      const { error: upsertError } = await supabase
+      const { data, error } = await supabase
         .from("unit_yard_configs")
-        .upsert(
-          [{
-            unit_id: unitId,
-            patio_active: config.patioActive,
-            parking_spots: config.parkingSpots,
-            updated_at: config.updatedAt,
-          }],
-          { onConflict: "unit_id" }
-        )
+        .upsert({
+          unit_id: input.unitId,
+          unit_name: input.unitName ?? null,
+          patio_active: input.patioActive,
+          parking_spots: input.parkingSpots,
+          updated_at: new Date().toISOString(),
+        }, { onConflict: "unit_id" })
+        .select("unit_id, patio_active, parking_spots, updated_at")
+        .single()
 
-      if (upsertError) {
-        throw new Error(upsertError.message)
+      if (error || !data) {
+        throw new Error(error?.message ?? "Não foi possível salvar a configuração de pátio.")
       }
+
+      return mapUnitYardConfig(data as RawUnitYardConfigRow)
     },
   }
 }

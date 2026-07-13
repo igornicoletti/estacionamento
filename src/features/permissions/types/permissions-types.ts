@@ -37,6 +37,8 @@ export const permissionAccessFilterLabels: Record<PermissionAccessFilter, string
   without_access: "Sem acesso",
 }
 
+export type PermissionRoleAccess = Record<PermissionRole, boolean>
+
 export interface PermissionMatrixRow {
   id: string
   key: string
@@ -48,7 +50,7 @@ export interface PermissionMatrixRow {
   isCritical: boolean
   roles: PermissionRole[]
   accessFilters: PermissionAccessFilter[]
-  roleAccess: Record<PermissionRole, boolean>
+  roleAccess: PermissionRoleAccess
   roleLabels: string
   roleCount: number
 }

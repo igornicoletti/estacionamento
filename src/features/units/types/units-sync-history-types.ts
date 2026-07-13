@@ -7,9 +7,7 @@ import {
 } from "@/components/sync-history/sync-history-types"
 
 export type UnitSyncRunMode = SyncRunMode
-
 export type UnitSyncTrigger = SyncRunTrigger
-
 export type UnitSyncRunStatus = SyncRunStatus
 
 export interface UnitSyncCounters {

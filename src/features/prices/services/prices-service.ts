@@ -1,225 +1,129 @@
 import { getSupabaseBrowserClient } from "@/lib"
 
-import { type PriceTable, type PriceTableScope, type PriceTier } from "../types/prices-types"
+import { pricesCopy } from "../prices-copy"
 import {
-  sanitizePriceTable,
-  sortPriceTablesByUpdatedAt,
-} from "../utils/prices-models"
+  type PriceTable,
+  type SavePriceTableInput,
+} from "../types/prices-types"
+import { parsePriceTable, parsePriceTables } from "../utils/prices-parsers"
 
-const STORAGE_KEY = "rmc.price-tables.v1"
+const priceTableSelect = [
+  "id",
+  "scope",
+  "unit_id",
+  "unit_name",
+  "grace_minutes",
+  "tolerance_minutes",
+  "cycle_hours",
+  "amount",
+  "starts_at",
+  "ends_at",
+  "status",
+  "version",
+  "parent_id",
+  "reason",
+  "notes",
+  "updated_at",
+  "commercial_price_tiers(id,sequence,limit_hours,amount,notes)",
+].join(",")
 
-interface RawPriceTierRow {
-  id: string
-  sequence: number
-  limit_hours: number
-  amount: number | string
-  notes: string | null
-}
-
-interface RawPriceTableRow {
-  id: string
-  scope: PriceTableScope
-  unit_id: string | null
-  unit_name: string | null
-  grace_minutes: number
-  tolerance_minutes: number
-  cycle_hours: number
-  amount: number | string
-  starts_at: string
-  ends_at: string | null
-  status: "active" | "inactive"
-  version: number
-  parent_id: string | null
-  reason: string | null
-  notes: string | null
-  updated_at: string
-  commercial_price_tiers?: RawPriceTierRow[] | RawPriceTierRow | null
-}
-
-export interface PricesGateway {
-  listPriceTables(): Promise<PriceTable[]>
-}
-
-let configuredGateway: PricesGateway | null = null
-
-function canUseStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined"
-}
-
-function normalizeTierRow(row: RawPriceTierRow): PriceTier {
-  return {
-    id: row.id,
-    sequence: row.sequence,
-    limitHours: row.limit_hours,
-    amount: Number(row.amount),
-    notes: row.notes,
-  }
-}
-
-function getTierRows(row: RawPriceTableRow) {
-  if (!row.commercial_price_tiers) {
-    return [] as RawPriceTierRow[]
-  }
-
-  return Array.isArray(row.commercial_price_tiers)
-    ? row.commercial_price_tiers
-    : [row.commercial_price_tiers]
-}
-
-function normalizePriceTableRow(row: RawPriceTableRow) {
-  return sanitizePriceTable({
-    id: row.id,
-    scope: row.scope,
-    unitId: row.unit_id,
-    unitName: row.unit_name,
-    graceMinutes: row.grace_minutes,
-    toleranceMinutes: row.tolerance_minutes,
-    cycleHours: row.cycle_hours,
-    amount: Number(row.amount),
-    startsAt: row.starts_at,
-    endsAt: row.ends_at,
-    status: row.status,
-    version: row.version,
-    parentId: row.parent_id,
-    reason: row.reason,
-    notes: row.notes,
-    updatedAt: row.updated_at,
-    tiers: getTierRows(row).map(normalizeTierRow),
-  })
-}
-
-function shouldUseSupabasePricesGateway() {
-  return import.meta.env.MODE !== "test" && Boolean(getSupabaseBrowserClient())
-}
-
-function createEmptyPricesGateway(): PricesGateway {
-  return {
-    async listPriceTables() {
-      await Promise.resolve()
-      return []
-    },
-  }
-}
-
-function createLocalStoragePricesGateway(): PricesGateway {
-  return {
-    async listPriceTables() {
-      await Promise.resolve()
-
-      if (!canUseStorage()) {
-        return []
-      }
-
-      const raw = window.localStorage.getItem(STORAGE_KEY)
-
-      if (!raw) {
-        return []
-      }
-
-      try {
-        const parsed: unknown = JSON.parse(raw)
-
-        if (!Array.isArray(parsed)) {
-          return []
-        }
-
-        return sortPriceTablesByUpdatedAt(
-          parsed
-            .map(sanitizePriceTable)
-            .filter((price): price is PriceTable => Boolean(price))
-        )
-      } catch {
-        return []
-      }
-    },
-  }
-}
-
-function createSupabasePricesGateway(): PricesGateway {
+function getSupabaseOrThrow() {
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {
-    return createEmptyPricesGateway()
+    throw new Error(pricesCopy.feedback.loadError)
   }
+
+  return supabase
+}
+
+function validatePriceInput(input: SavePriceTableInput) {
+  if (input.scope === "unit") {
+    if (!input.unitId?.trim()) {
+      throw new Error(pricesCopy.form.validation.unitId)
+    }
+
+    if (!input.unitName?.trim()) {
+      throw new Error(pricesCopy.form.validation.unitName)
+    }
+  }
+
+  if (!Number.isFinite(input.amount) || input.amount < 0) {
+    throw new Error(pricesCopy.form.validation.amount)
+  }
+
+  if (!Number.isInteger(input.cycleHours) || input.cycleHours < 1 || input.cycleHours > 720) {
+    throw new Error(pricesCopy.form.validation.cycleHours)
+  }
+
+  if (!Number.isInteger(input.graceMinutes) || input.graceMinutes < 0 || input.graceMinutes > 1440) {
+    throw new Error(pricesCopy.form.validation.graceMinutes)
+  }
+
+  if (!Number.isInteger(input.toleranceMinutes) || input.toleranceMinutes < 0 || input.toleranceMinutes > 240) {
+    throw new Error(pricesCopy.form.validation.toleranceMinutes)
+  }
+
+  if (!input.startsAt) {
+    throw new Error(pricesCopy.form.validation.startsAt)
+  }
+
+  if (input.reason.trim().length < 10) {
+    throw new Error(pricesCopy.form.validation.reason)
+  }
+}
+
+function createPricePayload(input: SavePriceTableInput) {
+  validatePriceInput(input)
 
   return {
-    async listPriceTables() {
-      const { data, error } = await supabase
-        .from("commercial_price_tables")
-        .select([
-          "id",
-          "scope",
-          "unit_id",
-          "unit_name",
-          "grace_minutes",
-          "tolerance_minutes",
-          "cycle_hours",
-          "amount",
-          "starts_at",
-          "ends_at",
-          "status",
-          "version",
-          "parent_id",
-          "reason",
-          "notes",
-          "updated_at",
-          "commercial_price_tiers(id,sequence,limit_hours,amount,notes)",
-        ].join(","))
-        .order("updated_at", { ascending: false })
-
-      if (error) {
-        throw new Error("Não foi possível carregar as tabelas de preço.", {
-          cause: error,
-        })
-      }
-
-      return sortPriceTablesByUpdatedAt(
-        ((data ?? []) as unknown as RawPriceTableRow[])
-          .map(normalizePriceTableRow)
-          .filter((price): price is PriceTable => Boolean(price))
-      )
-    },
+    scope: input.scope,
+    unit_id: input.scope === "unit" ? input.unitId?.trim() ?? null : null,
+    unit_name: input.scope === "unit" ? input.unitName?.trim() ?? null : null,
+    grace_minutes: input.graceMinutes,
+    tolerance_minutes: input.toleranceMinutes,
+    cycle_hours: input.cycleHours,
+    amount: input.amount,
+    starts_at: input.startsAt,
+    ends_at: input.endsAt,
+    status: input.status,
+    version: 1,
+    reason: input.reason.trim(),
+    notes: input.notes?.trim() ? input.notes.trim() : null,
   }
 }
 
-function getPricesGateway() {
-  if (configuredGateway) {
-    return configuredGateway
+export async function listPriceTables(): Promise<PriceTable[]> {
+  const supabase = getSupabaseOrThrow()
+  const { data, error } = await supabase
+    .from("commercial_price_tables")
+    .select(priceTableSelect)
+    .order("updated_at", { ascending: false })
+
+  if (error) {
+    throw new Error(pricesCopy.feedback.loadError, { cause: error })
   }
 
-  if (shouldUseSupabasePricesGateway()) {
-    return createSupabasePricesGateway()
+  return parsePriceTables(data ?? [])
+}
+
+export async function savePriceTable(input: SavePriceTableInput): Promise<PriceTable> {
+  const supabase = getSupabaseOrThrow()
+  const { data, error } = await supabase
+    .from("commercial_price_tables")
+    .insert(createPricePayload(input))
+    .select(priceTableSelect)
+    .single()
+
+  if (error) {
+    throw new Error(pricesCopy.feedback.save.error, { cause: error })
   }
 
-  return createLocalStoragePricesGateway()
-}
+  const price = parsePriceTable(data)
 
-export function setPricesGateway(gateway: PricesGateway) {
-  configuredGateway = gateway
-}
-
-export function resetPricesGateway() {
-  configuredGateway = null
-}
-
-export function createMemoryPricesGateway(seedPrices: readonly PriceTable[] = []): PricesGateway {
-  const prices = sortPriceTablesByUpdatedAt(
-    seedPrices
-      .map(sanitizePriceTable)
-      .filter((price): price is PriceTable => Boolean(price))
-  )
-
-  return {
-    async listPriceTables() {
-      await Promise.resolve()
-      return prices.map((price) => ({
-        ...price,
-        tiers: price.tiers.map((tier) => ({ ...tier })),
-      }))
-    },
+  if (!price) {
+    throw new Error(pricesCopy.feedback.save.error)
   }
-}
 
-export function listPriceTables(): Promise<PriceTable[]> {
-  return getPricesGateway().listPriceTables()
+  return price
 }

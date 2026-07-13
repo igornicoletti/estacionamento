@@ -1,6 +1,20 @@
+export { useSettings } from "./hooks/use-settings"
 export { SettingsRoute } from "./routes/settings-route"
-export { SettingsPreferencesPasswordDialog } from "./sections/settings-preferences-password-dialog"
-export { SettingsPreferencesProfileForm } from "./sections/settings-preferences-profile-form"
-export { SettingsPreferencesSection } from "./sections/settings-preferences-section"
-export { SettingsSecuritySection } from "./sections/settings-security-section"
 export { settingsCopy } from "./settings-copy"
+export { SettingsProfileSection } from "./sections/settings-profile-section"
+export { SettingsSecuritySection } from "./sections/settings-security-section"
+export type {
+  SettingsAccountStatus,
+  SettingsPasskeyStatus,
+  SettingsProfileSummary,
+  SettingsSecuritySummary,
+  SettingsSnapshot,
+} from "./types/settings-types"
+export {
+  mapAuthProfileToSettingsProfile,
+  resolveDisplayValue,
+  resolveProfileCpf,
+  resolveProfileEmail,
+  resolveProfilePhone,
+  resolveProfileRole,
+} from "./utils/settings-models"

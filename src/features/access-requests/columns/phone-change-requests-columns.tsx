@@ -1,6 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
 import { createActionsColumn } from "@/components/data-table"
+import { Button } from "@/components/ui/button"
 import { formatDateTime } from "@/lib"
 
 import { accessRequestsCopy } from "../access-requests-copy"
@@ -10,6 +11,7 @@ import {
 } from "../types/access-requests-types"
 
 interface CreatePhoneChangeRequestsColumnsOptions {
+  onOpenDetails: (request: PendingPhoneChangeRequestRecord) => void
   onReview: (
     request: PendingPhoneChangeRequestRecord,
     decision: AccessRequestReviewDecision
@@ -17,6 +19,7 @@ interface CreatePhoneChangeRequestsColumnsOptions {
 }
 
 export function createPhoneChangeRequestsColumns({
+  onOpenDetails,
   onReview,
 }: CreatePhoneChangeRequestsColumnsOptions): ColumnDef<PendingPhoneChangeRequestRecord>[] {
   return [
@@ -24,6 +27,18 @@ export function createPhoneChangeRequestsColumns({
       accessorKey: "name",
       meta: { label: accessRequestsCopy.tables.phoneChanges.columns.name },
       header: accessRequestsCopy.tables.phoneChanges.columns.name,
+      cell: ({ row }) => (
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto justify-start px-0 text-left font-medium"
+          onClick={() => {
+            onOpenDetails(row.original)
+          }}
+        >
+          {row.original.name}
+        </Button>
+      ),
     },
     {
       accessorKey: "currentPhoneMasked",
@@ -44,6 +59,13 @@ export function createPhoneChangeRequestsColumns({
       cell: ({ row }) => formatDateTime(row.original.requestedAt),
     },
     createActionsColumn<PendingPhoneChangeRequestRecord>([
+      {
+        id: "details",
+        label: accessRequestsCopy.actions.details,
+        onSelect: (row) => {
+          onOpenDetails(row.original)
+        },
+      },
       {
         id: "approve-phone-change",
         label: accessRequestsCopy.actions.approve,

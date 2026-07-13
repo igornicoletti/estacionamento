@@ -1,6 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
 import { createActionsColumn } from "@/components/data-table"
+import { Button } from "@/components/ui/button"
 import { formatDateTime } from "@/lib"
 
 import { accessRequestsCopy } from "../access-requests-copy"
@@ -10,6 +11,7 @@ import {
 } from "../types/access-requests-types"
 
 interface CreateRecoveryRequestsColumnsOptions {
+  onOpenDetails: (request: AccessRecoveryRequestRecord) => void
   onReview: (
     request: AccessRecoveryRequestRecord,
     decision: AccessRequestReviewDecision
@@ -17,6 +19,7 @@ interface CreateRecoveryRequestsColumnsOptions {
 }
 
 export function createRecoveryRequestsColumns({
+  onOpenDetails,
   onReview,
 }: CreateRecoveryRequestsColumnsOptions): ColumnDef<AccessRecoveryRequestRecord>[] {
   return [
@@ -30,7 +33,18 @@ export function createRecoveryRequestsColumns({
       accessorKey: "reason",
       meta: { label: accessRequestsCopy.tables.recovery.columns.reason },
       header: accessRequestsCopy.tables.recovery.columns.reason,
-      cell: ({ row }) => accessRequestsCopy.reasonLabels[row.original.reason],
+      cell: ({ row }) => (
+        <Button
+          type="button"
+          variant="link"
+          className="h-auto justify-start px-0 text-left font-medium"
+          onClick={() => {
+            onOpenDetails(row.original)
+          }}
+        >
+          {accessRequestsCopy.reasonLabels[row.original.reason]}
+        </Button>
+      ),
     },
     {
       accessorKey: "phoneMasked",
@@ -51,6 +65,13 @@ export function createRecoveryRequestsColumns({
         row.original.description || accessRequestsCopy.shared.emptyValue,
     },
     createActionsColumn<AccessRecoveryRequestRecord>([
+      {
+        id: "details",
+        label: accessRequestsCopy.actions.details,
+        onSelect: (row) => {
+          onOpenDetails(row.original)
+        },
+      },
       {
         id: "approve-recovery",
         label: accessRequestsCopy.actions.approve,

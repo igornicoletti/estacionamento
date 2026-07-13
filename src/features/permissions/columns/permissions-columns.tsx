@@ -6,7 +6,7 @@ import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-import { permissionsCopy } from "../content/permissions-copy"
+import { permissionsCopy } from "../permissions-copy"
 import {
   permissionRoleLabels,
   permissionRoleValues,
@@ -39,7 +39,9 @@ function PermissionAccessIcon({ hasAccess }: { hasAccess: boolean }) {
   )
 }
 
-function createRoleAccessColumn(role: PermissionRole): ColumnDef<PermissionMatrixRow> {
+function createRoleAccessColumn(
+  role: PermissionRole
+): ColumnDef<PermissionMatrixRow> {
   return {
     id: role,
     accessorFn: (row) => (row.roleAccess[role] ? "with_access" : "without_access"),
@@ -47,11 +49,7 @@ function createRoleAccessColumn(role: PermissionRole): ColumnDef<PermissionMatri
       <PermissionAccessIcon hasAccess={row.original.roleAccess[role]} />
     ),
     enableSorting: false,
-    header: () => (
-      <div className="text-center">
-        {permissionRoleLabels[role]}
-      </div>
-    ),
+    header: () => <div className="text-center">{permissionRoleLabels[role]}</div>,
     meta: { label: permissionRoleLabels[role] },
   }
 }
@@ -66,7 +64,7 @@ export function createPermissionsColumns({
         <Button
           type="button"
           variant="link"
-          className="h-auto justify-start px-0 text-left font-medium"
+          className={cn("h-auto justify-start px-0 text-left font-medium")}
           onClick={() => onOpenDetails?.(row.original)}
         >
           {row.original.label}
@@ -95,15 +93,9 @@ export function createPermissionsColumns({
     {
       accessorKey: "roleCount",
       cell: ({ row }) => (
-        <div className="text-center tabular-nums">
-          {row.original.roleCount}
-        </div>
+        <div className="text-center tabular-nums">{row.original.roleCount}</div>
       ),
-      header: () => (
-        <div className="text-center">
-          {permissionsCopy.labels.totalRoles}
-        </div>
-      ),
+      header: () => <div className="text-center">{permissionsCopy.labels.totalRoles}</div>,
       meta: { label: permissionsCopy.labels.totalRoles },
     },
     ...permissionRoleValues.map(createRoleAccessColumn),

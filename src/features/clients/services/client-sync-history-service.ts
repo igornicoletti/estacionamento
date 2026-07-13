@@ -1,5 +1,4 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
-
 import { type ClientSyncHistoryEntry } from "../types/clients-sync-history-types"
 
 type RawClientSyncRunRow = {
@@ -24,46 +23,8 @@ type RawClientSyncRunRow = {
   consecutive_failures: number
 }
 
-export async function listClientSyncHistory(): Promise<ClientSyncHistoryEntry[]> {
-  const supabase = getSupabaseBrowserClient()
-
-  if (!supabase) {
-    return []
-  }
-
-  const { data, error } = await supabase
-    .from("client_sync_runs")
-    .select(
-      [
-        "id",
-        "mode",
-        "trigger",
-        "status",
-        "started_at",
-        "finished_at",
-        "duration_seconds",
-        "message",
-        "counters_clients_received",
-        "counters_clients_created",
-        "counters_clients_updated",
-        "counters_clients_unchanged",
-        "counters_clients_failed",
-        "counters_vehicles_received",
-        "counters_vehicles_created",
-        "counters_vehicles_updated",
-        "counters_vehicles_unchanged",
-        "counters_vehicles_failed",
-        "consecutive_failures",
-      ].join(",")
-    )
-    .order("started_at", { ascending: false })
-    .limit(50)
-
-  if (error) {
-    throw new Error(error.message)
-  }
-
-  return ((data ?? []) as unknown as RawClientSyncRunRow[]).map((row) => ({
+function mapClientSyncHistory(row: RawClientSyncRunRow): ClientSyncHistoryEntry {
+  return {
     id: row.id,
     mode: row.mode,
     trigger: row.trigger,
@@ -85,5 +46,45 @@ export async function listClientSyncHistory(): Promise<ClientSyncHistoryEntry[]>
       vehiclesFailed: row.counters_vehicles_failed,
     },
     consecutiveFailures: row.consecutive_failures,
-  }))
+  }
+}
+
+export async function listClientSyncHistory(): Promise<ClientSyncHistoryEntry[]> {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    return []
+  }
+
+  const { data, error } = await supabase
+    .from("client_sync_runs")
+    .select([
+      "id",
+      "mode",
+      "trigger",
+      "status",
+      "started_at",
+      "finished_at",
+      "duration_seconds",
+      "message",
+      "counters_clients_received",
+      "counters_clients_created",
+      "counters_clients_updated",
+      "counters_clients_unchanged",
+      "counters_clients_failed",
+      "counters_vehicles_received",
+      "counters_vehicles_created",
+      "counters_vehicles_updated",
+      "counters_vehicles_unchanged",
+      "counters_vehicles_failed",
+      "consecutive_failures",
+    ].join(","))
+    .order("started_at", { ascending: false })
+    .limit(50)
+
+  if (error) {
+    throw new Error(error.message)
+  }
+
+  return ((data ?? []) as RawClientSyncRunRow[]).map(mapClientSyncHistory)
 }

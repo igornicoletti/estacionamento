@@ -1,24 +1,30 @@
 export { createVipRulesColumns } from "./columns/vip-rules-columns"
+export { VipRuleFormDialog } from "./components/vip-rule-form-dialog"
 export { useVipRules } from "./hooks/use-vip-rules"
 export { RulesRoute } from "./routes/rules-route"
+export { rulesCopy } from "./rules-copy"
 export {
   getClientVipStatus,
   getVehicleVipStatus,
   getVipRuleScopeLabel,
   getVipRuleVehicleScopeLabel,
-  isClientVipFromRules,
-  isVehicleVipFromRules,
   listVipRules,
-  createMemoryVipRulesGateway,
-  resetVipRulesGateway,
-  setVipRulesGateway,
+  saveVipRule,
   toggleClientVip,
   toggleVehicleVip,
-  type VipRulesGateway
 } from "./services/vip-rules-service"
-export {
-  type ToggleClientVipInput,
-  type ToggleVehicleVipInput,
-  type VipRule,
-  type VipRuleTargetType
+export type {
+  SaveVipRuleInput,
+  ToggleClientVipInput,
+  ToggleVehicleVipInput,
+  VipRule,
+  VipRuleTargetType,
 } from "./types/vip-rules-types"
+export {
+  buildVipRuleDetails,
+  formatVipRuleUnitScope,
+  getVipRuleStatusLabel,
+  getVipRuleTargetTypeLabel,
+  isClientVipFromRules,
+  isVehicleVipFromRules,
+} from "./utils/vip-rules-models"

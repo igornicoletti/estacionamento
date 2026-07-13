@@ -1,37 +1,38 @@
 import { getSupabaseBrowserClient } from "@/lib"
 
-import { permissionsCopy } from "../content/permissions-copy"
+import { permissionsCopy } from "../permissions-copy"
 import {
-  permissionRoleValues,
-  permissionSourceValues,
   type PermissionMatrixRow,
   type PermissionRole,
-  type PermissionSource,
 } from "../types/permissions-types"
 import {
-  createEmptyRoleAccess,
+  createPermissionRoleAccess,
   formatPermissionRoles,
+  isPermissionRole,
+  isPermissionSource,
   normalizePermissionMatrixRow,
 } from "../utils/permissions-model"
+
+type UnknownRecord = Record<PropertyKey, unknown>
 
 interface PermissionMatrixResponse {
   permissions: PermissionMatrixRow[]
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null && !Array.isArray(value)
 }
 
 function readString(value: unknown) {
+  return typeof value === "string" && value.trim() ? value : null
+}
+
+function readNullableString(value: unknown) {
   return typeof value === "string" ? value : null
 }
 
 function readBoolean(value: unknown) {
   return typeof value === "boolean" ? value : null
-}
-
-function isPermissionSource(value: unknown): value is PermissionSource {
-  return permissionSourceValues.includes(value as PermissionSource)
 }
 
 function normalizeRoles(value: unknown): PermissionRole[] {
@@ -42,8 +43,8 @@ function normalizeRoles(value: unknown): PermissionRole[] {
   const roles = new Set<PermissionRole>()
 
   for (const role of value) {
-    if (permissionRoleValues.includes(role as PermissionRole)) {
-      roles.add(role as PermissionRole)
+    if (isPermissionRole(role)) {
+      roles.add(role)
     }
   }
 
@@ -63,27 +64,30 @@ function parsePermissionMatrixRow(value: unknown): PermissionMatrixRow | null {
   const source = isPermissionSource(value.source) ? value.source : null
   const isCritical = readBoolean(value.isCritical)
 
-  if (!id || !key || !label || !groupKey || !groupLabel || !source || isCritical === null) {
+  if (
+    !id ||
+    !key ||
+    !label ||
+    !groupKey ||
+    !groupLabel ||
+    !source ||
+    isCritical === null
+  ) {
     return null
   }
 
   const roles = normalizeRoles(value.roles)
-  const roleAccess = createEmptyRoleAccess()
-
-  for (const role of roles) {
-    roleAccess[role] = true
-  }
 
   return normalizePermissionMatrixRow({
-    description: readString(value.description),
+    accessFilters: [],
+    description: readNullableString(value.description),
     groupKey,
     groupLabel,
     id,
-    accessFilters: [],
     isCritical,
     key,
     label,
-    roleAccess,
+    roleAccess: createPermissionRoleAccess(roles),
     roleCount: roles.length,
     roleLabels: formatPermissionRoles(roles),
     roles,

@@ -2,14 +2,17 @@ export const clientsCopy = {
   pages: {
     clients: {
       title: "Clientes",
-      subtitle: "Consulte os clientes cadastrados no sistema.",
+      subtitle: "Consulte os clientes ativos sincronizados do ERP.",
+      searchPlaceholder: "Buscar clientes...",
     },
     clientVehicles: {
       fallbackTitle: "Cliente não encontrado",
-      subtitleFallback: "",
+      fallbackDescription: "O cliente solicitado não existe ou ainda não foi sincronizado.",
+      searchPlaceholder: "Buscar veículos...",
     },
   },
   actions: {
+    backToClients: "Voltar para clientes",
     history: "Histórico",
     sync: "Sincronizar",
     openVehicles: "Veículos",
@@ -19,19 +22,59 @@ export const clientsCopy = {
   sync: {
     historyLoadError: "Não foi possível carregar o histórico de sincronização.",
     confirmTitle: "Confirmar sincronização de clientes",
-    confirmDescription:
-      "Deseja iniciar a sincronização incremental de clientes e veículos com o ERP agora?",
+    confirmDescription: "Deseja iniciar a sincronização incremental de clientes e veículos com o ERP agora?",
     confirmButton: "Confirmar",
     cancelButton: "Cancelar",
     runningTitle: "Sincronização em andamento",
-    runningDescription:
-      "Aguarde alguns instantes. A tela será liberada automaticamente ao finalizar.",
+    runningDescription: "A tela será liberada automaticamente ao finalizar.",
     timeoutError: "A sincronização demorou mais do que o esperado. Tente novamente.",
     feedback: {
       success: "Sincronização concluída.",
       error: "Não foi possível sincronizar os clientes.",
       inProgress: "Já existe uma sincronização de clientes em andamento.",
     },
+  },
+  filters: {
+    plates: "Placas",
+    status: "Status",
+    vip: "VIP",
+  },
+  table: {
+    active: "Ativo",
+    cityState: "Cidade/UF",
+    client: "Cliente",
+    code: "Código",
+    customerCode: "Código do cliente",
+    document: "CNPJ/CPF",
+    driver: "Motorista",
+    email: "E-mail",
+    financialBlock: "Bloqueio financeiro",
+    inactive: "Inativo",
+    lastPurchase: "Data da última compra",
+    legalName: "Nome/Razão social",
+    phone: "Telefone",
+    plate: "Placa",
+    registrationDate: "Data de cadastro",
+    status: "Status",
+    tradeName: "Nome fantasia",
+    vehicle: "Veículo",
+    vehicleCode: "Código do veículo",
+    vehicles: "Veículos",
+    vip: "VIP",
+    yes: "Sim",
+    no: "Não",
+  },
+  empty: {
+    clientsTitle: "Nenhum cliente encontrado",
+    clientsDescription: "Os clientes ainda não foram sincronizados do ERP.",
+    vehiclesTitle: "Nenhum veículo encontrado",
+    vehiclesDescription: "Este cliente ainda não possui veículos sincronizados.",
+  },
+  filteredEmpty: {
+    clientsTitle: "Nenhum cliente encontrado",
+    clientsDescription: "Ajuste a busca ou os filtros para localizar um cliente.",
+    vehiclesTitle: "Nenhum veículo encontrado",
+    vehiclesDescription: "Ajuste a busca ou os filtros para localizar um veículo.",
   },
   feedback: {
     clientVip: {
@@ -44,5 +87,9 @@ export const clientsCopy = {
       success: "Status VIP do veículo atualizado.",
       error: "Não foi possível atualizar o status VIP do veículo.",
     },
+  },
+  errors: {
+    clientsLoad: "Não foi possível carregar os clientes.",
+    vehiclesLoad: "Não foi possível carregar os veículos do cliente.",
   },
 } as const

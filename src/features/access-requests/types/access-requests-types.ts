@@ -27,3 +27,13 @@ export interface AccessRequestsSnapshot {
   phoneChanges: PendingPhoneChangeRequestRecord[]
   recoveryRequests: AccessRecoveryRequestRecord[]
 }
+
+export type AccessRequestDetailsTarget =
+  | {
+      type: "recovery"
+      request: AccessRecoveryRequestRecord
+    }
+  | {
+      type: "phone"
+      request: PendingPhoneChangeRequestRecord
+    }

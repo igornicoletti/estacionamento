@@ -35,8 +35,8 @@ interface RolePermissionRow {
 function canReadPermissions(actor: Awaited<ReturnType<typeof getAuthenticatedActor>>) {
   return Boolean(
     actor &&
-    actor.status === "active" &&
-    (actor.role === "owner" || actor.role === "admin" || actor.role === "auditor")
+      actor.status === "active" &&
+      (actor.role === "owner" || actor.role === "admin" || actor.role === "auditor")
   )
 }
 
@@ -49,7 +49,7 @@ function isPermissionSource(value: unknown): value is PermissionSource {
 }
 
 function isPermissionRole(value: unknown): value is PermissionRole {
-  return permissionRoles.includes(value as PermissionRole)
+  return permissionRoles.some((role) => role === value)
 }
 
 function parsePermissionGroup(value: unknown): PermissionGroupRow | null {
@@ -77,14 +77,14 @@ function parsePermission(value: unknown): PermissionRow | null {
     isPermissionSource(value.source) &&
     (typeof value.description === "string" || value.description === null)
     ? {
-      description: value.description,
-      group_id: value.group_id,
-      id: value.id,
-      is_critical: value.is_critical,
-      key: value.key,
-      label: value.label,
-      source: value.source,
-    }
+        description: value.description,
+        group_id: value.group_id,
+        id: value.id,
+        is_critical: value.is_critical,
+        key: value.key,
+        label: value.label,
+        source: value.source,
+      }
     : null
 }
 
@@ -96,6 +96,16 @@ function parseRolePermission(value: unknown): RolePermissionRow | null {
   return typeof value.permission_id === "string" && isPermissionRole(value.role)
     ? { permission_id: value.permission_id, role: value.role }
     : null
+}
+
+function createEmptyRoleAccess() {
+  return {
+    admin: false,
+    auditor: false,
+    manager: false,
+    operator: false,
+    owner: false,
+  } satisfies Record<PermissionRole, boolean>
 }
 
 Deno.serve(async (req) => {
@@ -174,17 +184,14 @@ Deno.serve(async (req) => {
           return []
         }
 
-        const roles = Array.from(rolesByPermissionId.get(permission.id) ?? new Set<PermissionRole>())
-        const roleAccess = permissionRoles.reduce<Record<PermissionRole, boolean>>(
-          (access, role) => ({ ...access, [role]: roles.includes(role) }),
-          {
-            admin: false,
-            auditor: false,
-            manager: false,
-            operator: false,
-            owner: false,
-          }
+        const roles = permissionRoles.filter((role) =>
+          rolesByPermissionId.get(permission.id)?.has(role)
         )
+        const roleAccess = createEmptyRoleAccess()
+
+        for (const role of roles) {
+          roleAccess[role] = true
+        }
 
         return [{
           description: permission.description,

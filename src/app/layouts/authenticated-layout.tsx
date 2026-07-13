@@ -6,8 +6,7 @@ import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppHeader, AppSidebar } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
-import { authCopy } from "@/features/auth/copy"
-import { useAuth } from "@/features/auth"
+import { authCopy, useAuth } from "@/features/auth"
 
 export function AuthenticatedLayout() {
   const auth = useAuth()

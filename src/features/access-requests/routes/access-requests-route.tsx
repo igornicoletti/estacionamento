@@ -1,18 +1,14 @@
+import { DatabaseIcon } from "lucide-react"
 import * as React from "react"
 
 import { DataTable } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
+import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppDialog } from "@/components/shared/app-dialog"
+import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
 import {
   Field,
   FieldError,
@@ -27,17 +23,51 @@ import { createRecoveryRequestsColumns } from "../columns/recovery-requests-colu
 import { useAccessRequests } from "../hooks/use-access-requests"
 import {
   type AccessRecoveryRequestRecord,
+  type AccessRequestDetailsTarget,
   type AccessRequestReviewDecision,
+  type PendingPhoneChangeRequestRecord,
 } from "../types/access-requests-types"
+import {
+  getAccessRequestDetailItems,
+  getAccessRequestDetailsDescription,
+  getAccessRequestDetailsTitle,
+} from "../utils/access-requests-details-model"
 
-const RECOVERY_TABLE_COLUMN_VISIBILITY_KEY =
-  "rmc.table.access-requests.recovery.columns.v1"
-const PHONE_TABLE_COLUMN_VISIBILITY_KEY =
-  "rmc.table.access-requests.phone.columns.v1"
+const RECOVERY_TABLE_STATE_KEY = "rmc.table.access-requests.recovery.state.v2"
+const PHONE_TABLE_STATE_KEY = "rmc.table.access-requests.phone.state.v2"
 
 interface PendingRecoveryReview {
   decision: AccessRequestReviewDecision
   request: AccessRecoveryRequestRecord
+}
+
+interface PendingPhoneReview {
+  decision: AccessRequestReviewDecision
+  request: PendingPhoneChangeRequestRecord
+}
+
+function getRecoveryDialogTitle(decision: AccessRequestReviewDecision) {
+  return decision === "approved"
+    ? accessRequestsCopy.dialogs.approveTitle
+    : accessRequestsCopy.dialogs.denyTitle
+}
+
+function getRecoveryDialogDescription(decision: AccessRequestReviewDecision) {
+  return decision === "approved"
+    ? accessRequestsCopy.dialogs.approveDescription
+    : accessRequestsCopy.dialogs.denyDescription
+}
+
+function getPhoneDialogTitle(decision: AccessRequestReviewDecision) {
+  return decision === "approved"
+    ? accessRequestsCopy.dialogs.phoneApproveTitle
+    : accessRequestsCopy.dialogs.phoneDenyTitle
+}
+
+function getPhoneDialogDescription(decision: AccessRequestReviewDecision) {
+  return decision === "approved"
+    ? accessRequestsCopy.dialogs.phoneApproveDescription
+    : accessRequestsCopy.dialogs.phoneDenyDescription
 }
 
 export function AccessRequestsRoute() {
@@ -52,16 +82,28 @@ export function AccessRequestsRoute() {
   } = useAccessRequests()
   const [recoverySearch, setRecoverySearch] = React.useState("")
   const [phoneSearch, setPhoneSearch] = React.useState("")
+  const [detailsTarget, setDetailsTarget] =
+    React.useState<AccessRequestDetailsTarget | null>(null)
   const [pendingRecoveryReview, setPendingRecoveryReview] =
     React.useState<PendingRecoveryReview | null>(null)
+  const [pendingPhoneReview, setPendingPhoneReview] =
+    React.useState<PendingPhoneReview | null>(null)
   const [reviewReason, setReviewReason] = React.useState("")
+  const [isReasonTouched, setIsReasonTouched] = React.useState(false)
+
+  const isRecoveryReasonInvalid = reviewReason.trim().length < 10
+  const showRecoveryReasonError = isReasonTouched && isRecoveryReasonInvalid
 
   const recoveryColumns = React.useMemo(
     () =>
       createRecoveryRequestsColumns({
+        onOpenDetails: (request) => {
+          setDetailsTarget({ type: "recovery", request })
+        },
         onReview: (request, decision) => {
           setPendingRecoveryReview({ decision, request })
           setReviewReason("")
+          setIsReasonTouched(false)
         },
       }),
     []
@@ -70,21 +112,24 @@ export function AccessRequestsRoute() {
   const phoneColumns = React.useMemo(
     () =>
       createPhoneChangeRequestsColumns({
+        onOpenDetails: (request) => {
+          setDetailsTarget({ type: "phone", request })
+        },
         onReview: (request, decision) => {
-          void notify.track(reviewPhone(request.authUserId, decision), {
-            error: accessRequestsCopy.feedback.phoneChanges[decision].error,
-            loading: accessRequestsCopy.feedback.phoneChanges[decision].loading,
-            success: accessRequestsCopy.feedback.phoneChanges[decision].success,
-          })
+          setPendingPhoneReview({ decision, request })
         },
       }),
-    [reviewPhone]
+    []
   )
 
-  const isRecoveryReasonInvalid = reviewReason.trim().length < 10
-
   async function handleConfirmRecoveryReview() {
-    if (!pendingRecoveryReview || isRecoveryReasonInvalid) {
+    if (!pendingRecoveryReview) {
+      return
+    }
+
+    setIsReasonTouched(true)
+
+    if (isRecoveryReasonInvalid) {
       return
     }
 
@@ -101,6 +146,23 @@ export function AccessRequestsRoute() {
 
     setPendingRecoveryReview(null)
     setReviewReason("")
+    setIsReasonTouched(false)
+  }
+
+  async function handleConfirmPhoneReview() {
+    if (!pendingPhoneReview) {
+      return
+    }
+
+    const { decision, request } = pendingPhoneReview
+
+    await notify.track(reviewPhone(request.authUserId, decision), {
+      error: accessRequestsCopy.feedback.phoneChanges[decision].error,
+      loading: accessRequestsCopy.feedback.phoneChanges[decision].loading,
+      success: accessRequestsCopy.feedback.phoneChanges[decision].success,
+    })
+
+    setPendingPhoneReview(null)
   }
 
   return (
@@ -131,9 +193,21 @@ export function AccessRequestsRoute() {
             }}
             globalFilterValue={recoverySearch}
             onGlobalFilterChange={setRecoverySearch}
-            emptyState={accessRequestsCopy.tables.recovery.empty}
-            columnVisibilityStorageKey={RECOVERY_TABLE_COLUMN_VISIBILITY_KEY}
-            tableStateStorageKey="rmc.table.access-requests.recovery.state.v1"
+            emptyState={(
+              <AppEmptyState
+                media={<DatabaseIcon />}
+                title={accessRequestsCopy.tables.recovery.emptyTitle}
+                description={accessRequestsCopy.tables.recovery.emptyDescription}
+              />
+            )}
+            filteredEmptyState={(
+              <AppEmptyState
+                media={<DatabaseIcon />}
+                title={accessRequestsCopy.tables.recovery.filteredEmptyTitle}
+                description={accessRequestsCopy.tables.recovery.filteredEmptyDescription}
+              />
+            )}
+            tableStateStorageKey={RECOVERY_TABLE_STATE_KEY}
             isLoading={isLoading}
             error={error}
             onRetry={() => {
@@ -154,9 +228,21 @@ export function AccessRequestsRoute() {
             }}
             globalFilterValue={phoneSearch}
             onGlobalFilterChange={setPhoneSearch}
-            emptyState={accessRequestsCopy.tables.phoneChanges.empty}
-            columnVisibilityStorageKey={PHONE_TABLE_COLUMN_VISIBILITY_KEY}
-            tableStateStorageKey="rmc.table.access-requests.phone.state.v1"
+            emptyState={(
+              <AppEmptyState
+                media={<DatabaseIcon />}
+                title={accessRequestsCopy.tables.phoneChanges.emptyTitle}
+                description={accessRequestsCopy.tables.phoneChanges.emptyDescription}
+              />
+            )}
+            filteredEmptyState={(
+              <AppEmptyState
+                media={<DatabaseIcon />}
+                title={accessRequestsCopy.tables.phoneChanges.filteredEmptyTitle}
+                description={accessRequestsCopy.tables.phoneChanges.filteredEmptyDescription}
+              />
+            )}
+            tableStateStorageKey={PHONE_TABLE_STATE_KEY}
             isLoading={isLoading}
             error={error}
             onRetry={() => {
@@ -167,54 +253,52 @@ export function AccessRequestsRoute() {
         </TabsContent>
       </Tabs>
 
-      <Dialog
+      <AppDetailsSheet
+        open={Boolean(detailsTarget)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailsTarget(null)
+          }
+        }}
+        title={getAccessRequestDetailsTitle(detailsTarget)}
+        description={getAccessRequestDetailsDescription(detailsTarget)}
+        items={getAccessRequestDetailItems(detailsTarget)}
+      />
+
+      <AppDialog
         open={pendingRecoveryReview !== null}
         onOpenChange={(open) => {
           if (!open) {
             setPendingRecoveryReview(null)
             setReviewReason("")
+            setIsReasonTouched(false)
           }
         }}
-      >
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle>
-              {pendingRecoveryReview?.decision === "approved"
-                ? accessRequestsCopy.dialogs.approveTitle
-                : accessRequestsCopy.dialogs.denyTitle}
-            </DialogTitle>
-            <DialogDescription>
-              {pendingRecoveryReview?.decision === "approved"
-                ? accessRequestsCopy.dialogs.approveDescription
-                : accessRequestsCopy.dialogs.denyDescription}
-            </DialogDescription>
-          </DialogHeader>
-
-          <Field data-invalid={isRecoveryReasonInvalid}>
-            <FieldLabel htmlFor="access-request-review-reason">
-              {accessRequestsCopy.dialogs.reviewReasonLabel}
-            </FieldLabel>
-            <Textarea
-              id="access-request-review-reason"
-              value={reviewReason}
-              onChange={(event) => {
-                setReviewReason(event.target.value)
-              }}
-              placeholder={accessRequestsCopy.dialogs.reviewReasonPlaceholder}
-              aria-invalid={isRecoveryReasonInvalid}
+        title={
+          pendingRecoveryReview
+            ? getRecoveryDialogTitle(pendingRecoveryReview.decision)
+            : undefined
+        }
+        description={
+          pendingRecoveryReview
+            ? getRecoveryDialogDescription(pendingRecoveryReview.decision)
+            : undefined
+        }
+        footer={(
+          <>
+            <Button
+              type="button"
+              variant="outline"
+              size="lg"
               disabled={isReviewing}
-            />
-            {isRecoveryReasonInvalid ? (
-              <FieldError>{accessRequestsCopy.dialogs.reviewReasonHint}</FieldError>
-            ) : null}
-          </Field>
-
-          <DialogFooter>
-            <DialogClose asChild>
-              <Button type="button" variant="outline" size="lg" disabled={isReviewing}>
-                {accessRequestsCopy.actions.cancel}
-              </Button>
-            </DialogClose>
+              onClick={() => {
+                setPendingRecoveryReview(null)
+                setReviewReason("")
+                setIsReasonTouched(false)
+              }}
+            >
+              {accessRequestsCopy.actions.cancel}
+            </Button>
             <Button
               type="button"
               size="lg"
@@ -232,9 +316,58 @@ export function AccessRequestsRoute() {
                 ? accessRequestsCopy.actions.confirmApprove
                 : accessRequestsCopy.actions.confirmDeny}
             </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
+          </>
+        )}
+      >
+        <Field data-invalid={showRecoveryReasonError}>
+          <FieldLabel htmlFor="access-request-review-reason">
+            {accessRequestsCopy.dialogs.reviewReasonLabel}
+          </FieldLabel>
+          <Textarea
+            id="access-request-review-reason"
+            value={reviewReason}
+            onBlur={() => {
+              setIsReasonTouched(true)
+            }}
+            onChange={(event) => {
+              setReviewReason(event.target.value)
+            }}
+            placeholder={accessRequestsCopy.dialogs.reviewReasonPlaceholder}
+            aria-invalid={showRecoveryReasonError}
+            disabled={isReviewing}
+          />
+          {showRecoveryReasonError ? (
+            <FieldError>{accessRequestsCopy.dialogs.reviewReasonHint}</FieldError>
+          ) : null}
+        </Field>
+      </AppDialog>
+
+      <AppAlertDialog
+        open={pendingPhoneReview !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingPhoneReview(null)
+          }
+        }}
+        title={
+          pendingPhoneReview
+            ? getPhoneDialogTitle(pendingPhoneReview.decision)
+            : undefined
+        }
+        description={
+          pendingPhoneReview
+            ? getPhoneDialogDescription(pendingPhoneReview.decision)
+            : undefined
+        }
+        cancelLabel={accessRequestsCopy.actions.cancel}
+        actionLabel={
+          pendingPhoneReview?.decision === "approved"
+            ? accessRequestsCopy.actions.confirmApprove
+            : accessRequestsCopy.actions.confirmDeny
+        }
+        closeOnAction={false}
+        onAction={handleConfirmPhoneReview}
+      />
     </PageSection>
   )
 }

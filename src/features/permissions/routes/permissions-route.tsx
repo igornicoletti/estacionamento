@@ -6,11 +6,11 @@ import {
   DataTable,
 } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
-import { AppDetailsSheet, type AppDetailsSheetItem } from "@/components/shared/app-details-sheet"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 
 import { createPermissionsColumns } from "../columns/permissions-columns"
-import { permissionsCopy } from "../content/permissions-copy"
+import { permissionsCopy } from "../permissions-copy"
 import { usePermissions } from "../hooks/use-permissions"
 import {
   permissionAccessFilterLabels,
@@ -21,32 +21,9 @@ import {
   permissionSourceValues,
   type PermissionMatrixRow,
 } from "../types/permissions-types"
-import { formatPermissionRolesWithoutAccess } from "../utils/permissions-model"
+import { getPermissionDetailItems } from "../utils/permissions-details-model"
 
-const PERMISSIONS_TABLE_STATE_KEY = "rmc.table.permissions.v2"
-
-function getPermissionDetailItems(
-  permission: PermissionMatrixRow
-): readonly AppDetailsSheetItem[] {
-  return [
-    {
-      label: permissionsCopy.labels.key,
-      value: permission.key,
-      valueClassName: "break-all font-mono text-xs",
-    },
-    { label: permissionsCopy.labels.group, value: permission.groupLabel },
-    { label: permissionsCopy.labels.source, value: permissionSourceLabels[permission.source] },
-    {
-      label: permissionsCopy.labels.critical,
-      value: permission.isCritical ? permissionsCopy.labels.yes : permissionsCopy.labels.no,
-    },
-    { label: permissionsCopy.labels.rolesWithAccess, value: permission.roleLabels },
-    {
-      label: permissionsCopy.labels.rolesWithoutAccess,
-      value: formatPermissionRolesWithoutAccess(permission.roles),
-    },
-  ]
-}
+const PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.permissions.columns.v1"
 
 export function PermissionsRoute() {
   const permissionsSnapshot = usePermissions()
@@ -104,7 +81,7 @@ export function PermissionsRoute() {
       <DataTable
         columns={columns}
         data={permissions}
-        tableStateStorageKey={PERMISSIONS_TABLE_STATE_KEY}
+        columnVisibilityStorageKey={PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY}
         defaultColumnVisibility={{
           accessFilters: false,
           roles: false,

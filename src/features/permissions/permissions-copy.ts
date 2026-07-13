@@ -1,8 +1,8 @@
 export const permissionsCopy = {
   page: {
-    title: "Perfil e Permissões",
+    title: "Perfis e permissões",
     subtitle:
-      "Consulte a matriz de perfis e permissões efetivamente registrada no banco.",
+      "Consulte a matriz efetiva de permissões por perfil registrada no banco.",
   },
   filters: {
     access: "Acesso",
@@ -29,7 +29,6 @@ export const permissionsCopy = {
   accessibility: {
     withAccess: "Perfil com acesso",
     withoutAccess: "Perfil sem acesso",
-    openDetails: "Abrir detalhes da permissão",
   },
   actions: {
     details: "Detalhes",

@@ -1,4 +1,6 @@
-export type VipRuleTargetType = "client" | "vehicle"
+export const vipRuleTargetTypeValues = ["client", "vehicle"] as const
+
+export type VipRuleTargetType = (typeof vipRuleTargetTypeValues)[number]
 
 export interface VipRule {
   id: string
@@ -12,7 +14,22 @@ export interface VipRule {
   appliesToAllUnits: boolean
   unitIds: string[]
   active: boolean
+  reason: string | null
+  notes: string | null
   updatedAt: string
+}
+
+export interface SaveVipRuleInput {
+  targetType: VipRuleTargetType
+  clientId: number
+  clientName: string
+  vehicleId: number | null
+  vehiclePlate: string | null
+  appliesToAllUnits: boolean
+  unitIds: string[]
+  active: boolean
+  reason: string
+  notes: string | null
 }
 
 export interface ToggleClientVipInput {

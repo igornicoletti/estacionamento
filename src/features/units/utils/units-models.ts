@@ -1,62 +1,61 @@
+import { unitsCopy } from "../units-copy"
+import { type Unit, type UnitYardConfig } from "../types/units-types"
 import { type UserRecord } from "@/features/users"
 
-import {
-  type Unit,
-  type UnitYardConfig,
-} from "../types/units-types"
-import { unitsCopy } from "../units-copy"
-
-export interface UnitUserStats {
-  managers: number
-  operators: number
-}
-
-export function createUnitMapHref(coordinates: string) {
-  const normalizedCoordinates = coordinates.trim()
-
-  if (!normalizedCoordinates) {
-    return null
-  }
-
-  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(normalizedCoordinates)}`
-}
-
-export function formatUnitSystemLabel(databaseName: string) {
-  const normalized = databaseName.trim().toLowerCase()
-
-  if (!normalized) {
-    return "-"
-  }
-
-  if (normalized.startsWith("erp_montecarlo_")) {
-    const region = normalized.replace("erp_montecarlo_", "")
-
-    if (!region) {
-      return unitsCopy.table.erpSystemLabel
-    }
-
-    return `${unitsCopy.table.erpSystemLabel} (${region.charAt(0).toUpperCase()}${region.slice(1)})`
-  }
-
-  return unitsCopy.table.erpSystemLabel
+export interface UnitCatalogItem {
+  id: string
+  name: string
 }
 
 export function formatUnitCityState(unit: Unit) {
-  return `${unit.nom_cidade}/${unit.sgl_estado.toUpperCase()}`
+  return [unit.nom_cidade, unit.sgl_estado].filter(Boolean).join("/") || "—"
 }
 
-export function resolveYardStatusLabel(patioActive: boolean) {
-  return patioActive ? unitsCopy.yard.statusActive : unitsCopy.yard.statusInactive
+export function formatUnitSystemLabel(value: string) {
+  return value.trim() ? unitsCopy.table.erpSystemLabel : "—"
+}
+
+export function createUnitMapHref(coordinates: string) {
+  const value = coordinates.trim()
+
+  if (!value) {
+    return null
+  }
+
+  return `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(value)}`
 }
 
 export function parseUnitRouteId(value: string | undefined) {
-  const normalized = Number(value)
-
-  return Number.isFinite(normalized) ? String(Math.trunc(normalized)) : ""
+  const unitId = Number(value)
+  return Number.isFinite(unitId) ? Math.trunc(unitId) : null
 }
 
-export function buildUnitYardConfigMap(configs: readonly UnitYardConfig[]) {
-  return new Map(configs.map((item) => [item.unitId, item]))
+export function resolveYardStatusLabel(value: boolean) {
+  return value ? unitsCopy.yard.statusActive : unitsCopy.yard.statusInactive
+}
+
+export function sanitizeParkingSpots(value: number) {
+  if (!Number.isFinite(value) || value < 0) {
+    return 0
+  }
+
+  return Math.trunc(value)
+}
+
+export function parseYardSpotsInput(value: string) {
+  const parsed = Number(value)
+
+  if (!Number.isFinite(parsed) || parsed < 0) {
+    return {
+      isValid: false as const,
+      error: unitsCopy.yard.validationInvalidSpots,
+    }
+  }
+
+  return {
+    isValid: true as const,
+    value: Math.trunc(parsed),
+  }
 }
 
 export function resolveDefaultUnitYardConfig(unitId: string): UnitYardConfig {
@@ -68,112 +67,50 @@ export function resolveDefaultUnitYardConfig(unitId: string): UnitYardConfig {
   }
 }
 
-export function sanitizeParkingSpots(value: unknown) {
-  if (typeof value === "number" && Number.isFinite(value)) {
-    return Math.max(0, Math.trunc(value))
+export function normalizeUnitYardConfig(config: UnitYardConfig): UnitYardConfig {
+  return {
+    unitId: config.unitId,
+    patioActive: Boolean(config.patioActive),
+    parkingSpots: sanitizeParkingSpots(config.parkingSpots),
+    updatedAt: config.updatedAt,
   }
-
-  if (typeof value === "string") {
-    const parsed = Number(value.trim())
-
-    return Number.isFinite(parsed) ? Math.max(0, Math.trunc(parsed)) : 0
-  }
-
-  return 0
 }
 
-export function normalizeUnitYardConfig(value: unknown): UnitYardConfig | null {
-  if (!value || typeof value !== "object") {
-    return null
-  }
-
-  const candidate = value as Partial<UnitYardConfig>
-  const unitId = typeof candidate.unitId === "string" ? candidate.unitId.trim() : ""
-
-  if (!unitId) {
-    return null
-  }
-
-  const updatedAtRaw =
-    typeof candidate.updatedAt === "string" && candidate.updatedAt
-      ? candidate.updatedAt
-      : new Date(0).toISOString()
-
-  return {
-    unitId,
-    patioActive: Boolean(candidate.patioActive),
-    parkingSpots: sanitizeParkingSpots(candidate.parkingSpots),
-    updatedAt: updatedAtRaw,
-  }
+export function buildUnitYardConfigMap(configs: readonly UnitYardConfig[]) {
+  return new Map(configs.map((config) => [config.unitId, normalizeUnitYardConfig(config)]))
 }
 
 export function resolveUnitYardConfig(
   unitId: string,
-  configMap: ReadonlyMap<string, UnitYardConfig>
+  configs: ReadonlyMap<string, UnitYardConfig>
 ) {
-  return configMap.get(unitId) ?? resolveDefaultUnitYardConfig(unitId)
+  return configs.get(unitId) ?? resolveDefaultUnitYardConfig(unitId)
 }
 
 export function buildActiveUnitUserStats(users: readonly UserRecord[]) {
-  const nextStats = new Map<string, UnitUserStats>()
+  const stats = new Map<string, { managers: number; operators: number }>()
 
-  users
-    .filter((user) => user.status === "active")
-    .forEach((user) => {
-      if (!user.unitId) {
-        return
-      }
-
-      if (user.role !== "manager" && user.role !== "operator") {
-        return
-      }
-
-      const current = nextStats.get(user.unitId) ?? { managers: 0, operators: 0 }
-
-      if (user.role === "manager") {
-        current.managers += 1
-      } else {
-        current.operators += 1
-      }
-
-      nextStats.set(user.unitId, current)
-    })
-
-  return nextStats
-}
-
-export function resolveUnitUsersSnapshot(
-  unitId: string,
-  units: readonly Unit[],
-  users: readonly UserRecord[]
-) {
-  const unit = units.find((currentUnit) => String(currentUnit.cod_empresa) === unitId) ?? null
-  const data = users.filter((user) => {
-    if (!user.unitId) {
-      return false
+  for (const user of users) {
+    if (!user.unitId || user.status !== "active") {
+      continue
     }
 
-    const hasValidRole = user.role === "manager" || user.role === "operator"
-    return hasValidRole && user.unitId === unitId
-  })
+    const current = stats.get(user.unitId) ?? { managers: 0, operators: 0 }
 
-  return { data, unit }
+    if (user.role === "manager") {
+      current.managers += 1
+    }
+
+    if (user.role === "operator") {
+      current.operators += 1
+    }
+
+    stats.set(user.unitId, current)
+  }
+
+  return stats
 }
 
-export function parseYardSpotsInput(value: string) {
-  const parsedSpots = Number(value)
-
-  if (!Number.isFinite(parsedSpots) || parsedSpots < 0) {
-    return {
-      isValid: false,
-      value: 0,
-      error: unitsCopy.yard.validationInvalidSpots,
-    }
-  }
-
-  return {
-    isValid: true,
-    value: Math.trunc(parsedSpots),
-    error: null,
-  }
+export function resolveUnitUsersSnapshot(users: readonly UserRecord[], unitId: string) {
+  return users.filter((user) => user.unitId === unitId)
 }

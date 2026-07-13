@@ -16,30 +16,28 @@ function createSupabaseUnitsGateway(): UnitsGateway {
 
       const { data, error } = await supabase
         .from("erp_units")
-        .select(
-          [
-            "cod_empresa",
-            "nom_razao_social",
-            "nom_fantasia",
-            "num_cnpj",
-            "cod_bandeira",
-            "des_bandeira",
-            "cod_cidade",
-            "nom_cidade",
-            "nom_estado",
-            "sgl_estado",
-            "des_coordenada_empresa",
-            "ip_rede",
-            "nom_banco_dados",
-          ].join(",")
-        )
+        .select([
+          "cod_empresa",
+          "nom_razao_social",
+          "nom_fantasia",
+          "num_cnpj",
+          "cod_bandeira",
+          "des_bandeira",
+          "cod_cidade",
+          "nom_cidade",
+          "nom_estado",
+          "sgl_estado",
+          "des_coordenada_empresa",
+          "ip_rede",
+          "nom_banco_dados",
+        ].join(","))
         .order("cod_empresa", { ascending: true })
 
       if (error) {
         throw new Error(error.message)
       }
 
-      return (data ?? []) as unknown as ErpUnitPayload[]
+      return (data ?? []) as readonly ErpUnitPayload[]
     },
   }
 }
