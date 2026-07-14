@@ -8,6 +8,7 @@ import {
 } from "lucide-react"
 import * as React from "react"
 
+import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { Button } from "@/components/ui/button"
 import {
   Collapsible,
@@ -21,12 +22,6 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import {
-  Empty,
-  EmptyDescription,
-  EmptyHeader,
-  EmptyTitle,
-} from "@/components/ui/empty"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -36,7 +31,7 @@ import {
   type SyncRunMode,
   type SyncRunStatus,
   type SyncRunTrigger,
-} from "./sync-history-types"
+} from "../types/sync-history-types"
 
 interface SyncHistoryDialogProps<TEntry extends SyncHistoryEntry> {
   open: boolean
@@ -177,27 +172,27 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
           ) : null}
 
           {!isLoading && errorMessage ? (
-            <Empty className="min-h-32 rounded-md border border-dashed p-4">
-              <EmptyHeader>
-                <EmptyTitle>Não foi possível carregar o histórico</EmptyTitle>
-                <EmptyDescription>{errorMessage}</EmptyDescription>
-              </EmptyHeader>
-              {onRetry ? (
-                <Button type="button" variant="outline" size="sm" onClick={onRetry}>
+            <AppEmptyState
+              className="min-h-32 rounded-md border border-dashed p-4"
+              media={<AlertTriangleIcon />}
+              title="Não foi possível carregar o histórico"
+              description={errorMessage}
+              actions={onRetry ? (
+                <Button type="button" variant="outline" size="lg" onClick={onRetry}>
                   <RefreshCcwIcon aria-hidden="true" />
                   {retryLabel}
                 </Button>
               ) : null}
-            </Empty>
+            />
           ) : null}
 
           {!isLoading && !errorMessage && entries.length === 0 ? (
-            <Empty className="min-h-32 rounded-md border border-dashed p-4">
-              <EmptyHeader>
-                <EmptyTitle>{emptyTitle}</EmptyTitle>
-                <EmptyDescription>{emptyDescription}</EmptyDescription>
-              </EmptyHeader>
-            </Empty>
+            <AppEmptyState
+              className="min-h-32 rounded-md border border-dashed p-4"
+              media={<RefreshCcwIcon />}
+              title={emptyTitle}
+              description={emptyDescription}
+            />
           ) : null}
 
           {!isLoading && !errorMessage && entries.length > 0 ? (
@@ -271,6 +266,23 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
                               </div>
                             ))}
                           </dl>
+
+                          {entry.message ? (
+                            <p className="rounded-md bg-muted/60 p-2 text-sm text-muted-foreground">
+                              {entry.message}
+                            </p>
+                          ) : null}
+
+                          {entry.errorDetails.length > 0 ? (
+                            <div className="rounded-md border border-destructive/20 bg-destructive/5 p-2 text-sm text-destructive">
+                              <p className="font-medium">Detalhes da falha</p>
+                              <ul className="mt-1 list-disc space-y-1 pl-4">
+                                {entry.errorDetails.map((detail) => (
+                                  <li key={`${entry.id}-${detail}`}>{detail}</li>
+                                ))}
+                              </ul>
+                            </div>
+                          ) : null}
                         </CollapsibleContent>
                       </div>
                     </Collapsible>

@@ -4,7 +4,7 @@ import {
   type SyncRunMode,
   type SyncRunStatus,
   type SyncRunTrigger,
-} from "@/components/sync-history/sync-history-types"
+} from "@/features/sync"
 
 export type ClientSyncRunMode = SyncRunMode
 export type ClientSyncTrigger = SyncRunTrigger

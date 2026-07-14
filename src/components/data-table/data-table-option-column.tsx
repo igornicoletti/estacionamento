@@ -17,6 +17,23 @@ interface DataTableOptionColumnConfig<TData> {
   enableSorting?: boolean
 }
 
+function stringifyExportOptionValue(value: unknown) {
+  if (value === null || value === undefined) {
+    return ""
+  }
+
+  if (
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean" ||
+    typeof value === "bigint"
+  ) {
+    return String(value)
+  }
+
+  return ""
+}
+
 export function createOptionColumn<TData>({
   accessorKey,
   title,
@@ -29,6 +46,12 @@ export function createOptionColumn<TData>({
     accessorKey,
     meta: {
       label: title,
+      exportValue: (value) => {
+        const normalizedValue = stringifyExportOptionValue(value)
+        const option = options.find((item) => item.value === normalizedValue)
+
+        return option?.label ?? normalizedValue
+      },
     },
     header: createDataTableColumnHeader<TData, unknown>(title),
     cell: ({ row }) => (

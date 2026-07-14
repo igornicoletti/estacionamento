@@ -28,6 +28,9 @@ export function createActionsColumn<TData>(
     ),
     enableSorting: false,
     enableHiding: false,
+    meta: {
+      enableExport: false,
+    },
     size: 48,
   }
 }

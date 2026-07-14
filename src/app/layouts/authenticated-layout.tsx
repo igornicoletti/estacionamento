@@ -19,7 +19,7 @@ export function AuthenticatedLayout() {
         <AppSidebar homeHref={appRoutePaths.home} />
         <SidebarInset>
           <AppHeader />
-          <main className="flex flex-1 flex-col gap-4 p-4">
+          <main className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4">
             <Outlet />
           </main>
         </SidebarInset>

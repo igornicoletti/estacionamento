@@ -105,7 +105,7 @@ export function RouteAccessDenied() {
         title={copy.title}
         description={copy.description}
         actions={
-          <Button asChild variant="link" size="sm">
+          <Button asChild variant="link" size="lg">
             <Link to={appRoutePaths.home} replace>
               {copy.action} <ArrowUpRightIcon />
             </Link>
@@ -127,7 +127,7 @@ export function RouteNotFound() {
         title={copy.title}
         description={copy.description}
         actions={
-          <Button asChild variant="link" size="sm">
+          <Button asChild variant="link" size="lg">
             <Link to={appRoutePaths.home} replace>
               {copy.action} <ArrowUpRightIcon />
             </Link>

@@ -394,6 +394,27 @@ verify_jwt = false
 [functions.admin-user-auth-factors]
 verify_jwt = true
 
+[functions.auth-register-passkey]
+verify_jwt = true
+
+[functions.auth-passkey-login]
+verify_jwt = true
+
+[functions.auth-complete-passkey]
+verify_jwt = true
+
+[functions.profile-change-password]
+verify_jwt = true
+
+[functions.profile-request-phone-change]
+verify_jwt = true
+
+[functions.units-sync]
+verify_jwt = false
+
+[functions.clients-sync]
+verify_jwt = false
+
 [analytics]
 enabled = true
 port = 54327

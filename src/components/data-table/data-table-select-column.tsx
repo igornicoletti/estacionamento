@@ -50,6 +50,9 @@ export function createSelectColumn<TData>(): ColumnDef<TData> {
     ),
     enableSorting: false,
     enableHiding: false,
+    meta: {
+      enableExport: false,
+    },
     size: 20,
   }
 }

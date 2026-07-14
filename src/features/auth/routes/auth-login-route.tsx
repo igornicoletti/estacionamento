@@ -1,4 +1,4 @@
-import { LogOutIcon } from "lucide-react"
+import { KeyRoundIcon, LogOutIcon } from "lucide-react"
 import * as React from "react"
 import { Link } from "react-router"
 
@@ -11,10 +11,9 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
+import { AUTH_NEXT_ACTION, useAuth } from "@/features/auth"
 import { AuthPageCard } from "@/features/auth/components"
-import { AUTH_NEXT_ACTION } from "@/features/auth"
 import { authCopy } from "@/features/auth/copy"
-import { useAuth } from "@/features/auth"
 import {
   authLoginSchema,
   formatCpfInput,
@@ -43,8 +42,38 @@ export function AuthLoginRoute() {
   const [isExpiredDialogOpen, setIsExpiredDialogOpen] = React.useState(() =>
     auth.inactivity.consumeExpired()
   )
-  const [isPasskeyBlockedDialogOpen, setIsPasskeyBlockedDialogOpen] =
-    React.useState(false)
+  const [submitMode, setSubmitMode] = React.useState<
+    "password" | "passkey" | "register-passkey" | null
+  >(null)
+  const isPasswordSubmitting =
+    auth.isSubmitting &&
+    (submitMode === "password" || submitMode === "register-passkey")
+  const isPasskeySubmitting = auth.isSubmitting && submitMode === "passkey"
+
+  async function handlePasskeyRegistration(flowId: string | null, cpfValue: string) {
+    setSubmitMode("register-passkey")
+
+    try {
+      await notify.track(auth.actions.registerRequiredPasskey({
+        cpf: cpfValue,
+        flowId,
+      }),
+        {
+          loading: authCopy.passkeyRegistration.loading,
+          success: authCopy.passkeyRegistration.success,
+          error: (caughtError) =>
+            caughtError instanceof Error
+              ? caughtError.message
+              : authCopy.errors.passkeyRegistrationFailed,
+        }
+      )
+      setPassword("")
+      setNewPassword("")
+      setConfirmPassword("")
+    } finally {
+      setSubmitMode(null)
+    }
+  }
 
   async function handleLoginSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
@@ -56,12 +85,13 @@ export function AuthLoginRoute() {
     }
 
     setLoginErrors({})
+    setSubmitMode("password")
 
     try {
       const response = await auth.actions.signInWithPassword(parsed.data)
 
       if (response.nextAction === AUTH_NEXT_ACTION.registerPasskey) {
-        setIsPasskeyBlockedDialogOpen(true)
+        await handlePasskeyRegistration(response.flowId, parsed.data.cpf)
         return
       }
 
@@ -77,6 +107,25 @@ export function AuthLoginRoute() {
           ? caughtError.message
           : authCopy.errors.invalidCredentials
       )
+    } finally {
+      setSubmitMode(null)
+    }
+  }
+
+  async function handlePasskeyLogin() {
+    setSubmitMode("passkey")
+
+    try {
+      await auth.actions.signInWithPasskey()
+      return
+    } catch (caughtError) {
+      notify.error(
+        caughtError instanceof Error
+          ? caughtError.message
+          : authCopy.errors.passkeyLoginFailed
+      )
+    } finally {
+      setSubmitMode(null)
     }
   }
 
@@ -95,6 +144,7 @@ export function AuthLoginRoute() {
     }
 
     setPasswordErrors({})
+    setSubmitMode("password")
 
     try {
       const response = await auth.actions.completeRequiredPassword(
@@ -106,7 +156,7 @@ export function AuthLoginRoute() {
       setConfirmPassword("")
 
       if (response.nextAction === AUTH_NEXT_ACTION.registerPasskey) {
-        setIsPasskeyBlockedDialogOpen(true)
+        await handlePasskeyRegistration(response.flowId, cpf)
         return
       }
 
@@ -117,6 +167,8 @@ export function AuthLoginRoute() {
           ? caughtError.message
           : authCopy.errors.invalidCredentials
       )
+    } finally {
+      setSubmitMode(null)
     }
   }
 
@@ -156,15 +208,32 @@ export function AuthLoginRoute() {
               placeholder={copy.passwordPlaceholder}
               error={loginErrors.password}
               labelAction={
-                <Button asChild variant="link" size="sm">
+                <Button asChild variant="link" size="lg" className="p-0 h-0">
                   <Link to={appRoutePaths.recovery}>{copy.recoveryAction}</Link>
                 </Button>
               }
             />
 
             <Button type="submit" size="lg" disabled={auth.isSubmitting}>
-              {auth.isSubmitting ? <Spinner data-icon="inline-start" /> : null}
-              {auth.isSubmitting ? copy.submitting : copy.submit}
+              {isPasswordSubmitting ? <Spinner data-icon="inline-start" /> : null}
+              {isPasswordSubmitting ? copy.submitting : copy.submit}
+            </Button>
+
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              disabled={auth.isSubmitting}
+              onClick={() => {
+                void handlePasskeyLogin()
+              }}
+            >
+              {isPasskeySubmitting ? (
+                <Spinner data-icon="inline-start" />
+              ) : (
+                <KeyRoundIcon aria-hidden="true" />
+              )}
+              {isPasskeySubmitting ? copy.passkeySubmitting : copy.passkeySubmit}
             </Button>
           </FieldGroup>
         </form>
@@ -204,8 +273,8 @@ export function AuthLoginRoute() {
               error={passwordErrors.confirmPassword}
             />
             <Button type="submit" size="lg" disabled={auth.isSubmitting}>
-              {auth.isSubmitting ? <Spinner data-icon="inline-start" /> : null}
-              {auth.isSubmitting
+              {isPasswordSubmitting ? <Spinner data-icon="inline-start" /> : null}
+              {isPasswordSubmitting
                 ? requiredPasswordCopy.submitting
                 : requiredPasswordCopy.submit}
             </Button>
@@ -222,14 +291,6 @@ export function AuthLoginRoute() {
         actionLabel={authCopy.inactivity.expiredAction}
       />
 
-      <AppAlertDialog
-        open={isPasskeyBlockedDialogOpen}
-        onOpenChange={setIsPasskeyBlockedDialogOpen}
-        media={<LogOutIcon />}
-        title={authCopy.passkeyUnavailable.title}
-        description={authCopy.passkeyUnavailable.description}
-        actionLabel={authCopy.passkeyUnavailable.action}
-      />
     </main>
   )
 }

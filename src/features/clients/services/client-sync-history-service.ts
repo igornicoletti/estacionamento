@@ -21,6 +21,22 @@ type RawClientSyncRunRow = {
   counters_vehicles_unchanged: number
   counters_vehicles_failed: number
   consecutive_failures: number
+  error_details: unknown
+}
+
+function mapErrorDetails(value: unknown) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.flatMap((item) => {
+    if (!isRecord(item)) {
+      return []
+    }
+
+    const reason = item.reason
+    return typeof reason === "string" && reason.trim() ? [reason] : []
+  })
 }
 
 function mapClientSyncHistory(row: RawClientSyncRunRow): ClientSyncHistoryEntry {
@@ -46,6 +62,7 @@ function mapClientSyncHistory(row: RawClientSyncRunRow): ClientSyncHistoryEntry 
       vehiclesFailed: row.counters_vehicles_failed,
     },
     consecutiveFailures: row.consecutive_failures,
+    errorDetails: mapErrorDetails(row.error_details),
   }
 }
 
@@ -86,7 +103,8 @@ function isRawClientSyncRunRow(value: unknown): value is RawClientSyncRunRow {
     typeof value.counters_vehicles_updated === "number" &&
     typeof value.counters_vehicles_unchanged === "number" &&
     typeof value.counters_vehicles_failed === "number" &&
-    typeof value.consecutive_failures === "number"
+    typeof value.consecutive_failures === "number" &&
+    "error_details" in value
   )
 }
 
@@ -119,6 +137,7 @@ export async function listClientSyncHistory(): Promise<ClientSyncHistoryEntry[]>
       "counters_vehicles_unchanged",
       "counters_vehicles_failed",
       "consecutive_failures",
+      "error_details",
     ].join(","))
     .order("started_at", { ascending: false })
     .limit(50)

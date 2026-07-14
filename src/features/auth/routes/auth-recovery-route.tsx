@@ -110,7 +110,7 @@ export function AuthRecoveryRoute() {
   }
 
   return (
-    <main className="flex min-h-screen flex-col items-center justify-center bg-background px-4 py-8">
+    <main className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
       <AuthPageCard title={copy.title} description={copy.description}>
         <form
           onSubmit={(event) => {
@@ -183,7 +183,7 @@ export function AuthRecoveryRoute() {
                 >
                   <SelectValue placeholder={copy.reasonPlaceholder} />
                 </SelectTrigger>
-                <SelectContent>
+                <SelectContent position="popper" className="w-full">
                   {recoveryReasonValues.map((reason) => (
                     <SelectItem key={reason} value={reason}>
                       {recoveryReasonLabelByValue[reason]}

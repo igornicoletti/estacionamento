@@ -15,6 +15,8 @@ export const AUTH_NEXT_ACTION = {
 
 export const AUTH_FUNCTIONS = {
   password: "auth-password",
+  passkeyLogin: "auth-passkey-login",
+  registerPasskey: "auth-register-passkey",
   recovery: "auth-recovery-request",
 } as const
 

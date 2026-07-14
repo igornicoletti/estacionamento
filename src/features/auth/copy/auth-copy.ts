@@ -24,6 +24,10 @@ export const authCopy = {
     sessionLoadFailed: "Não foi possível carregar a sessão atual.",
     logoutFailed: "Não foi possível revogar a sessão remota. A sessão local foi encerrada.",
     recoveryFailed: "Não foi possível registrar a solicitação de recuperação.",
+    passkeyLoginFailed: "Não foi possível autenticar com a passkey.",
+    passkeyNotSupported:
+      "Este navegador ou origem não permite passkeys. Use HTTPS e um navegador compatível com WebAuthn.",
+    passkeyRegistrationFailed: "Não foi possível cadastrar a passkey.",
     unsupportedNextAction: "Este fluxo de autenticação não está disponível nesta interface.",
     passkeyRequired:
       "Sua conta exige cadastro de passkey, mas este cliente ainda não possui um fluxo WebAuthn validado. Solicite liberação ou orientação a um administrador.",
@@ -38,6 +42,8 @@ export const authCopy = {
     recoveryAction: "Recuperar acesso",
     submit: "Entrar",
     submitting: "Entrando...",
+    passkeySubmit: "Entrar com passkey",
+    passkeySubmitting: "Validando passkey...",
   },
   requiredPassword: {
     title: "Defina uma nova senha",
@@ -54,6 +60,10 @@ export const authCopy = {
     description:
       "A senha foi validada, mas a conta exige cadastro de passkey. Por segurança, a sessão não foi aberta porque este cliente ainda não possui fluxo WebAuthn validado. Solicite suporte administrativo para concluir o acesso.",
     action: "Entendi",
+  },
+  passkeyRegistration: {
+    loading: "Aguardando validação da passkey...",
+    success: "Passkey cadastrada. Acesso liberado.",
   },
   recovery: {
     title: "Recuperar acesso",

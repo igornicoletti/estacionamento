@@ -1,7 +1,10 @@
 export {
   completeRequiredPassword,
   getCurrentAuthProfile,
+  isPasskeySupported,
+  registerCurrentPasskey,
   requestAccessRecovery,
+  signInWithPasskey,
   signInWithPassword,
   signOutCurrentSession,
   subscribeToAuthSessionChanges,

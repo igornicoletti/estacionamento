@@ -16,6 +16,22 @@ type RawUnitSyncRunRow = {
   counters_unchanged: number
   counters_failed: number
   consecutive_failures: number
+  error_details: unknown
+}
+
+function mapErrorDetails(value: unknown) {
+  if (!Array.isArray(value)) {
+    return []
+  }
+
+  return value.flatMap((item) => {
+    if (!isRecord(item)) {
+      return []
+    }
+
+    const reason = item.reason
+    return typeof reason === "string" && reason.trim() ? [reason] : []
+  })
 }
 
 function mapUnitSyncHistory(row: RawUnitSyncRunRow): UnitSyncHistoryEntry {
@@ -36,6 +52,7 @@ function mapUnitSyncHistory(row: RawUnitSyncRunRow): UnitSyncHistoryEntry {
       failed: row.counters_failed,
     },
     consecutiveFailures: row.consecutive_failures,
+    errorDetails: mapErrorDetails(row.error_details),
   }
 }
 
@@ -71,7 +88,8 @@ function isRawUnitSyncRunRow(value: unknown): value is RawUnitSyncRunRow {
     typeof value.counters_updated === "number" &&
     typeof value.counters_unchanged === "number" &&
     typeof value.counters_failed === "number" &&
-    typeof value.consecutive_failures === "number"
+    typeof value.consecutive_failures === "number" &&
+    "error_details" in value
   )
 }
 
@@ -99,6 +117,7 @@ export async function listUnitSyncHistory(): Promise<UnitSyncHistoryEntry[]> {
       "counters_unchanged",
       "counters_failed",
       "consecutive_failures",
+      "error_details",
     ].join(","))
     .order("started_at", { ascending: false })
     .limit(50)

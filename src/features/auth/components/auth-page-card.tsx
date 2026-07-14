@@ -25,18 +25,18 @@ export function AuthPageCard({
 }: AuthPageCardProps) {
   return (
     <Card className={cn("w-full max-w-md", className)}>
-      <CardHeader className="space-y-4 text-center">
+      <CardHeader className="text-center">
         <img
           src={montecarloLogo}
           alt="Rede Monte Carlo"
-          className="mx-auto h-auto w-full max-w-sm object-contain"
+          className="mx-auto h-auto w-full max-w-xs object-contain"
         />
-        <div className="space-y-1">
-          <CardTitle className="text-2xl">{title}</CardTitle>
+        <div>
+          <CardTitle>{title}</CardTitle>
           <CardDescription>{description}</CardDescription>
         </div>
       </CardHeader>
-      <CardContent className="grid gap-4">{children}</CardContent>
+      <CardContent>{children}</CardContent>
     </Card>
   )
 }

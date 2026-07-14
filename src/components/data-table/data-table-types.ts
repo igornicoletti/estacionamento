@@ -1,10 +1,14 @@
 import * as React from "react"
 import { type RowData } from "@tanstack/react-table"
 
+import { type XlsxCellValue } from "@/lib/export"
+
 declare module "@tanstack/react-table" {
   interface ColumnMeta<TData extends RowData, TValue> {
     label?: string
     formatValue?: (value: TValue, row: TData) => React.ReactNode
+    enableExport?: boolean
+    exportValue?: (value: TValue, row: TData) => XlsxCellValue
   }
 }
 

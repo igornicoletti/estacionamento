@@ -160,6 +160,14 @@ async function listUnitsCatalog(): Promise<UnitCatalogItem[]> {
   }))
 }
 
+async function listUnitsCatalogSafe(): Promise<UnitCatalogItem[]> {
+  try {
+    return await listUnitsCatalog()
+  } catch {
+    return []
+  }
+}
+
 function isRemoteUsersEnabled() {
   if (isMemoryUsersEnabled()) {
     return false
@@ -254,6 +262,14 @@ async function listLastAccessByAuthUserId() {
   return new Map((response.data ?? []).map((row) => [row.auth_user_id, row.last_sign_in_at]))
 }
 
+async function listLastAccessByAuthUserIdSafe() {
+  try {
+    return await listLastAccessByAuthUserId()
+  } catch {
+    return new Map<string, string | null>()
+  }
+}
+
 async function listAuthFactorsByAuthUserId() {
   const supabase = getSupabaseBrowserClient()
 
@@ -273,6 +289,14 @@ async function listAuthFactorsByAuthUserId() {
   }
 
   return new Map((response.data.factors ?? []).map((factor) => [factor.auth_user_id, factor]))
+}
+
+async function listAuthFactorsByAuthUserIdSafe() {
+  try {
+    return await listAuthFactorsByAuthUserId()
+  } catch {
+    return new Map<string, RawAuthFactorRow>()
+  }
 }
 
 async function listRawAppUsersFromSupabase(
@@ -325,10 +349,16 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
   }
 
   const data = await listRawAppUsersFromSupabase(supabase)
-  const unitsCatalog = await listUnitsCatalog()
+  const [
+    unitsCatalog,
+    lastAccessByAuthUserId,
+    authFactorsByAuthUserId,
+  ] = await Promise.all([
+    listUnitsCatalogSafe(),
+    listLastAccessByAuthUserIdSafe(),
+    listAuthFactorsByAuthUserIdSafe(),
+  ])
   const unitNameById = new Map(unitsCatalog.map((unit) => [unit.id, unit.name]))
-  const lastAccessByAuthUserId = await listLastAccessByAuthUserId()
-  const authFactorsByAuthUserId = await listAuthFactorsByAuthUserId()
 
   return data.flatMap((appUser) => {
     if (!isUserRole(appUser.role) || !isAppUserStatus(appUser.status)) {

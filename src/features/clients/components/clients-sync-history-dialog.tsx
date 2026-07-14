@@ -1,4 +1,4 @@
-import { SyncHistoryDialog } from "@/components/sync-history/sync-history-dialog"
+import { SyncHistoryDialog } from "@/features/sync"
 import { type ClientSyncHistoryEntry } from "../types/clients-sync-history-types"
 
 interface ClientsSyncHistoryDialogProps {

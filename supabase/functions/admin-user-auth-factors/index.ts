@@ -7,11 +7,11 @@ import {
   requireAdminActor,
 } from "../_shared/index.ts"
 
-type AuthFactorRow = {
+type AuthPasskeyRow = {
   user_id: string
 }
 
-function isAuthFactorRow(value: unknown): value is AuthFactorRow {
+function isAuthPasskeyRow(value: unknown): value is AuthPasskeyRow {
   return (
     typeof value === "object" &&
     value !== null &&
@@ -37,10 +37,8 @@ Deno.serve(async (request) => {
     const admin = createAdminClient()
     const response = await admin
       .schema("auth")
-      .from("mfa_factors")
+      .from("webauthn_credentials")
       .select("user_id")
-      .eq("factor_type", "webauthn")
-      .eq("status", "verified")
 
     if (response.error) {
       return genericAuthError(undefined, request)
@@ -49,7 +47,7 @@ Deno.serve(async (request) => {
     const passkeyCountByUserId = new Map<string, number>()
 
     for (const row of response.data ?? []) {
-      if (!isAuthFactorRow(row)) {
+      if (!isAuthPasskeyRow(row)) {
         continue
       }
 

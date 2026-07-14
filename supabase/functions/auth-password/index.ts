@@ -212,8 +212,26 @@ Deno.serve(async (request) => {
 
       await admin
         .from("app_users")
-        .update({ status: "active" })
+        .update({ status: "passkey_reset" })
         .eq("auth_user_id", appUser.auth_user_id)
+
+      const passkeyFlowId = await createPasswordFlow({
+        appUserId: appUser.id,
+        cpfHash,
+        purpose: "passkey_reset",
+      })
+
+      const updatedPasswordSignInResponse = await passwordClient.auth.signInWithPassword({
+        email: appUser.technical_email,
+        password: input.newPassword,
+      })
+
+      if (
+        updatedPasswordSignInResponse.error ||
+        !updatedPasswordSignInResponse.data.session
+      ) {
+        return genericAuthError(400, request)
+      }
 
       await writeAuditEvent({
         actor: appUser.name,
@@ -227,9 +245,13 @@ Deno.serve(async (request) => {
       })
 
       return jsonResponse({
-        flowId: null,
-        message: "Senha atualizada.",
-        nextAction: "authenticated",
+        flowId: passkeyFlowId,
+        message: "Senha atualizada. Cadastre a passkey para concluir o acesso.",
+        nextAction: "register_passkey",
+        session: {
+          access_token: updatedPasswordSignInResponse.data.session.access_token,
+          refresh_token: updatedPasswordSignInResponse.data.session.refresh_token,
+        },
       }, 200, request)
     }
 
@@ -239,13 +261,25 @@ Deno.serve(async (request) => {
       const flowId = await createPasswordFlow({
         appUserId: appUser.id,
         cpfHash,
-        purpose: appUser.status === "passkey_reset" ? "passkey_reset" : "password_reset",
+        purpose: appUser.status === "passkey_reset"
+          ? "passkey_reset"
+          : appUser.status === "pending"
+            ? "first_access"
+            : "password_reset",
       })
 
       return jsonResponse({
         flowId,
         message: "Ação adicional necessária.",
         nextAction,
+        ...(nextAction === "register_passkey"
+          ? {
+              session: {
+                access_token: signInResponse.data.session.access_token,
+                refresh_token: signInResponse.data.session.refresh_token,
+              },
+            }
+          : {}),
       }, 200, request)
     }
 

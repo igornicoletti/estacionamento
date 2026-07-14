@@ -7,16 +7,15 @@ import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppDialog } from "@/components/shared/app-dialog"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
-import { ManualSyncDialog } from "@/components/sync"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AUTH_PERMISSION, AUTH_ROLE_KEY, useAuth } from "@/features/auth"
+import { SyncBlockingDialog } from "@/features/sync"
 import { useUsers } from "@/features/users"
 import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
-import { withTimeout } from "@/lib/promise"
 
 import { createUnitsColumns } from "../columns/units-columns"
 import { UnitsSyncHistoryDialog } from "../components/units-sync-history-dialog"
@@ -35,7 +34,6 @@ import {
 import { getUnitDetailItems } from "../utils/units-details-model"
 
 const unitsTableColumnVisibilityKey = "rmc.units.table-column-visibility.v3"
-const unitsSyncTimeoutMs = 90_000
 
 const defaultUnitsColumnVisibility = {
   des_coordenada_empresa: false,
@@ -70,10 +68,9 @@ export function UnitsRoute() {
   const [yardSpots, setYardSpots] = React.useState("0")
   const [yardError, setYardError] = React.useState<string | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
-  const [syncDialogPhase, setSyncDialogPhase] = React.useState<"confirm" | "running" | null>(null)
+  const [isSyncing, setIsSyncing] = React.useState(false)
 
   const canSyncUnits = canManageOperationalData(auth)
-  const isSyncing = syncDialogPhase === "running"
   const yardConfigByUnitId = React.useMemo(() => buildUnitYardConfigMap(unitYardConfigs), [unitYardConfigs])
   const userStatsByUnitId = React.useMemo(() => buildActiveUnitUserStats(users), [users])
 
@@ -147,42 +144,47 @@ export function UnitsRoute() {
     }
   }
 
-  async function handleConfirmSync() {
+  async function refreshOperationalSnapshots() {
+    await Promise.allSettled([refetch(), refetchSyncHistory()])
+  }
+
+  async function handleStartSync() {
     if (isSyncing) {
       return
     }
 
-    setSyncDialogPhase("running")
+    setIsSyncing(true)
 
     try {
-      const result = await withTimeout(
-        triggerUnitsSync("incremental").then(async (syncResult) => {
-          await Promise.all([refetch(), refetchSyncHistory()])
-          return syncResult
-        }),
-        unitsSyncTimeoutMs,
-        new Error(unitsCopy.sync.timeoutError)
-      )
+      const result = await triggerUnitsSync("incremental")
+
+      await refreshOperationalSnapshots()
 
       if (result.status === "failed") {
-        notify.error(unitsCopy.sync.feedback.error)
+        notify.error(result.message || unitsCopy.sync.feedback.error)
         return
       }
 
       if (result.status === "warning") {
-        notify.warning(unitsCopy.sync.feedback.inProgress)
+        notify.warning(result.message || unitsCopy.sync.feedback.inProgress)
         return
       }
 
-      notify.success(unitsCopy.sync.feedback.success)
+      notify.success(result.message || unitsCopy.sync.feedback.success)
     } catch (caughtError) {
+      await refreshOperationalSnapshots()
+
       if (isUnitSyncInProgressError(caughtError)) {
         notify.warning(unitsCopy.sync.feedback.inProgress)
       } else {
-        notify.error(unitsCopy.sync.feedback.error)
+        notify.error(
+          caughtError instanceof Error && caughtError.message.trim()
+            ? caughtError.message
+            : unitsCopy.sync.feedback.error
+        )
       }
     } finally {
-      setSyncDialogPhase(null)
+      setIsSyncing(false)
     }
   }
 
@@ -198,7 +200,7 @@ export function UnitsRoute() {
               {unitsCopy.actions.history}
             </Button>
             {canSyncUnits ? (
-              <Button type="button" variant="secondary" size="lg" disabled={isLoading || isSyncing} onClick={() => setSyncDialogPhase("confirm")}>
+              <Button type="button" variant="secondary" size="lg" disabled={isLoading || isSyncing} onClick={() => { void handleStartSync() }}>
                 <RefreshCcwIcon aria-hidden="true" />
                 {unitsCopy.actions.sync}
               </Button>
@@ -303,17 +305,10 @@ export function UnitsRoute() {
         onRetry={() => { void refetchSyncHistory() }}
       />
 
-      <ManualSyncDialog
-        open={syncDialogPhase !== null}
-        phase={syncDialogPhase === "running" ? "running" : "confirm"}
-        confirmTitle={unitsCopy.sync.confirmTitle}
-        confirmDescription={unitsCopy.sync.confirmDescription}
-        runningTitle={unitsCopy.sync.runningTitle}
-        runningDescription={unitsCopy.sync.runningDescription}
-        confirmLabel={unitsCopy.sync.confirmButton}
-        cancelLabel={unitsCopy.sync.cancelButton}
-        onConfirm={() => { void handleConfirmSync() }}
-        onOpenChange={(open) => { if (!open && !isSyncing) setSyncDialogPhase(null) }}
+      <SyncBlockingDialog
+        open={isSyncing}
+        title={unitsCopy.sync.runningTitle}
+        description={unitsCopy.sync.runningDescription}
       />
     </PageSection>
   )

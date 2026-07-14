@@ -63,7 +63,7 @@ export function DataTableColumnHeader<TData, TValue>({
         data-no-drag-scroll="true"
         type="button"
         variant="ghost"
-        size="sm"
+        size="lg"
         aria-label={getSortButtonLabel(sortState, title)}
         onClick={handleSortClick}
       >

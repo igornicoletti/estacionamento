@@ -116,9 +116,9 @@ function DataTableStatePanel({
       aria-live={
         isLiveRegion ? (kind === "error" ? "assertive" : "polite") : undefined
       }
-      className="flex min-h-64 items-center justify-center border-t px-4 py-10"
+      className="flex min-h-48 items-center justify-center border-t px-3 py-8 sm:min-h-64 sm:px-4 sm:py-10"
     >
-      <div className="w-full max-w-md">{children}</div>
+      <div className="w-full max-w-sm sm:max-w-md">{children}</div>
     </div>
   )
 }
@@ -671,7 +671,7 @@ export function DataTable<TData extends RowData, TValue>({
 
   return (
     <div
-      className="flex min-h-0 flex-col gap-4"
+      className="flex min-h-0 min-w-0 flex-col gap-4"
       aria-busy={isLoading || undefined}
     >
       {hasNonBlockingError ? (
@@ -710,7 +710,7 @@ export function DataTable<TData extends RowData, TValue>({
         </span>
       ) : null}
 
-      <div className="overflow-hidden rounded-md border">
+      <div className="min-w-0 overflow-hidden rounded-md border">
         <DataTableScrollContainer className="max-h-[min(70svh,42rem)]">
           <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
             <caption className="sr-only">

@@ -3,6 +3,7 @@ const defaultAllowedHeaders = [
   "x-client-info",
   "apikey",
   "content-type",
+  "x-sync-secret",
 ].join(", ")
 
 function parseAllowedOrigins() {
@@ -12,26 +13,30 @@ function parseAllowedOrigins() {
     .filter(Boolean)
 }
 
-export function getCorsHeaders(request: Request) {
-  const origin = request.headers.get("Origin") ?? "*"
+function resolveAllowedOrigin(req: Request) {
+  const origin = req.headers.get("Origin") ?? req.headers.get("origin") ?? ""
   const allowedOrigins = parseAllowedOrigins()
-  const allowOrigin =
-    allowedOrigins.length === 0 || allowedOrigins.includes(origin) ? origin : allowedOrigins[0]
 
+  if (allowedOrigins.length === 0) {
+    return origin || "*"
+  }
+
+  return allowedOrigins.includes(origin) ? origin : allowedOrigins[0]
+}
+
+export function getCorsHeaders(req: Request) {
   return {
     "Access-Control-Allow-Headers": defaultAllowedHeaders,
-    "Access-Control-Allow-Methods": "GET,POST,PUT,PATCH,DELETE,OPTIONS",
-    "Access-Control-Allow-Origin": allowOrigin,
+    "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    "Access-Control-Allow-Origin": resolveAllowedOrigin(req),
     "Vary": "Origin",
   }
 }
 
-export function handleCors(request: Request) {
-  if (request.method !== "OPTIONS") {
-    return null
+export function handleCors(req: Request) {
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: getCorsHeaders(req) })
   }
 
-  return new Response("ok", {
-    headers: getCorsHeaders(request),
-  })
+  return null
 }

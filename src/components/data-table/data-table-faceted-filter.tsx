@@ -6,6 +6,7 @@ import {
   ComboboxChip,
   ComboboxChips,
   ComboboxChipsInput,
+  ComboboxCollection,
   ComboboxContent,
   ComboboxEmpty,
   ComboboxItem,
@@ -130,20 +131,22 @@ export function DataTableFacetedFilter<TData, TValue>({
       <ComboboxContent data-no-drag-scroll="true" className="min-w-(--anchor-width)">
         <ComboboxEmpty>{dataTableCopy.facetedFilter.noResults}</ComboboxEmpty>
         <ComboboxList>
-          {(option: DataTableFilterOption) => {
-            const count = facetCounts?.get(option.value)
+          <ComboboxCollection>
+            {(option: DataTableFilterOption) => {
+              const count = facetCounts?.get(option.value)
 
-            return (
-              <ComboboxItem key={option.value} value={option}>
-                <span>{option.label}</span>
-                {showCounts && Boolean(count) ? (
-                  <span className="ml-auto text-xs text-muted-foreground tabular-nums">
-                    {count}
-                  </span>
-                ) : null}
-              </ComboboxItem>
-            )
-          }}
+              return (
+                <ComboboxItem key={option.value} value={option}>
+                  <span>{option.label}</span>
+                  {showCounts && Boolean(count) ? (
+                    <span className="ml-auto text-xs text-muted-foreground tabular-nums">
+                      {count}
+                    </span>
+                  ) : null}
+                </ComboboxItem>
+              )
+            }}
+          </ComboboxCollection>
         </ComboboxList>
       </ComboboxContent>
     </Combobox>

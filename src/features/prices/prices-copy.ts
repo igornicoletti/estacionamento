@@ -60,6 +60,8 @@ export const pricesCopy = {
     notes: "Observações",
     scopePlaceholder: "Selecione o escopo",
     statusPlaceholder: "Selecione o status",
+    unitPlaceholder: "Selecione a unidade",
+    unitEmpty: "Nenhuma unidade encontrada.",
     validation: {
       unitId: "Informe o código da unidade.",
       unitName: "Informe o nome da unidade.",
@@ -68,6 +70,7 @@ export const pricesCopy = {
       graceMinutes: "Informe uma carência entre 0 e 1440 minutos.",
       toleranceMinutes: "Informe uma tolerância entre 0 e 240 minutos.",
       startsAt: "Informe o início da vigência.",
+      endsAt: "Informe uma data final válida e posterior ao início.",
       reason: "Informe uma justificativa com pelo menos 10 caracteres.",
     },
   },

@@ -53,6 +53,13 @@ const { testAuthContext, testAuthSession } = vi.hoisted(() => {
         logout: vi.fn(),
         logoutAsync: signOut,
         refreshProfile: refresh,
+        registerRequiredPasskey: vi.fn(() => Promise.resolve({
+          flowId: null,
+          message: "ok",
+          nextAction: "authenticated",
+          profile: null,
+        })),
+        signInWithPasskey: vi.fn(() => Promise.resolve(undefined)),
         signInWithPassword: vi.fn(() => Promise.resolve({
           flowId: null,
           message: "ok",

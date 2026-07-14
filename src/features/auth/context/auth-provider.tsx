@@ -11,6 +11,8 @@ import {
 import {
   completeRequiredPassword,
   getCurrentAuthProfile,
+  registerCurrentPasskey,
+  signInWithPasskey as signInWithPasskeyApi,
   signInWithPassword,
   signOutCurrentSession,
   subscribeToAuthSessionChanges,
@@ -43,7 +45,12 @@ export interface AuthAccessState {
 export interface AuthActions {
   refreshProfile: () => Promise<void>
   signInWithPassword: (payload: AuthLoginPayload) => Promise<AuthPasswordResponse>
+  signInWithPasskey: () => Promise<void>
   completeRequiredPassword: (newPassword: string) => Promise<AuthPasswordResponse>
+  registerRequiredPasskey: (input: {
+    cpf: string
+    flowId: string | null
+  }) => Promise<AuthPasswordResponse>
   clearRequiredPasswordChallenge: () => void
   logout: () => void
   logoutAsync: () => Promise<void>
@@ -90,6 +97,14 @@ function writeInactivityExpired() {
   window.sessionStorage.setItem(AUTH_STORAGE_KEYS.inactivityExpired, "1")
 }
 
+function clearInactivityExpired() {
+  if (typeof window === "undefined") {
+    return
+  }
+
+  window.sessionStorage.removeItem(AUTH_STORAGE_KEYS.inactivityExpired)
+}
+
 function consumeInactivityExpired() {
   if (typeof window === "undefined") {
     return false
@@ -132,15 +147,43 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     Math.ceil(AUTH_INACTIVITY.warningMs / 1000)
   )
   const lastActivityAtRef = React.useRef(now())
+  const trackedInactivityAuthUserIdRef = React.useRef<string | null>(null)
   const isAuthenticated = status === "authenticated" && Boolean(profile)
   const canTrackInactivity =
     isAuthenticated && canAccessProtectedApp(profile?.status)
   const effectiveWarningOpen = canTrackInactivity && isWarningOpen
 
+  const resetInactivityState = React.useCallback(() => {
+    clearInactivityExpired()
+    lastActivityAtRef.current = now()
+    setIsWarningOpen(false)
+    setSecondsRemaining(Math.ceil(AUTH_INACTIVITY.warningMs / 1000))
+  }, [])
+
+  const resetInactivityForProfile = React.useCallback(
+    (nextProfile: AuthProfile | null) => {
+      const nextTrackableAuthUserId =
+        nextProfile && canAccessProtectedApp(nextProfile.status)
+          ? nextProfile.authUserId
+          : null
+
+      if (
+        nextTrackableAuthUserId &&
+        trackedInactivityAuthUserIdRef.current !== nextTrackableAuthUserId
+      ) {
+        resetInactivityState()
+      }
+
+      trackedInactivityAuthUserIdRef.current = nextTrackableAuthUserId
+    },
+    [resetInactivityState]
+  )
+
   const refreshProfile = React.useCallback(async () => {
     setError(null)
     const nextProfile = await getCurrentAuthProfile()
 
+    resetInactivityForProfile(nextProfile)
     setProfile((currentProfile) => {
       if (currentProfile?.authUserId !== nextProfile?.authUserId) {
         clearAsyncSnapshotCache()
@@ -149,7 +192,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       return nextProfile
     })
     setStatus(nextProfile ? "authenticated" : "anonymous")
-  }, [])
+  }, [resetInactivityForProfile])
 
   React.useEffect(() => {
     let cancelled = false
@@ -159,6 +202,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const nextProfile = await getCurrentAuthProfile()
 
         if (!cancelled) {
+          resetInactivityForProfile(nextProfile)
           setProfile((currentProfile) => {
             if (currentProfile?.authUserId !== nextProfile?.authUserId) {
               clearAsyncSnapshotCache()
@@ -171,6 +215,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       } catch (caughtError) {
         if (!cancelled) {
           setProfile(null)
+          trackedInactivityAuthUserIdRef.current = null
           setStatus("anonymous")
           setError(resolveErrorMessage(caughtError))
         }
@@ -187,7 +232,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       cancelled = true
       unsubscribe()
     }
-  }, [])
+  }, [resetInactivityForProfile])
 
   const clearLocalAuthState = React.useCallback(() => {
     setProfile(null)
@@ -195,6 +240,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus("anonymous")
     setRequiredPasswordChallenge(null)
     requiredPasswordCredentialsRef.current = null
+    trackedInactivityAuthUserIdRef.current = null
     setIsWarningOpen(false)
   }, [])
 
@@ -214,10 +260,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [logoutAsync])
 
   const continueSession = React.useCallback(() => {
-    lastActivityAtRef.current = now()
-    setIsWarningOpen(false)
-    setSecondsRemaining(Math.ceil(AUTH_INACTIVITY.warningMs / 1000))
-  }, [])
+    resetInactivityState()
+  }, [resetInactivityState])
 
   React.useEffect(() => {
     if (!canTrackInactivity) {
@@ -331,8 +375,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
         setRequiredPasswordChallenge(null)
         requiredPasswordCredentialsRef.current = null
+
+        if (response.nextAction === AUTH_NEXT_ACTION.registerPasskey) {
+          return response
+        }
+
         await signOutCurrentSession()
         setProfile(null)
+        trackedInactivityAuthUserIdRef.current = null
         setStatus("anonymous")
         return response
       } catch (caughtError) {
@@ -346,6 +396,40 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     },
     [requiredPasswordChallenge]
   )
+
+  const registerRequiredPasskey = React.useCallback(
+    async (input: { cpf: string; flowId: string | null }) => {
+      setIsSubmitting(true)
+      setError(null)
+
+      try {
+        const response = await registerCurrentPasskey(input)
+        await refreshProfile()
+        return response
+      } catch (caughtError) {
+        setError(resolveErrorMessage(caughtError))
+        throw caughtError
+      } finally {
+        setIsSubmitting(false)
+      }
+    },
+    [refreshProfile]
+  )
+
+  const signInPasskey = React.useCallback(async () => {
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      await signInWithPasskeyApi()
+      await refreshProfile()
+    } catch (caughtError) {
+      setError(resolveErrorMessage(caughtError))
+      throw caughtError
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [refreshProfile])
 
   const permissionSet = React.useMemo(
     () => createPermissionSet(profile),
@@ -404,7 +488,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       actions: {
         refreshProfile,
         signInWithPassword: signIn,
+        signInWithPasskey: signInPasskey,
         completeRequiredPassword: completePassword,
+        registerRequiredPasskey,
         clearRequiredPasswordChallenge: () => {
           requiredPasswordCredentialsRef.current = null
           setRequiredPasswordChallenge(null)
@@ -425,9 +511,11 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logoutAsync,
       profile,
       refreshProfile,
+      registerRequiredPasskey,
       requiredPasswordChallenge,
       secondsRemaining,
       signIn,
+      signInPasskey,
       status,
     ]
   )

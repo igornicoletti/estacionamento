@@ -38,12 +38,13 @@ export function SidebarNavGroup({
   items,
   activePathname,
 }: SidebarNavGroupProps) {
-  const { isMobile, setOpenMobile } = useSidebar()
+  const { isMobile, setOpenMobile, state } = useSidebar()
   const hasActiveItem = items.some((item) =>
     isActiveRoute(activePathname, item.href)
   )
   const [isManuallyOpen, setIsManuallyOpen] = React.useState(false)
-  const isOpen = hasActiveItem || isManuallyOpen
+  const isCollapsedIconMode = state === "collapsed" && !isMobile
+  const isOpen = isCollapsedIconMode || hasActiveItem || isManuallyOpen
 
   function handleNavigate() {
     if (isMobile) {
@@ -59,7 +60,7 @@ export function SidebarNavGroup({
     >
       <SidebarGroup>
         <SidebarGroupLabel asChild>
-          <CollapsibleTrigger aria-label={label}>
+          <CollapsibleTrigger aria-label={label} disabled={isCollapsedIconMode}>
             <span>{label}</span>
             <ChevronRightIcon className="ml-auto transition-transform duration-200 group-data-[state=open]/collapsible:rotate-90" />
           </CollapsibleTrigger>

@@ -19,6 +19,7 @@ export interface SyncHistoryEntry {
   message: string
   counters: SyncCounters
   consecutiveFailures: number
+  errorDetails: readonly string[]
 }
 
 export interface SyncHistoryCounter {

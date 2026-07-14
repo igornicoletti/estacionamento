@@ -1,5 +1,6 @@
 import {
   type Column,
+  type Row,
   type Table,
 } from "@tanstack/react-table"
 import { DownloadIcon, XIcon } from "lucide-react"
@@ -11,7 +12,7 @@ import {
   TooltipContent,
   TooltipTrigger,
 } from "@/components/ui/tooltip"
-import { exportRowsToXlsx } from "@/lib/export"
+import { exportRowsToXlsx, type XlsxCellValue } from "@/lib/export"
 
 import { dataTableCopy } from "./data-table-copy"
 import { DataTableFacetedFilter } from "./data-table-faceted-filter"
@@ -68,9 +69,9 @@ function formatExportColumnLabel(raw: string) {
     .trim()
 }
 
-function normalizeExportCellValue(value: unknown): string | number | boolean {
+function normalizeExportCellValue(value: unknown): XlsxCellValue {
   if (value === null || value === undefined || value === "") {
-    return "—"
+    return null
   }
 
   if (
@@ -99,11 +100,31 @@ function normalizeExportCellValue(value: unknown): string | number | boolean {
 }
 
 function getExportColumnHeader<TData>(column: Column<TData, unknown>) {
+  const label = column.columnDef.meta?.label
+
+  if (label) {
+    return formatExportColumnLabel(label)
+  }
+
   if (typeof column.columnDef.header === "string") {
     return formatExportColumnLabel(column.columnDef.header)
   }
 
   return formatExportColumnLabel(column.id)
+}
+
+function resolveExportCellValue<TData>(
+  column: Column<TData, unknown>,
+  row: Row<TData>
+) {
+  const rawValue = row.getValue(column.id)
+  const exportValue = column.columnDef.meta?.exportValue
+
+  if (exportValue) {
+    return normalizeExportCellValue(exportValue(rawValue, row.original))
+  }
+
+  return normalizeExportCellValue(rawValue)
 }
 
 function DataTableToolbarControls<TData>({
@@ -125,7 +146,7 @@ function DataTableToolbarControls<TData>({
   const isFiltered = isColumnFiltered || isGlobalFiltered
 
   return (
-    <div className="flex flex-1 flex-wrap items-center gap-2">
+    <div className="flex min-w-0 flex-1 flex-wrap items-center gap-2">
       {hasGlobalSearch && globalSearch ? (
         <DataTableSearchInput
           ariaLabel={globalSearch.placeholder ?? dataTableCopy.toolbar.search}
@@ -202,7 +223,6 @@ function DataTableToolbarControls<TData>({
           data-no-drag-scroll="true"
           type="button"
           variant="ghost"
-          size="sm"
           aria-label={dataTableCopy.toolbar.clearFiltersAriaLabel}
           onClick={() => {
             if (onClearFilters) {
@@ -237,7 +257,7 @@ function DataTableToolbarActions<TData>({
   function handleExport() {
     const exportableColumns = table
       .getVisibleLeafColumns()
-      .filter((column) => column.id !== "actions")
+      .filter((column) => column.columnDef.meta?.enableExport !== false)
 
     if (!exportableColumns.length) {
       return
@@ -247,12 +267,12 @@ function DataTableToolbarActions<TData>({
       ? table.getCoreRowModel().rows
       : table.getFilteredRowModel().rows
 
-    const normalizedRows: Array<Record<string, string | number | boolean>> =
+    const normalizedRows: Array<Record<string, XlsxCellValue>> =
       tableRows.map((row) => {
-        const exportRow: Record<string, string | number | boolean> = {}
+        const exportRow: Record<string, XlsxCellValue> = {}
 
         for (const column of exportableColumns) {
-          exportRow[column.id] = normalizeExportCellValue(row.getValue(column.id))
+          exportRow[column.id] = resolveExportCellValue(column, row)
         }
 
         return exportRow
@@ -263,7 +283,7 @@ function DataTableToolbarActions<TData>({
       sheetName: "Dados",
       columns: exportableColumns.map((column) => ({
         header: getExportColumnHeader(column),
-        accessor: (row: Record<string, string | number | boolean>) => {
+        accessor: (row: Record<string, XlsxCellValue>) => {
           const rowValue = row[column.id]
 
           return normalizeExportCellValue(rowValue)
@@ -274,7 +294,7 @@ function DataTableToolbarActions<TData>({
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-end gap-2">
+    <div className="flex min-w-0 flex-wrap items-center justify-end gap-2">
       {enableViewOptions ? <DataTableViewOptions table={table} /> : null}
       {enableExport && canExport ? (
         <Tooltip>
@@ -316,7 +336,7 @@ export function DataTableToolbar<TData>({
   onClearFilters,
 }: DataTableToolbarProps<TData>) {
   return (
-    <div className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
+    <div className="flex min-w-0 flex-col gap-2 lg:flex-row lg:items-center lg:justify-between">
       <DataTableToolbarControls
         table={table}
         globalSearch={globalSearch}

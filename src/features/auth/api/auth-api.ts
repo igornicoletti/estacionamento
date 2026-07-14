@@ -25,6 +25,16 @@ export class AuthApiError extends Error {
   }
 }
 
+export function isPasskeySupported() {
+  return (
+    typeof window !== "undefined" &&
+    window.isSecureContext &&
+    typeof window.PublicKeyCredential !== "undefined" &&
+    typeof navigator !== "undefined" &&
+    typeof navigator.credentials !== "undefined"
+  )
+}
+
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null
 }
@@ -106,6 +116,25 @@ async function setSessionIfPresent(session: AuthSessionPayload | undefined) {
   if (sessionResponse.error) {
     throw new AuthApiError(authCopy.errors.invalidCredentials)
   }
+}
+
+async function readFunctionErrorMessage(error: unknown) {
+  const record = isRecord(error) ? error : null
+  const context = record?.context
+
+  if (context instanceof Response) {
+    try {
+      const payload = await context.clone().json() as { message?: unknown }
+
+      if (typeof payload.message === "string" && payload.message.trim()) {
+        return payload.message
+      }
+    } catch {
+      return null
+    }
+  }
+
+  return error instanceof Error && error.message.trim() ? error.message : null
 }
 
 function mapPasswordResponse(value: unknown): AuthPasswordResponse {
@@ -191,7 +220,10 @@ export async function signInWithPassword(payload: AuthLoginPayload) {
 
   const response = mapPasswordResponse(passwordResponse.data)
 
-  if (response.nextAction === AUTH_NEXT_ACTION.authenticated) {
+  if (
+    response.nextAction === AUTH_NEXT_ACTION.authenticated ||
+    response.nextAction === AUTH_NEXT_ACTION.registerPasskey
+  ) {
     await setSessionIfPresent(response.session)
   }
 
@@ -218,7 +250,73 @@ export async function completeRequiredPassword(input: {
     throw new AuthApiError(authCopy.errors.invalidCredentials)
   }
 
-  return mapPasswordResponse(passwordResponse.data)
+  const response = mapPasswordResponse(passwordResponse.data)
+
+  if (
+    response.nextAction === AUTH_NEXT_ACTION.authenticated ||
+    response.nextAction === AUTH_NEXT_ACTION.registerPasskey
+  ) {
+    await setSessionIfPresent(response.session)
+  }
+
+  return response
+}
+
+export async function registerCurrentPasskey(input: {
+  cpf: string
+  flowId: string | null
+}) {
+  if (!input.flowId) {
+    throw new AuthApiError(authCopy.errors.passkeyRegistrationFailed)
+  }
+
+  if (!isPasskeySupported()) {
+    throw new AuthApiError(authCopy.errors.passkeyNotSupported)
+  }
+
+  const supabase = getSupabaseOrThrow()
+  const registrationResponse = await supabase.auth.registerPasskey()
+
+  if (registrationResponse.error) {
+    throw new AuthApiError(authCopy.errors.passkeyRegistrationFailed)
+  }
+
+  const completionResponse = await supabase.functions.invoke(
+    AUTH_FUNCTIONS.registerPasskey,
+    {
+      body: input,
+    }
+  )
+
+  if (completionResponse.error) {
+    throw new AuthApiError(
+      (await readFunctionErrorMessage(completionResponse.error)) ??
+        authCopy.errors.passkeyRegistrationFailed
+    )
+  }
+
+  const response = mapPasswordResponse(completionResponse.data)
+
+  if (response.nextAction !== AUTH_NEXT_ACTION.authenticated) {
+    throw new AuthApiError(authCopy.errors.passkeyRegistrationFailed)
+  }
+
+  return response
+}
+
+export async function signInWithPasskey() {
+  if (!isPasskeySupported()) {
+    throw new AuthApiError(authCopy.errors.passkeyNotSupported)
+  }
+
+  const supabase = getSupabaseOrThrow()
+  const response = await supabase.auth.signInWithPasskey()
+
+  if (response.error) {
+    throw new AuthApiError(authCopy.errors.passkeyLoginFailed)
+  }
+
+  void supabase.functions.invoke(AUTH_FUNCTIONS.passkeyLogin, { body: {} })
 }
 
 export async function requestAccessRecovery(payload: AuthRecoveryPayload) {

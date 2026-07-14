@@ -6,12 +6,11 @@ import { createDataTableFilterOptions, DataTable } from "@/components/data-table
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
-import { ManualSyncDialog } from "@/components/sync"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { AUTH_PERMISSION, AUTH_ROLE_KEY, useAuth } from "@/features/auth"
 import { getVehicleVipStatus, useVipRules } from "@/features/rules"
-import { withTimeout } from "@/lib/promise"
+import { SyncBlockingDialog } from "@/features/sync"
 
 import { clientsCopy } from "../clients-copy"
 import { createClientVehiclesColumns } from "../columns/client-vehicles-columns"
@@ -24,7 +23,6 @@ import { getClientVehicleDetailItems } from "../utils/clients-details-model"
 import { mapClientVehicleToTableRow } from "../utils/clients-table-mappers"
 
 const clientVehiclesTableColumnVisibilityKey = "rmc.table.client-vehicles.columns.v2"
-const clientsSyncTimeoutMs = 90_000
 
 function parseClientId(value: string | undefined) {
   const parsed = Number(value)
@@ -63,10 +61,9 @@ export function ClientVehiclesRoute() {
   const { data: vipRules, toggleVehicleVip } = useVipRules()
   const [selectedVehicle, setSelectedVehicle] = React.useState<ClientVehicleTableRow | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
-  const [syncDialogPhase, setSyncDialogPhase] = React.useState<"confirm" | "running" | null>(null)
+  const [isSyncing, setIsSyncing] = React.useState(false)
 
   const canManageClients = canManageOperationalData(auth)
-  const isSyncing = syncDialogPhase === "running"
   const tableData = React.useMemo<ClientVehicleTableRow[]>(() => {
     return data.map((vehicle) => mapClientVehicleToTableRow(vehicle, { isVipEnabled: getVehicleVipStatus(vehicle, vipRules) }))
   }, [data, vipRules])
@@ -101,42 +98,47 @@ export function ClientVehiclesRoute() {
     [tableData]
   )
 
-  async function handleConfirmSync() {
+  async function refreshOperationalSnapshots() {
+    await Promise.allSettled([refetch(), refetchSyncHistory()])
+  }
+
+  async function handleStartSync() {
     if (isSyncing) {
       return
     }
 
-    setSyncDialogPhase("running")
+    setIsSyncing(true)
 
     try {
-      const result = await withTimeout(
-        triggerClientsSync("incremental").then(async (syncResult) => {
-          await Promise.all([refetch(), refetchSyncHistory()])
-          return syncResult
-        }),
-        clientsSyncTimeoutMs,
-        new Error(clientsCopy.sync.timeoutError)
-      )
+      const result = await triggerClientsSync("incremental")
+
+      await refreshOperationalSnapshots()
 
       if (result.status === "failed") {
-        notify.error(clientsCopy.sync.feedback.error)
+        notify.error(result.message || clientsCopy.sync.feedback.error)
         return
       }
 
       if (result.status === "warning") {
-        notify.warning(clientsCopy.sync.feedback.inProgress)
+        notify.warning(result.message || clientsCopy.sync.feedback.inProgress)
         return
       }
 
-      notify.success(clientsCopy.sync.feedback.success)
+      notify.success(result.message || clientsCopy.sync.feedback.success)
     } catch (caughtError) {
+      await refreshOperationalSnapshots()
+
       if (isClientSyncInProgressError(caughtError)) {
         notify.warning(clientsCopy.sync.feedback.inProgress)
       } else {
-        notify.error(clientsCopy.sync.feedback.error)
+        notify.error(
+          caughtError instanceof Error && caughtError.message.trim()
+            ? caughtError.message
+            : clientsCopy.sync.feedback.error
+        )
       }
     } finally {
-      setSyncDialogPhase(null)
+      setIsSyncing(false)
     }
   }
 
@@ -164,7 +166,7 @@ export function ClientVehiclesRoute() {
               {clientsCopy.actions.history}
             </Button>
             {canManageClients ? (
-              <Button type="button" variant="secondary" size="lg" disabled={isLoading || isSyncing} onClick={() => setSyncDialogPhase("confirm")}>
+              <Button type="button" variant="secondary" size="lg" disabled={isLoading || isSyncing} onClick={() => { void handleStartSync() }}>
                 <RefreshCcwIcon aria-hidden="true" />
                 {clientsCopy.actions.sync}
               </Button>
@@ -212,17 +214,10 @@ export function ClientVehiclesRoute() {
         onRetry={() => { void refetchSyncHistory() }}
       />
 
-      <ManualSyncDialog
-        open={syncDialogPhase !== null}
-        phase={syncDialogPhase === "running" ? "running" : "confirm"}
-        confirmTitle={clientsCopy.sync.confirmTitle}
-        confirmDescription={clientsCopy.sync.confirmDescription}
-        runningTitle={clientsCopy.sync.runningTitle}
-        runningDescription={clientsCopy.sync.runningDescription}
-        confirmLabel={clientsCopy.sync.confirmButton}
-        cancelLabel={clientsCopy.sync.cancelButton}
-        onConfirm={() => { void handleConfirmSync() }}
-        onOpenChange={(open) => { if (!open && !isSyncing) setSyncDialogPhase(null) }}
+      <SyncBlockingDialog
+        open={isSyncing}
+        title={clientsCopy.sync.runningTitle}
+        description={clientsCopy.sync.runningDescription}
       />
     </PageSection>
   )

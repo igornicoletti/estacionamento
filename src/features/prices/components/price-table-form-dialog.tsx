@@ -1,11 +1,23 @@
 import * as React from "react"
+import { SearchIcon } from "lucide-react"
 
 import { AppDialog } from "@/components/shared/app-dialog"
 import { Button } from "@/components/ui/button"
+import {
+  Combobox,
+  ComboboxCollection,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
+import { InputGroupAddon } from "@/components/ui/input-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
+import { useUnits } from "@/features/units"
 
 import { pricesCopy } from "../prices-copy"
 import {
@@ -23,9 +35,14 @@ interface PriceTableFormDialogProps {
 }
 
 type PriceTableFormErrors = Partial<Record<
-  "unitId" | "unitName" | "amount" | "cycleHours" | "graceMinutes" | "toleranceMinutes" | "startsAt" | "reason",
+  "unitId" | "unitName" | "amount" | "cycleHours" | "graceMinutes" | "toleranceMinutes" | "startsAt" | "endsAt" | "reason",
   string
 >>
+
+interface UnitOption {
+  value: string
+  label: string
+}
 
 const defaultStartsAt = () => toDateTimeLocalValue(new Date())
 
@@ -39,8 +56,18 @@ function readInteger(value: string) {
   return Number.isFinite(parsed) ? Math.trunc(parsed) : Number.NaN
 }
 
+function readDateTime(value: string) {
+  if (!value) {
+    return null
+  }
+
+  const date = new Date(value)
+
+  return Number.isNaN(date.getTime()) ? null : date
+}
+
 function toIsoOrNull(value: string) {
-  return value ? new Date(value).toISOString() : null
+  return readDateTime(value)?.toISOString() ?? null
 }
 
 export function PriceTableFormDialog({
@@ -62,6 +89,19 @@ export function PriceTableFormDialog({
   const [reason, setReason] = React.useState("")
   const [notes, setNotes] = React.useState("")
   const [errors, setErrors] = React.useState<PriceTableFormErrors>({})
+  const unitsSnapshot = useUnits()
+  const unitOptions = React.useMemo<UnitOption[]>(
+    () =>
+      unitsSnapshot.data.map((unit) => ({
+        label: unit.nom_fantasia || unit.nom_razao_social || String(unit.cod_empresa),
+        value: String(unit.cod_empresa),
+      })),
+    [unitsSnapshot.data]
+  )
+  const selectedUnit = React.useMemo(
+    () => unitOptions.find((unit) => unit.value === unitId) ?? null,
+    [unitId, unitOptions]
+  )
 
   function resetForm() {
     setScope("network")
@@ -93,6 +133,8 @@ export function PriceTableFormDialog({
     const parsedCycleHours = readInteger(cycleHours)
     const parsedGraceMinutes = readInteger(graceMinutes)
     const parsedToleranceMinutes = readInteger(toleranceMinutes)
+    const startsAtDate = readDateTime(startsAt)
+    const endsAtDate = readDateTime(endsAt)
 
     if (scope === "unit") {
       if (!unitId.trim()) {
@@ -120,8 +162,12 @@ export function PriceTableFormDialog({
       nextErrors.toleranceMinutes = pricesCopy.form.validation.toleranceMinutes
     }
 
-    if (!startsAt) {
+    if (!startsAtDate) {
       nextErrors.startsAt = pricesCopy.form.validation.startsAt
+    }
+
+    if (endsAt && (!endsAtDate || (startsAtDate && endsAtDate <= startsAtDate))) {
+      nextErrors.endsAt = pricesCopy.form.validation.endsAt
     }
 
     if (reason.trim().length < 10) {
@@ -141,6 +187,13 @@ export function PriceTableFormDialog({
       return
     }
 
+    const startsAtIso = toIsoOrNull(startsAt)
+
+    if (!startsAtIso) {
+      setErrors({ startsAt: pricesCopy.form.validation.startsAt })
+      return
+    }
+
     await onSubmit({
       scope,
       unitId: scope === "unit" ? unitId : null,
@@ -149,7 +202,7 @@ export function PriceTableFormDialog({
       cycleHours: readInteger(cycleHours),
       graceMinutes: readInteger(graceMinutes),
       toleranceMinutes: readInteger(toleranceMinutes),
-      startsAt: new Date(startsAt).toISOString(),
+      startsAt: startsAtIso,
       endsAt: toIsoOrNull(endsAt),
       status,
       reason,
@@ -183,6 +236,10 @@ export function PriceTableFormDialog({
             value={scope}
             onValueChange={(value: PriceTableScope) => {
               setScope(value)
+              if (value === "network") {
+                setUnitId("")
+                setUnitName("")
+              }
               setErrors({})
             }}
             disabled={isSaving}
@@ -198,37 +255,53 @@ export function PriceTableFormDialog({
         </Field>
 
         {scope === "unit" ? (
-          <>
-            <Field data-invalid={Boolean(errors.unitId)}>
-              <FieldLabel htmlFor="price-unit-id">{pricesCopy.form.unitId}</FieldLabel>
-              <Input
-                id="price-unit-id"
-                value={unitId}
-                onChange={(event) => {
-                  setUnitId(event.target.value)
-                  setErrors((state) => ({ ...state, unitId: undefined }))
-                }}
-                disabled={isSaving}
-                aria-invalid={Boolean(errors.unitId)}
-              />
-              {errors.unitId ? <FieldError>{errors.unitId}</FieldError> : null}
-            </Field>
+          <Field data-invalid={Boolean(errors.unitId || errors.unitName)}>
+            <FieldLabel htmlFor="price-unit">{pricesCopy.form.unitName}</FieldLabel>
+            <Combobox<UnitOption>
+              items={unitOptions}
+              value={selectedUnit}
+              onValueChange={(value: UnitOption | UnitOption[] | null) => {
+                const selectedOption = Array.isArray(value) ? value[0] ?? null : value
 
-            <Field data-invalid={Boolean(errors.unitName)}>
-              <FieldLabel htmlFor="price-unit-name">{pricesCopy.form.unitName}</FieldLabel>
-              <Input
-                id="price-unit-name"
-                value={unitName}
-                onChange={(event) => {
-                  setUnitName(event.target.value)
-                  setErrors((state) => ({ ...state, unitName: undefined }))
-                }}
-                disabled={isSaving}
-                aria-invalid={Boolean(errors.unitName)}
-              />
-              {errors.unitName ? <FieldError>{errors.unitName}</FieldError> : null}
-            </Field>
-          </>
+                setUnitId(selectedOption?.value ?? "")
+                setUnitName(selectedOption?.label ?? "")
+                setErrors((state) => ({
+                  ...state,
+                  unitId: undefined,
+                  unitName: undefined,
+                }))
+              }}
+              itemToStringLabel={(unit) => unit.label}
+              itemToStringValue={(unit) => `${unit.value} ${unit.label}`}
+              disabled={isSaving || unitsSnapshot.isLoading}
+            >
+              <ComboboxInput
+                id="price-unit"
+                className="h-9 w-full"
+                placeholder={pricesCopy.form.unitPlaceholder}
+                disabled={isSaving || unitsSnapshot.isLoading}
+                aria-invalid={Boolean(errors.unitId || errors.unitName)}
+              >
+                <InputGroupAddon>
+                  <SearchIcon />
+                </InputGroupAddon>
+              </ComboboxInput>
+              <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
+                <ComboboxEmpty>{pricesCopy.form.unitEmpty}</ComboboxEmpty>
+                <ComboboxList>
+                  <ComboboxCollection>
+                    {(unit: UnitOption) => (
+                      <ComboboxItem key={unit.value} value={unit}>
+                        {unit.label}
+                      </ComboboxItem>
+                    )}
+                  </ComboboxCollection>
+                </ComboboxList>
+              </ComboboxContent>
+            </Combobox>
+            {errors.unitId ? <FieldError>{errors.unitId}</FieldError> : null}
+            {errors.unitName && !errors.unitId ? <FieldError>{errors.unitName}</FieldError> : null}
+          </Field>
         ) : null}
 
         <FieldGroup className="grid gap-4 sm:grid-cols-2">
@@ -313,15 +386,20 @@ export function PriceTableFormDialog({
           {errors.startsAt ? <FieldError>{errors.startsAt}</FieldError> : null}
         </Field>
 
-        <Field>
+        <Field data-invalid={Boolean(errors.endsAt)}>
           <FieldLabel htmlFor="price-ends-at">{pricesCopy.form.endsAt}</FieldLabel>
           <Input
             id="price-ends-at"
             type="datetime-local"
             value={endsAt}
-            onChange={(event) => setEndsAt(event.target.value)}
+            onChange={(event) => {
+              setEndsAt(event.target.value)
+              setErrors((state) => ({ ...state, endsAt: undefined }))
+            }}
             disabled={isSaving}
+            aria-invalid={Boolean(errors.endsAt)}
           />
+          {errors.endsAt ? <FieldError>{errors.endsAt}</FieldError> : null}
         </Field>
 
         <Field>

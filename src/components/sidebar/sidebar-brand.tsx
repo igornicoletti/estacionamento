@@ -18,17 +18,17 @@ export function SidebarBrand({ homeHref }: SidebarBrandProps) {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton asChild tooltip={sidebarCopy.brand.name}>
+        <SidebarMenuButton asChild size="lg" tooltip={sidebarCopy.brand.name}>
           <Link to={homeHref} aria-label={sidebarCopy.brand.name}>
             <img
               src={sidebarBrand.sidebarLogoUrl}
               alt={sidebarCopy.brand.name}
-              className="h-6 w-auto group-data-[collapsible=icon]:hidden"
+              className="h-8 max-w-44 object-contain group-data-[collapsible=icon]:hidden"
             />
             <img
               src={sidebarBrand.symbolLogoUrl}
               alt={sidebarCopy.brand.shortName}
-              className="hidden h-6 w-auto group-data-[collapsible=icon]:block"
+              className="hidden size-7 object-contain group-data-[collapsible=icon]:block"
             />
           </Link>
         </SidebarMenuButton>

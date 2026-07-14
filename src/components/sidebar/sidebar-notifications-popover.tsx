@@ -86,7 +86,7 @@ export function NotificationsPopover() {
         <Button
           type="button"
           variant="ghost"
-          size="icon"
+          size="icon-lg"
           className="relative"
           aria-label={resolveNotificationButtonLabel(unreadCount)}
         >
@@ -95,7 +95,7 @@ export function NotificationsPopover() {
             <Badge
               variant="destructive"
               aria-live="polite"
-              className="absolute -top-1 -right-1 h-5 min-w-5 justify-center px-1 text-[0.625rem] font-bold leading-none"
+              className="absolute -top-1 -right-1 h-5 min-w-5 justify-center bg-destructive px-1 text-[0.625rem] font-bold leading-none text-destructive-foreground"
             >
               {unreadBadge}
             </Badge>

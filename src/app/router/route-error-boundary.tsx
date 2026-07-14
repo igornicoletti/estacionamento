@@ -98,7 +98,7 @@ export function RouteErrorBoundary() {
             <Button
               type="button"
               variant="secondary"
-              size="sm"
+              size="lg"
               onClick={() => {
                 void revalidator.revalidate()
               }}
@@ -106,7 +106,7 @@ export function RouteErrorBoundary() {
               <RotateCcwIcon />
               Tentar novamente
             </Button>
-            <Button asChild variant="link" size="sm">
+            <Button asChild variant="link" size="lg">
               <Link to={appRoutePaths.home} replace>
                 {appCopy.routeError.action} <ArrowUpRightIcon />
               </Link>
