@@ -18,7 +18,7 @@ A revisão de 2026-07-13 aplicou as correções auditadas de autenticação, aut
 | Preços | `src/features/prices` | Supabase RPC + tabelas comerciais | `/precos` |
 | Regras | `src/features/rules` | Supabase RPC + tabelas comerciais | `/regras` |
 | Usuários | `src/features/users` | Supabase Edge Functions | `/usuarios` |
-| Solicitações | `src/features/access-requests` | Supabase Edge Functions | `/solicitacoes-acesso` |
+| Solicitações | `src/features/access-requests` | Supabase Edge Functions | `/usuarios?tab=solicitacoes` |
 | Permissões | `src/features/permissions` | Supabase RPC | `/perfis-permissoes` |
 | Auditoria | `src/features/audit` | Serviço de auditoria | `/auditoria` |
 | Notificações | `src/features/notifications` | Provider + gateway | `/notificacoes` |

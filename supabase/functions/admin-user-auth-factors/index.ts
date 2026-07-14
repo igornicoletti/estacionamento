@@ -1,10 +1,10 @@
 import {
+  actorHasPermission,
+  authError,
   createAdminClient,
-  genericAuthError,
   getAuthenticatedActor,
   handleCors,
   jsonResponse,
-  requireAdminActor,
 } from "../_shared/index.ts"
 
 type AuthPasskeyRow = {
@@ -28,20 +28,31 @@ Deno.serve(async (request) => {
   }
 
   if (request.method !== "POST") {
-    return genericAuthError(405, request)
+    return authError("method_not_allowed", 405, request)
   }
 
   try {
-    requireAdminActor(await getAuthenticatedActor(request))
-
+    const actor = await getAuthenticatedActor(request)
     const admin = createAdminClient()
+
+    if (!actor || actor.status !== "active") {
+      return authError("unauthorized", 401, request)
+    }
+
+    if (!(await actorHasPermission(actor, "users.read", admin))) {
+      return authError("forbidden", 403, request)
+    }
+
     const response = await admin
       .schema("auth")
       .from("webauthn_credentials")
       .select("user_id")
 
     if (response.error) {
-      return genericAuthError(undefined, request)
+      console.error("auth_factors_passkey_lookup_unavailable", {
+        error: response.error.message,
+      })
+      return jsonResponse({ ok: true, factors: [] }, 200, request)
     }
 
     const passkeyCountByUserId = new Map<string, number>()
@@ -59,6 +70,7 @@ Deno.serve(async (request) => {
 
     return jsonResponse(
       {
+        ok: true,
         factors: Array.from(passkeyCountByUserId.entries()).map(
           ([auth_user_id, passkey_count]) => ({
             auth_user_id,
@@ -69,7 +81,8 @@ Deno.serve(async (request) => {
       200,
       request
     )
-  } catch {
-    return genericAuthError(403, request)
+  } catch (error) {
+    console.error("auth_factors_request_failed", error)
+    return authError("request_failed", 400, request)
   }
 })

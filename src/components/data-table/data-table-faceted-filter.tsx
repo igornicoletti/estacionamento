@@ -26,7 +26,7 @@ interface DataTableFacetedFilterProps<TData, TValue> {
   maxVisibleChips?: number
 }
 
-const DEFAULT_MAX_VISIBLE_CHIPS = 2
+const DEFAULT_MAX_VISIBLE_CHIPS = 3
 
 function resolveSelectedOptions(
   options: readonly DataTableFilterOption[],
@@ -114,19 +114,23 @@ export function DataTableFacetedFilter<TData, TValue>({
     >
       <ComboboxChips
         data-no-drag-scroll="true"
-        className="min-h-9 w-full min-w-44 lg:w-56"
+        aria-label={title}
+        className="min-h-9 w-full min-w-44 lg:w-64"
       >
         <ComboboxValue>
           {visibleSelectedOptions.map((option) => (
             <ComboboxChip key={option.value}>{option.label}</ComboboxChip>
           ))}
           {hiddenSelectedCount > 0 ? (
-            <ComboboxChip>
+            <ComboboxChip showRemove={false}>
               +{hiddenSelectedCount} {dataTableCopy.facetedFilter.selectedSuffix}
             </ComboboxChip>
           ) : null}
         </ComboboxValue>
-        <ComboboxChipsInput placeholder={title} />
+        <ComboboxChipsInput
+          aria-label={title}
+          placeholder={selectedOptions.length > 0 ? "" : title}
+        />
       </ComboboxChips>
       <ComboboxContent data-no-drag-scroll="true" className="min-w-(--anchor-width)">
         <ComboboxEmpty>{dataTableCopy.facetedFilter.noResults}</ComboboxEmpty>

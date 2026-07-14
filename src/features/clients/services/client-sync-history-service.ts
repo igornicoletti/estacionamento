@@ -1,4 +1,8 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
+import {
+  normalizeSyncErrorDetails,
+  normalizeSyncHistoryMessage,
+} from "@/features/sync/utils/sync-history-errors"
 import { type ClientSyncHistoryEntry } from "../types/clients-sync-history-types"
 
 type RawClientSyncRunRow = {
@@ -24,21 +28,6 @@ type RawClientSyncRunRow = {
   error_details: unknown
 }
 
-function mapErrorDetails(value: unknown) {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value.flatMap((item) => {
-    if (!isRecord(item)) {
-      return []
-    }
-
-    const reason = item.reason
-    return typeof reason === "string" && reason.trim() ? [reason] : []
-  })
-}
-
 function mapClientSyncHistory(row: RawClientSyncRunRow): ClientSyncHistoryEntry {
   return {
     id: row.id,
@@ -48,7 +37,7 @@ function mapClientSyncHistory(row: RawClientSyncRunRow): ClientSyncHistoryEntry 
     startedAt: row.started_at,
     finishedAt: row.finished_at,
     durationSeconds: row.duration_seconds,
-    message: row.message,
+    message: normalizeSyncHistoryMessage(row.message, row.status),
     counters: {
       clientsReceived: row.counters_clients_received,
       clientsCreated: row.counters_clients_created,
@@ -62,7 +51,7 @@ function mapClientSyncHistory(row: RawClientSyncRunRow): ClientSyncHistoryEntry 
       vehiclesFailed: row.counters_vehicles_failed,
     },
     consecutiveFailures: row.consecutive_failures,
-    errorDetails: mapErrorDetails(row.error_details),
+    errorDetails: normalizeSyncErrorDetails(row.error_details),
   }
 }
 

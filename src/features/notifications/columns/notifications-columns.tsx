@@ -2,6 +2,7 @@ import { type ColumnDef } from "@tanstack/react-table"
 import { Link } from "react-router"
 
 import {
+  DataTableTextAction,
   DataTableRowActions,
   type DataTableRowAction,
 } from "@/components/data-table"
@@ -36,15 +37,13 @@ export function createNotificationsColumns(
       meta: { label: "Título" },
       header: "Título",
       cell: ({ row }) => (
-        <button
-          type="button"
-          className="font-medium text-left hover:underline"
+        <DataTableTextAction
           onClick={() => {
             options.onOpenDetails?.(row.original)
           }}
         >
           {row.original.title}
-        </button>
+        </DataTableTextAction>
       ),
     },
     {

@@ -11,8 +11,8 @@ import {
 import {
   resetUsersGateway,
   setUsersGateway,
-  type UserRecord,
-} from "@/features/users"
+} from "@/features/users/services/users-gateway"
+import { type UserRecord } from "@/features/users/types/users-types"
 
 const { testAuthContext, testAuthSession } = vi.hoisted(() => {
   const profile = {

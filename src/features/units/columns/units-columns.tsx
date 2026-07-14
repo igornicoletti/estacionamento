@@ -1,9 +1,12 @@
 import { type ColumnDef } from "@tanstack/react-table"
 import { ExternalLinkIcon } from "lucide-react"
 
-import { createActionsColumn } from "@/components/data-table"
+import {
+  createActionsColumn,
+  DataTableTextAction,
+  DataTableTextLink,
+} from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { getBadgeToneClassName } from "@/lib"
 
 import { type Unit, type UnitYardConfig } from "../types/units-types"
@@ -55,14 +58,11 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
       header: unitsCopy.table.tradeName,
       size: 220,
       cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="link"
-          className="h-auto justify-start px-0 text-left font-medium"
+        <DataTableTextAction
           onClick={() => options.onOpenDetails(row.original)}
         >
           {row.original.nom_fantasia}
-        </Button>
+        </DataTableTextAction>
       ),
     },
     {
@@ -112,12 +112,10 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
         }
 
         return (
-          <Button asChild variant="link" className="h-auto px-0 font-medium">
-            <a href={href} target="_blank" rel="noreferrer">
-              {row.original.des_coordenada_empresa}
-              <ExternalLinkIcon aria-hidden="true" />
-            </a>
-          </Button>
+          <DataTableTextLink href={href} target="_blank" rel="noreferrer">
+            {row.original.des_coordenada_empresa}
+            <ExternalLinkIcon aria-hidden="true" />
+          </DataTableTextLink>
         )
       },
     },
@@ -141,14 +139,11 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
         }
 
         return (
-          <Button
-            type="button"
-            variant="link"
-            className="h-auto px-0 font-medium"
+          <DataTableTextAction
             onClick={() => options.onSelectUsers?.(row.original)}
           >
             {totalUsers}
-          </Button>
+          </DataTableTextAction>
         )
       },
     },

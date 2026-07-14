@@ -1,8 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
-import { createActionsColumn } from "@/components/data-table"
+import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { appUserStatusLabels, userRoleLabels, type UserRecord } from "@/features/users/types/users-types"
 import { resolveLastAccessLabel, resolvePasskeyLabel } from "@/features/users/utils/users-models"
 import { getBadgeToneClassName } from "@/lib"
@@ -19,14 +18,11 @@ export function createUnitUsersColumns(options: CreateUnitUsersColumnsOptions): 
       meta: { label: "Nome" },
       header: "Nome",
       cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="link"
-          className="h-auto justify-start px-0 text-left font-medium"
+        <DataTableTextAction
           onClick={() => options.onOpenDetails(row.original)}
         >
           {row.original.name}
-        </Button>
+        </DataTableTextAction>
       ),
     },
     { accessorKey: "cpf", meta: { label: "CPF" }, header: "CPF" },

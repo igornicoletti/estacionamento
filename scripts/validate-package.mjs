@@ -208,7 +208,7 @@ for (const [file, needles] of [
     [
       "sourceRowCount",
       "enableExport",
-      "max-h-[min(70svh,42rem)]",
+      "flex min-h-0 min-w-0 flex-1 flex-col gap-4",
       "DataTableDefaultState",
     ],
   ],

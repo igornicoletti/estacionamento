@@ -2,8 +2,7 @@ import { type ColumnDef } from "@tanstack/react-table"
 
 import { formatDateTime } from "@/lib"
 
-import { createActionsColumn } from "@/components/data-table"
-import { Button } from "@/components/ui/button"
+import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
@@ -78,16 +77,13 @@ export function createAuditColumns(options: {
       meta: { label: "Responsável" },
       header: "Responsável",
       cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="link"
-          className="h-auto justify-start px-0 text-left font-medium"
+        <DataTableTextAction
           onClick={() => {
             options.onOpenDetails?.(row.original)
           }}
         >
           {row.original.actorName}
-        </Button>
+        </DataTableTextAction>
       ),
     },
     {

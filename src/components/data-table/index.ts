@@ -40,6 +40,10 @@ export { DataTableScrollContainer } from "./data-table-scroll-container"
 export { DataTableSearchInput } from "./data-table-search-input"
 export { createSelectColumn } from "./data-table-select-column"
 export { DataTableStackedCell } from "./data-table-stacked-cell"
+export {
+  DataTableTextAction,
+  DataTableTextLink,
+} from "./data-table-text-action"
 export { createTextColumn } from "./data-table-text-column"
 export { DataTableToolbar } from "./data-table-toolbar"
 export {

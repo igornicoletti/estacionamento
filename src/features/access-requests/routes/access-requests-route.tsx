@@ -1,6 +1,8 @@
 import { DatabaseIcon } from "lucide-react"
 import * as React from "react"
+import { Navigate } from "react-router"
 
+import { appRoutePaths } from "@/app/router/route-registry"
 import { DataTable } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
@@ -16,6 +18,7 @@ import {
 } from "@/components/ui/field"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
+import { cn } from "@/lib/utils"
 
 import { accessRequestsCopy } from "../access-requests-copy"
 import { createPhoneChangeRequestsColumns } from "../columns/phone-change-requests-columns"
@@ -70,7 +73,17 @@ function getPhoneDialogDescription(decision: AccessRequestReviewDecision) {
     : accessRequestsCopy.dialogs.phoneDenyDescription
 }
 
-export function AccessRequestsRoute() {
+interface AccessRequestsPanelProps {
+  canReview?: boolean
+  className?: string
+  showHeader?: boolean
+}
+
+export function AccessRequestsPanel({
+  canReview = true,
+  className,
+  showHeader = true,
+}: AccessRequestsPanelProps = {}) {
   const {
     data,
     error,
@@ -97,6 +110,7 @@ export function AccessRequestsRoute() {
   const recoveryColumns = React.useMemo(
     () =>
       createRecoveryRequestsColumns({
+        canReview,
         onOpenDetails: (request) => {
           setDetailsTarget({ type: "recovery", request })
         },
@@ -106,12 +120,13 @@ export function AccessRequestsRoute() {
           setIsReasonTouched(false)
         },
       }),
-    []
+    [canReview]
   )
 
   const phoneColumns = React.useMemo(
     () =>
       createPhoneChangeRequestsColumns({
+        canReview,
         onOpenDetails: (request) => {
           setDetailsTarget({ type: "phone", request })
         },
@@ -119,7 +134,7 @@ export function AccessRequestsRoute() {
           setPendingPhoneReview({ decision, request })
         },
       }),
-    []
+    [canReview]
   )
 
   async function handleConfirmRecoveryReview() {
@@ -166,13 +181,15 @@ export function AccessRequestsRoute() {
   }
 
   return (
-    <PageSection>
-      <PageHeader
-        title={accessRequestsCopy.page.title}
-        subtitle={accessRequestsCopy.page.subtitle}
-      />
+    <div className={cn("flex min-h-0 flex-1 flex-col gap-4", className)}>
+      {showHeader ? (
+        <PageHeader
+          title={accessRequestsCopy.page.title}
+          subtitle={accessRequestsCopy.page.subtitle}
+        />
+      ) : null}
 
-      <Tabs defaultValue="recovery">
+      <Tabs defaultValue="recovery" className="min-h-0 flex-1">
         <TabsList>
           <TabsTrigger value="recovery">
             {`${accessRequestsCopy.tabs.recovery} (${data.recoveryRequests.length})`}
@@ -182,7 +199,10 @@ export function AccessRequestsRoute() {
           </TabsTrigger>
         </TabsList>
 
-        <TabsContent value="recovery">
+        <TabsContent
+          value="recovery"
+          className="min-h-0 flex-1 data-[state=active]:flex data-[state=inactive]:hidden"
+        >
           <DataTable
             columns={recoveryColumns}
             data={data.recoveryRequests}
@@ -217,7 +237,10 @@ export function AccessRequestsRoute() {
           />
         </TabsContent>
 
-        <TabsContent value="phone-changes">
+        <TabsContent
+          value="phone-changes"
+          className="min-h-0 flex-1 data-[state=active]:flex data-[state=inactive]:hidden"
+        >
           <DataTable
             columns={phoneColumns}
             data={data.phoneChanges}
@@ -368,6 +391,23 @@ export function AccessRequestsRoute() {
         closeOnAction={false}
         onAction={handleConfirmPhoneReview}
       />
+    </div>
+  )
+}
+
+export function AccessRequestsRoute() {
+  return (
+    <PageSection>
+      <AccessRequestsPanel />
     </PageSection>
+  )
+}
+
+export function AccessRequestsRedirectRoute() {
+  return (
+    <Navigate
+      to={`${appRoutePaths.users}?tab=solicitacoes`}
+      replace
+    />
   )
 }

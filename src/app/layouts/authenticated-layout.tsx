@@ -15,13 +15,13 @@ export function AuthenticatedLayout() {
 
   return (
     <>
-      <SidebarProvider>
+      <SidebarProvider className="h-svh overflow-hidden">
         <AppSidebar homeHref={appRoutePaths.home} />
-        <SidebarInset>
+        <SidebarInset className="min-h-0 overflow-hidden">
           <AppHeader />
-          <main className="flex min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4">
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-clip p-4 md:overflow-hidden">
             <Outlet />
-          </main>
+          </div>
         </SidebarInset>
       </SidebarProvider>
 

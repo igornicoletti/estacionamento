@@ -16,12 +16,12 @@ import {
   CollapsibleTrigger,
 } from "@/components/ui/collapsible"
 import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet"
 import { Skeleton } from "@/components/ui/skeleton"
 import { cn } from "@/lib/utils"
 
@@ -142,20 +142,20 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
   const errorMessage = error instanceof Error ? error.message : error
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle>{title}</DialogTitle>
-          <DialogDescription>{description}</DialogDescription>
-        </DialogHeader>
+    <Sheet open={open} onOpenChange={onOpenChange}>
+      <SheetContent className="data-[side=right]:w-[min(100vw,42rem)] data-[side=right]:sm:max-w-xl data-[side=right]:lg:max-w-2xl">
+        <SheetHeader>
+          <SheetTitle>{title}</SheetTitle>
+          <SheetDescription>{description}</SheetDescription>
+        </SheetHeader>
 
-        <div className="-mx-4 no-scrollbar max-h-[60vh] overflow-y-auto px-4">
+        <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4">
           {isLoading ? (
             <div className="space-y-3" aria-hidden="true">
               {[0, 1, 2].map((index) => (
                 <div
                   key={index}
-                  className="rounded-lg border border-dashed p-3"
+                  className="rounded-lg border p-3"
                   style={{ opacity: Math.max(0.4, 1 - index * 0.25) }}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -173,7 +173,7 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
 
           {!isLoading && errorMessage ? (
             <AppEmptyState
-              className="min-h-32 rounded-md border border-dashed p-4"
+              className="min-h-32 rounded-md border border-solid p-4"
               media={<AlertTriangleIcon />}
               title="Não foi possível carregar o histórico"
               description={errorMessage}
@@ -188,7 +188,7 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
 
           {!isLoading && !errorMessage && entries.length === 0 ? (
             <AppEmptyState
-              className="min-h-32 rounded-md border border-dashed p-4"
+              className="min-h-32 rounded-md border border-solid p-4"
               media={<RefreshCcwIcon />}
               title={emptyTitle}
               description={emptyDescription}
@@ -292,7 +292,7 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
             </ol>
           ) : null}
         </div>
-      </DialogContent>
-    </Dialog>
+      </SheetContent>
+    </Sheet>
   )
 }

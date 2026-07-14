@@ -1,7 +1,6 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
-import { createActionsColumn } from "@/components/data-table"
-import { Button } from "@/components/ui/button"
+import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
 import { formatDateTime } from "@/lib"
 
 import { accessRequestsCopy } from "../access-requests-copy"
@@ -11,6 +10,7 @@ import {
 } from "../types/access-requests-types"
 
 interface CreatePhoneChangeRequestsColumnsOptions {
+  canReview?: boolean
   onOpenDetails: (request: PendingPhoneChangeRequestRecord) => void
   onReview: (
     request: PendingPhoneChangeRequestRecord,
@@ -19,6 +19,7 @@ interface CreatePhoneChangeRequestsColumnsOptions {
 }
 
 export function createPhoneChangeRequestsColumns({
+  canReview = true,
   onOpenDetails,
   onReview,
 }: CreatePhoneChangeRequestsColumnsOptions): ColumnDef<PendingPhoneChangeRequestRecord>[] {
@@ -28,16 +29,13 @@ export function createPhoneChangeRequestsColumns({
       meta: { label: accessRequestsCopy.tables.phoneChanges.columns.name },
       header: accessRequestsCopy.tables.phoneChanges.columns.name,
       cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="link"
-          className="h-auto justify-start px-0 text-left font-medium"
+        <DataTableTextAction
           onClick={() => {
             onOpenDetails(row.original)
           }}
         >
           {row.original.name}
-        </Button>
+        </DataTableTextAction>
       ),
     },
     {
@@ -66,21 +64,25 @@ export function createPhoneChangeRequestsColumns({
           onOpenDetails(row.original)
         },
       },
-      {
-        id: "approve-phone-change",
-        label: accessRequestsCopy.actions.approve,
-        onSelect: (row) => {
-          onReview(row.original, "approved")
-        },
-      },
-      {
-        id: "deny-phone-change",
-        label: accessRequestsCopy.actions.deny,
-        variant: "destructive",
-        onSelect: (row) => {
-          onReview(row.original, "denied")
-        },
-      },
+      ...(canReview
+        ? [
+          {
+            id: "approve-phone-change" as const,
+            label: accessRequestsCopy.actions.approve,
+            onSelect: (row: { original: PendingPhoneChangeRequestRecord }) => {
+              onReview(row.original, "approved")
+            },
+          },
+          {
+            id: "deny-phone-change" as const,
+            label: accessRequestsCopy.actions.deny,
+            variant: "destructive" as const,
+            onSelect: (row: { original: PendingPhoneChangeRequestRecord }) => {
+              onReview(row.original, "denied")
+            },
+          },
+        ]
+        : []),
     ]),
   ]
 }

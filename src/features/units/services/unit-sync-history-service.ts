@@ -1,4 +1,8 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
+import {
+  normalizeSyncErrorDetails,
+  normalizeSyncHistoryMessage,
+} from "@/features/sync/utils/sync-history-errors"
 import { type UnitSyncHistoryEntry } from "../types/units-sync-history-types"
 
 type RawUnitSyncRunRow = {
@@ -19,21 +23,6 @@ type RawUnitSyncRunRow = {
   error_details: unknown
 }
 
-function mapErrorDetails(value: unknown) {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value.flatMap((item) => {
-    if (!isRecord(item)) {
-      return []
-    }
-
-    const reason = item.reason
-    return typeof reason === "string" && reason.trim() ? [reason] : []
-  })
-}
-
 function mapUnitSyncHistory(row: RawUnitSyncRunRow): UnitSyncHistoryEntry {
   return {
     id: row.id,
@@ -43,7 +32,7 @@ function mapUnitSyncHistory(row: RawUnitSyncRunRow): UnitSyncHistoryEntry {
     startedAt: row.started_at,
     finishedAt: row.finished_at,
     durationSeconds: row.duration_seconds,
-    message: row.message,
+    message: normalizeSyncHistoryMessage(row.message, row.status),
     counters: {
       received: row.counters_received,
       created: row.counters_created,
@@ -52,7 +41,7 @@ function mapUnitSyncHistory(row: RawUnitSyncRunRow): UnitSyncHistoryEntry {
       failed: row.counters_failed,
     },
     consecutiveFailures: row.consecutive_failures,
-    errorDetails: mapErrorDetails(row.error_details),
+    errorDetails: normalizeSyncErrorDetails(row.error_details),
   }
 }
 

@@ -109,7 +109,7 @@ export function DataTableScrollContainer({
       tabIndex={0}
       data-dragging={isDragging || undefined}
       className={cn(
-        "overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "min-h-0 overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         isDragging && "select-none",
         className
       )}

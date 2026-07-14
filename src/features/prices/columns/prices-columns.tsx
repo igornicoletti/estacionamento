@@ -1,8 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
-import { createActionsColumn } from "@/components/data-table"
+import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { getBadgeToneClassName } from "@/lib"
 
 import { pricesCopy } from "../prices-copy"
@@ -43,16 +42,13 @@ export function createPricesColumns({
       meta: { label: pricesCopy.table.unit },
       header: pricesCopy.table.unit,
       cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="link"
-          className="h-auto justify-start px-0 text-left font-medium"
+        <DataTableTextAction
           onClick={() => {
             onOpenDetails?.(row.original)
           }}
         >
           {getPriceUnitLabel(row.original)}
-        </Button>
+        </DataTableTextAction>
       ),
     },
     {

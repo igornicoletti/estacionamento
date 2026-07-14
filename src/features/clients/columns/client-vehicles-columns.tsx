@@ -1,9 +1,8 @@
 import { type ColumnDef } from "@tanstack/react-table"
 import { CrownIcon } from "lucide-react"
 
-import { createActionsColumn } from "@/components/data-table"
+import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { getBadgeToneClassName } from "@/lib"
 
 import { clientsCopy } from "../clients-copy"
@@ -29,17 +28,14 @@ export function createClientVehiclesColumns(options: CreateClientVehiclesColumns
       header: clientsCopy.table.client,
       size: 220,
       cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="link"
-          className="h-auto justify-start px-0 text-left font-medium"
+        <DataTableTextAction
           onClick={() => options.onOpenDetails(row.original)}
         >
           <span className="inline-flex items-center gap-1">
             {row.original.nom_pessoa}
             {row.original.vip === "sim" ? <CrownIcon aria-label="Veículo VIP" className="size-4 text-amber-500" /> : null}
           </span>
-        </Button>
+        </DataTableTextAction>
       ),
     },
     {

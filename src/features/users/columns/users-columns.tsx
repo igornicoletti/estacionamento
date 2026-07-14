@@ -2,6 +2,7 @@ import { type ColumnDef, type Row } from "@tanstack/react-table"
 
 import {
   createActionsColumn,
+  DataTableTextAction,
   DataTableStackedCell,
   type DataTableRowAction,
 } from "@/components/data-table"
@@ -84,15 +85,13 @@ export function createUsersColumns(
       meta: { label: usersCopy.form.fields.name },
       header: usersCopy.form.fields.name,
       cell: ({ row }) => (
-        <button
-          type="button"
-          className="font-medium"
+        <DataTableTextAction
           onClick={() => {
             options.onViewUserDetails?.(row.original)
           }}
         >
           {row.original.name}
-        </button>
+        </DataTableTextAction>
       ),
     },
     {

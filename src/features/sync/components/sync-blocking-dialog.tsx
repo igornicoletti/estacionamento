@@ -28,7 +28,7 @@ export function SyncBlockingDialog({
       >
         <AppEmptyState
           aria-live="polite"
-          className="rounded-lg border border-dashed p-4"
+          className="rounded-lg border border-solid p-4"
           media={<Spinner className="size-5" />}
           title={title}
           description={description}

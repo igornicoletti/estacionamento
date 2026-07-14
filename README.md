@@ -32,7 +32,7 @@ O projeto separa o core visual reutilizável (`src/components`) dos módulos de 
 - `/precos`
 - `/regras`
 - `/usuarios`
-- `/solicitacoes-acesso`
+- `/usuarios?tab=solicitacoes`
 - `/perfis-permissoes`
 - `/auditoria`
 - `/notificacoes`
@@ -40,7 +40,7 @@ O projeto separa o core visual reutilizável (`src/components`) dos módulos de 
 - `/perfil`
 - `*`
 
-As rotas públicas e protegidas são descritas em `src/app/router/route-registry.ts` e renderizadas por `src/app/router/route-elements.tsx`. Rotas internas exigem sessão Supabase, perfil empresarial `active` e permissões explícitas do contrato `src/features/auth/contracts/auth-contracts.ts`.
+As rotas públicas e protegidas são descritas em `src/app/router/route-registry.ts` e renderizadas por `src/app/router/route-elements.tsx`. Rotas internas exigem sessão Supabase, perfil empresarial `active` e permissões explícitas do contrato `src/features/auth/contracts/auth-contracts.ts`. A rota antiga `/solicitacoes-acesso` é preservada apenas como redirecionamento para `/usuarios?tab=solicitacoes`.
 
 ## Arquitetura
 

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { MemoryRouter } from "react-router"
+import { MemoryRouter, Route, Routes, useLocation } from "react-router"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 const invokeMock = vi.fn()
@@ -58,8 +58,22 @@ function createPendingPhoneChangesQueryChain(rows: typeof pendingPhoneChangeRows
   return chain
 }
 
+function LocationProbe() {
+  const location = useLocation()
+
+  return (
+    <span data-testid="location">
+      {location.pathname}
+      {location.search}
+    </span>
+  )
+}
+
 describe("AccessRequestsRoute", () => {
-  beforeEach(() => {
+  beforeEach(async () => {
+    const { clearAsyncSnapshotCache } = await import("@/hooks/use-async-snapshot")
+
+    clearAsyncSnapshotCache()
     invokeMock.mockReset()
     fromMock.mockReset()
     fromMock.mockImplementation((table: string) => {
@@ -128,5 +142,25 @@ describe("AccessRequestsRoute", () => {
         },
       })
     })
+  })
+
+  it("redirects the legacy route to the users access requests tab", async () => {
+    const { AccessRequestsRedirectRoute } = await import("@/features/access-requests")
+
+    render(
+      <MemoryRouter initialEntries={["/solicitacoes-acesso"]}>
+        <Routes>
+          <Route
+            path="/solicitacoes-acesso"
+            element={<AccessRequestsRedirectRoute />}
+          />
+          <Route path="/usuarios" element={<LocationProbe />} />
+        </Routes>
+      </MemoryRouter>
+    )
+
+    expect(await screen.findByTestId("location")).toHaveTextContent(
+      "/usuarios?tab=solicitacoes"
+    )
   })
 })

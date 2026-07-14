@@ -62,6 +62,7 @@ import {
   useControllableDataTableState,
 } from "./data-table-state"
 import { DataTableToolbar } from "./data-table-toolbar"
+import { cn } from "@/lib/utils"
 import {
   type DataTableColumnId,
   type DataTableFilterField,
@@ -104,9 +105,11 @@ function getHeaderAriaSort<TData, TValue>(header: Header<TData, TValue>) {
 function DataTableStatePanel({
   children,
   kind,
+  separated = false,
 }: {
   children: React.ReactNode
   kind: "empty" | "error" | "loading"
+  separated?: boolean
 }) {
   const isLiveRegion = kind === "loading" || kind === "error"
 
@@ -116,7 +119,10 @@ function DataTableStatePanel({
       aria-live={
         isLiveRegion ? (kind === "error" ? "assertive" : "polite") : undefined
       }
-      className="flex min-h-48 items-center justify-center border-t px-3 py-8 sm:min-h-64 sm:px-4 sm:py-10"
+      className={cn(
+        "flex min-h-48 flex-1 items-center justify-center px-3 py-8 sm:min-h-64 sm:px-4 sm:py-10",
+        separated && "border-t"
+      )}
     >
       <div className="w-full max-w-sm sm:max-w-md">{children}</div>
     </div>
@@ -671,7 +677,7 @@ export function DataTable<TData extends RowData, TValue>({
 
   return (
     <div
-      className="flex min-h-0 min-w-0 flex-col gap-4"
+      className="flex min-h-0 min-w-0 flex-1 flex-col gap-4"
       aria-busy={isLoading || undefined}
     >
       {hasNonBlockingError ? (
@@ -710,73 +716,80 @@ export function DataTable<TData extends RowData, TValue>({
         </span>
       ) : null}
 
-      <div className="min-w-0 overflow-hidden rounded-md border">
-        <DataTableScrollContainer className="max-h-[min(calc(100vh-18rem),calc(100dvh-18rem))]">
-          <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
-            <caption className="sr-only">
-              {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
-              {isFiltered ? " (filtrado)" : ""}
-            </caption>
-            <TableHeader className="sticky top-0 z-20 bg-background">
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id} className="bg-background">
-                  {headerGroup.headers.map((header) => (
-                    <TableHead
-                      key={header.id}
-                      colSpan={header.colSpan}
-                      style={{ width: header.getSize() }}
-                      className="bg-background"
-                      aria-sort={getHeaderAriaSort(header)}
-                    >
-                      {header.isPlaceholder
-                        ? null
-                        : typeof header.column.columnDef.header === "string"
-                          ? (
-                            <DataTableColumnHeader
-                              column={header.column}
-                              title={header.column.columnDef.header}
-                            />
-                          )
-                          : flexRender(
-                            header.column.columnDef.header,
-                            header.getContext()
-                          )}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {shouldRenderInitialSkeleton ? (
-                <DataTableLoadingSkeleton
-                  columnCount={visibleColumnCount}
-                  rowCount={skeletonRowCount}
-                  columnSizes={skeletonColumnSizes}
-                />
-              ) : (
-                visibleRows.map((row) => (
-                  <TableRow
-                    key={row.id}
-                    data-state={row.getIsSelected() ? "selected" : undefined}
-                    className={isLoading ? "opacity-60" : undefined}
-                  >
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id}>
-                        {flexRender(
-                          cell.column.columnDef.cell,
-                          cell.getContext()
-                        )}
-                      </TableCell>
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border">
+        {shouldRenderInitialSkeleton || visibleRows.length > 0 || (hasDatasetRows && isFiltered) ? (
+          <DataTableScrollContainer className="min-h-0 flex-1">
+            <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
+              <caption className="sr-only">
+                {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
+                {isFiltered ? " (filtrado)" : ""}
+              </caption>
+              <TableHeader className="sticky top-0 z-20 bg-background">
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id} className="bg-background">
+                    {headerGroup.headers.map((header) => (
+                      <TableHead
+                        key={header.id}
+                        colSpan={header.colSpan}
+                        style={{ width: header.getSize() }}
+                        className="bg-background"
+                        aria-sort={getHeaderAriaSort(header)}
+                      >
+                        {header.isPlaceholder
+                          ? null
+                          : typeof header.column.columnDef.header === "string"
+                            ? (
+                              <DataTableColumnHeader
+                                column={header.column}
+                                title={header.column.columnDef.header}
+                              />
+                            )
+                            : flexRender(
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              )}
-            </TableBody>
-          </Table>
-        </DataTableScrollContainer>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {shouldRenderInitialSkeleton ? (
+                  <DataTableLoadingSkeleton
+                    columnCount={visibleColumnCount}
+                    rowCount={skeletonRowCount}
+                    columnSizes={skeletonColumnSizes}
+                  />
+                ) : (
+                  visibleRows.map((row) => (
+                    <TableRow
+                      key={row.id}
+                      data-state={row.getIsSelected() ? "selected" : undefined}
+                      className={isLoading ? "opacity-60" : undefined}
+                    >
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id}>
+                          {flexRender(
+                            cell.column.columnDef.cell,
+                            cell.getContext()
+                          )}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </DataTableScrollContainer>
+        ) : null}
 
         {shouldRenderStatePanel ? (
-          <DataTableStatePanel kind={stateKind}>{stateContent}</DataTableStatePanel>
+          <DataTableStatePanel
+            kind={stateKind}
+            separated={hasDatasetRows && isFiltered}
+          >
+            {stateContent}
+          </DataTableStatePanel>
         ) : null}
       </div>
 

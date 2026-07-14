@@ -1,5 +1,7 @@
 import { createAdminClient } from "./auth-supabase-admin.ts"
 
+type SupabaseAdminClient = ReturnType<typeof createAdminClient>
+
 function decodeJwtPayload(token: string): Record<string, unknown> | null {
   const parts = token.split(".")
 
@@ -70,6 +72,57 @@ export async function getAuthenticatedActor(req: Request) {
     role: String(profile.role),
     status: String(profile.status),
   }
+}
+
+export type AuthenticatedActor =
+  NonNullable<Awaited<ReturnType<typeof getAuthenticatedActor>>>
+
+export async function actorHasPermission(
+  actor: Awaited<ReturnType<typeof getAuthenticatedActor>>,
+  permissionKey: string,
+  supabase: SupabaseAdminClient = createAdminClient()
+) {
+  if (!actor || actor.status !== "active") {
+    return false
+  }
+
+  const permissionResponse = await supabase
+    .from("permissions")
+    .select("id")
+    .eq("key", permissionKey)
+    .eq("is_active", true)
+    .maybeSingle()
+
+  if (!permissionResponse.error && permissionResponse.data?.id) {
+    const rolePermissionResponse = await supabase
+      .from("role_permissions")
+      .select("id")
+      .eq("permission_id", String(permissionResponse.data.id))
+      .eq("role", actor.role)
+      .limit(1)
+
+    if (!rolePermissionResponse.error && (rolePermissionResponse.data ?? []).length > 0) {
+      return true
+    }
+  }
+
+  const legacyResponse = await supabase
+    .from("app_role_permissions")
+    .select("permission_key")
+    .eq("role_key", actor.role)
+    .in("permission_key", [permissionKey, "*"])
+    .limit(1)
+
+  if (legacyResponse.error) {
+    console.error("permission_lookup_failed", {
+      permissionKey,
+      role: actor.role,
+      error: legacyResponse.error.message,
+    })
+    return false
+  }
+
+  return (legacyResponse.data ?? []).length > 0
 }
 
 export function requireAdminActor(actor: Awaited<ReturnType<typeof getAuthenticatedActor>>) {

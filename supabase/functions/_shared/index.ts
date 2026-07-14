@@ -1,7 +1,11 @@
 export const APP_HMAC_SECRET_ENV = "APP_HMAC_SECRET"
 
 export { writeAuditEvent } from "./auth-audit.ts"
-export { getAuthenticatedActor, requireAdminActor } from "./auth-context.ts"
+export {
+  actorHasPermission,
+  getAuthenticatedActor,
+  requireAdminActor,
+} from "./auth-context.ts"
 export { getCorsHeaders, handleCors } from "./auth-cors.ts"
 export {
   formatCpf,
@@ -14,7 +18,12 @@ export {
   normalizePhone
 } from "./auth-cpf.ts"
 export { clearRateLimitByKeyHash, registerRateLimitAttempt } from "./auth-rate-limit.ts"
-export { genericAuthError, genericAuthMessage, jsonResponse } from "./auth-responses.ts"
+export {
+  authError,
+  genericAuthError,
+  genericAuthMessage,
+  jsonResponse,
+} from "./auth-responses.ts"
 export { fetchWithErpRetry } from "./erp-fetch-retry.ts"
 export {
   createAdminClient,

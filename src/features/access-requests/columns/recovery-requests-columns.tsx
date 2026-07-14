@@ -1,7 +1,6 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
-import { createActionsColumn } from "@/components/data-table"
-import { Button } from "@/components/ui/button"
+import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
 import { formatDateTime } from "@/lib"
 
 import { accessRequestsCopy } from "../access-requests-copy"
@@ -11,6 +10,7 @@ import {
 } from "../types/access-requests-types"
 
 interface CreateRecoveryRequestsColumnsOptions {
+  canReview?: boolean
   onOpenDetails: (request: AccessRecoveryRequestRecord) => void
   onReview: (
     request: AccessRecoveryRequestRecord,
@@ -19,6 +19,7 @@ interface CreateRecoveryRequestsColumnsOptions {
 }
 
 export function createRecoveryRequestsColumns({
+  canReview = true,
   onOpenDetails,
   onReview,
 }: CreateRecoveryRequestsColumnsOptions): ColumnDef<AccessRecoveryRequestRecord>[] {
@@ -34,16 +35,13 @@ export function createRecoveryRequestsColumns({
       meta: { label: accessRequestsCopy.tables.recovery.columns.reason },
       header: accessRequestsCopy.tables.recovery.columns.reason,
       cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="link"
-          className="h-auto justify-start px-0 text-left font-medium"
+        <DataTableTextAction
           onClick={() => {
             onOpenDetails(row.original)
           }}
         >
           {accessRequestsCopy.reasonLabels[row.original.reason]}
-        </Button>
+        </DataTableTextAction>
       ),
     },
     {
@@ -72,21 +70,25 @@ export function createRecoveryRequestsColumns({
           onOpenDetails(row.original)
         },
       },
-      {
-        id: "approve-recovery",
-        label: accessRequestsCopy.actions.approve,
-        onSelect: (row) => {
-          onReview(row.original, "approved")
-        },
-      },
-      {
-        id: "deny-recovery",
-        label: accessRequestsCopy.actions.deny,
-        variant: "destructive",
-        onSelect: (row) => {
-          onReview(row.original, "denied")
-        },
-      },
+      ...(canReview
+        ? [
+          {
+            id: "approve-recovery" as const,
+            label: accessRequestsCopy.actions.approve,
+            onSelect: (row: { original: AccessRecoveryRequestRecord }) => {
+              onReview(row.original, "approved")
+            },
+          },
+          {
+            id: "deny-recovery" as const,
+            label: accessRequestsCopy.actions.deny,
+            variant: "destructive" as const,
+            onSelect: (row: { original: AccessRecoveryRequestRecord }) => {
+              onReview(row.original, "denied")
+            },
+          },
+        ]
+        : []),
     ]),
   ]
 }

@@ -67,7 +67,8 @@ export function UserMenu() {
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          className="w-[calc(100vw-2rem)] sm:w-64"
+          collisionPadding={8}
+          className="w-64 max-w-[calc(100vw-1rem)]"
         >
           <DropdownMenuLabel className="p-0 font-normal">
             <div className="grid px-1 py-1.5 text-left text-sm leading-tight">

@@ -221,12 +221,8 @@ export const authenticatedRouteRegistry = [
     requiredPermissions: [appPermissionKeys.accessRequestsRead],
     lazy: () =>
       import("@/features/access-requests").then((module) => ({
-        Component: module.AccessRequestsRoute,
+        Component: module.AccessRequestsRedirectRoute,
       })),
-    navigation: {
-      group: appRouteGroupIds.access,
-      order: 20,
-    },
   },
   {
     id: appRouteIds.permissions,

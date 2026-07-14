@@ -1,6 +1,7 @@
 import {
+  actorHasPermission,
+  authError,
   createAdminClient,
-  genericAuthError,
   getAuthenticatedActor,
   handleCors,
   jsonResponse,
@@ -30,14 +31,6 @@ interface PermissionRow {
 interface RolePermissionRow {
   permission_id: string
   role: PermissionRole
-}
-
-function canReadPermissions(actor: Awaited<ReturnType<typeof getAuthenticatedActor>>) {
-  return Boolean(
-    actor &&
-      actor.status === "active" &&
-      (actor.role === "owner" || actor.role === "admin" || actor.role === "auditor")
-  )
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -116,17 +109,21 @@ Deno.serve(async (req) => {
   }
 
   if (req.method !== "POST") {
-    return genericAuthError(405, req)
+    return authError("method_not_allowed", 405, req)
   }
 
   try {
     const actor = await getAuthenticatedActor(req)
+    const supabase = createAdminClient()
 
-    if (!canReadPermissions(actor)) {
-      return genericAuthError(403, req)
+    if (!actor || actor.status !== "active") {
+      return authError("unauthorized", 401, req)
     }
 
-    const supabase = createAdminClient()
+    if (!(await actorHasPermission(actor, "permissions.read", supabase))) {
+      return authError("forbidden", 403, req)
+    }
+
     const [groupsResponse, permissionsResponse, rolesResponse] = await Promise.all([
       supabase
         .from("permission_groups")
@@ -145,7 +142,12 @@ Deno.serve(async (req) => {
     ])
 
     if (groupsResponse.error || permissionsResponse.error || rolesResponse.error) {
-      return genericAuthError(undefined, req)
+      console.error("permission_matrix_query_failed", {
+        groups: groupsResponse.error?.message,
+        permissions: permissionsResponse.error?.message,
+        roles: rolesResponse.error?.message,
+      })
+      return authError("dependency_unavailable", 503, req)
     }
 
     const groups = (groupsResponse.data ?? []).map(parsePermissionGroup)
@@ -157,7 +159,8 @@ Deno.serve(async (req) => {
       permissions.some((permission) => permission === null) ||
       rolePermissions.some((rolePermission) => rolePermission === null)
     ) {
-      return genericAuthError(undefined, req)
+      console.error("permission_matrix_invalid_response")
+      return authError("invalid_response", 502, req)
     }
 
     const groupById = new Map(
@@ -209,8 +212,9 @@ Deno.serve(async (req) => {
         }]
       })
 
-    return jsonResponse({ permissions: matrix }, 200, req)
-  } catch {
-    return genericAuthError(undefined, req)
+    return jsonResponse({ ok: true, permissions: matrix }, 200, req)
+  } catch (error) {
+    console.error("permission_matrix_request_failed", error)
+    return authError("request_failed", 400, req)
   }
 })

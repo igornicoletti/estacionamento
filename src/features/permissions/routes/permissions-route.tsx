@@ -104,13 +104,11 @@ export function PermissionsRoute() {
           },
           {
             id: "roles",
-            maxVisibleChips: 1,
             options: roleOptions,
             title: permissionsCopy.filters.roles,
           },
           {
             id: "accessFilters",
-            maxVisibleChips: 1,
             options: accessOptions,
             title: permissionsCopy.filters.access,
           },

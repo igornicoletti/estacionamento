@@ -1,16 +1,17 @@
 import { type ColumnDef } from "@tanstack/react-table"
 import { CheckIcon, XIcon } from "lucide-react"
 
-import { createActionsColumn } from "@/components/data-table"
+import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import { permissionsCopy } from "../permissions-copy"
 import {
   permissionRoleLabels,
   permissionRoleValues,
+  permissionAccessFilterLabels,
   permissionSourceLabels,
+  type PermissionAccessFilter,
   type PermissionMatrixRow,
   type PermissionRole,
 } from "../types/permissions-types"
@@ -32,7 +33,7 @@ function PermissionAccessIcon({ hasAccess }: { hasAccess: boolean }) {
         }
         className={cn(
           "size-4",
-          hasAccess ? "text-primary" : "text-muted-foreground"
+          hasAccess ? "text-success" : "text-muted-foreground"
         )}
       />
     </span>
@@ -61,21 +62,22 @@ export function createPermissionsColumns({
     {
       accessorKey: "label",
       cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="link"
-          className={cn("h-auto justify-start px-0 text-left font-medium")}
+        <DataTableTextAction
           onClick={() => onOpenDetails?.(row.original)}
         >
           {row.original.label}
-        </Button>
+        </DataTableTextAction>
       ),
       header: permissionsCopy.labels.permission,
       meta: { label: permissionsCopy.labels.permission },
     },
     {
       accessorKey: "groupLabel",
-      cell: ({ row }) => <Badge variant="outline">{row.original.groupLabel}</Badge>,
+      cell: ({ row }) => (
+        <span className="font-medium text-muted-foreground">
+          {row.original.groupLabel}
+        </span>
+      ),
       header: permissionsCopy.labels.group,
       meta: { label: permissionsCopy.labels.group },
     },
@@ -102,16 +104,30 @@ export function createPermissionsColumns({
     {
       id: "roles",
       accessorFn: (row) => row.roles,
+      cell: ({ row }) => row.original.roleLabels,
       enableSorting: false,
       header: permissionsCopy.filters.roles,
-      meta: { label: permissionsCopy.filters.roles },
+      meta: {
+        label: permissionsCopy.filters.roles,
+        exportValue: (_value, row) => row.roleLabels,
+      },
     },
     {
       id: "accessFilters",
       accessorFn: (row) => row.accessFilters,
+      cell: ({ row }) =>
+        row.original.accessFilters
+          .map((access: PermissionAccessFilter) => permissionAccessFilterLabels[access])
+          .join(", "),
       enableSorting: false,
       header: permissionsCopy.filters.access,
-      meta: { label: permissionsCopy.filters.access },
+      meta: {
+        label: permissionsCopy.filters.access,
+        exportValue: (_value, row) =>
+          row.accessFilters
+            .map((access) => permissionAccessFilterLabels[access])
+            .join(", "),
+      },
     },
     createActionsColumn<PermissionMatrixRow>([
       {

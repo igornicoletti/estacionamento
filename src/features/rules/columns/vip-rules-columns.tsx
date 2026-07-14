@@ -1,8 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
-import { createActionsColumn } from "@/components/data-table"
+import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { Button } from "@/components/ui/button"
 import { formatDateTime, getBadgeToneClassName } from "@/lib"
 
 import { rulesCopy } from "../rules-copy"
@@ -41,16 +40,13 @@ export function createVipRulesColumns({
       meta: { label: rulesCopy.table.client },
       header: rulesCopy.table.client,
       cell: ({ row }) => (
-        <Button
-          type="button"
-          variant="link"
-          className="h-auto justify-start px-0 text-left font-medium"
+        <DataTableTextAction
           onClick={() => {
             onOpenDetails?.(row.original)
           }}
         >
           {row.original.clientName}
-        </Button>
+        </DataTableTextAction>
       ),
     },
     {

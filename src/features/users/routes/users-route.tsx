@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod"
 import { PlusIcon, SearchIcon, ShieldAlertIcon } from "lucide-react"
 import * as React from "react"
 import { Controller, useForm } from "react-hook-form"
+import { useSearchParams } from "react-router"
 
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDialog } from "@/components/shared/app-dialog"
@@ -34,6 +35,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AccessRequestsPanel, accessRequestsCopy } from "@/features/access-requests"
 import { AUTH_PERMISSION, AUTH_ROLE_KEY } from "@/features/auth"
 import { useAuth } from "@/features/auth"
 import { formatCpfInput } from "@/features/auth/validation"
@@ -63,6 +66,8 @@ import {
 
 const USERS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.users.columns.v1"
 const USERS_DIALOG_FORM_ID = "users-dialog-form"
+const USERS_TAB_VALUE = "usuarios"
+const ACCESS_REQUESTS_TAB_VALUE = "solicitacoes"
 
 interface UnitOption {
   label: string
@@ -137,6 +142,7 @@ function UserDetailsSheet({
 
 export function UsersRoute() {
   const auth = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const remoteMode = Boolean(getSupabaseBrowserClient()) && !shouldBypassAuthInDev()
   const {
     data,
@@ -184,6 +190,43 @@ export function UsersRoute() {
   const canClearLocks = canManageUsers
   const canRevokeUserSessions = canManageUsers
   const canExportUsers = canReadUsers
+  const canReadAccessRequests =
+    auth.access.hasPermission(AUTH_PERMISSION.accessRequestsRead)
+  const canReviewAccessRequests =
+    auth.access.hasPermission(AUTH_PERMISSION.accessRequestsReview)
+  const selectedTab =
+    canReadAccessRequests &&
+    searchParams.get("tab") === ACCESS_REQUESTS_TAB_VALUE
+      ? ACCESS_REQUESTS_TAB_VALUE
+      : USERS_TAB_VALUE
+
+  const handleUsersTabChange = React.useCallback(
+    (value: string) => {
+      const nextSearchParams = new URLSearchParams(searchParams)
+
+      if (value === ACCESS_REQUESTS_TAB_VALUE && canReadAccessRequests) {
+        nextSearchParams.set("tab", ACCESS_REQUESTS_TAB_VALUE)
+      } else {
+        nextSearchParams.delete("tab")
+      }
+
+      setSearchParams(nextSearchParams, { replace: true })
+    },
+    [canReadAccessRequests, searchParams, setSearchParams]
+  )
+
+  React.useEffect(() => {
+    if (
+      canReadAccessRequests ||
+      searchParams.get("tab") !== ACCESS_REQUESTS_TAB_VALUE
+    ) {
+      return
+    }
+
+    const nextSearchParams = new URLSearchParams(searchParams)
+    nextSearchParams.delete("tab")
+    setSearchParams(nextSearchParams, { replace: true })
+  }, [canReadAccessRequests, searchParams, setSearchParams])
 
   const assignableRoleValues = React.useMemo(
     () =>
@@ -494,13 +537,62 @@ export function UsersRoute() {
     }
   }
 
+  const usersTable = (
+    <DataTable
+      columns={columns}
+      data={data}
+      columnVisibilityStorageKey={USERS_TABLE_COLUMN_VISIBILITY_KEY}
+      getRowId={(user) => user.id}
+      globalSearch={{
+        columnIds: [
+          "id",
+          "name",
+          "cpf",
+          "email",
+          "phoneMasked",
+          "role",
+          "status",
+          "unitName",
+          "passkeyStatus",
+        ],
+        placeholder: usersCopy.filters.searchPlaceholder,
+      }}
+      filterFields={[
+        {
+          id: "role",
+          title: usersCopy.filters.role,
+          options: roleOptions,
+        },
+        {
+          id: "status",
+          title: usersCopy.filters.status,
+          options: statusOptions,
+        },
+        {
+          id: "unitName",
+          title: usersCopy.filters.unit,
+          options: unitFilterOptions,
+        },
+      ]}
+      emptyAction={emptyAction}
+      isLoading={isLoading}
+      error={error}
+      onRetry={() => {
+        void refetch()
+      }}
+      enablePagination
+      enableExport={canExportUsers}
+      enableViewOptions
+    />
+  )
+
   return (
     <PageSection>
       <PageHeader
         title={usersCopy.page.title}
         subtitle={usersCopy.page.subtitle}
         actions={
-          canCreateUsers ? (
+          canCreateUsers && selectedTab === USERS_TAB_VALUE ? (
             <PageHeaderActions>
               <Button
                 type="button"
@@ -791,52 +883,39 @@ export function UsersRoute() {
         </form>
       </AppDialog>
 
-      <DataTable
-        columns={columns}
-        data={data}
-        columnVisibilityStorageKey={USERS_TABLE_COLUMN_VISIBILITY_KEY}
-        getRowId={(user) => user.id}
-        globalSearch={{
-          columnIds: [
-            "id",
-            "name",
-            "cpf",
-            "email",
-            "phoneMasked",
-            "role",
-            "status",
-            "unitName",
-            "passkeyStatus",
-          ],
-          placeholder: usersCopy.filters.searchPlaceholder,
-        }}
-        filterFields={[
-          {
-            id: "role",
-            title: usersCopy.filters.role,
-            options: roleOptions,
-          },
-          {
-            id: "status",
-            title: usersCopy.filters.status,
-            options: statusOptions,
-          },
-          {
-            id: "unitName",
-            title: usersCopy.filters.unit,
-            options: unitFilterOptions,
-          },
-        ]}
-        emptyAction={emptyAction}
-        isLoading={isLoading}
-        error={error}
-        onRetry={() => {
-          void refetch()
-        }}
-        enablePagination
-        enableExport={canExportUsers}
-        enableViewOptions
-      />
+      {canReadAccessRequests ? (
+        <Tabs
+          value={selectedTab}
+          onValueChange={handleUsersTabChange}
+          className="min-h-0 flex-1"
+        >
+          <TabsList>
+            <TabsTrigger value={USERS_TAB_VALUE}>
+              {usersCopy.page.title}
+            </TabsTrigger>
+            <TabsTrigger value={ACCESS_REQUESTS_TAB_VALUE}>
+              {accessRequestsCopy.page.title}
+            </TabsTrigger>
+          </TabsList>
+          <TabsContent
+            value={USERS_TAB_VALUE}
+            className="min-h-0 flex-1 data-[state=active]:flex data-[state=inactive]:hidden"
+          >
+            {usersTable}
+          </TabsContent>
+          <TabsContent
+            value={ACCESS_REQUESTS_TAB_VALUE}
+            className="min-h-0 flex-1 data-[state=active]:flex data-[state=inactive]:hidden"
+          >
+            <AccessRequestsPanel
+              canReview={canReviewAccessRequests}
+              showHeader={false}
+            />
+          </TabsContent>
+        </Tabs>
+      ) : (
+        usersTable
+      )}
 
       <UserDetailsSheet
         user={detailsUser}

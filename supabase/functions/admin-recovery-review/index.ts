@@ -1,6 +1,7 @@
 import {
+  actorHasPermission,
+  authError,
   createAdminClient,
-  genericAuthError,
   getAuthenticatedActor,
   handleCors,
   jsonResponse,
@@ -8,8 +9,6 @@ import {
 } from "../_shared/index.ts"
 
 type Decision = "approved" | "denied"
-type Actor = NonNullable<Awaited<ReturnType<typeof getAuthenticatedActor>>>
-
 function isRecord(value: unknown): value is Record<PropertyKey, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
@@ -24,35 +23,30 @@ function readDecision(value: unknown): Decision | null {
   return value === "approved" || value === "denied" ? value : null
 }
 
-function canReviewAccessRequests(
-  actor: Awaited<ReturnType<typeof getAuthenticatedActor>>
-): actor is Actor {
-  return (
-    actor !== null &&
-    actor.status === "active" &&
-    (actor.role === "owner" || actor.role === "admin")
-  )
-}
-
 Deno.serve(async (request) => {
   const cors = handleCors(request)
   if (cors) return cors
 
   if (request.method !== "POST") {
-    return genericAuthError(405, request)
+    return authError("method_not_allowed", 405, request)
   }
 
   try {
     const actor = await getAuthenticatedActor(request)
+    const supabase = createAdminClient()
 
-    if (!canReviewAccessRequests(actor)) {
-      return genericAuthError(403, request)
+    if (!actor || actor.status !== "active") {
+      return authError("unauthorized", 401, request)
+    }
+
+    if (!(await actorHasPermission(actor, "access_requests.review", supabase))) {
+      return authError("forbidden", 403, request)
     }
 
     const body = await request.json().catch(() => null)
 
     if (!isRecord(body)) {
-      return genericAuthError(400, request)
+      return authError("invalid_payload", 400, request)
     }
 
     const requestId = readString(body.requestId)
@@ -60,10 +54,9 @@ Deno.serve(async (request) => {
     const reviewReason = readString(body.reviewReason)
 
     if (!requestId || !decision || !reviewReason || reviewReason.length < 10) {
-      return genericAuthError(400, request)
+      return authError("invalid_payload", 400, request)
     }
 
-    const supabase = createAdminClient()
     const status = decision === "approved" ? "approved" : "denied"
     const updateResponse = await supabase
       .from("access_recovery_requests")
@@ -79,7 +72,12 @@ Deno.serve(async (request) => {
       .maybeSingle()
 
     if (updateResponse.error || !updateResponse.data) {
-      return genericAuthError(updateResponse.error ? 400 : 404, request)
+      if (updateResponse.error) {
+        console.error("recovery_review_update_failed", updateResponse.error.message)
+        return authError("request_failed", 400, request)
+      }
+
+      return authError("not_found", 404, request)
     }
 
     await writeAuditEvent({
@@ -95,7 +93,8 @@ Deno.serve(async (request) => {
     })
 
     return jsonResponse({ status }, 200, request)
-  } catch {
-    return genericAuthError(400, request)
+  } catch (error) {
+    console.error("recovery_review_request_failed", error)
+    return authError("request_failed", 400, request)
   }
 })
