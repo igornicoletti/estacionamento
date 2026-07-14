@@ -1,4 +1,7 @@
-import { type ColumnFiltersState } from "@tanstack/react-table"
+import {
+  type ColumnFiltersState,
+  type SortingState,
+} from "@tanstack/react-table"
 import * as React from "react"
 
 import {
@@ -17,7 +20,8 @@ import {
 } from "../types/audit-types"
 import { filterAuditEvents } from "../utils/audit-filter-utils"
 
-const AUDIT_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.audit.columns.v1"
+const AUDIT_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.audit.columns.v2"
+const AUDIT_TABLE_STATE_KEY = "rmc.table.audit.state.v2"
 
 export function AuditRoute() {
   const {
@@ -31,6 +35,9 @@ export function AuditRoute() {
   const [selectedEvent, setSelectedEvent] = React.useState<AuditEvent | null>(null)
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: "occurredAt", desc: true },
+  ])
   const columns = React.useMemo(
     () => createAuditColumns({ onOpenDetails: setSelectedEvent }),
     []
@@ -87,7 +94,7 @@ export function AuditRoute() {
         data={filteredEvents}
         sourceRowCount={events.length}
         columnVisibilityStorageKey={AUDIT_TABLE_COLUMN_VISIBILITY_KEY}
-        tableStateStorageKey="rmc.table.audit.state.v1"
+        tableStateStorageKey={AUDIT_TABLE_STATE_KEY}
         getRowId={(event) => event.id}
         manualFiltering
         globalSearch={{
@@ -98,6 +105,8 @@ export function AuditRoute() {
         onGlobalFilterChange={setGlobalFilter}
         columnFilters={columnFilters}
         onColumnFiltersChange={setColumnFilters}
+        sorting={sorting}
+        onSortingChange={setSorting}
         filterFields={[
           {
             id: "event",

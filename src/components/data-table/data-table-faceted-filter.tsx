@@ -12,6 +12,7 @@ import {
   ComboboxItem,
   ComboboxList,
   ComboboxValue,
+  useComboboxAnchor,
 } from "@/components/ui/combobox"
 
 import { dataTableCopy } from "./data-table-copy"
@@ -97,6 +98,7 @@ export function DataTableFacetedFilter<TData, TValue>({
     selectedOptions.length - visibleSelectedOptions.length,
     0
   )
+  const anchorRef = useComboboxAnchor()
 
   if (!uniqueOptions.length) {
     return null
@@ -113,36 +115,49 @@ export function DataTableFacetedFilter<TData, TValue>({
       itemToStringValue={(option: DataTableFilterOption) => option.label}
     >
       <ComboboxChips
+        ref={anchorRef}
         data-no-drag-scroll="true"
         aria-label={title}
-        className="min-h-9 w-full min-w-44 lg:w-64"
+        className="h-9 min-h-9 w-full min-w-44 flex-nowrap overflow-hidden lg:w-64"
       >
         <ComboboxValue>
-          {visibleSelectedOptions.map((option) => (
-            <ComboboxChip key={option.value}>{option.label}</ComboboxChip>
-          ))}
-          {hiddenSelectedCount > 0 ? (
-            <ComboboxChip showRemove={false}>
-              +{hiddenSelectedCount} {dataTableCopy.facetedFilter.selectedSuffix}
-            </ComboboxChip>
-          ) : null}
+          <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+            {visibleSelectedOptions.map((option) => (
+              <ComboboxChip
+                key={option.value}
+                className="min-w-0 max-w-[8rem] shrink-0"
+              >
+                <span className="truncate">{option.label}</span>
+              </ComboboxChip>
+            ))}
+            {hiddenSelectedCount > 0 ? (
+              <ComboboxChip showRemove={false} className="shrink-0">
+                +{hiddenSelectedCount} {dataTableCopy.facetedFilter.selectedSuffix}
+              </ComboboxChip>
+            ) : null}
+          </span>
         </ComboboxValue>
         <ComboboxChipsInput
           aria-label={title}
+          className="min-w-0 flex-1"
           placeholder={selectedOptions.length > 0 ? "" : title}
         />
       </ComboboxChips>
-      <ComboboxContent data-no-drag-scroll="true" className="min-w-(--anchor-width)">
+      <ComboboxContent
+        anchor={anchorRef}
+        data-no-drag-scroll="true"
+        className="w-(--anchor-width) min-w-(--anchor-width)"
+      >
         <ComboboxEmpty>{dataTableCopy.facetedFilter.noResults}</ComboboxEmpty>
         <ComboboxList>
           <ComboboxCollection>
             {(option: DataTableFilterOption) => {
-              const count = facetCounts?.get(option.value)
+              const count = option.count ?? facetCounts?.get(option.value)
 
               return (
                 <ComboboxItem key={option.value} value={option}>
-                  <span>{option.label}</span>
-                  {showCounts && Boolean(count) ? (
+                  <span className="min-w-0 flex-1 truncate">{option.label}</span>
+                  {showCounts && count !== undefined ? (
                     <span className="ml-auto text-xs text-muted-foreground tabular-nums">
                       {count}
                     </span>

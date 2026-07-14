@@ -6,10 +6,8 @@ import { formatDateTime, getBadgeToneClassName } from "@/lib"
 
 import { rulesCopy } from "../rules-copy"
 import {
-  formatVipRuleUnitScope,
+  getCommercialRuleTypeLabel,
   getVipRuleStatusLabel,
-  getVipRuleTargetTypeLabel,
-  getVipRuleVehicleScopeLabel,
 } from "../utils/vip-rules-models"
 import { type VipRule } from "../types/vip-rules-types"
 
@@ -26,41 +24,34 @@ export function createVipRulesColumns({
 }: CreateVipRulesColumnsOptions = {}): ColumnDef<VipRule>[] {
   return [
     {
-      accessorKey: "targetType",
+      accessorKey: "ruleType",
       meta: { label: rulesCopy.table.type },
       header: rulesCopy.table.type,
       cell: ({ row }) => (
         <Badge variant="outline">
-          {getVipRuleTargetTypeLabel(row.original.targetType)}
+          {getCommercialRuleTypeLabel(row.original.ruleType)}
         </Badge>
       ),
     },
     {
-      accessorKey: "clientName",
-      meta: { label: rulesCopy.table.client },
-      header: rulesCopy.table.client,
+      accessorKey: "ruleSummary",
+      meta: { label: rulesCopy.table.summary },
+      header: rulesCopy.table.summary,
       cell: ({ row }) => (
         <DataTableTextAction
           onClick={() => {
             onOpenDetails?.(row.original)
           }}
         >
-          {row.original.clientName}
+          {row.original.ruleSummary}
         </DataTableTextAction>
       ),
     },
     {
-      accessorKey: "vehiclePlate",
-      meta: { label: rulesCopy.table.vehicle },
-      header: rulesCopy.table.vehicle,
-      cell: ({ row }) => getVipRuleVehicleScopeLabel(row.original),
-    },
-    {
-      id: "scope",
+      accessorKey: "scopeLabel",
       meta: { label: rulesCopy.table.scope },
       header: rulesCopy.table.scope,
-      accessorFn: (rule) => formatVipRuleUnitScope(rule),
-      cell: ({ row }) => formatVipRuleUnitScope(row.original),
+      cell: ({ row }) => row.original.scopeLabel,
     },
     {
       accessorKey: "active",

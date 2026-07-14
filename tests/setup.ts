@@ -17,6 +17,7 @@ import { type UserRecord } from "@/features/users/types/users-types"
 const { testAuthContext, testAuthSession } = vi.hoisted(() => {
   const profile = {
     authUserId: "test-auth-user",
+    avatarPath: null,
     avatarUrl: null,
     cpfMasked: "***.***.***-25",
     email: "igor.nicoletti@redemontecarlo.com",
@@ -43,6 +44,7 @@ const { testAuthContext, testAuthSession } = vi.hoisted(() => {
         permissions: profile.permissions,
       },
       actions: {
+        applyProfilePatch: vi.fn(),
         clearRequiredPasswordChallenge: vi.fn(),
         completeRequiredPassword: vi.fn(() => Promise.resolve({
           flowId: null,
@@ -53,6 +55,7 @@ const { testAuthContext, testAuthSession } = vi.hoisted(() => {
         logout: vi.fn(),
         logoutAsync: signOut,
         refreshProfile: refresh,
+        registerProfilePasskey: vi.fn(() => Promise.resolve(undefined)),
         registerRequiredPasskey: vi.fn(() => Promise.resolve({
           flowId: null,
           message: "ok",

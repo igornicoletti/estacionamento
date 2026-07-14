@@ -3,6 +3,7 @@ export {
   completeRequiredPassword,
   getCurrentAuthProfile,
   isPasskeySupported,
+  registerAuthenticatedPasskey,
   registerCurrentPasskey,
   requestAccessRecovery,
   signInWithPasskey,
@@ -11,4 +12,7 @@ export {
   subscribeToAuthSessionChanges,
 } from "./auth-api"
 
-export type { AuthProfile } from "../types/auth-types"
+export type {
+  AuthPasskeyRegistrationResult,
+  AuthProfile,
+} from "../types/auth-types"

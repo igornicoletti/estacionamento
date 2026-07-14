@@ -1,21 +1,25 @@
 # Settings
 
-Feature responsável por exibir o perfil, o status de sessão, a situação de passkey e as permissões efetivas da conta autenticada.
+Feature responsável por exibir e atualizar dados seguros do perfil autenticado, incluindo avatar, nome, e-mail, situação de passkey e permissões efetivas da conta.
 
 ## Decisões de produção
 
 - A tela usa `useAuth` como fonte única de sessão e perfil.
 - A feature não mantém mock local nem estado persistido próprio.
-- A tela é somente leitura até existir contrato backend explícito para alteração de telefone, senha, avatar ou passkey.
+- Alterações de nome, e-mail e avatar usam a Edge Function `profile-update`.
+- Uploads de avatar usam o bucket privado `avatars`, com políticas por pasta do usuário autenticado.
+- Cadastro de passkey usa o fluxo beta do Supabase Auth, iniciado apenas por ação explícita do usuário autenticado.
+- Campos administrativos ou sensíveis continuam somente leitura e são exibidos em inputs desabilitados.
 - Estados de carregamento, erro e perfil ausente são tratados na rota.
 - Estados vazios usam `AppEmptyState`.
-- Ações não implementadas foram removidas para evitar falsa sensação de persistência.
 - A autorização real permanece em RLS, RPCs e Edge Functions; o frontend apenas renderiza dados autorizados.
 
 ## Estrutura
 
 ```txt
 src/features/settings/
+├── components/
+│   └── profile-photo-dialog.tsx
 ├── README.md
 ├── index.ts
 ├── settings-copy.ts
@@ -26,6 +30,8 @@ src/features/settings/
 ├── sections/
 │   ├── settings-profile-section.tsx
 │   └── settings-security-section.tsx
+├── services/
+│   └── settings-profile-service.ts
 ├── types/
 │   └── settings-types.ts
 └── utils/

@@ -1,4 +1,4 @@
-import { TruckIcon, UserRoundIcon } from "lucide-react"
+import { LayoutDashboardIcon, TruckIcon, UserRoundIcon } from "lucide-react"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -32,7 +32,7 @@ describe("clients route and sidebar integration", () => {
 
   it("orders visible sidebar groups and labels them for end users", () => {
     expect(navigationGroups.map((group) => group.label)).toEqual([
-      "Área de trabalho",
+      "",
       "Cadastros",
       "Comercial",
       "Acesso",
@@ -49,6 +49,7 @@ describe("clients route and sidebar integration", () => {
     expect(navigationGroups[5]?.items.map((item) => item.id)).toEqual([
       appRouteIds.settings,
     ])
+    expect(routeIconById[appRouteIds.home]).toBe(LayoutDashboardIcon)
     expect(routeIconById[appRouteIds.clients]).toBe(TruckIcon)
     expect(routeIconById[appRouteIds.settings]).toBe(UserRoundIcon)
   })

@@ -665,7 +665,8 @@ export function DataTable<TData extends RowData, TValue>({
         : table.getFilteredSelectedRowModel().rows.length
       : 0)
   const shouldRenderStatePanel =
-    !shouldRenderInitialSkeleton && !visibleRows.length
+    !shouldRenderInitialSkeleton &&
+    !visibleRows.length
   const stateKind = hasBlockingError ? "error" : isLoading ? "loading" : "empty"
   const stateContent = hasBlockingError
     ? errorState ?? defaultErrorState
@@ -716,9 +717,9 @@ export function DataTable<TData extends RowData, TValue>({
         </span>
       ) : null}
 
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden rounded-md border">
-        {shouldRenderInitialSkeleton || visibleRows.length > 0 || (hasDatasetRows && isFiltered) ? (
-          <DataTableScrollContainer className="min-h-0 flex-1">
+      <div className="flex min-h-0 min-w-0 shrink flex-col overflow-hidden rounded-md border">
+        {shouldRenderInitialSkeleton || visibleRows.length > 0 ? (
+          <DataTableScrollContainer className="min-h-0 max-h-full">
             <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
               <caption className="sr-only">
                 {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
@@ -760,7 +761,7 @@ export function DataTable<TData extends RowData, TValue>({
                     rowCount={skeletonRowCount}
                     columnSizes={skeletonColumnSizes}
                   />
-                ) : (
+                ) : visibleRows.length > 0 ? (
                   visibleRows.map((row) => (
                     <TableRow
                       key={row.id}
@@ -777,6 +778,8 @@ export function DataTable<TData extends RowData, TValue>({
                       ))}
                     </TableRow>
                   ))
+                ) : (
+                  null
                 )}
               </TableBody>
             </Table>
@@ -784,10 +787,7 @@ export function DataTable<TData extends RowData, TValue>({
         ) : null}
 
         {shouldRenderStatePanel ? (
-          <DataTableStatePanel
-            kind={stateKind}
-            separated={hasDatasetRows && isFiltered}
-          >
+          <DataTableStatePanel kind={stateKind}>
             {stateContent}
           </DataTableStatePanel>
         ) : null}

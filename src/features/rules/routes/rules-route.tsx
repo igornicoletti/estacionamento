@@ -21,9 +21,9 @@ import {
   type VipRule,
 } from "../types/vip-rules-types"
 import {
+  getCommercialRuleTypeLabel,
   buildVipRuleDetails,
   getVipRuleStatusLabel,
-  getVipRuleTargetTypeLabel,
 } from "../utils/vip-rules-models"
 
 const RULES_TABLE_STATE_KEY = "rmc.table.rules.state.v3"
@@ -38,32 +38,81 @@ export function RulesRoute() {
     isSaving,
     refetch,
     saveRule,
-    toggleClientVip,
-    toggleVehicleVip,
   } = useVipRules()
   const [selectedRule, setSelectedRule] = React.useState<VipRule | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false)
 
+  const buildToggleInput = React.useCallback(
+    (rule: VipRule, active: boolean): SaveVipRuleInput => {
+      if (rule.ruleType === "vip") {
+        return {
+          ruleType: "vip",
+          targetType: rule.targetType === "vehicle" ? "vehicle" : "client",
+          clientId: rule.clientId ?? 0,
+          clientName: rule.clientName ?? "",
+          vehicleId: rule.vehicleId,
+          vehiclePlate: rule.vehiclePlate,
+          appliesToAllUnits: rule.appliesToAllUnits,
+          unitIds: rule.unitIds,
+          active,
+          reason: active
+            ? "Ativação administrativa de regra VIP."
+            : "Inativação administrativa de regra VIP.",
+          notes: null,
+        }
+      }
+
+      if (rule.ruleType === "fuel_benefit") {
+        return {
+          ruleType: "fuel_benefit",
+          scope: rule.appliesToAllUnits ? "network" : "unit",
+          unitIds: rule.unitIds,
+          fuelMinLiters: rule.fuelMinLiters ?? 0,
+          benefitHours: rule.benefitHours ?? 0,
+          active,
+          reason: active
+            ? "Ativação administrativa de regra de abastecimento."
+            : "Inativação administrativa de regra de abastecimento.",
+          notes: null,
+        }
+      }
+
+      if (rule.ruleType === "yard_cleaning_occupancy") {
+        return {
+          ruleType: "yard_cleaning_occupancy",
+          unitIds: rule.unitIds,
+          yardOccupancyThreshold: rule.yardOccupancyThreshold ?? 0,
+          active,
+          reason: active
+            ? "Ativação administrativa de alerta de limpeza de pátio."
+            : "Inativação administrativa de alerta de limpeza de pátio.",
+          notes: null,
+        }
+      }
+
+      return {
+        ruleType: "yard_cleaning_stale_vehicle",
+        scope: rule.appliesToAllUnits ? "network" : "unit",
+        unitIds: rule.unitIds,
+        yardStaleVehicleHours: rule.yardStaleVehicleHours ?? 0,
+        active,
+        reason: active
+          ? "Ativação administrativa de alerta de permanência no pátio."
+          : "Inativação administrativa de alerta de permanência no pátio.",
+        notes: null,
+      }
+    },
+    []
+  )
+
   const handleToggleRuleActive = React.useCallback(
     (rule: VipRule) => {
       void notify.track(
-        rule.targetType === "client"
-          ? toggleClientVip({
-            clientId: rule.clientId,
-            clientName: rule.clientName,
-            enabled: !rule.active,
-          })
-          : toggleVehicleVip({
-            clientId: rule.clientId,
-            clientName: rule.clientName,
-            vehicleId: rule.vehicleId ?? 0,
-            vehiclePlate: rule.vehiclePlate ?? "",
-            enabled: !rule.active,
-          }),
+        saveRule(buildToggleInput(rule, !rule.active)),
         rulesCopy.feedback.toggle
       )
     },
-    [toggleClientVip, toggleVehicleVip]
+    [buildToggleInput, saveRule]
   )
 
   const handleCreateRule = React.useCallback(
@@ -87,8 +136,8 @@ export function RulesRoute() {
     () =>
       createDataTableFilterOptions(
         rules,
-        (rule) => rule.targetType,
-        (rule) => getVipRuleTargetTypeLabel(rule.targetType)
+        (rule) => rule.ruleType,
+        (rule) => getCommercialRuleTypeLabel(rule.ruleType)
       ),
     [rules]
   )
@@ -129,7 +178,7 @@ export function RulesRoute() {
         tableStateStorageKey={RULES_TABLE_STATE_KEY}
         getRowId={(rule) => rule.id}
         globalSearch={{
-          columnIds: ["clientName", "vehiclePlate", "updatedAt"],
+          columnIds: ["ruleSummary", "scopeLabel", "updatedAt"],
           placeholder: rulesCopy.filters.searchPlaceholder,
         }}
         filterFields={[
@@ -174,8 +223,8 @@ export function RulesRoute() {
             setSelectedRule(null)
           }
         }}
-        title={selectedRule?.clientName}
-        description={selectedRule ? getVipRuleTargetTypeLabel(selectedRule.targetType) : undefined}
+        title={selectedRule?.ruleSummary}
+        description={selectedRule ? getCommercialRuleTypeLabel(selectedRule.ruleType) : undefined}
         items={selectedRule ? buildVipRuleDetails(selectedRule) : []}
       />
 

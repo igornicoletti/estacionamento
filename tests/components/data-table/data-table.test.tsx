@@ -58,6 +58,11 @@ describe("DataTable", () => {
     )
 
     expect(screen.getByText("Nenhum resultado encontrado")).toBeInTheDocument()
+    expect(
+      screen
+        .getByText("Nenhum resultado encontrado")
+        .closest('[data-slot="table-cell"]')
+    ).toBeNull()
   })
 
   it("renders rows and recovers from a filtered empty state", () => {

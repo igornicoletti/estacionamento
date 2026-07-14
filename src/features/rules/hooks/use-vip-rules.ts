@@ -13,7 +13,7 @@ import { type SaveVipRuleInput, type VipRule } from "../types/vip-rules-types"
 
 export function useVipRules() {
   const snapshot = useAsyncSnapshot<VipRule[]>({
-    cacheKey: "rules:vip:v3",
+    cacheKey: "rules:commercial:v1",
     errorMessage: rulesCopy.feedback.loadError,
     initialData: [],
     loadData: listVipRules,

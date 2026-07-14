@@ -6,6 +6,8 @@ Data da revisão: 2026-07-13
 
 O projeto está organizado como aplicação Vite + React 19 + TypeScript 6 com módulos de domínio em `src/features`, componentes compartilhados em `src/components`, funções Supabase em `supabase/functions` e migrations em `supabase/migrations`.
 
+TypeScript 6 cobre a exigência futura de `@supabase/supabase-js` por TS 5+. Passkeys/WebAuthn permanecem tratadas como recurso beta do Supabase, com fallback seguro para metadados indisponíveis.
+
 A revisão de 2026-07-13 aplicou as correções auditadas de autenticação, autorização, Supabase, preços, regras comerciais, notificações, testes, CI e documentação.
 
 ## Features

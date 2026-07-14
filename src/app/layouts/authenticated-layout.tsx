@@ -1,5 +1,5 @@
 import { ClockIcon } from "lucide-react"
-import { Outlet } from "react-router"
+import { Outlet, useLocation } from "react-router"
 
 import { appRoutePaths } from "@/app/router/route-registry"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
@@ -7,11 +7,16 @@ import { AppHeader, AppSidebar } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { authCopy, useAuth } from "@/features/auth"
+import { cn } from "@/lib"
 
 export function AuthenticatedLayout() {
   const auth = useAuth()
   const inactivity = auth.inactivity
   const copy = authCopy.inactivity
+  const location = useLocation()
+  const isNaturalFlowPage =
+    location.pathname === appRoutePaths.settings ||
+    location.pathname === appRoutePaths.profile
 
   return (
     <>
@@ -19,7 +24,12 @@ export function AuthenticatedLayout() {
         <AppSidebar homeHref={appRoutePaths.home} />
         <SidebarInset className="min-h-0 overflow-hidden">
           <AppHeader />
-          <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-clip p-4 md:overflow-hidden">
+          <div
+            className={cn(
+              "flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-clip p-4",
+              isNaturalFlowPage ? "md:overflow-y-auto" : "md:overflow-hidden"
+            )}
+          >
             <Outlet />
           </div>
         </SidebarInset>

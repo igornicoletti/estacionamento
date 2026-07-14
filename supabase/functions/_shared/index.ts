@@ -38,5 +38,6 @@ export {
   flowCpfSchema,
   profilePasswordSchema,
   profilePhoneSchema,
+  profileUpdateSchema,
   recoveryRequestSchema
 } from "./auth-validation.ts"

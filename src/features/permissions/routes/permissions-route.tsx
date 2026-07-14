@@ -23,7 +23,7 @@ import {
 } from "../types/permissions-types"
 import { getPermissionDetailItems } from "../utils/permissions-details-model"
 
-const PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.permissions.columns.v1"
+const PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.permissions.columns.v2"
 
 export function PermissionsRoute() {
   const permissionsSnapshot = usePermissions()
@@ -56,19 +56,33 @@ export function PermissionsRoute() {
   )
   const roleOptions = React.useMemo(
     () =>
-      permissionRoleValues.map((role) => ({
-        label: permissionRoleLabels[role],
-        value: role,
-      })),
-    []
+      permissionRoleValues.map((role) => {
+        const count = permissions.filter((permission) =>
+          permission.roles.includes(role)
+        ).length
+
+        return {
+          count,
+          label: permissionRoleLabels[role],
+          value: role,
+        }
+      }),
+    [permissions]
   )
   const accessOptions = React.useMemo(
     () =>
-      permissionAccessFilterValues.map((access) => ({
-        label: permissionAccessFilterLabels[access],
-        value: access,
-      })),
-    []
+      permissionAccessFilterValues.map((access) => {
+        const count = permissions.filter((permission) =>
+          permission.accessFilters.includes(access)
+        ).length
+
+        return {
+          count,
+          label: permissionAccessFilterLabels[access],
+          value: access,
+        }
+      }),
+    [permissions]
   )
 
   return (
@@ -84,7 +98,10 @@ export function PermissionsRoute() {
         columnVisibilityStorageKey={PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY}
         defaultColumnVisibility={{
           accessFilters: false,
+          groupLabel: false,
+          roleCount: false,
           roles: false,
+          source: false,
         }}
         getRowId={(permission) => permission.id}
         globalSearch={{

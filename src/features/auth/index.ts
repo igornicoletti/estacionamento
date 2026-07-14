@@ -14,6 +14,7 @@ export type {
   AppUserProfile,
   AuthFlowActionResponse,
   AuthFlowStep,
+  AuthPasskeyRegistrationResult,
   AuthPasswordNextAction,
   AuthPasswordResponse,
   AuthProfile,

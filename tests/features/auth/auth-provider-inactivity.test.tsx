@@ -26,6 +26,7 @@ const getCurrentAuthProfile = vi.fn<() => Promise<AuthProfile | null>>()
 
 const profile: AuthProfile = {
   authUserId: "auth-user-igor",
+  avatarPath: null,
   avatarUrl: null,
   cpfMasked: "***.982.247-**",
   email: "igor.nicoletti@redemontecarlo.com",

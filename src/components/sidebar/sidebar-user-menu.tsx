@@ -1,10 +1,11 @@
-import { BellIcon, LogOutIcon, UserIcon, UserRoundIcon } from "lucide-react"
+import { BellIcon, ImageUpIcon, LogOutIcon, UserIcon, UserRoundIcon } from "lucide-react"
 import * as React from "react"
 import { Link } from "react-router"
 
 import { appRoutePaths } from "@/app/router/route-registry"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { notify } from "@/components/toast"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import {
   DropdownMenu,
@@ -17,6 +18,15 @@ import {
 } from "@/components/ui/dropdown-menu"
 import type { AuthProfile } from "@/features/auth/api"
 import { useAuth } from "@/features/auth"
+import {
+  getProfileInitials,
+  ProfilePhotoDialog,
+} from "@/features/settings/components/profile-photo-dialog"
+import {
+  updateCurrentProfile,
+  uploadProfileAvatarFile,
+} from "@/features/settings/services/settings-profile-service"
+import { settingsCopy } from "@/features/settings/settings-copy"
 
 import { sidebarCopy } from "./sidebar-copy"
 
@@ -42,9 +52,61 @@ function getDisplayMeta(profile: AuthProfile | null) {
 export function UserMenu() {
   const auth = useAuth()
   const [isSignOutDialogOpen, setIsSignOutDialogOpen] = React.useState(false)
+  const [isPhotoDialogOpen, setIsPhotoDialogOpen] = React.useState(false)
+  const [isSavingPhoto, setIsSavingPhoto] = React.useState(false)
   const displayName = getDisplayName(auth.profile)
   const displayMeta = getDisplayMeta(auth.profile)
-  const fallback = getFallback(displayName)
+  const fallback = getProfileInitials(displayName) || getFallback(displayName)
+
+  async function saveAvatar(avatarUrl: string | null, previewUrl?: string) {
+    if (!auth.profile) {
+      return
+    }
+
+    await updateCurrentProfile({
+      avatarUrl,
+      email: auth.profile.email,
+      name: auth.profile.name,
+    })
+    auth.actions.applyProfilePatch({
+      avatarPath:
+        avatarUrl && !/^(https?:|data:image\/)/i.test(avatarUrl)
+          ? avatarUrl
+          : null,
+      avatarUrl: previewUrl ?? avatarUrl,
+    })
+    setIsPhotoDialogOpen(false)
+    void auth.actions.refreshProfile()
+  }
+
+  async function handleSaveFile(file: File, previewUrl: string) {
+    const profile = auth.profile
+
+    if (!profile) {
+      return
+    }
+
+    setIsSavingPhoto(true)
+
+    try {
+      await notify.track((async () => {
+        const avatarUrl = await uploadProfileAvatarFile(file, profile.authUserId)
+        await saveAvatar(avatarUrl, previewUrl)
+      })(), settingsCopy.feedback.profile)
+    } finally {
+      setIsSavingPhoto(false)
+    }
+  }
+
+  async function handleSaveUrl(avatarUrl: string | null) {
+    setIsSavingPhoto(true)
+
+    try {
+      await notify.track(saveAvatar(avatarUrl), settingsCopy.feedback.profile)
+    } finally {
+      setIsSavingPhoto(false)
+    }
+  }
 
   return (
     <>
@@ -57,9 +119,12 @@ export function UserMenu() {
             aria-label={sidebarCopy.menu.openUserMenu(displayName)}
           >
             <Avatar>
+              {auth.profile?.avatarUrl ? (
+                <AvatarImage src={auth.profile.avatarUrl} alt="" />
+              ) : null}
               <AvatarFallback>{fallback}</AvatarFallback>
             </Avatar>
-            <span className="hidden flex-col items-start md:flex">
+            <span className="hidden flex-col items-center text-center md:flex">
               <span className="text-sm font-medium leading-none">{displayName}</span>
               <span className="text-xs text-muted-foreground">{displayMeta}</span>
             </span>
@@ -71,7 +136,13 @@ export function UserMenu() {
           className="w-64 max-w-[calc(100vw-1rem)]"
         >
           <DropdownMenuLabel className="p-0 font-normal">
-            <div className="grid px-1 py-1.5 text-left text-sm leading-tight">
+            <div className="grid justify-items-center gap-2 px-1 py-2 text-center text-sm leading-tight">
+              <Avatar size="lg">
+                {auth.profile?.avatarUrl ? (
+                  <AvatarImage src={auth.profile.avatarUrl} alt="" />
+                ) : null}
+                <AvatarFallback>{fallback}</AvatarFallback>
+              </Avatar>
               <span className="truncate font-medium">{displayName}</span>
               <span className="truncate text-xs text-muted-foreground">
                 {displayMeta}
@@ -85,6 +156,15 @@ export function UserMenu() {
                 <UserRoundIcon />
                 {sidebarCopy.menu.myProfile}
               </Link>
+            </DropdownMenuItem>
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault()
+                setIsPhotoDialogOpen(true)
+              }}
+            >
+              <ImageUpIcon />
+              {sidebarCopy.menu.changePhoto}
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to={appRoutePaths.settings}>
@@ -122,6 +202,18 @@ export function UserMenu() {
         actionLabel={sidebarCopy.dialog.signOutConfirm}
         onAction={auth.actions.logoutAsync}
       />
+
+      {isPhotoDialogOpen ? (
+        <ProfilePhotoDialog
+          avatarUrl={auth.profile?.avatarUrl ?? null}
+          fallback={fallback}
+          isSaving={isSavingPhoto}
+          onOpenChange={setIsPhotoDialogOpen}
+          onSaveFile={handleSaveFile}
+          onSaveUrl={handleSaveUrl}
+          open={isPhotoDialogOpen}
+        />
+      ) : null}
     </>
   )
 }

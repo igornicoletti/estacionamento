@@ -49,6 +49,8 @@ Deno.serve(async (request) => {
       .select("user_id")
 
     if (response.error) {
+      // Supabase Auth passkeys are still beta; keep this enrichment optional so
+      // the users grid does not fail when WebAuthn credential metadata is absent.
       console.error("auth_factors_passkey_lookup_unavailable", {
         error: response.error.message,
       })

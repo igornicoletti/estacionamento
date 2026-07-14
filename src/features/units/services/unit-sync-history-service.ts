@@ -5,6 +5,8 @@ import {
 } from "@/features/sync/utils/sync-history-errors"
 import { type UnitSyncHistoryEntry } from "../types/units-sync-history-types"
 
+const SYNC_HISTORY_LIMIT = 50
+
 type RawUnitSyncRunRow = {
   id: string
   mode: "full" | "incremental"
@@ -109,7 +111,7 @@ export async function listUnitSyncHistory(): Promise<UnitSyncHistoryEntry[]> {
       "error_details",
     ].join(","))
     .order("started_at", { ascending: false })
-    .limit(50)
+    .limit(SYNC_HISTORY_LIMIT)
 
   if (error) {
     throw new Error(error.message)

@@ -3,10 +3,10 @@ export const appCopy = {
     route: "Carregando aplicação",
   },
   navigation: {
-    homeLabel: "Início",
+    homeLabel: "Dashboard",
   },
   routeGroups: {
-    workspace: "Área de trabalho",
+    workspace: "",
     records: "Cadastros",
     commercial: "Comercial",
     access: "Acesso",
@@ -15,7 +15,7 @@ export const appCopy = {
   },
   routes: {
     home: {
-      label: "Início",
+      label: "Dashboard",
       description: "Página inicial da área autenticada.",
     },
     units: {

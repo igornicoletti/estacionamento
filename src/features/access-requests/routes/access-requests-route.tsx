@@ -5,7 +5,6 @@ import { Navigate } from "react-router"
 import { appRoutePaths } from "@/app/router/route-registry"
 import { DataTable } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
-import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppDialog } from "@/components/shared/app-dialog"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
@@ -16,19 +15,16 @@ import {
   FieldError,
   FieldLabel,
 } from "@/components/ui/field"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Textarea } from "@/components/ui/textarea"
 import { cn } from "@/lib/utils"
 
 import { accessRequestsCopy } from "../access-requests-copy"
-import { createPhoneChangeRequestsColumns } from "../columns/phone-change-requests-columns"
 import { createRecoveryRequestsColumns } from "../columns/recovery-requests-columns"
 import { useAccessRequests } from "../hooks/use-access-requests"
 import {
   type AccessRecoveryRequestRecord,
   type AccessRequestDetailsTarget,
   type AccessRequestReviewDecision,
-  type PendingPhoneChangeRequestRecord,
 } from "../types/access-requests-types"
 import {
   getAccessRequestDetailItems,
@@ -37,16 +33,10 @@ import {
 } from "../utils/access-requests-details-model"
 
 const RECOVERY_TABLE_STATE_KEY = "rmc.table.access-requests.recovery.state.v2"
-const PHONE_TABLE_STATE_KEY = "rmc.table.access-requests.phone.state.v2"
 
 interface PendingRecoveryReview {
   decision: AccessRequestReviewDecision
   request: AccessRecoveryRequestRecord
-}
-
-interface PendingPhoneReview {
-  decision: AccessRequestReviewDecision
-  request: PendingPhoneChangeRequestRecord
 }
 
 function getRecoveryDialogTitle(decision: AccessRequestReviewDecision) {
@@ -59,18 +49,6 @@ function getRecoveryDialogDescription(decision: AccessRequestReviewDecision) {
   return decision === "approved"
     ? accessRequestsCopy.dialogs.approveDescription
     : accessRequestsCopy.dialogs.denyDescription
-}
-
-function getPhoneDialogTitle(decision: AccessRequestReviewDecision) {
-  return decision === "approved"
-    ? accessRequestsCopy.dialogs.phoneApproveTitle
-    : accessRequestsCopy.dialogs.phoneDenyTitle
-}
-
-function getPhoneDialogDescription(decision: AccessRequestReviewDecision) {
-  return decision === "approved"
-    ? accessRequestsCopy.dialogs.phoneApproveDescription
-    : accessRequestsCopy.dialogs.phoneDenyDescription
 }
 
 interface AccessRequestsPanelProps {
@@ -90,17 +68,13 @@ export function AccessRequestsPanel({
     isLoading,
     isReviewing,
     refetch,
-    reviewPhone,
     reviewRecovery,
   } = useAccessRequests()
   const [recoverySearch, setRecoverySearch] = React.useState("")
-  const [phoneSearch, setPhoneSearch] = React.useState("")
   const [detailsTarget, setDetailsTarget] =
     React.useState<AccessRequestDetailsTarget | null>(null)
   const [pendingRecoveryReview, setPendingRecoveryReview] =
     React.useState<PendingRecoveryReview | null>(null)
-  const [pendingPhoneReview, setPendingPhoneReview] =
-    React.useState<PendingPhoneReview | null>(null)
   const [reviewReason, setReviewReason] = React.useState("")
   const [isReasonTouched, setIsReasonTouched] = React.useState(false)
 
@@ -118,20 +92,6 @@ export function AccessRequestsPanel({
           setPendingRecoveryReview({ decision, request })
           setReviewReason("")
           setIsReasonTouched(false)
-        },
-      }),
-    [canReview]
-  )
-
-  const phoneColumns = React.useMemo(
-    () =>
-      createPhoneChangeRequestsColumns({
-        canReview,
-        onOpenDetails: (request) => {
-          setDetailsTarget({ type: "phone", request })
-        },
-        onReview: (request, decision) => {
-          setPendingPhoneReview({ decision, request })
         },
       }),
     [canReview]
@@ -164,22 +124,6 @@ export function AccessRequestsPanel({
     setIsReasonTouched(false)
   }
 
-  async function handleConfirmPhoneReview() {
-    if (!pendingPhoneReview) {
-      return
-    }
-
-    const { decision, request } = pendingPhoneReview
-
-    await notify.track(reviewPhone(request.authUserId, decision), {
-      error: accessRequestsCopy.feedback.phoneChanges[decision].error,
-      loading: accessRequestsCopy.feedback.phoneChanges[decision].loading,
-      success: accessRequestsCopy.feedback.phoneChanges[decision].success,
-    })
-
-    setPendingPhoneReview(null)
-  }
-
   return (
     <div className={cn("flex min-h-0 flex-1 flex-col gap-4", className)}>
       {showHeader ? (
@@ -189,92 +133,38 @@ export function AccessRequestsPanel({
         />
       ) : null}
 
-      <Tabs defaultValue="recovery" className="min-h-0 flex-1">
-        <TabsList>
-          <TabsTrigger value="recovery">
-            {`${accessRequestsCopy.tabs.recovery} (${data.recoveryRequests.length})`}
-          </TabsTrigger>
-          <TabsTrigger value="phone-changes">
-            {`${accessRequestsCopy.tabs.phoneChanges} (${data.phoneChanges.length})`}
-          </TabsTrigger>
-        </TabsList>
-
-        <TabsContent
-          value="recovery"
-          className="min-h-0 flex-1 data-[state=active]:flex data-[state=inactive]:hidden"
-        >
-          <DataTable
-            columns={recoveryColumns}
-            data={data.recoveryRequests}
-            getRowId={(request) => request.id}
-            globalSearch={{
-              columnIds: ["phoneMasked", "email", "description"],
-              placeholder: accessRequestsCopy.tables.recovery.searchPlaceholder,
-            }}
-            globalFilterValue={recoverySearch}
-            onGlobalFilterChange={setRecoverySearch}
-            emptyState={(
-              <AppEmptyState
-                media={<DatabaseIcon />}
-                title={accessRequestsCopy.tables.recovery.emptyTitle}
-                description={accessRequestsCopy.tables.recovery.emptyDescription}
-              />
-            )}
-            filteredEmptyState={(
-              <AppEmptyState
-                media={<DatabaseIcon />}
-                title={accessRequestsCopy.tables.recovery.filteredEmptyTitle}
-                description={accessRequestsCopy.tables.recovery.filteredEmptyDescription}
-              />
-            )}
-            tableStateStorageKey={RECOVERY_TABLE_STATE_KEY}
-            isLoading={isLoading}
-            error={error}
-            onRetry={() => {
-              void refetch()
-            }}
-            enableViewOptions
+      <DataTable
+        columns={recoveryColumns}
+        data={data.recoveryRequests}
+        getRowId={(request) => request.id}
+        globalSearch={{
+          columnIds: ["phoneMasked", "email", "description"],
+          placeholder: accessRequestsCopy.tables.recovery.searchPlaceholder,
+        }}
+        globalFilterValue={recoverySearch}
+        onGlobalFilterChange={setRecoverySearch}
+        emptyState={(
+          <AppEmptyState
+            media={<DatabaseIcon />}
+            title={accessRequestsCopy.tables.recovery.emptyTitle}
+            description={accessRequestsCopy.tables.recovery.emptyDescription}
           />
-        </TabsContent>
-
-        <TabsContent
-          value="phone-changes"
-          className="min-h-0 flex-1 data-[state=active]:flex data-[state=inactive]:hidden"
-        >
-          <DataTable
-            columns={phoneColumns}
-            data={data.phoneChanges}
-            getRowId={(request) => request.id}
-            globalSearch={{
-              columnIds: ["name", "currentPhoneMasked", "pendingPhoneMasked"],
-              placeholder: accessRequestsCopy.tables.phoneChanges.searchPlaceholder,
-            }}
-            globalFilterValue={phoneSearch}
-            onGlobalFilterChange={setPhoneSearch}
-            emptyState={(
-              <AppEmptyState
-                media={<DatabaseIcon />}
-                title={accessRequestsCopy.tables.phoneChanges.emptyTitle}
-                description={accessRequestsCopy.tables.phoneChanges.emptyDescription}
-              />
-            )}
-            filteredEmptyState={(
-              <AppEmptyState
-                media={<DatabaseIcon />}
-                title={accessRequestsCopy.tables.phoneChanges.filteredEmptyTitle}
-                description={accessRequestsCopy.tables.phoneChanges.filteredEmptyDescription}
-              />
-            )}
-            tableStateStorageKey={PHONE_TABLE_STATE_KEY}
-            isLoading={isLoading}
-            error={error}
-            onRetry={() => {
-              void refetch()
-            }}
-            enableViewOptions
+        )}
+        filteredEmptyState={(
+          <AppEmptyState
+            media={<DatabaseIcon />}
+            title={accessRequestsCopy.tables.recovery.filteredEmptyTitle}
+            description={accessRequestsCopy.tables.recovery.filteredEmptyDescription}
           />
-        </TabsContent>
-      </Tabs>
+        )}
+        tableStateStorageKey={RECOVERY_TABLE_STATE_KEY}
+        isLoading={isLoading}
+        error={error}
+        onRetry={() => {
+          void refetch()
+        }}
+        enableViewOptions
+      />
 
       <AppDetailsSheet
         open={Boolean(detailsTarget)}
@@ -365,32 +255,6 @@ export function AccessRequestsPanel({
         </Field>
       </AppDialog>
 
-      <AppAlertDialog
-        open={pendingPhoneReview !== null}
-        onOpenChange={(open) => {
-          if (!open) {
-            setPendingPhoneReview(null)
-          }
-        }}
-        title={
-          pendingPhoneReview
-            ? getPhoneDialogTitle(pendingPhoneReview.decision)
-            : undefined
-        }
-        description={
-          pendingPhoneReview
-            ? getPhoneDialogDescription(pendingPhoneReview.decision)
-            : undefined
-        }
-        cancelLabel={accessRequestsCopy.actions.cancel}
-        actionLabel={
-          pendingPhoneReview?.decision === "approved"
-            ? accessRequestsCopy.actions.confirmApprove
-            : accessRequestsCopy.actions.confirmDeny
-        }
-        closeOnAction={false}
-        onAction={handleConfirmPhoneReview}
-      />
     </div>
   )
 }

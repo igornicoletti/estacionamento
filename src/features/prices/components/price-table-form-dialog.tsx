@@ -87,7 +87,6 @@ export function PriceTableFormDialog({
   const [endsAt, setEndsAt] = React.useState("")
   const [status, setStatus] = React.useState<PriceRecordStatus>("active")
   const [reason, setReason] = React.useState("")
-  const [notes, setNotes] = React.useState("")
   const [errors, setErrors] = React.useState<PriceTableFormErrors>({})
   const unitsSnapshot = useUnits()
   const unitOptions = React.useMemo<UnitOption[]>(
@@ -115,7 +114,6 @@ export function PriceTableFormDialog({
     setEndsAt("")
     setStatus("active")
     setReason("")
-    setNotes("")
     setErrors({})
   }
 
@@ -206,7 +204,7 @@ export function PriceTableFormDialog({
       endsAt: toIsoOrNull(endsAt),
       status,
       reason,
-      notes: notes.trim() ? notes : null,
+      notes: null,
     })
 
     handleOpenChange(false)
@@ -218,12 +216,26 @@ export function PriceTableFormDialog({
       onOpenChange={handleOpenChange}
       title={pricesCopy.form.title}
       description={pricesCopy.form.description}
+      footerClassName="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:justify-stretch"
       footer={(
         <>
-          <Button type="button" variant="outline" size="lg" disabled={isSaving} onClick={() => handleOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            className="w-full"
+            disabled={isSaving}
+            onClick={() => handleOpenChange(false)}
+          >
             {pricesCopy.actions.cancel}
           </Button>
-          <Button type="submit" size="lg" disabled={isSaving} form="price-table-form">
+          <Button
+            type="submit"
+            size="lg"
+            className="w-full"
+            disabled={isSaving}
+            form="price-table-form"
+          >
             {pricesCopy.actions.save}
           </Button>
         </>
@@ -430,15 +442,6 @@ export function PriceTableFormDialog({
           {errors.reason ? <FieldError>{errors.reason}</FieldError> : null}
         </Field>
 
-        <Field>
-          <FieldLabel htmlFor="price-notes">{pricesCopy.form.notes}</FieldLabel>
-          <Textarea
-            id="price-notes"
-            value={notes}
-            onChange={(event) => setNotes(event.target.value)}
-            disabled={isSaving}
-          />
-        </Field>
       </form>
     </AppDialog>
   )

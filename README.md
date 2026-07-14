@@ -109,6 +109,8 @@ Copie as variáveis necessárias a partir de `.env.example`.
 
 Em produção, `VITE_APP_ORIGIN` e `VITE_SUPABASE_URL` devem usar HTTPS. O client valida a origem em runtime para evitar execução em domínio não autorizado.
 
+O projeto já atende à exigência futura de `@supabase/supabase-js` por TypeScript 5+ usando TypeScript 6. Passkeys/WebAuthn continuam tratadas como recurso beta do Supabase: enriquecimentos administrativos de passkey são opcionais e não bloqueiam a listagem principal de usuários quando a origem de metadados WebAuthn não está disponível.
+
 ## Supabase
 
 Configuração local principal em `supabase/config.toml`:

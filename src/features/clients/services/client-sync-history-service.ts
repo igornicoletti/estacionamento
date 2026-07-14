@@ -5,6 +5,8 @@ import {
 } from "@/features/sync/utils/sync-history-errors"
 import { type ClientSyncHistoryEntry } from "../types/clients-sync-history-types"
 
+const SYNC_HISTORY_LIMIT = 50
+
 type RawClientSyncRunRow = {
   id: string
   mode: "full" | "incremental"
@@ -129,7 +131,7 @@ export async function listClientSyncHistory(): Promise<ClientSyncHistoryEntry[]>
       "error_details",
     ].join(","))
     .order("started_at", { ascending: false })
-    .limit(50)
+    .limit(SYNC_HISTORY_LIMIT)
 
   if (error) {
     throw new Error(error.message)

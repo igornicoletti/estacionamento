@@ -35,7 +35,7 @@ export function AppDetailsSheet({
   return (
     <AppSheet {...props}>
       {items.length > 0 ? (
-        <dl className="grid gap-4 py-4">
+        <dl className="grid gap-4 px-4 pb-4">
           {items.map((item, index) => (
             <div key={item.id ?? index} className="grid gap-1">
               <dt className="text-sm font-medium text-muted-foreground">

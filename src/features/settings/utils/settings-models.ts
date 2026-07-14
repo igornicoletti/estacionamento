@@ -16,6 +16,8 @@ export function mapAuthProfileToSettingsProfile(
     id: profile.id,
     authUserId: profile.authUserId,
     name: profile.name,
+    avatarPath: profile.avatarPath,
+    avatarUrl: profile.avatarUrl,
     cpfMasked: normalizeText(profile.cpfMasked),
     email: normalizeText(profile.email),
     phoneMasked: normalizeText(profile.phoneMasked),

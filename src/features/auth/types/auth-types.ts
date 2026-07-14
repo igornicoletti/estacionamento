@@ -19,6 +19,7 @@ export interface AuthProfile {
   phoneMasked: string
   cpfMasked: string | null
   email: string | null
+  avatarPath: string | null
   avatarUrl: string | null
   passkeyStatus: "active" | "inactive"
 }
@@ -26,6 +27,12 @@ export interface AuthProfile {
 export interface AuthSessionPayload {
   access_token: string
   refresh_token: string
+}
+
+export interface AuthPasskeyRegistrationResult {
+  createdAt: string | null
+  friendlyName: string | null
+  id: string
 }
 
 export interface AuthPasswordResponse {

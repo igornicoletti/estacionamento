@@ -21,6 +21,7 @@ export const permissionsCopy = {
     critical: "Crítica",
     description: "Descrição",
     key: "Chave",
+    emptyValue: "—",
     noneRole: "Nenhum perfil",
     noRoleWithoutAccess: "Nenhum",
     yes: "Sim",

@@ -27,6 +27,8 @@ export type AppDialogProps = Omit<
   children?: React.ReactNode
   footer?: React.ReactNode
   className?: string
+  bodyClassName?: string
+  footerClassName?: string
   contentProps?: Omit<
     React.ComponentProps<typeof DialogContent>,
     "children" | "className"
@@ -40,6 +42,8 @@ export function AppDialog({
   children,
   footer,
   className,
+  bodyClassName,
+  footerClassName,
   contentProps,
   ...props
 }: AppDialogProps) {
@@ -59,10 +63,12 @@ export function AppDialog({
             ) : null}
           </DialogHeader>
         ) : null}
-        <div className="-mx-4 no-scrollbar max-h-[50vh] overflow-y-auto px-4">
+        <div className={cn("-mx-4 no-scrollbar max-h-[50vh] overflow-y-auto px-6 py-4", bodyClassName)}>
           {children}
         </div>
-        {isRenderable(footer) ? <DialogFooter>{footer}</DialogFooter> : null}
+        {isRenderable(footer) ? (
+          <DialogFooter className={footerClassName}>{footer}</DialogFooter>
+        ) : null}
       </DialogContent>
     </Dialog>
   )

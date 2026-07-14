@@ -3,8 +3,8 @@ import {
   BellIcon,
   Building2Icon,
   ClipboardListIcon,
-  HomeIcon,
   KeyRoundIcon,
+  LayoutDashboardIcon,
   ScrollTextIcon,
   ShieldCheckIcon,
   TruckIcon,
@@ -57,7 +57,7 @@ export const sidebarBrand = {
 }
 
 export const routeIconById = {
-  [appRouteIds.home]: HomeIcon,
+  [appRouteIds.home]: LayoutDashboardIcon,
   [appRouteIds.units]: Building2Icon,
   [appRouteIds.clients]: TruckIcon,
   [appRouteIds.prices]: BadgeDollarSignIcon,

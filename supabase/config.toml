@@ -409,6 +409,9 @@ verify_jwt = true
 [functions.profile-request-phone-change]
 verify_jwt = true
 
+[functions.profile-update]
+verify_jwt = true
+
 [functions.units-sync]
 verify_jwt = false
 

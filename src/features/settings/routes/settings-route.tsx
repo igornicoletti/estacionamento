@@ -1,9 +1,17 @@
 import type { ReactNode } from "react"
+import * as React from "react"
 
-import { AlertTriangleIcon, RefreshCcwIcon, ShieldAlertIcon } from "lucide-react"
+import {
+  AlertTriangleIcon,
+  RefreshCcwIcon,
+  ShieldAlertIcon,
+  ShieldCheckIcon,
+} from "lucide-react"
 
 import { PageHeader, PageSection } from "@/components/page"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { notify } from "@/components/toast"
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 
@@ -21,7 +29,50 @@ function SettingsCenteredState({ children }: { children: ReactNode }) {
 }
 
 export function SettingsRoute() {
-  const { error, isLoading, profile, refreshProfile, security } = useSettings()
+  const {
+    error,
+    isLoading,
+    profile,
+    refreshProfile,
+    registerPasskey,
+    saveProfile,
+    security,
+    uploadAvatarFile,
+  } = useSettings()
+  const [isSavingProfile, setIsSavingProfile] = React.useState(false)
+  const [isRegisteringPasskey, setIsRegisteringPasskey] = React.useState(false)
+
+  async function handleSaveProfile(
+    input: Parameters<typeof saveProfile>[0],
+    avatarFile: File | null
+  ) {
+    setIsSavingProfile(true)
+
+    try {
+      await notify.track((async () => {
+        const avatarUrl = avatarFile
+          ? await uploadAvatarFile(avatarFile)
+          : input.avatarUrl
+
+        await saveProfile({
+          ...input,
+          avatarUrl,
+        })
+      })(), settingsCopy.feedback.profile)
+    } finally {
+      setIsSavingProfile(false)
+    }
+  }
+
+  async function handleRegisterPasskey() {
+    setIsRegisteringPasskey(true)
+
+    try {
+      return await notify.track(registerPasskey(), settingsCopy.feedback.passkey)
+    } finally {
+      setIsRegisteringPasskey(false)
+    }
+  }
 
   if (isLoading) {
     return (
@@ -34,7 +85,7 @@ export function SettingsRoute() {
     )
   }
 
-  if (error) {
+  if (error && !profile) {
     return (
       <PageSection>
         <PageHeader title={settingsCopy.page.title} subtitle={settingsCopy.page.subtitle} />
@@ -93,16 +144,41 @@ export function SettingsRoute() {
   }
 
   return (
-    <PageSection>
+    <PageSection className="flex-none pb-4">
       <PageHeader title={settingsCopy.page.title} subtitle={settingsCopy.page.subtitle} />
       <div className="grid gap-4">
-        <SettingsProfileSection profile={profile} />
-        <SettingsSecuritySection security={security} />
-        <AppEmptyState
-          media={<ShieldAlertIcon />}
-          title={settingsCopy.audit.readOnlyTitle}
-          description={settingsCopy.audit.readOnlyDescription}
+        {error ? (
+          <Alert className="border-destructive/30 bg-destructive/5 text-foreground">
+            <AlertTriangleIcon className="text-destructive" aria-hidden="true" />
+            <AlertTitle>{settingsCopy.error.noticeTitle}</AlertTitle>
+            <AlertDescription>{error}</AlertDescription>
+          </Alert>
+        ) : null}
+        <SettingsProfileSection
+          key={[
+            profile.id,
+            profile.name,
+            profile.email ?? "",
+            profile.phoneMasked ?? "",
+            profile.avatarPath ?? "",
+            profile.avatarUrl ?? "",
+          ].join(":")}
+          profile={profile}
+          isSaving={isSavingProfile}
+          onSave={handleSaveProfile}
         />
+        <SettingsSecuritySection
+          security={security}
+          isRegisteringPasskey={isRegisteringPasskey}
+          onRegisterPasskey={handleRegisterPasskey}
+        />
+        <Alert className="w-full border-0 bg-secondary text-foreground">
+          <ShieldCheckIcon className="text-primary" aria-hidden="true" />
+          <AlertTitle>{settingsCopy.audit.readOnlyTitle}</AlertTitle>
+          <AlertDescription className="text-foreground">
+            {settingsCopy.audit.readOnlyDescription}
+          </AlertDescription>
+        </Alert>
       </div>
     </PageSection>
   )

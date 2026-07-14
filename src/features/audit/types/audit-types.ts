@@ -29,6 +29,8 @@ export const auditEventLabels: Record<string, string> = {
   access_recovery_requested: "Recuperação de acesso solicitada",
   access_recovery_reviewed: "Recuperação de acesso revisada",
   "client.synced": "Cliente sincronizado",
+  login_failed: "Falha de login",
+  login_success: "Login realizado",
   login_passkey_success: "Login com passkey",
   passkey_registered: "Passkey registrada",
   passkey_reset_requested: "Redefinição de passkey solicitada",
@@ -36,6 +38,7 @@ export const auditEventLabels: Record<string, string> = {
   password_reset_requested: "Redefinição de senha solicitada",
   phone_change_requested: "Alteração de telefone solicitada",
   phone_change_reviewed: "Alteração de telefone revisada",
+  profile_updated: "Perfil atualizado",
   sessions_revoked: "Sessões revogadas",
   temporary_lock_cleared: "Bloqueio temporário removido",
   "unit.synced": "Unidade sincronizada",
@@ -49,7 +52,11 @@ export function getAuditEventLabel(event: string): string {
     return auditEventLabels[event]
   }
 
-  const humanized = event.replace(/[._]+/g, " ").trim()
+  const humanized = event
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[._-]+/g, " ")
+    .trim()
+    .toLocaleLowerCase("pt-BR")
 
   if (!humanized) {
     return event

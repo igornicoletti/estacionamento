@@ -4,16 +4,16 @@ import * as React from "react"
 import { Controller, useForm } from "react-hook-form"
 import { useSearchParams } from "react-router"
 
-import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
-import { AppDialog } from "@/components/shared/app-dialog"
-import { AppPasswordField } from "@/components/shared/app-password-field"
-import { AppDetailsSheet, type AppDetailsSheetItem } from "@/components/shared/app-details-sheet"
 import {
   createDataTableFilterOptions,
   DataTable,
   type DataTableStateAction,
 } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
+import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
+import { AppDetailsSheet, type AppDetailsSheetItem } from "@/components/shared/app-details-sheet"
+import { AppDialog } from "@/components/shared/app-dialog"
+import { AppPasswordField } from "@/components/shared/app-password-field"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -36,14 +36,13 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { AccessRequestsPanel, accessRequestsCopy } from "@/features/access-requests"
-import { AUTH_PERMISSION, AUTH_ROLE_KEY } from "@/features/auth"
-import { useAuth } from "@/features/auth"
+import { shouldBypassAuthInDev } from "@/config"
+import { accessRequestsCopy, AccessRequestsPanel } from "@/features/access-requests"
+import { AUTH_PERMISSION, AUTH_ROLE_KEY, useAuth } from "@/features/auth"
 import { formatCpfInput } from "@/features/auth/validation"
 import { useUnits } from "@/features/units"
 import { formatPhone, getSupabaseBrowserClient, onlyDigits } from "@/lib"
 import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
-import { shouldBypassAuthInDev } from "@/config"
 
 import { createUsersColumns } from "../columns/users-columns"
 import { useUsers } from "../hooks/use-users"
@@ -196,7 +195,7 @@ export function UsersRoute() {
     auth.access.hasPermission(AUTH_PERMISSION.accessRequestsReview)
   const selectedTab =
     canReadAccessRequests &&
-    searchParams.get("tab") === ACCESS_REQUESTS_TAB_VALUE
+      searchParams.get("tab") === ACCESS_REQUESTS_TAB_VALUE
       ? ACCESS_REQUESTS_TAB_VALUE
       : USERS_TAB_VALUE
 
@@ -887,9 +886,9 @@ export function UsersRoute() {
         <Tabs
           value={selectedTab}
           onValueChange={handleUsersTabChange}
-          className="min-h-0 flex-1"
+          className="min-h-0 flex-1 flex-col data-[state=active]:flex data-[state=inactive]:hidden"
         >
-          <TabsList>
+          <TabsList variant="line">
             <TabsTrigger value={USERS_TAB_VALUE}>
               {usersCopy.page.title}
             </TabsTrigger>
@@ -899,13 +898,11 @@ export function UsersRoute() {
           </TabsList>
           <TabsContent
             value={USERS_TAB_VALUE}
-            className="min-h-0 flex-1 data-[state=active]:flex data-[state=inactive]:hidden"
           >
             {usersTable}
           </TabsContent>
           <TabsContent
             value={ACCESS_REQUESTS_TAB_VALUE}
-            className="min-h-0 flex-1 data-[state=active]:flex data-[state=inactive]:hidden"
           >
             <AccessRequestsPanel
               canReview={canReviewAccessRequests}

@@ -9,8 +9,7 @@ import {
   type VipRule,
 } from "../types/vip-rules-types"
 import {
-  createVipClientRuleId,
-  createVipVehicleRuleId,
+  formatVipRuleVehicleScope,
   isClientVipFromRules,
   isVehicleVipFromRules,
 } from "../utils/vip-rules-models"
@@ -32,54 +31,163 @@ function ensurePositiveInteger(value: number, message: string) {
   }
 }
 
-function buildVipRulePayload(input: SaveVipRuleInput) {
-  ensurePositiveInteger(input.clientId, rulesCopy.form.validation.clientId)
-
-  if (input.clientName.trim().length === 0) {
-    throw new Error(rulesCopy.form.validation.clientName)
+function ensurePositiveNumber(value: number, message: string) {
+  if (!Number.isFinite(value) || value <= 0) {
+    throw new Error(message)
   }
+}
 
+function normalizeUnitIds(unitIds: readonly string[]) {
+  return Array.from(
+    new Set(unitIds.map((unitId) => unitId.trim()).filter(Boolean))
+  ).sort((left, right) => left.localeCompare(right))
+}
+
+function ensureUnitScope(unitIds: readonly string[]) {
+  if (unitIds.length === 0) {
+    throw new Error(rulesCopy.form.validation.unitIds)
+  }
+}
+
+function validateRuleInput(input: SaveVipRuleInput) {
   if (input.reason.trim().length < 10) {
     throw new Error(rulesCopy.form.validation.reason)
   }
 
-  if (input.targetType === "vehicle") {
-    if (!input.vehicleId || input.vehicleId <= 0) {
-      throw new Error(rulesCopy.form.validation.vehicleId)
+  if (input.ruleType === "vip") {
+    ensurePositiveInteger(input.clientId, rulesCopy.form.validation.clientId)
+
+    if (input.clientName.trim().length === 0) {
+      throw new Error(rulesCopy.form.validation.clientName)
     }
 
-    if (!input.vehiclePlate || input.vehiclePlate.trim().length === 0) {
-      throw new Error(rulesCopy.form.validation.vehiclePlate)
+    if (input.targetType === "vehicle") {
+      if (!input.vehicleId || input.vehicleId <= 0) {
+        throw new Error(rulesCopy.form.validation.vehicleId)
+      }
+
+      if (!input.vehiclePlate || input.vehiclePlate.trim().length === 0) {
+        throw new Error(rulesCopy.form.validation.vehiclePlate)
+      }
+    }
+  }
+
+  if (input.ruleType === "fuel_benefit") {
+    ensurePositiveNumber(input.fuelMinLiters, rulesCopy.form.validation.fuelMinLiters)
+    ensurePositiveNumber(input.benefitHours, rulesCopy.form.validation.benefitHours)
+
+    if (input.scope === "unit") {
+      ensureUnitScope(input.unitIds)
+    }
+  }
+
+  if (input.ruleType === "yard_cleaning_occupancy") {
+    ensureUnitScope(input.unitIds)
+    ensurePositiveInteger(
+      input.yardOccupancyThreshold,
+      rulesCopy.form.validation.yardOccupancyThreshold
+    )
+  }
+
+  if (input.ruleType === "yard_cleaning_stale_vehicle") {
+    ensurePositiveNumber(
+      input.yardStaleVehicleHours,
+      rulesCopy.form.validation.yardStaleVehicleHours
+    )
+
+    if (input.scope === "unit") {
+      ensureUnitScope(input.unitIds)
+    }
+  }
+}
+
+function buildCommercialRulePayload(input: SaveVipRuleInput) {
+  validateRuleInput(input)
+
+  if (input.ruleType === "vip") {
+    return {
+      p_active: input.active,
+      p_applies_to_all_units: input.appliesToAllUnits,
+      p_benefit_hours: null,
+      p_client_id: input.clientId,
+      p_client_name: input.clientName.trim(),
+      p_fuel_min_liters: null,
+      p_notes: input.notes?.trim() ? input.notes.trim() : null,
+      p_reason: input.reason.trim(),
+      p_target_type: input.targetType,
+      p_type: input.ruleType,
+      p_unit_ids: input.appliesToAllUnits ? [] : normalizeUnitIds(input.unitIds),
+      p_vehicle_id: input.targetType === "vehicle" ? input.vehicleId : null,
+      p_vehicle_plate: input.targetType === "vehicle" ? input.vehiclePlate?.trim() ?? null : null,
+      p_yard_occupancy_threshold: null,
+      p_yard_stale_vehicle_hours: null,
+    }
+  }
+
+  if (input.ruleType === "fuel_benefit") {
+    return {
+      p_active: input.active,
+      p_applies_to_all_units: input.scope === "network",
+      p_benefit_hours: input.benefitHours,
+      p_client_id: null,
+      p_client_name: null,
+      p_fuel_min_liters: input.fuelMinLiters,
+      p_notes: input.notes?.trim() ? input.notes.trim() : null,
+      p_reason: input.reason.trim(),
+      p_target_type: input.scope,
+      p_type: input.ruleType,
+      p_unit_ids: input.scope === "network" ? [] : normalizeUnitIds(input.unitIds),
+      p_vehicle_id: null,
+      p_vehicle_plate: null,
+      p_yard_occupancy_threshold: null,
+      p_yard_stale_vehicle_hours: null,
+    }
+  }
+
+  if (input.ruleType === "yard_cleaning_occupancy") {
+    return {
+      p_active: input.active,
+      p_applies_to_all_units: false,
+      p_benefit_hours: null,
+      p_client_id: null,
+      p_client_name: null,
+      p_fuel_min_liters: null,
+      p_notes: input.notes?.trim() ? input.notes.trim() : null,
+      p_reason: input.reason.trim(),
+      p_target_type: "unit",
+      p_type: input.ruleType,
+      p_unit_ids: normalizeUnitIds(input.unitIds),
+      p_vehicle_id: null,
+      p_vehicle_plate: null,
+      p_yard_occupancy_threshold: input.yardOccupancyThreshold,
+      p_yard_stale_vehicle_hours: null,
     }
   }
 
   return {
-    id:
-      input.targetType === "client"
-        ? createVipClientRuleId(input.clientId)
-        : createVipVehicleRuleId(input.clientId, input.vehicleId ?? 0),
-    type: "vip",
-    target_type: input.targetType,
-    client_id: input.clientId,
-    client_name: input.clientName.trim(),
-    vehicle_id: input.targetType === "vehicle" ? input.vehicleId : null,
-    vehicle_plate: input.targetType === "vehicle" ? input.vehiclePlate?.trim() ?? null : null,
-    applies_to_all_vehicles: input.targetType === "client",
-    vehicle_ids: input.targetType === "vehicle" && input.vehicleId ? [input.vehicleId] : [],
-    applies_to_all_units: input.appliesToAllUnits,
-    unit_ids: input.appliesToAllUnits ? [] : input.unitIds,
-    status: input.active ? "active" : "inactive",
-    starts_at: new Date().toISOString(),
-    reason: input.reason.trim(),
-    notes: input.notes?.trim() ? input.notes.trim() : null,
+    p_active: input.active,
+    p_applies_to_all_units: input.scope === "network",
+    p_benefit_hours: null,
+    p_client_id: null,
+    p_client_name: null,
+    p_fuel_min_liters: null,
+    p_notes: input.notes?.trim() ? input.notes.trim() : null,
+    p_reason: input.reason.trim(),
+    p_target_type: input.scope,
+    p_type: input.ruleType,
+    p_unit_ids: input.scope === "network" ? [] : normalizeUnitIds(input.unitIds),
+    p_vehicle_id: null,
+    p_vehicle_plate: null,
+    p_yard_occupancy_threshold: null,
+    p_yard_stale_vehicle_hours: input.yardStaleVehicleHours,
   }
 }
 
-async function getVipRuleById(id: string): Promise<VipRule> {
+async function getRuleById(id: string): Promise<VipRule> {
   const supabase = getSupabaseOrThrow()
   const { data, error } = await supabase
     .from("commercial_rules")
-    .select(vipRuleSelect)
+    .select(commercialRuleSelect)
     .eq("id", id)
     .single()
 
@@ -96,8 +204,9 @@ async function getVipRuleById(id: string): Promise<VipRule> {
   return rule
 }
 
-const vipRuleSelect = [
+const commercialRuleSelect = [
   "id",
+  "type",
   "target_type",
   "client_id",
   "client_name",
@@ -107,6 +216,10 @@ const vipRuleSelect = [
   "vehicle_ids",
   "applies_to_all_units",
   "unit_ids",
+  "fuel_min_liters",
+  "benefit_hours",
+  "yard_occupancy_threshold",
+  "yard_stale_vehicle_hours",
   "status",
   "reason",
   "notes",
@@ -117,8 +230,8 @@ export async function listVipRules(): Promise<VipRule[]> {
   const supabase = getSupabaseOrThrow()
   const { data, error } = await supabase
     .from("commercial_rules")
-    .select(vipRuleSelect)
-    .eq("type", "vip")
+    .select(commercialRuleSelect)
+    .is("ends_at", null)
     .order("updated_at", { ascending: false })
 
   if (error) {
@@ -130,64 +243,31 @@ export async function listVipRules(): Promise<VipRule[]> {
 
 export async function saveVipRule(input: SaveVipRuleInput): Promise<VipRule> {
   const supabase = getSupabaseOrThrow()
-  const payload = buildVipRulePayload(input)
-  const response = await supabase.rpc("save_vip_rule_version", {
-    p_active: payload.status === "active",
-    p_applies_to_all_units: payload.applies_to_all_units,
-    p_client_id: payload.client_id,
-    p_client_name: payload.client_name,
-    p_notes: payload.notes,
-    p_reason: payload.reason,
-    p_target_type: payload.target_type,
-    p_unit_ids: payload.unit_ids,
-    p_vehicle_id: payload.vehicle_id,
-    p_vehicle_plate: payload.vehicle_plate,
-  }) as { data: unknown; error: unknown }
+  const payload = buildCommercialRulePayload(input)
+  const response = await supabase.rpc("save_commercial_rule_version", payload) as {
+    data: unknown
+    error: unknown
+  }
   const { data, error } = response
 
   if (error || typeof data !== "string") {
     throw new Error(rulesCopy.feedback.save.error, { cause: error })
   }
 
-  return getVipRuleById(data)
+  return getRuleById(data)
 }
 
 export function getVipRuleScopeLabel(rule: VipRule) {
-  if (!rule.active) {
-    return rulesCopy.labels.inactive
-  }
-
-  if (rule.appliesToAllUnits) {
-    return rule.targetType === "client" && rule.appliesToAllVehicles
-      ? "Todas as unidades e veículos"
-      : rulesCopy.labels.allUnits
-  }
-
-  if (rule.unitIds.length > 0) {
-    return `${rule.unitIds.length} unidade(s)`
-  }
-
-  return rulesCopy.labels.notConfigured
+  return rule.scopeLabel
 }
 
 export function getVipRuleVehicleScopeLabel(rule: VipRule) {
-  if (rule.targetType === "vehicle") {
-    return rule.vehiclePlate ?? rulesCopy.labels.specificVehicle
-  }
-
-  if (rule.appliesToAllVehicles) {
-    return rulesCopy.labels.allVehicles
-  }
-
-  if (rule.vehicleIds.length > 0) {
-    return `${rule.vehicleIds.length} veículo(s)`
-  }
-
-  return rulesCopy.labels.notConfigured
+  return formatVipRuleVehicleScope(rule)
 }
 
 export async function toggleClientVip(input: ToggleClientVipInput): Promise<VipRule> {
   return saveVipRule({
+    ruleType: "vip",
     targetType: "client",
     clientId: input.clientId,
     clientName: input.clientName,
@@ -203,6 +283,7 @@ export async function toggleClientVip(input: ToggleClientVipInput): Promise<VipR
 
 export async function toggleVehicleVip(input: ToggleVehicleVipInput): Promise<VipRule> {
   return saveVipRule({
+    ruleType: "vip",
     targetType: "vehicle",
     clientId: input.clientId,
     clientName: input.clientName,

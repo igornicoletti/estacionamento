@@ -11,6 +11,7 @@ import {
 import {
   completeRequiredPassword,
   getCurrentAuthProfile,
+  registerAuthenticatedPasskey,
   registerCurrentPasskey,
   signInWithPasskey as signInWithPasskeyApi,
   signInWithPassword,
@@ -18,7 +19,11 @@ import {
   subscribeToAuthSessionChanges,
 } from "../api"
 import { clearAsyncSnapshotCache } from "@/hooks/use-async-snapshot"
-import type { AuthPasswordResponse, AuthProfile } from "../types/auth-types"
+import type {
+  AuthPasskeyRegistrationResult,
+  AuthPasswordResponse,
+  AuthProfile,
+} from "../types/auth-types"
 import type { AuthLoginPayload } from "../validation/auth-validation"
 
 export type AuthSessionStatus = "loading" | "anonymous" | "authenticated"
@@ -44,8 +49,17 @@ export interface AuthAccessState {
 
 export interface AuthActions {
   refreshProfile: () => Promise<void>
+  applyProfilePatch: (
+    patch: Partial<
+      Pick<
+        AuthProfile,
+        "avatarPath" | "avatarUrl" | "email" | "name" | "passkeyStatus" | "phoneMasked"
+      >
+    >
+  ) => void
   signInWithPassword: (payload: AuthLoginPayload) => Promise<AuthPasswordResponse>
   signInWithPasskey: () => Promise<void>
+  registerProfilePasskey: () => Promise<AuthPasskeyRegistrationResult>
   completeRequiredPassword: (newPassword: string) => Promise<AuthPasswordResponse>
   registerRequiredPasskey: (input: {
     cpf: string
@@ -259,6 +273,22 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     void logoutAsync()
   }, [logoutAsync])
 
+  const applyProfilePatch = React.useCallback(
+    (
+      patch: Partial<
+        Pick<
+          AuthProfile,
+          "avatarPath" | "avatarUrl" | "email" | "name" | "passkeyStatus" | "phoneMasked"
+        >
+      >
+    ) => {
+      setProfile((currentProfile) =>
+        currentProfile ? { ...currentProfile, ...patch } : currentProfile
+      )
+    },
+    []
+  )
+
   const continueSession = React.useCallback(() => {
     resetInactivityState()
   }, [resetInactivityState])
@@ -431,6 +461,20 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   }, [refreshProfile])
 
+  const registerProfilePasskey = React.useCallback(async () => {
+    setIsSubmitting(true)
+    setError(null)
+
+    try {
+      const passkey = await registerAuthenticatedPasskey()
+      applyProfilePatch({ passkeyStatus: "active" })
+      await refreshProfile()
+      return passkey
+    } finally {
+      setIsSubmitting(false)
+    }
+  }, [applyProfilePatch, refreshProfile])
+
   const permissionSet = React.useMemo(
     () => createPermissionSet(profile),
     [profile]
@@ -487,8 +531,10 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       },
       actions: {
         refreshProfile,
+        applyProfilePatch,
         signInWithPassword: signIn,
         signInWithPasskey: signInPasskey,
+        registerProfilePasskey,
         completeRequiredPassword: completePassword,
         registerRequiredPasskey,
         clearRequiredPasswordChallenge: () => {
@@ -501,6 +547,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }),
     [
       access,
+      applyProfilePatch,
       completePassword,
       continueSession,
       effectiveWarningOpen,
@@ -511,6 +558,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       logoutAsync,
       profile,
       refreshProfile,
+      registerProfilePasskey,
       registerRequiredPasskey,
       requiredPasswordChallenge,
       secondsRemaining,

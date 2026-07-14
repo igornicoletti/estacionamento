@@ -10,6 +10,7 @@ import {
 import { authCopy } from "../copy/auth-copy"
 import type {
   AuthPasswordResponse,
+  AuthPasskeyRegistrationResult,
   AuthProfile,
   AuthRoleProfile,
   AuthSessionPayload,
@@ -53,6 +54,46 @@ function getRequiredString(record: UnknownRecord, key: PropertyKey) {
   return value
 }
 
+function isExternalAvatarUrl(value: string) {
+  return /^(https?:|data:image\/)/i.test(value)
+}
+
+async function resolveProfileAvatarUrl(
+  supabase: ReturnType<typeof getSupabaseOrThrow>,
+  avatarReference: string | null
+) {
+  if (!avatarReference || isExternalAvatarUrl(avatarReference)) {
+    return avatarReference
+  }
+
+  const signedUrlResponse = await supabase
+    .storage
+    .from("avatars")
+    .createSignedUrl(avatarReference, 60 * 60)
+
+  return signedUrlResponse.error
+    ? null
+    : signedUrlResponse.data.signedUrl
+}
+
+function mapPasskeyRegistrationResult(
+  value: unknown
+): AuthPasskeyRegistrationResult {
+  if (!isRecord(value)) {
+    return {
+      createdAt: null,
+      friendlyName: null,
+      id: "",
+    }
+  }
+
+  return {
+    createdAt: getString(value.created_at),
+    friendlyName: getString(value.friendly_name),
+    id: getString(value.id) ?? "",
+  }
+}
+
 function mapRoleProfile(record: UnknownRecord): AuthRoleProfile | null {
   const key = getString(record.role_key) ?? getString(record.role)
 
@@ -73,6 +114,7 @@ function mapAuthProfile(value: unknown): AuthProfile | null {
   }
 
   const role = mapRoleProfile(value)
+  const avatarReference = getString(value.avatar_url)
 
   return {
     id: getRequiredString(value, "id"),
@@ -90,7 +132,11 @@ function mapAuthProfile(value: unknown): AuthProfile | null {
     phoneMasked: getRequiredString(value, "phone_masked"),
     cpfMasked: getString(value.cpf_masked),
     email: getString(value.email),
-    avatarUrl: getString(value.avatar_url),
+    avatarPath:
+      avatarReference && !isExternalAvatarUrl(avatarReference)
+        ? avatarReference
+        : null,
+    avatarUrl: avatarReference,
     passkeyStatus: value.passkey_status === "active" ? "active" : "inactive",
   }
 }
@@ -205,7 +251,14 @@ export async function getCurrentAuthProfile() {
     ? mapAuthProfile(profileResponse.data[0])
     : mapAuthProfile(profileResponse.data)
 
-  return profile
+  if (!profile) {
+    return null
+  }
+
+  return {
+    ...profile,
+    avatarUrl: await resolveProfileAvatarUrl(supabase, profile.avatarUrl),
+  }
 }
 
 export async function signInWithPassword(payload: AuthLoginPayload) {
@@ -317,6 +370,21 @@ export async function signInWithPasskey() {
   }
 
   void supabase.functions.invoke(AUTH_FUNCTIONS.passkeyLogin, { body: {} })
+}
+
+export async function registerAuthenticatedPasskey() {
+  if (!isPasskeySupported()) {
+    throw new AuthApiError(authCopy.errors.passkeyNotSupported)
+  }
+
+  const supabase = getSupabaseOrThrow()
+  const response = await supabase.auth.registerPasskey()
+
+  if (response.error) {
+    throw new AuthApiError(authCopy.errors.passkeyRegistrationFailed)
+  }
+
+  return mapPasskeyRegistrationResult(response.data)
 }
 
 export async function requestAccessRecovery(payload: AuthRecoveryPayload) {

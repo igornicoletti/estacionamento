@@ -13,6 +13,41 @@ import {
   type AuditSeverity,
 } from "../types/audit-types"
 
+const auditMetadataLabels: Record<string, string> = {
+  clientsCreated: "Clientes criados",
+  clientsReceived: "Clientes recebidos",
+  clientsUnchanged: "Clientes sem alteração",
+  clientsUpdated: "Clientes atualizados",
+  created: "Criados",
+  failed: "Falhas",
+  mode: "Modo",
+  received: "Recebidos",
+  status: "Status",
+  trigger: "Gatilho",
+  unchanged: "Sem alteração",
+  updated: "Atualizados",
+  vehiclesCreated: "Veículos criados",
+  vehiclesReceived: "Veículos recebidos",
+  vehiclesUnchanged: "Veículos sem alteração",
+  vehiclesUpdated: "Veículos atualizados",
+}
+
+const auditMetadataValueLabels: Record<string, string> = {
+  failed: "Falha",
+  full: "Completa",
+  incremental: "Incremental",
+  manual: "Manual",
+  scheduled: "Agendada",
+  success: "Sucesso",
+  warning: "Atenção",
+}
+
+const hiddenAuditMetadataKeys = new Set([
+  "registeredBy",
+  "runId",
+  "source",
+])
+
 function resolveAuditOutcomeVariant(event: AuditEvent) {
   if (event.success) {
     return "success" as const
@@ -45,6 +80,41 @@ export function getAuditOutcomeLabel(event: AuditEvent) {
   return event.severity === "critical" ? "Crítico" : "Falha"
 }
 
+function formatAuditMetadataValue(value: unknown) {
+  if (typeof value === "string") {
+    return auditMetadataValueLabels[value] ?? value
+  }
+
+  if (typeof value === "number") {
+    return Intl.NumberFormat("pt-BR").format(value)
+  }
+
+  if (typeof value === "boolean") {
+    return value ? "Sim" : "Não"
+  }
+
+  return null
+}
+
+function getAuditMetadataDetails(event: AuditEvent) {
+  if (!event.metadata) {
+    return []
+  }
+
+  return Object.entries(event.metadata)
+    .flatMap(([key, value]) => {
+      if (hiddenAuditMetadataKeys.has(key) || !(key in auditMetadataLabels)) {
+        return []
+      }
+
+      const formattedValue = formatAuditMetadataValue(value)
+
+      return formattedValue
+        ? [{ label: auditMetadataLabels[key], value: formattedValue }]
+        : []
+    })
+}
+
 export function getAuditEventDetails(event: AuditEvent) {
   return [
     { label: "Data/hora", value: formatDateTime(event.occurredAt) },
@@ -55,10 +125,7 @@ export function getAuditEventDetails(event: AuditEvent) {
     { label: "Resultado", value: getAuditOutcomeLabel(event) },
     { label: "Severidade", value: auditSeverityLabels[event.severity] },
     { label: "Motivo", value: event.reason ?? "—" },
-    {
-      label: "Detalhes",
-      value: event.metadata ? JSON.stringify(event.metadata) : "—",
-    },
+    ...getAuditMetadataDetails(event),
   ]
 }
 

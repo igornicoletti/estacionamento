@@ -16,15 +16,22 @@ const clientRule: VipRule = {
   appliesToAllVehicles: true,
   clientId: 1001,
   clientName: "Cliente VIP",
+  benefitHours: null,
+  fuelMinLiters: null,
   id: "vip-client:1001",
   notes: null,
   reason: "Regra administrativa validada.",
+  ruleSummary: "Cliente VIP",
+  ruleType: "vip",
+  scopeLabel: "Todas as unidades",
   targetType: "client",
   unitIds: [],
   updatedAt: "2026-07-01T12:00:00.000Z",
   vehicleId: null,
   vehicleIds: [],
   vehiclePlate: null,
+  yardOccupancyThreshold: null,
+  yardStaleVehicleHours: null,
 }
 
 const vehicleRule: VipRule = {

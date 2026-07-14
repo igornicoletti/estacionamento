@@ -6,7 +6,14 @@ import {
   type RawAuditEventPayload,
 } from "../types/audit-types"
 
-function sanitizeText(value: unknown) {
+const auditTechnicalValueLabels: Record<string, string> = {
+  client_sync: "Sincronização de clientes",
+  unit_sync: "Sincronização de unidades",
+  usuario: "Usuário",
+  sistema: "Sistema",
+}
+
+function sanitizeRawText(value: unknown) {
   if (typeof value === "string") {
     return value.trim().replace(/\s+/g, " ")
   }
@@ -18,8 +25,74 @@ function sanitizeText(value: unknown) {
   return ""
 }
 
+function toSentenceCase(value: string) {
+  const normalized = value.trim()
+
+  if (!normalized) {
+    return ""
+  }
+
+  return normalized.charAt(0).toLocaleUpperCase("pt-BR") + normalized.slice(1)
+}
+
+function humanizeTechnicalIdentifier(value: string) {
+  const mapped = auditTechnicalValueLabels[value]
+
+  if (mapped) {
+    return mapped
+  }
+
+  const humanized = value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("pt-BR")
+
+  return toSentenceCase(humanized)
+}
+
+function sanitizeTechnicalMessage(value: string) {
+  const normalized = value.trim().replace(/\s+/g, " ")
+  const lower = normalized.toLocaleLowerCase("pt-BR")
+
+  if (lower.includes("notvalidforname") || lower.includes("invalid peer certificate")) {
+    return "Não foi possível conectar ao serviço externo por falha na validação do certificado."
+  }
+
+  if (lower.includes("error sending request") || lower.includes("client error")) {
+    return "Não foi possível se comunicar com o serviço externo."
+  }
+
+  return normalized
+    .replace(/https?:\/\/\S+/gi, "serviço externo")
+    .replace(/[<>]/g, "")
+}
+
+function sanitizeText(value: unknown) {
+  if (typeof value === "string") {
+    const text = sanitizeTechnicalMessage(value)
+
+    return /^[a-z0-9_.-]+$/i.test(text)
+      ? humanizeTechnicalIdentifier(text)
+      : toSentenceCase(text)
+  }
+
+  if (typeof value === "number" || typeof value === "boolean") {
+    return String(value)
+  }
+
+  return ""
+}
+
 function sanitizeNullableText(value: unknown): string | null {
   const text = sanitizeText(value)
+
+  return text.length > 0 ? text : null
+}
+
+function sanitizeNullableRawText(value: unknown): string | null {
+  const text = sanitizeRawText(value)
 
   return text.length > 0 ? text : null
 }
@@ -57,22 +130,22 @@ function sanitizeMetadata(value: unknown): Record<string, unknown> | null {
 export function sanitizeAuditEventPayload(
   payload: RawAuditEventPayload
 ): AuditEvent {
-  const event = sanitizeText(payload.event)
+  const event = sanitizeRawText(payload.event)
 
   return {
-    id: sanitizeText(payload.id),
+    id: sanitizeRawText(payload.id),
     occurredAt: sanitizeIsoTimestamp(payload.occurred_at),
     scope: isAuditScope(payload.scope) ? payload.scope : "system",
     event,
     eventLabel: getAuditEventLabel(event),
     actorName: sanitizeText(payload.actor) || "Sistema",
-    actorUserId: sanitizeNullableText(payload.actor_user_id),
+    actorUserId: sanitizeNullableRawText(payload.actor_user_id),
     target: sanitizeText(payload.target),
-    targetUserId: sanitizeNullableText(payload.target_user_id),
+    targetUserId: sanitizeNullableRawText(payload.target_user_id),
     success: sanitizeBoolean(payload.success),
     severity: isAuditSeverity(payload.severity) ? payload.severity : "info",
     reason: sanitizeNullableText(payload.reason),
-    requestId: sanitizeNullableText(payload.request_id),
+    requestId: sanitizeNullableRawText(payload.request_id),
     metadata: sanitizeMetadata(payload.metadata),
   }
 }

@@ -5,9 +5,7 @@ import { toError } from "@/lib"
 
 import { accessRequestsCopy } from "../access-requests-copy"
 import {
-  listPendingPhoneChanges,
   listPendingRecoveryRequests,
-  reviewPhoneChange,
   reviewRecoveryRequest,
 } from "../services/access-requests-service"
 import {
@@ -21,12 +19,9 @@ const initialSnapshot: AccessRequestsSnapshot = {
 }
 
 async function loadAccessRequests(): Promise<AccessRequestsSnapshot> {
-  const [recoveryRequests, phoneChanges] = await Promise.all([
-    listPendingRecoveryRequests(),
-    listPendingPhoneChanges(),
-  ])
+  const recoveryRequests = await listPendingRecoveryRequests()
 
-  return { phoneChanges, recoveryRequests }
+  return { phoneChanges: [], recoveryRequests }
 }
 
 export function useAccessRequests() {
@@ -70,38 +65,12 @@ export function useAccessRequests() {
     [refetch, setError]
   )
 
-  const reviewPhone = React.useCallback(
-    async (
-      targetUserId: string,
-      decision: AccessRequestReviewDecision
-    ) => {
-      setIsReviewing(true)
-      setError(null)
-
-      try {
-        await reviewPhoneChange(targetUserId, decision)
-        await refetch()
-      } catch (caughtError) {
-        const nextError = toError(
-          caughtError,
-          accessRequestsCopy.feedback.phoneChanges[decision].error
-        )
-        setError(nextError)
-        throw nextError
-      } finally {
-        setIsReviewing(false)
-      }
-    },
-    [refetch, setError]
-  )
-
   return {
     data,
     error,
     isLoading,
     isReviewing,
     refetch,
-    reviewPhone,
     reviewRecovery,
   }
 }

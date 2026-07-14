@@ -1,10 +1,21 @@
 import { rulesCopy } from "../rules-copy"
-import { type VipRule } from "../types/vip-rules-types"
-import { createVipRuleId, sortVipRulesByUpdatedAt } from "./vip-rules-models"
+import {
+  commercialRuleTypeValues,
+  commercialRuleTargetTypeValues,
+  type CommercialRuleTargetType,
+  type CommercialRuleType,
+  type VipRule,
+} from "../types/vip-rules-types"
+import {
+  buildCommercialRuleSummary,
+  formatRuleUnitScope,
+  sortVipRulesByUpdatedAt,
+} from "./vip-rules-models"
 
 export interface RawCommercialRuleRow {
   id: string
-  target_type: "client" | "vehicle" | "network" | "unit"
+  type: CommercialRuleType
+  target_type: CommercialRuleTargetType
   client_id: number | null
   client_name: string | null
   vehicle_id: number | null
@@ -13,6 +24,10 @@ export interface RawCommercialRuleRow {
   vehicle_ids: number[] | null
   applies_to_all_units: boolean | null
   unit_ids: string[] | null
+  fuel_min_liters: number | string | null
+  benefit_hours: number | string | null
+  yard_occupancy_threshold: number | null
+  yard_stale_vehicle_hours: number | string | null
   status: "active" | "inactive"
   reason: string | null
   notes: string | null
@@ -32,8 +47,26 @@ function readNullableString(value: unknown) {
   return text && text.length > 0 ? text : null
 }
 
+function readInteger(value: unknown) {
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value.replace(",", "."))
+        : Number.NaN
+
+  return Number.isFinite(parsed) ? Math.trunc(parsed) : null
+}
+
 function readNumber(value: unknown) {
-  return typeof value === "number" && Number.isFinite(value) ? Math.trunc(value) : null
+  const parsed =
+    typeof value === "number"
+      ? value
+      : typeof value === "string"
+        ? Number(value.replace(",", "."))
+        : Number.NaN
+
+  return Number.isFinite(parsed) ? parsed : null
 }
 
 function readBoolean(value: unknown) {
@@ -55,49 +88,76 @@ function readNumberList(value: unknown) {
     : []
 }
 
+function isCommercialRuleType(value: unknown): value is CommercialRuleType {
+  return commercialRuleTypeValues.some((type) => type === value)
+}
+
+function isCommercialRuleTargetType(value: unknown): value is CommercialRuleTargetType {
+  return commercialRuleTargetTypeValues.some((type) => type === value)
+}
+
 export function parseVipRule(value: unknown): VipRule | null {
   if (!isRecord(value)) {
     return null
   }
 
-  const targetType =
-    value.target_type === "client" || value.target_type === "vehicle"
-      ? value.target_type
-      : null
-  const clientId = readNumber(value.client_id)
-  const clientName = readString(value.client_name)
-  const vehicleId = readNumber(value.vehicle_id)
+  const id = readString(value.id)
+  const ruleType = isCommercialRuleType(value.type) ? value.type : null
+  const targetType = isCommercialRuleTargetType(value.target_type)
+    ? value.target_type
+    : null
   const updatedAt = readString(value.updated_at)
 
-  if (!targetType || !clientId || !clientName || !updatedAt) {
+  if (!id || !ruleType || !targetType || !updatedAt) {
     return null
   }
 
-  if (targetType === "vehicle" && !vehicleId) {
+  const clientId = readInteger(value.client_id)
+  const vehicleId = readInteger(value.vehicle_id)
+  const unitIds = readStringList(value.unit_ids)
+  const appliesToAllUnits = readBoolean(value.applies_to_all_units) ?? targetType === "network"
+
+  if (ruleType === "vip" && (!clientId || (targetType === "vehicle" && !vehicleId))) {
     return null
   }
 
-  const rule: VipRule = {
-    id: "",
+  const baseRule: VipRule = {
+    id,
+    ruleType,
     targetType,
-    clientId,
-    clientName,
-    vehicleId: targetType === "vehicle" ? vehicleId : null,
-    vehiclePlate: readNullableString(value.vehicle_plate),
+    clientId: ruleType === "vip" ? clientId : null,
+    clientName: ruleType === "vip" ? readNullableString(value.client_name) : null,
+    vehicleId: ruleType === "vip" && targetType === "vehicle" ? vehicleId : null,
+    vehiclePlate: ruleType === "vip" ? readNullableString(value.vehicle_plate) : null,
     appliesToAllVehicles:
-      targetType === "client" ? readBoolean(value.applies_to_all_vehicles) ?? true : false,
-    vehicleIds: targetType === "client" ? readNumberList(value.vehicle_ids) : vehicleId ? [vehicleId] : [],
-    appliesToAllUnits: readBoolean(value.applies_to_all_units) ?? true,
-    unitIds: readStringList(value.unit_ids),
+      ruleType === "vip" && targetType === "client"
+        ? readBoolean(value.applies_to_all_vehicles) ?? true
+        : false,
+    vehicleIds: ruleType === "vip" && targetType === "client"
+      ? readNumberList(value.vehicle_ids)
+      : vehicleId ? [vehicleId] : [],
+    appliesToAllUnits,
+    unitIds,
     active: value.status === "active",
+    fuelMinLiters: ruleType === "fuel_benefit" ? readNumber(value.fuel_min_liters) : null,
+    benefitHours: ruleType === "fuel_benefit" ? readNumber(value.benefit_hours) : null,
+    yardOccupancyThreshold: ruleType === "yard_cleaning_occupancy"
+      ? readInteger(value.yard_occupancy_threshold)
+      : null,
+    yardStaleVehicleHours: ruleType === "yard_cleaning_stale_vehicle"
+      ? readNumber(value.yard_stale_vehicle_hours)
+      : null,
     reason: readNullableString(value.reason),
     notes: readNullableString(value.notes),
+    ruleSummary: "",
+    scopeLabel: "",
     updatedAt,
   }
 
   return {
-    ...rule,
-    id: createVipRuleId(rule),
+    ...baseRule,
+    ruleSummary: buildCommercialRuleSummary(baseRule),
+    scopeLabel: formatRuleUnitScope(baseRule),
   }
 }
 

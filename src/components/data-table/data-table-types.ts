@@ -15,6 +15,7 @@ declare module "@tanstack/react-table" {
 export type DataTableColumnId<TData> = Extract<keyof TData, string>
 
 export interface DataTableFilterOption {
+  count?: number
   label: string
   value: string
 }

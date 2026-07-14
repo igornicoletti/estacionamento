@@ -4,8 +4,8 @@ export const pricesCopy = {
     subtitle: "Gerencie tabelas de preço, vigência, carência, tolerância e faixas comerciais.",
   },
   actions: {
-    add: "Adicionar preço",
-    save: "Salvar preço",
+    add: "Adicionar",
+    save: "Salvar",
     cancel: "Cancelar",
     details: "Detalhes",
   },

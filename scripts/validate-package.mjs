@@ -209,6 +209,9 @@ for (const [file, needles] of [
       "sourceRowCount",
       "enableExport",
       "flex min-h-0 min-w-0 flex-1 flex-col gap-4",
+      "shouldRenderStatePanel",
+      "shouldRenderInitialSkeleton || visibleRows.length > 0",
+      "shrink flex-col overflow-hidden rounded-md border",
       "DataTableDefaultState",
     ],
   ],
@@ -277,7 +280,7 @@ for (const [file, needles] of [
   ],
   [
     "src/features/rules/services/vip-rules-service.ts",
-    ["save_vip_rule_version"],
+    ["save_commercial_rule_version"],
   ],
   [
     "supabase/config.toml",

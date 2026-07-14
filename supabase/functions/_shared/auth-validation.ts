@@ -103,3 +103,27 @@ export const profilePasswordSchema = z.object({
 export const profilePhoneSchema = z.object({
   phone: z.string().min(10).max(20),
 })
+
+export const profileUpdateSchema = z.object({
+  avatarUrl: z
+    .string()
+    .trim()
+    .max(2048)
+    .nullable()
+    .optional(),
+  email: z
+    .string()
+    .trim()
+    .email()
+    .nullable()
+    .optional()
+    .or(z.literal("")),
+  name: z.string().trim().min(3).max(120),
+  phone: z
+    .string()
+    .trim()
+    .min(10)
+    .max(20)
+    .nullable()
+    .optional(),
+})

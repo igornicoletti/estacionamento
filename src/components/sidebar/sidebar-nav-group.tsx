@@ -52,6 +52,43 @@ export function SidebarNavGroup({
     }
   }
 
+  const menu = (
+    <SidebarGroupContent>
+      <SidebarMenu>
+        {items.map((item) => {
+          const ItemIcon =
+            item.id in routeIconById
+              ? routeIconById[item.id as keyof typeof routeIconById]
+              : CircleIcon
+          const isActive = isActiveRoute(activePathname, item.href)
+
+          return (
+            <SidebarMenuItem key={item.id}>
+              <SidebarMenuButton
+                asChild
+                isActive={isActive}
+                tooltip={item.label}
+              >
+                <NavLink to={item.href} onClick={handleNavigate}>
+                  <ItemIcon />
+                  <span>{item.label}</span>
+                </NavLink>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          )
+        })}
+      </SidebarMenu>
+    </SidebarGroupContent>
+  )
+
+  if (!label.trim()) {
+    return (
+      <SidebarGroup className="py-0">
+        {menu}
+      </SidebarGroup>
+    )
+  }
+
   return (
     <Collapsible
       open={isOpen}
@@ -66,32 +103,7 @@ export function SidebarNavGroup({
           </CollapsibleTrigger>
         </SidebarGroupLabel>
         <CollapsibleContent>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {items.map((item) => {
-                const ItemIcon =
-                  item.id in routeIconById
-                    ? routeIconById[item.id as keyof typeof routeIconById]
-                    : CircleIcon
-                const isActive = isActiveRoute(activePathname, item.href)
-
-                return (
-                  <SidebarMenuItem key={item.id}>
-                    <SidebarMenuButton
-                      asChild
-                      isActive={isActive}
-                      tooltip={item.label}
-                    >
-                      <NavLink to={item.href} onClick={handleNavigate}>
-                        <ItemIcon />
-                        <span>{item.label}</span>
-                      </NavLink>
-                    </SidebarMenuButton>
-                  </SidebarMenuItem>
-                )
-              })}
-            </SidebarMenu>
-          </SidebarGroupContent>
+          {menu}
         </CollapsibleContent>
       </SidebarGroup>
     </Collapsible>

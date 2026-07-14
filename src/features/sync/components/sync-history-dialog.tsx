@@ -143,7 +143,7 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
 
   return (
     <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent className="data-[side=right]:w-[min(100vw,42rem)] data-[side=right]:sm:max-w-xl data-[side=right]:lg:max-w-2xl">
+      <SheetContent>
         <SheetHeader>
           <SheetTitle>{title}</SheetTitle>
           <SheetDescription>{description}</SheetDescription>
@@ -155,7 +155,7 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
               {[0, 1, 2].map((index) => (
                 <div
                   key={index}
-                  className="rounded-lg border p-3"
+                  className="rounded-lg bg-muted/40 p-3"
                   style={{ opacity: Math.max(0.4, 1 - index * 0.25) }}
                 >
                   <div className="flex items-center justify-between gap-2">
@@ -196,68 +196,65 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
           ) : null}
 
           {!isLoading && !errorMessage && entries.length > 0 ? (
-            <ol className="relative ml-3 space-y-3 border-l border-border pl-4">
+            <ol className="space-y-2">
               {entries.map((entry) => {
                 const StatusIcon = statusIconByType[entry.status]
                 const counters = getCounters(entry)
                 const details = renderExecutionDetails(entry)
 
                 return (
-                  <li key={entry.id} className="relative">
-                    <CircleDotIcon
-                      aria-hidden="true"
-                      className="absolute -left-5.75 top-4 size-3 bg-background text-muted-foreground"
-                    />
-
+                  <li key={entry.id}>
                     <Collapsible defaultOpen={false} className="group/timeline-item">
-                      <div className="rounded-lg border bg-card p-3">
+                      <div className="rounded-lg bg-muted/40 p-3">
                         <CollapsibleTrigger asChild>
                           <button
                             type="button"
-                            className="flex w-full items-start justify-between gap-3 text-left"
+                            className="flex w-full items-center justify-between gap-3 text-left"
                           >
-                            <div className="min-w-0 space-y-2.5">
-                              <div className="flex flex-wrap items-center gap-2">
-                                <p className="text-sm font-medium text-foreground">
-                                  {formatDateTime(entry.startedAt)}
-                                </p>
-                                <span
-                                  className={cn(
-                                    "inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
-                                    statusBadgeClassNameByType[entry.status]
-                                  )}
-                                >
-                                  <StatusIcon className="size-3.5" />
-                                  {statusLabelByType[entry.status]}
-                                </span>
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-2">
-                                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                                  {modeLabelByType[entry.mode]}
-                                </span>
-                                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                                  {triggerLabelByType[entry.trigger]}
-                                </span>
-                                <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                                  {formatDuration(entry.durationSeconds)}
-                                </span>
-                              </div>
-
-                              <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                                {counters.map((counter) => (
-                                  <span key={`${entry.id}-summary-${counter.label}`}>
-                                    {counter.label}: <span className="font-medium text-foreground">{counter.value}</span>
-                                  </span>
-                                ))}
-                              </div>
+                            <div className="flex min-w-0 items-center gap-2">
+                              <CircleDotIcon
+                                aria-hidden="true"
+                                className="size-3 shrink-0 text-muted-foreground"
+                              />
+                              <p className="truncate text-sm font-medium text-foreground">
+                                {formatDateTime(entry.startedAt)}
+                              </p>
+                              <span
+                                className={cn(
+                                  "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                                  statusBadgeClassNameByType[entry.status]
+                                )}
+                              >
+                                <StatusIcon className="size-3.5" />
+                                {statusLabelByType[entry.status]}
+                              </span>
                             </div>
 
                             <ChevronDownIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/timeline-item:rotate-180" />
                           </button>
                         </CollapsibleTrigger>
 
-                        <CollapsibleContent className="mt-3 space-y-3 border-t pt-3">
+                        <CollapsibleContent className="mt-3 space-y-3 rounded-md bg-background/70 p-3">
+                          <div className="flex flex-wrap items-center gap-2">
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                              {modeLabelByType[entry.mode]}
+                            </span>
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                              {triggerLabelByType[entry.trigger]}
+                            </span>
+                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
+                              {formatDuration(entry.durationSeconds)}
+                            </span>
+                          </div>
+
+                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
+                            {counters.map((counter) => (
+                              <span key={`${entry.id}-summary-${counter.label}`}>
+                                {counter.label}: <span className="font-medium text-foreground">{counter.value}</span>
+                              </span>
+                            ))}
+                          </div>
+
                           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
                             {details.map((detail) => (
                               <div key={`${entry.id}-${detail.key}-${detail.value}`} className="flex flex-col gap-0.5">
@@ -274,7 +271,7 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
                           ) : null}
 
                           {entry.errorDetails.length > 0 ? (
-                            <div className="rounded-md border border-destructive/20 bg-destructive/5 p-2 text-sm text-destructive">
+                            <div className="rounded-md bg-destructive/5 p-2 text-sm text-destructive">
                               <p className="font-medium">Detalhes da falha</p>
                               <ul className="mt-1 list-disc space-y-1 pl-4">
                                 {entry.errorDetails.map((detail) => (

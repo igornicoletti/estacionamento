@@ -3,8 +3,7 @@ import { type RecoveryReason } from "@/features/auth"
 export const accessRequestsCopy = {
   page: {
     title: "Solicitações de acesso",
-    subtitle:
-      "Revise solicitações pendentes de recuperação de acesso e alteração de telefone.",
+    subtitle: "Revise solicitações pendentes de recuperação de acesso.",
   },
   tabs: {
     recovery: "Recuperação de acesso",
