@@ -711,7 +711,7 @@ export function DataTable<TData extends RowData, TValue>({
       ) : null}
 
       <div className="min-w-0 overflow-hidden rounded-md border">
-        <DataTableScrollContainer className="max-h-[min(70svh,42rem)]">
+        <DataTableScrollContainer className="max-h-[min(calc(100vh-18rem),calc(100dvh-18rem))]">
           <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
             <caption className="sr-only">
               {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}

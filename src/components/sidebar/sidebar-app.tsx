@@ -7,10 +7,10 @@ import {
   SidebarRail,
 } from "@/components/ui/sidebar"
 
+import { SidebarProfile } from '@/components/sidebar/sidebar-profile'
 import { SidebarBrand } from "./sidebar-brand"
 import { SidebarCollapseControl } from "./sidebar-collapse-control"
 import { SidebarNavigation } from "./sidebar-navigation"
-import { SidebarProfile } from "./sidebar-profile"
 
 interface AppSidebarProps {
   homeHref: AppRoutePath
@@ -27,11 +27,11 @@ export function AppSidebar({ homeHref }: AppSidebarProps) {
       </SidebarHeader>
 
       <SidebarContent className="overflow-x-hidden">
+        <SidebarProfile />
         <SidebarNavigation />
       </SidebarContent>
 
       <SidebarFooter>
-        <SidebarProfile />
         <SidebarCollapseControl />
       </SidebarFooter>
 

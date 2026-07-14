@@ -64,11 +64,12 @@ export function DataTableColumnHeader<TData, TValue>({
         type="button"
         variant="ghost"
         size="lg"
+        className="pl-0 hover:bg-transparent data-[state=active]:bg-transparent data-[state=active]:hover:bg-transparent"
         aria-label={getSortButtonLabel(sortState, title)}
         onClick={handleSortClick}
       >
         <span>{title}</span>
-        <SortIcon aria-hidden="true" />
+        <SortIcon aria-hidden="true" className="size-3 text-muted-foreground " />
       </Button>
     </div>
   )

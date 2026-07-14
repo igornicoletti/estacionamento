@@ -21,7 +21,7 @@ export function AppHeader() {
           className="md:hidden"
           aria-label={sidebarCopy.header.openNavigation}
         />
-        <div className="ml-auto flex items-center gap-2">
+        <div className="ml-auto flex items-center gap-6">
           <NotificationsPopover />
           <UserMenu />
           <Button

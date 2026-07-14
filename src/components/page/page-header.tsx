@@ -22,7 +22,7 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex min-h-0 flex-col gap-2 lg:min-h-0 lg:flex-row lg:items-end lg:justify-between",
+        "flex min-h-0 flex-col gap-6 lg:min-h-0 lg:flex-row lg:items-end lg:justify-between",
         className
       )}
     >

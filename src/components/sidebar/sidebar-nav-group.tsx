@@ -58,7 +58,7 @@ export function SidebarNavGroup({
       onOpenChange={setIsManuallyOpen}
       className="group/collapsible"
     >
-      <SidebarGroup>
+      <SidebarGroup className="py-0">
         <SidebarGroupLabel asChild>
           <CollapsibleTrigger aria-label={label} disabled={isCollapsedIconMode}>
             <span>{label}</span>
