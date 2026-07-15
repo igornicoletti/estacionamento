@@ -13,8 +13,8 @@ import { createUnitUsersColumns } from "../columns/unit-users-columns"
 import { useUnitUsers } from "../hooks/use-unit-users"
 import { useUnits } from "../hooks/use-units"
 import { unitsCopy } from "../units-copy"
-import { parseUnitRouteId } from "../utils/units-models"
 import { getUnitUserDetailItems } from "../utils/units-details-model"
+import { parseUnitRouteId } from "../utils/units-models"
 
 const unitUsersTableColumnVisibilityKey = "rmc.units.users.table-column-visibility.v2"
 
@@ -44,12 +44,8 @@ export function UnitUsersRoute() {
   return (
     <PageSection>
       <PageHeader
-        headingContent={(
-          <>
-            <h1 className="text-2xl font-semibold">{unit?.nom_fantasia ?? unitsCopy.pages.unitUsers.fallbackTitle}</h1>
-            <p className="text-sm text-muted-foreground">{unit?.nom_razao_social ?? unitsCopy.pages.unitUsers.fallbackDescription}</p>
-          </>
-        )}
+        title={unit?.nom_fantasia ?? unitsCopy.pages.unitUsers.fallbackTitle}
+        subtitle={unit?.nom_razao_social ?? unitsCopy.pages.unitUsers.fallbackDescription}
         actions={(
           <PageHeaderActions>
             <Button type="button" variant="secondary" size="lg" onClick={() => { void navigate("/unidades") }}>

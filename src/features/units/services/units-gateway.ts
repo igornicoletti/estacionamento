@@ -1,4 +1,5 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
+import { isErpCatalogMockEnabled, mockErpUnitsPayload } from "@/features/erp-mock"
 import { type ErpUnitPayload } from "../types/units-types"
 
 export interface UnitsGateway {
@@ -8,6 +9,10 @@ export interface UnitsGateway {
 function createSupabaseUnitsGateway(): UnitsGateway {
   return {
     async listUnitsPayload() {
+      if (isErpCatalogMockEnabled()) {
+        return mockErpUnitsPayload
+      }
+
       const supabase = getSupabaseBrowserClient()
 
       if (!supabase) {

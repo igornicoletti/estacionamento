@@ -70,17 +70,17 @@ export function ClientVehiclesRoute() {
       vipActionLabel: clientsCopy.actions.toggleVehicleVip,
       onToggleVip: canManageClients
         ? (vehicle) => {
-            void notify.promise(
-              toggleVehicleVip({
-                clientId: vehicle.cod_pessoa,
-                clientName: vehicle.nom_pessoa,
-                vehicleId: vehicle.cod_veiculo,
-                vehiclePlate: vehicle.num_placa,
-                enabled: vehicle.vip !== "sim",
-              }),
-              clientsCopy.feedback.vehicleVip
-            )
-          }
+          void notify.promise(
+            toggleVehicleVip({
+              clientId: vehicle.cod_pessoa,
+              clientName: vehicle.nom_pessoa,
+              vehicleId: vehicle.cod_veiculo,
+              vehiclePlate: vehicle.num_placa,
+              enabled: vehicle.vip !== "sim",
+            }),
+            clientsCopy.feedback.vehicleVip
+          )
+        }
         : undefined,
     }),
     [canManageClients, toggleVehicleVip]
@@ -141,16 +141,8 @@ export function ClientVehiclesRoute() {
   return (
     <PageSection>
       <PageHeader
-        headingContent={(
-          <>
-            <h1 className="text-2xl font-semibold">
-              {client?.nom_pessoa ? normalizeDisplayText(client.nom_pessoa) : clientsCopy.pages.clientVehicles.fallbackTitle}
-            </h1>
-            <p className="text-sm text-muted-foreground">
-              {client?.num_cnpj_cpf || clientsCopy.pages.clientVehicles.fallbackDescription}
-            </p>
-          </>
-        )}
+        title={client?.nom_pessoa ? normalizeDisplayText(client.nom_pessoa) : clientsCopy.pages.clientVehicles.fallbackTitle}
+        subtitle={client?.num_cnpj_cpf || clientsCopy.pages.clientVehicles.fallbackDescription}
         actions={(
           <PageHeaderActions>
             <Button type="button" variant="secondary" size="lg" onClick={() => { void navigate("/clientes") }}>

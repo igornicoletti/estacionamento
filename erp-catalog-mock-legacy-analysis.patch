@@ -1,0 +1,931 @@
+diff --git a/.env.example b/.env.example
+index fda6eec..bdea264 100644
+--- a/.env.example
++++ b/.env.example
+@@ -2,6 +2,9 @@
+ VITE_SUPABASE_URL=https://your-project.supabase.co
+ VITE_SUPABASE_PUBLISHABLE_KEY=your_publishable_key_here
+ 
++# ERP mock
++VITE_ERP_CATALOG_MOCK_ENABLED=false
++
+ # Auth
+ VITE_AUTH_DEV_BYPASS=false
+ 
+diff --git a/README.md b/README.md
+index 5e5e634..48a862b 100644
+--- a/README.md
++++ b/README.md
+@@ -102,12 +102,14 @@ estacionamento/
+ Copie as variáveis necessárias a partir de `.env.example`.
+ 
+ - `VITE_SUPABASE_URL`
+-- `VITE_SUPABASE_ANON_KEY`
++- `VITE_SUPABASE_PUBLISHABLE_KEY`
++- `VITE_ERP_CATALOG_MOCK_ENABLED`
+ - `VITE_APP_ORIGIN`
+ - `APP_HMAC_SECRET`
+ - `APP_ALLOWED_ORIGINS`
+ 
+ Em produção, `VITE_APP_ORIGIN` e `VITE_SUPABASE_URL` devem usar HTTPS. O client valida a origem em runtime para evitar execução em domínio não autorizado.
++`VITE_ERP_CATALOG_MOCK_ENABLED` só é aceito em desenvolvimento e injeta catálogo sintético de unidades, clientes e veículos enquanto o token do ERP não estiver disponível.
+ 
+ O projeto já atende à exigência futura de `@supabase/supabase-js` por TypeScript 5+ usando TypeScript 6. Passkeys/WebAuthn continuam tratadas como recurso beta do Supabase: enriquecimentos administrativos de passkey são opcionais e não bloqueiam a listagem principal de usuários quando a origem de metadados WebAuthn não está disponível.
+ 
+diff --git a/docs/ERP_CATALOG_MOCK_AND_LEGACY_FORENSIC_REPORT_2026-07-15.md b/docs/ERP_CATALOG_MOCK_AND_LEGACY_FORENSIC_REPORT_2026-07-15.md
+new file mode 100644
+index 0000000..e784f03
+--- /dev/null
++++ b/docs/ERP_CATALOG_MOCK_AND_LEGACY_FORENSIC_REPORT_2026-07-15.md
+@@ -0,0 +1,405 @@
++# Relatório Forense - Catálogo ERP, Legado e Mock
++
++Data: 2026-07-15  
++Projeto atual: `igornicoletti/estacionamento`  
++Projeto legado analisado: `projetosmc/estacionamento`  
++Projeto Supabase atual confirmado: `zgzzfytlzsntzhzqxqvc`
++
++## Resumo executivo
++
++O projeto atual já possui a arquitetura correta para consumir unidades, clientes e veículos a partir do Supabase (`erp_units`, `erp_clients`, `erp_client_vehicles`) e já isola o acesso por gateways (`UnitsGateway`, `ClientsGateway`). O problema principal não está na tabela nem na `DataTable`: o banco atual está sem carga nesses três cadastros.
++
++Consulta direta ao Supabase atual retornou:
++
++| Tabela | Linhas |
++| --- | ---: |
++| `public.erp_units` | 0 |
++| `public.erp_clients` | 0 |
++| `public.erp_client_vehicles` | 0 |
++| `public.unit_sync_runs` | 18 |
++| `public.client_sync_runs` | 4 |
++
++O relatório anterior do próprio repositório já registrava falha de sincronização por TLS no ERP (`invalid peer certificate: NotValidForName`) e tabelas vazias. A análise atual confirma esse estado.
++
++Foi implementado um mock sintético, versionável e protegido por flag de desenvolvimento:
++
++- `VITE_ERP_CATALOG_MOCK_ENABLED=true`
++- não grava nada no Supabase;
++- não substitui migrations;
++- não ativa em produção;
++- injeta dados nos gateways existentes de unidades, clientes e veículos;
++- não implementa nada de pátio virtual.
++
++Validação executada após a implementação:
++
++```bash
++pnpm validate
++pnpm typecheck
++pnpm lint
++pnpm test -- tests/config/env.test.ts tests/features/units/units-service.test.ts tests/features/clients/clients-service.test.ts
++pnpm build
++```
++
++Resultado: validação estrutural, typecheck, lint, 37 arquivos de teste / 126 testes e build passaram.
++
++## Escopo e limites
++
++Incluído:
++
++- análise crítica do repositório atual;
++- análise dedutiva das tabelas atuais de unidades, clientes e veículos;
++- consulta Supabase no projeto atual;
++- tentativa de consulta Supabase no projeto legado;
++- extração de contrato do GitHub legado;
++- levantamento de campos reais do legado;
++- criação de mock sintético para destravar telas e formulários dependentes desses cadastros;
++- relatório com prioridades, riscos e plano de implementação.
++
++Excluído por solicitação:
++
++- nenhuma implementação de pátio virtual;
++- nenhuma carga sintética gravada no Supabase remoto;
++- nenhuma alteração em dados reais de legado ou produção.
++
++Limitação factual:
++
++- o Supabase do legado (`sxhdvpetdogoobmubjdp`) retornou `You do not have permission to perform this action` para `list_tables` e `execute_sql`. Portanto, não foi possível consultar linhas reais do legado pelo conector. A análise do legado foi feita via contrato GitHub (`src/integrations/supabase/types.ts`) e arquivos de domínio.
++
++## Evidências do projeto atual
++
++### Tabelas atuais
++
++`supabase/migrations/0007_units_sync_schema.sql` cria:
++
++- `public.erp_units`
++- `public.unit_yard_configs`
++- `public.unit_sync_runs`
++- `public.unit_sync_state`
++
++`supabase/migrations/0009_clients_sync_schema.sql` cria:
++
++- `public.erp_clients`
++- `public.erp_client_vehicles`
++- `public.client_sync_runs`
++- `public.client_sync_state`
++
++Campos atuais relevantes:
++
++| Domínio | Tabela | Chave | Campos de uso na UI |
++| --- | --- | --- | --- |
++| Unidades | `erp_units` | `cod_empresa` | `nom_razao_social`, `nom_fantasia`, `num_cnpj`, `des_bandeira`, `nom_cidade`, `sgl_estado`, `ip_rede`, `nom_banco_dados` |
++| Clientes | `erp_clients` | `cod_pessoa` | `nom_pessoa`, `nom_fantasia`, `num_cnpj_cpf`, `des_email_1`, `num_telefone_1`, `nom_cidade`, `sgl_estado`, `qtd_veiculos`, `dta_ultima_compra`, `is_active_120d` |
++| Veículos | `erp_client_vehicles` | `cod_veiculo` | `cod_pessoa`, `num_placa`, `des_veiculo`, `nom_motorista`, `client_is_active_120d` |
++
++### Fluxo frontend atual
++
++| Arquivo | Achado |
++| --- | --- |
++| `src/features/units/services/units-gateway.ts` | Lê `erp_units`, normaliza e expõe por `listUnits`. |
++| `src/features/clients/services/clients-gateway.ts` | Lê `erp_clients` e `erp_client_vehicles` em lotes de 500, até 20 páginas. |
++| `src/hooks/use-async-snapshot.ts` | Cache local de snapshots por 5 minutos; bom para catálogos pequenos/médios. |
++| `src/features/prices/components/price-table-form-dialog.tsx` | Depende de `useUnits()` para selecionar unidade em preço unitário. |
++| `src/features/rules/components/vip-rule-form-dialog.tsx` | Depende de `listClientsSnapshot()` e `useUnits()` para cliente, veículos e unidades. |
++
++Conclusão: o ponto mais seguro para mock é o gateway, antes dos normalizadores e sem tocar em `DataTable`, rotas ou formulários.
++
++## Evidências do legado
++
++Arquivos legados analisados via GitHub:
++
++- `src/integrations/supabase/types.ts`
++- `src/features/unidades/unidadesData.ts`
++- `src/features/unidades/unidadesContracts.ts`
++- `src/features/clientes/clientesData.ts`
++- `src/features/clientes/clientesContracts.ts`
++- `src/features/placas/placasContracts.ts`
++- `src/features/regras/regrasData.ts`
++- `src/lib/rpcContracts.ts`
++- `supabase/functions/sync-clientes/index.ts`
++
++### Contrato legado de unidades
++
++Tabela: `public.tab_unidades`
++
++Campos relevantes:
++
++| Campo legado | Interpretação | Destino atual sugerido |
++| --- | --- | --- |
++| `seq_unidade` | chave interna local do legado | não usar como chave atual sem validação |
++| `cod_unidade` | código externo/operacional da unidade | `erp_units.cod_empresa` se confirmado com ERP |
++| `des_unidade` | nome da unidade | `nom_fantasia` e fallback para `nom_razao_social` |
++| `cod_cnpj` | CNPJ | `num_cnpj` |
++| `des_bandeira` | bandeira | `des_bandeira` |
++| `des_cidade` | cidade | `nom_cidade` |
++| `sgl_uf` | UF | `sgl_estado` |
++| `des_ip` | IP/rede | `ip_rede` |
++| `des_banco_dados` | banco de origem | `nom_banco_dados` |
++| `qtd_vagas` | vagas da unidade | pátio/ocupação; não implementar agora |
++
++Risco principal: confirmar se `cod_unidade` corresponde a `cod_empresa` do ERP atual. Se a chave for trocada por `seq_unidade`, regras/preços podem ficar apontando para unidades erradas.
++
++### Contrato legado de clientes
++
++Tabela: `public.tab_clientes`
++
++Campos relevantes:
++
++| Campo legado | Interpretação | Destino atual sugerido |
++| --- | --- | --- |
++| `seq_cliente` | chave interna local do legado | usar apenas para joins com `tab_placas` no legado |
++| `cod_pessoa` | código externo do cliente | `erp_clients.cod_pessoa` |
++| `des_cliente` | razão/nome | `nom_pessoa` |
++| `des_nome_fantasia` | nome fantasia | `nom_fantasia` |
++| `cod_cpf_cnpj` | documento | `num_cnpj_cpf` |
++| `des_email` | email | `des_email_1` |
++| `des_telefone` | telefone | `num_telefone_1` |
++| `des_cidade` | cidade | `nom_cidade` |
++| `sgl_uf` | UF | `sgl_estado` |
++| `dta_cadastro_externo` | cadastro no ERP | `dta_cadastro` |
++| `ind_status` | ativo/inativo | `ind_pessoa_ativa` |
++| `ind_bloqueio_financeiro` | bloqueio | `bloqueio_financeiro` |
++| `qtd_veiculos` | quantidade | `qtd_veiculos` |
++| `dta_ultima_compra` | atividade recente | `dta_ultima_compra` |
++| `ind_elegibilidade` | elegibilidade operacional | `is_active_120d` |
++
++Risco principal: o legado separa `seq_cliente` e `cod_pessoa`. Veículos usam `seq_cliente`; o projeto atual usa `cod_pessoa`. A migração real precisa fazer join `tab_placas.seq_cliente -> tab_clientes.seq_cliente -> tab_clientes.cod_pessoa`.
++
++### Contrato legado de veículos
++
++Tabela: `public.tab_placas`
++
++Campos relevantes:
++
++| Campo legado | Interpretação | Destino atual sugerido |
++| --- | --- | --- |
++| `seq_placa` | chave interna local | não usar como chave externa sem validação |
++| `cod_veiculo` | código externo do veículo | `erp_client_vehicles.cod_veiculo` |
++| `seq_cliente` | vínculo legado com cliente | converter para `cod_pessoa` via `tab_clientes` |
++| `num_placa` | placa | `num_placa` |
++| `des_veiculo` / `des_modelo` | descrição | `des_veiculo` |
++| `des_motorista` | motorista | `nom_motorista` |
++| `ind_status` | ativo/inativo | usado para filtro antes de mock/carga |
++| `ind_bloqueio` | bloqueio operacional | não existe igual no schema atual |
++
++Risco principal: placas sem cliente correspondente devem ser rejeitadas ou registradas como inconsistência, como a Edge Function atual já faz com `missing_client`.
++
++### Regras VIP no legado
++
++O legado usa:
++
++- `tab_clientes.ind_vip`
++- `tab_clientes.ind_vip_auto_novas_placas`
++- `tab_clientes_vip_unidades`
++- `tab_clientes_vip_placas_excluidas`
++- `rpc_set_vip_cliente`
++- `rpc_toggle_vip_placa`
++
++O projeto atual usa `commercial_rules` e `save_commercial_rule_version`.
++
++Dedução: não migrar VIP como flag direta no mock. O mock deve apenas fornecer clientes/veículos para seleção. Regras VIP devem continuar nas tabelas comerciais atuais, auditadas e versionadas.
++
++## Achados críticos
++
++### P0 - Cadastros ERP vazios no Supabase atual
++
++Impacto:
++
++- `/unidades` carrega empty state;
++- `/clientes` carrega empty state;
++- `/clientes/:cod_pessoa` não encontra veículos;
++- formulário de preços não tem opções reais de unidade;
++- formulário de regras VIP não tem clientes/veículos para selecionar.
++
++Correção aplicada:
++
++- mock sintético por gateway e flag `VITE_ERP_CATALOG_MOCK_ENABLED`;
++- não grava dados sintéticos no banco.
++
++### P0 - Mock não pode mascarar problema de produção
++
++Risco:
++
++- uma carga mock em produção poderia gerar regras/preços sobre IDs sintéticos.
++
++Correção aplicada:
++
++- `src/config/env.ts` bloqueia `VITE_ERP_CATALOG_MOCK_ENABLED=true` em `PROD`;
++- gateways só usam mock quando `import.meta.env.DEV` está ativo.
++
++### P0 - Pátio virtual fora do escopo pedido
++
++Achado:
++
++- o projeto atual ainda tem `src/features/yard/routes/yard-route.tsx`;
++- `route-registry.ts` expõe `/patio-virtual`;
++- regras incluem tipos `yard_cleaning`, `yard_cleaning_occupancy`, `yard_cleaning_stale_vehicle`;
++- `unit_yard_configs` existe e é usado por unidades/regras.
++
++Diretriz:
++
++- não evoluir pátio virtual nesta fase;
++- não misturar mock de unidades/clientes/veículos com `unit_yard_configs`;
++- se necessário, congelar a rota/ação em uma etapa separada, com decisão explícita.
++
++### P1 - Supabase legado inacessível pelo conector
++
++Impacto:
++
++- não foi possível buscar amostra real de linhas do legado;
++- não foi possível validar cardinalidade, distribuição de clientes, placas órfãs ou dados sensíveis.
++
++Plano:
++
++- conceder acesso temporário de leitura ao projeto legado ou exportar amostra sanitizada;
++- extrair no máximo poucas dezenas de clientes e veículos para validação;
++- não usar CPF/CNPJ real em mock versionado.
++
++### P1 - Advisors do Supabase atual ainda têm alertas
++
++Security advisor:
++
++| Nível | Lint | Quantidade | Exemplos |
++| --- | --- | ---: | --- |
++| `WARN` | `authenticated_security_definer_function_executable` | 3 | `create_commercial_price_table`, `save_commercial_rule_version`, `set_all_notifications_read_status` |
++| `WARN` | `extension_in_public` | 1 | `btree_gist` em `public` |
++| `WARN` | `auth_leaked_password_protection` | 1 | proteção contra senhas vazadas desabilitada |
++| `INFO` | `rls_enabled_no_policy` | 6 | `app_session_activity`, `auth_flow_attempts`, `auth_rate_limits`, `email_verification_attempts`, `phone_verification_attempts`, `sync_locks` |
++
++Performance advisor:
++
++| Nível | Lint | Quantidade |
++| --- | --- | ---: |
++| `INFO` | `unindexed_foreign_keys` | 19 |
++| `INFO` | `unused_index` | 31 |
++
++Observação: índices em tabelas vazias tendem a aparecer como "unused"; não remover antes de haver carga e uso real.
++
++### P1 - Documentação de env estava divergente
++
++Achado:
++
++- `README.md` citava `VITE_SUPABASE_ANON_KEY`;
++- o código usa `VITE_SUPABASE_PUBLISHABLE_KEY`.
++
++Correção aplicada:
++
++- `README.md` atualizado para `VITE_SUPABASE_PUBLISHABLE_KEY`;
++- `.env.example` atualizado com `VITE_ERP_CATALOG_MOCK_ENABLED=false`.
++
++## Mock implementado
++
++Arquivos criados:
++
++| Arquivo | Responsabilidade |
++| --- | --- |
++| `src/features/erp-mock/erp-catalog-mock-data.ts` | Dados sintéticos compatíveis com `ErpUnitPayload`, `ErpClientPayload` e `ErpClientVehiclePayload`. |
++| `src/features/erp-mock/index.ts` | API pública do mock. |
++| `src/features/erp-mock/README.md` | Responsabilidade e decisão técnica. |
++
++Arquivos alterados:
++
++| Arquivo | Alteração |
++| --- | --- |
++| `src/config/env.ts` | Nova flag `erpCatalogMockEnabled`, bloqueada em produção. |
++| `src/features/units/services/units-gateway.ts` | Usa `mockErpUnitsPayload` quando a flag está ativa. |
++| `src/features/clients/services/clients-gateway.ts` | Usa `mockErpClientsPayload` e `mockErpClientVehiclesPayload` quando a flag está ativa. |
++| `src/vite-env.d.ts` | Tipagem da nova env pública. |
++| `.env.example` | Exemplo da flag. |
++| `README.md` | Documentação da env e correção da chave Supabase. |
++| `src/features/units/README.md` | Decisão sobre mock dev-only. |
++| `src/features/clients/README.md` | Decisão sobre mock dev-only. |
++
++Dados sintéticos:
++
++| Tipo | Quantidade |
++| --- | ---: |
++| Unidades | 5 |
++| Clientes | 5 |
++| Veículos | 12 |
++
++Uso local:
++
++```env
++VITE_ERP_CATALOG_MOCK_ENABLED=true
++```
++
++Garantias:
++
++- IDs são sintéticos;
++- emails usam domínio `.example`;
++- não há dado real de CPF/CNPJ;
++- não há escrita remota;
++- não há alteração em pátio virtual.
++
++## Plano de produção
++
++### Fase 1 - Mock controlado
++
++Objetivo: destravar UI e formulários enquanto o ERP não fornece token.
++
++Checklist:
++
++- manter `VITE_ERP_CATALOG_MOCK_ENABLED=false` por padrão;
++- ativar somente em `.env.local`;
++- validar `/unidades`, `/clientes`, `/clientes/:cod_pessoa`, `/precos` e `/regras`;
++- não criar regras/preços definitivos com IDs mockados no banco de produção.
++
++### Fase 2 - Corrigir sincronização ERP
++
++Objetivo: trocar mock por carga real.
++
++Checklist:
++
++- validar `ERP_BASE_URL` contra certificado TLS correto;
++- definir autenticação oficial: `ERP_API_TOKEN`, `ERP_BEARER_TOKEN` ou Basic;
++- validar endpoints:
++  - `ERP_UNITS_ENDPOINT`
++  - `ERP_CLIENTS_ENDPOINT`
++  - `ERP_CLIENT_VEHICLES_ENDPOINT`
++- executar sync incremental e full em ambiente seguro;
++- conferir counters em `unit_sync_runs` e `client_sync_runs`;
++- exigir que `erp_units`, `erp_clients` e `erp_client_vehicles` tenham linhas antes de desligar mock.
++
++### Fase 3 - Migração assistida do legado
++
++Objetivo: usar legado como validador e ponte temporária, sem virar fonte definitiva.
++
++Checklist:
++
++- obter acesso read-only ao Supabase legado;
++- extrair amostra pequena e sanitizada;
++- mapear `tab_unidades.cod_unidade` para `erp_units.cod_empresa`;
++- mapear `tab_clientes.cod_pessoa` para `erp_clients.cod_pessoa`;
++- converter placas com join em `tab_clientes`;
++- descartar ou registrar placas sem cliente;
++- não transportar dados de pátio virtual nesta fase.
++
++### Fase 4 - Remover mock
++
++Objetivo: encerrar fallback sintético.
++
++Checklist:
++
++- confirmar carga real em produção;
++- manter testes de gateway por injeção (`configureUnitsGateway`, `configureClientsGateway`);
++- remover `VITE_ERP_CATALOG_MOCK_ENABLED` se não houver mais necessidade;
++- manter relatório de migração com contagens antes/depois.
++
++## Referências oficiais
++
++- Supabase Row Level Security: https://supabase.com/docs/guides/database/postgres/row-level-security
++- Supabase Securing your API: https://supabase.com/docs/guides/api/securing-your-api
++- Supabase Database Linter: https://supabase.com/docs/guides/database/database-linter
++- Supabase Edge Functions secrets: https://supabase.com/docs/guides/functions/secrets
++- Supabase JavaScript `select`: https://supabase.com/docs/reference/javascript/select
++- Supabase JavaScript `rpc`: https://supabase.com/docs/reference/javascript/rpc
++- Supabase TypeScript types: https://supabase.com/docs/guides/api/rest/generating-types
++- TanStack Query React overview: https://tanstack.com/query/latest/docs/framework/react/overview
++- TanStack Table data guide: https://tanstack.com/table/v8/docs/guide/data
++- React Router routing: https://reactrouter.com/start/data/routing
++
++## Decisão final
++
++O projeto atual está pronto para consumir catálogos reais assim que o ERP estiver corrigido, mas hoje precisa de um fallback explícito para desenvolvimento. O mock foi criado no ponto certo da arquitetura, com proteção contra produção e sem contaminação de dados remotos.
++
++Para produção real, a prioridade não é aumentar o mock: é corrigir a sincronização, obter acesso read-only ao legado quando necessário e validar a equivalência das chaves antes de migrar qualquer dado.
+diff --git a/src/config/env.ts b/src/config/env.ts
+index 6cca86c..611c377 100644
+--- a/src/config/env.ts
++++ b/src/config/env.ts
+@@ -1,6 +1,7 @@
+ type ClientEnv = {
+   supabaseUrl: string
+   supabasePublishableKey: string
++  erpCatalogMockEnabled: boolean
+   authDevBypass: boolean
+   appOrigin: string
+   webauthnRpId: string
+@@ -9,6 +10,7 @@ type ClientEnv = {
+ type RawClientEnv = {
+   VITE_SUPABASE_URL?: string
+   VITE_SUPABASE_PUBLISHABLE_KEY?: string
++  VITE_ERP_CATALOG_MOCK_ENABLED?: string
+   VITE_AUTH_DEV_BYPASS?: string
+   VITE_APP_ORIGIN?: string
+   VITE_WEBAUTHN_RP_ID?: string
+@@ -39,6 +41,7 @@ type EnvErrorCode =
+   | "ENV_SUPABASE_KEY_SECRET"
+   | "ENV_SUPABASE_KEY_SERVICE_ROLE"
+   | "ENV_SUPABASE_MISSING"
++  | "ENV_ERP_CATALOG_MOCK_PROD"
+ 
+ function throwEnvError(
+   code: EnvErrorCode,
+@@ -295,6 +298,10 @@ function createClientEnv(): ClientEnv {
+     runtimeEnv.VITE_AUTH_DEV_BYPASS,
+     DEFAULT_AUTH_DEV_BYPASS
+   )
++  const erpCatalogMockEnabled = parseBooleanEnv(
++    runtimeEnv.VITE_ERP_CATALOG_MOCK_ENABLED,
++    false
++  )
+ 
+   if (runtimeEnv.PROD && requestedAuthDevBypass) {
+     throwEnvError(
+@@ -304,6 +311,14 @@ function createClientEnv(): ClientEnv {
+     )
+   }
+ 
++  if (runtimeEnv.PROD && erpCatalogMockEnabled) {
++    throwEnvError(
++      "ENV_ERP_CATALOG_MOCK_PROD",
++      "VITE_ERP_CATALOG_MOCK_ENABLED não pode ficar ativo em produção.",
++      "ERP catalog mock requested in production mode."
++    )
++  }
++
+   if ((supabaseUrl && !supabasePublishableKey) || (!supabaseUrl && supabasePublishableKey)) {
+     throwEnvError(
+       "ENV_SUPABASE_CONFIG_PARTIAL",
+@@ -347,6 +362,7 @@ function createClientEnv(): ClientEnv {
+   return {
+     supabaseUrl,
+     supabasePublishableKey,
++    erpCatalogMockEnabled: runtimeEnv.DEV && erpCatalogMockEnabled,
+     authDevBypass: runtimeEnv.DEV && requestedAuthDevBypass,
+     appOrigin,
+     webauthnRpId,
+diff --git a/src/features/clients/README.md b/src/features/clients/README.md
+index f995d2f..613e617 100644
+--- a/src/features/clients/README.md
++++ b/src/features/clients/README.md
+@@ -5,7 +5,7 @@ Feature responsável por listagem de clientes ativos sincronizados do ERP, veíc
+ ## Decisões de implementação
+ 
+ - A fonte de dados é real: `erp_clients`, `erp_client_vehicles`, `client_sync_runs` e Edge Function `clients-sync`.
+-- O módulo não usa mocks locais.
++- O módulo só usa mock local quando `VITE_ERP_CATALOG_MOCK_ENABLED=true` em desenvolvimento.
+ - A tabela usa `DataTable` genérico.
+ - Detalhes usam `AppDetailsSheet` na rota, não componentes internos da tabela.
+ - Estados vazios usam `AppEmptyState`.
+diff --git a/src/features/clients/services/clients-gateway.ts b/src/features/clients/services/clients-gateway.ts
+index 1676880..b2d182e 100644
+--- a/src/features/clients/services/clients-gateway.ts
++++ b/src/features/clients/services/clients-gateway.ts
+@@ -1,4 +1,9 @@
+ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
++import {
++  isErpCatalogMockEnabled,
++  mockErpClientVehiclesPayload,
++  mockErpClientsPayload,
++} from "@/features/erp-mock"
+ import { type ErpClientPayload, type ErpClientVehiclePayload } from "../types/clients-types"
+ 
+ export interface ClientsGateway {
+@@ -55,6 +60,10 @@ async function fetchAllBatches<TRow>(loader: (from: number, to: number) => Promi
+ function createSupabaseClientsGateway(): ClientsGateway {
+   return {
+     async listClientsPayload() {
++      if (isErpCatalogMockEnabled()) {
++        return mockErpClientsPayload
++      }
++
+       const supabase = getSupabaseBrowserClient()
+ 
+       if (!supabase) {
+@@ -92,6 +101,10 @@ function createSupabaseClientsGateway(): ClientsGateway {
+       })
+     },
+     async listClientVehiclesPayload() {
++      if (isErpCatalogMockEnabled()) {
++        return mockErpClientVehiclesPayload
++      }
++
+       const supabase = getSupabaseBrowserClient()
+ 
+       if (!supabase) {
+diff --git a/src/features/erp-mock/README.md b/src/features/erp-mock/README.md
+new file mode 100644
+index 0000000..abae308
+--- /dev/null
++++ b/src/features/erp-mock/README.md
+@@ -0,0 +1,14 @@
++# ERP Mock
++
++Catálogo sintético usado somente em desenvolvimento quando `VITE_ERP_CATALOG_MOCK_ENABLED=true`.
++
++## Arquivos
++
++| Arquivo | Responsabilidade |
++| --- | --- |
++| `erp-catalog-mock-data.ts` | Define unidades, clientes e veículos sintéticos compatíveis com os payloads do ERP atual. |
++| `index.ts` | Expõe a API pública do mock para os gateways de unidades e clientes. |
++
++## Decisão
++
++O mock não grava dados no Supabase e não substitui o fluxo de sincronização. Ele serve apenas para destravar telas e formulários dependentes de `erp_units`, `erp_clients` e `erp_client_vehicles` enquanto o token do ERP não está disponível.
+diff --git a/src/features/erp-mock/erp-catalog-mock-data.ts b/src/features/erp-mock/erp-catalog-mock-data.ts
+new file mode 100644
+index 0000000..67253d6
+--- /dev/null
++++ b/src/features/erp-mock/erp-catalog-mock-data.ts
+@@ -0,0 +1,291 @@
++import { env } from "@/config"
++import { type ErpClientPayload, type ErpClientVehiclePayload } from "@/features/clients"
++import { type ErpUnitPayload } from "@/features/units"
++
++export function isErpCatalogMockEnabled() {
++  return env.erpCatalogMockEnabled
++}
++
++export const mockErpUnitsPayload = [
++  {
++    cod_empresa: 101,
++    nom_razao_social: "Rede Monte Carlo Campinas Ltda.",
++    nom_fantasia: "Monte Carlo Campinas Centro",
++    num_cnpj: "12.345.678/0001-90",
++    cod_bandeira: 1,
++    des_bandeira: "Monte Carlo",
++    cod_cidade: 3509502,
++    nom_cidade: "Campinas",
++    nom_estado: "São Paulo",
++    sgl_estado: "SP",
++    des_coordenada_empresa: "-22.905640,-47.060830",
++    ip_rede: "10.101.0.10",
++    nom_banco_dados: "mc_campinas_centro",
++  },
++  {
++    cod_empresa: 102,
++    nom_razao_social: "Rede Monte Carlo Americana Ltda.",
++    nom_fantasia: "Monte Carlo Americana",
++    num_cnpj: "12.345.678/0002-70",
++    cod_bandeira: 1,
++    des_bandeira: "Monte Carlo",
++    cod_cidade: 3501608,
++    nom_cidade: "Americana",
++    nom_estado: "São Paulo",
++    sgl_estado: "SP",
++    des_coordenada_empresa: "-22.737430,-47.333130",
++    ip_rede: "10.102.0.10",
++    nom_banco_dados: "mc_americana",
++  },
++  {
++    cod_empresa: 201,
++    nom_razao_social: "Rede Monte Carlo Belo Horizonte Ltda.",
++    nom_fantasia: "Monte Carlo Savassi",
++    num_cnpj: "12.345.678/0003-50",
++    cod_bandeira: 1,
++    des_bandeira: "Monte Carlo",
++    cod_cidade: 3106200,
++    nom_cidade: "Belo Horizonte",
++    nom_estado: "Minas Gerais",
++    sgl_estado: "MG",
++    des_coordenada_empresa: "-19.939120,-43.933060",
++    ip_rede: "10.201.0.10",
++    nom_banco_dados: "mc_bh_savassi",
++  },
++  {
++    cod_empresa: 301,
++    nom_razao_social: "Rede Monte Carlo Curitiba Ltda.",
++    nom_fantasia: "Monte Carlo Batel",
++    num_cnpj: "12.345.678/0004-31",
++    cod_bandeira: 1,
++    des_bandeira: "Monte Carlo",
++    cod_cidade: 4106902,
++    nom_cidade: "Curitiba",
++    nom_estado: "Paraná",
++    sgl_estado: "PR",
++    des_coordenada_empresa: "-25.441210,-49.283880",
++    ip_rede: "10.301.0.10",
++    nom_banco_dados: "mc_curitiba_batel",
++  },
++  {
++    cod_empresa: 401,
++    nom_razao_social: "Rede Monte Carlo Rio de Janeiro Ltda.",
++    nom_fantasia: "Monte Carlo Barra",
++    num_cnpj: "12.345.678/0005-12",
++    cod_bandeira: 1,
++    des_bandeira: "Monte Carlo",
++    cod_cidade: 3304557,
++    nom_cidade: "Rio de Janeiro",
++    nom_estado: "Rio de Janeiro",
++    sgl_estado: "RJ",
++    des_coordenada_empresa: "-23.000370,-43.365890",
++    ip_rede: "10.401.0.10",
++    nom_banco_dados: "mc_rio_barra",
++  },
++] satisfies readonly ErpUnitPayload[]
++
++export const mockErpClientsPayload = [
++  {
++    cod_pessoa: 1001,
++    nom_pessoa: "Transportes Aurora Ltda.",
++    nom_fantasia: "Aurora Transportes",
++    num_cnpj_cpf: "22.111.333/0001-44",
++    des_email_1: "operacao@auroratransportes.example",
++    num_telefone_1: "(11) 4000-1001",
++    nom_cidade: "Campinas",
++    sgl_estado: "SP",
++    dta_cadastro: "2024-02-10",
++    ind_pessoa_ativa: "S",
++    bloqueio_financeiro: "N",
++    qtd_veiculos: 3,
++    dta_ultima_compra: "2026-07-08",
++    is_active_120d: true,
++  },
++  {
++    cod_pessoa: 1002,
++    nom_pessoa: "Comercial Serra Azul S.A.",
++    nom_fantasia: "Serra Azul",
++    num_cnpj_cpf: "18.555.222/0001-03",
++    des_email_1: "frota@serraazul.example",
++    num_telefone_1: "(19) 4000-1002",
++    nom_cidade: "Americana",
++    sgl_estado: "SP",
++    dta_cadastro: "2023-11-18",
++    ind_pessoa_ativa: "S",
++    bloqueio_financeiro: "N",
++    qtd_veiculos: 2,
++    dta_ultima_compra: "2026-07-04",
++    is_active_120d: true,
++  },
++  {
++    cod_pessoa: 1003,
++    nom_pessoa: "Logística Horizonte Ltda.",
++    nom_fantasia: "Horizonte Log",
++    num_cnpj_cpf: "31.222.444/0001-88",
++    des_email_1: "cadastro@horizontelog.example",
++    num_telefone_1: "(31) 4000-1003",
++    nom_cidade: "Belo Horizonte",
++    sgl_estado: "MG",
++    dta_cadastro: "2024-08-21",
++    ind_pessoa_ativa: "S",
++    bloqueio_financeiro: "N",
++    qtd_veiculos: 2,
++    dta_ultima_compra: "2026-06-28",
++    is_active_120d: true,
++  },
++  {
++    cod_pessoa: 1004,
++    nom_pessoa: "Posto Jardim Sul Ltda.",
++    nom_fantasia: "Jardim Sul",
++    num_cnpj_cpf: "09.777.555/0001-66",
++    des_email_1: "financeiro@jardimsul.example",
++    num_telefone_1: "(41) 4000-1004",
++    nom_cidade: "Curitiba",
++    sgl_estado: "PR",
++    dta_cadastro: "2025-01-15",
++    ind_pessoa_ativa: "S",
++    bloqueio_financeiro: "S",
++    qtd_veiculos: 1,
++    dta_ultima_compra: "2026-07-11",
++    is_active_120d: true,
++  },
++  {
++    cod_pessoa: 1005,
++    nom_pessoa: "Frota Atlântico Ltda.",
++    nom_fantasia: "Frota Atlântico",
++    num_cnpj_cpf: "44.888.111/0001-20",
++    des_email_1: "gestao@frotaatlantico.example",
++    num_telefone_1: "(21) 4000-1005",
++    nom_cidade: "Rio de Janeiro",
++    sgl_estado: "RJ",
++    dta_cadastro: "2024-05-02",
++    ind_pessoa_ativa: "S",
++    bloqueio_financeiro: "N",
++    qtd_veiculos: 4,
++    dta_ultima_compra: "2026-07-10",
++    is_active_120d: true,
++  },
++] satisfies readonly ErpClientPayload[]
++
++export const mockErpClientVehiclesPayload = [
++  {
++    cod_veiculo: 5001,
++    cod_pessoa: 1001,
++    nom_pessoa: "Transportes Aurora Ltda.",
++    nom_fantasia: "Aurora Transportes",
++    num_cnpj_cpf: "22.111.333/0001-44",
++    num_placa: "FRT1A01",
++    des_veiculo: "Mercedes-Benz Sprinter",
++    nom_motorista: "Equipe Aurora",
++  },
++  {
++    cod_veiculo: 5002,
++    cod_pessoa: 1001,
++    nom_pessoa: "Transportes Aurora Ltda.",
++    nom_fantasia: "Aurora Transportes",
++    num_cnpj_cpf: "22.111.333/0001-44",
++    num_placa: "FRT1A02",
++    des_veiculo: "Volkswagen Delivery",
++    nom_motorista: "Equipe Aurora",
++  },
++  {
++    cod_veiculo: 5003,
++    cod_pessoa: 1001,
++    nom_pessoa: "Transportes Aurora Ltda.",
++    nom_fantasia: "Aurora Transportes",
++    num_cnpj_cpf: "22.111.333/0001-44",
++    num_placa: "FRT1A03",
++    des_veiculo: "Fiat Fiorino",
++    nom_motorista: "Equipe Aurora",
++  },
++  {
++    cod_veiculo: 5011,
++    cod_pessoa: 1002,
++    nom_pessoa: "Comercial Serra Azul S.A.",
++    nom_fantasia: "Serra Azul",
++    num_cnpj_cpf: "18.555.222/0001-03",
++    num_placa: "SAZ2B11",
++    des_veiculo: "Chevrolet S10",
++    nom_motorista: "Equipe Serra Azul",
++  },
++  {
++    cod_veiculo: 5012,
++    cod_pessoa: 1002,
++    nom_pessoa: "Comercial Serra Azul S.A.",
++    nom_fantasia: "Serra Azul",
++    num_cnpj_cpf: "18.555.222/0001-03",
++    num_placa: "SAZ2B12",
++    des_veiculo: "Toyota Hilux",
++    nom_motorista: "Equipe Serra Azul",
++  },
++  {
++    cod_veiculo: 5021,
++    cod_pessoa: 1003,
++    nom_pessoa: "Logística Horizonte Ltda.",
++    nom_fantasia: "Horizonte Log",
++    num_cnpj_cpf: "31.222.444/0001-88",
++    num_placa: "HZL3C21",
++    des_veiculo: "Iveco Daily",
++    nom_motorista: "Equipe Horizonte",
++  },
++  {
++    cod_veiculo: 5022,
++    cod_pessoa: 1003,
++    nom_pessoa: "Logística Horizonte Ltda.",
++    nom_fantasia: "Horizonte Log",
++    num_cnpj_cpf: "31.222.444/0001-88",
++    num_placa: "HZL3C22",
++    des_veiculo: "Renault Master",
++    nom_motorista: "Equipe Horizonte",
++  },
++  {
++    cod_veiculo: 5031,
++    cod_pessoa: 1004,
++    nom_pessoa: "Posto Jardim Sul Ltda.",
++    nom_fantasia: "Jardim Sul",
++    num_cnpj_cpf: "09.777.555/0001-66",
++    num_placa: "JDS4D31",
++    des_veiculo: "Ford Ranger",
++    nom_motorista: "Equipe Jardim Sul",
++  },
++  {
++    cod_veiculo: 5041,
++    cod_pessoa: 1005,
++    nom_pessoa: "Frota Atlântico Ltda.",
++    nom_fantasia: "Frota Atlântico",
++    num_cnpj_cpf: "44.888.111/0001-20",
++    num_placa: "ATL5E41",
++    des_veiculo: "Volkswagen Constellation",
++    nom_motorista: "Equipe Atlântico",
++  },
++  {
++    cod_veiculo: 5042,
++    cod_pessoa: 1005,
++    nom_pessoa: "Frota Atlântico Ltda.",
++    nom_fantasia: "Frota Atlântico",
++    num_cnpj_cpf: "44.888.111/0001-20",
++    num_placa: "ATL5E42",
++    des_veiculo: "Mercedes-Benz Atego",
++    nom_motorista: "Equipe Atlântico",
++  },
++  {
++    cod_veiculo: 5043,
++    cod_pessoa: 1005,
++    nom_pessoa: "Frota Atlântico Ltda.",
++    nom_fantasia: "Frota Atlântico",
++    num_cnpj_cpf: "44.888.111/0001-20",
++    num_placa: "ATL5E43",
++    des_veiculo: "Volvo VM",
++    nom_motorista: "Equipe Atlântico",
++  },
++  {
++    cod_veiculo: 5044,
++    cod_pessoa: 1005,
++    nom_pessoa: "Frota Atlântico Ltda.",
++    nom_fantasia: "Frota Atlântico",
++    num_cnpj_cpf: "44.888.111/0001-20",
++    num_placa: "ATL5E44",
++    des_veiculo: "Scania P320",
++    nom_motorista: "Equipe Atlântico",
++  },
++] satisfies readonly ErpClientVehiclePayload[]
+diff --git a/src/features/erp-mock/index.ts b/src/features/erp-mock/index.ts
+new file mode 100644
+index 0000000..6e473d6
+--- /dev/null
++++ b/src/features/erp-mock/index.ts
+@@ -0,0 +1,6 @@
++export {
++  isErpCatalogMockEnabled,
++  mockErpClientVehiclesPayload,
++  mockErpClientsPayload,
++  mockErpUnitsPayload,
++} from "./erp-catalog-mock-data"
+diff --git a/src/features/units/README.md b/src/features/units/README.md
+index b2dae21..09f7312 100644
+--- a/src/features/units/README.md
++++ b/src/features/units/README.md
+@@ -5,7 +5,7 @@ Feature responsável por listagem de unidades sincronizadas do ERP, usuários vi
+ ## Decisões de implementação
+ 
+ - A fonte de dados é real: `erp_units`, `unit_yard_configs`, `unit_sync_runs` e Edge Function `units-sync`.
+-- O módulo não usa mocks locais.
++- O módulo só usa mock local quando `VITE_ERP_CATALOG_MOCK_ENABLED=true` em desenvolvimento.
+ - A tabela usa `DataTable` genérico.
+ - Detalhes usam `AppDetailsSheet` na rota, não componentes internos da tabela.
+ - Estados vazios usam `AppEmptyState`.
+diff --git a/src/features/units/services/units-gateway.ts b/src/features/units/services/units-gateway.ts
+index 6946776..1939379 100644
+--- a/src/features/units/services/units-gateway.ts
++++ b/src/features/units/services/units-gateway.ts
+@@ -1,4 +1,5 @@
+ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
++import { isErpCatalogMockEnabled, mockErpUnitsPayload } from "@/features/erp-mock"
+ import { type ErpUnitPayload } from "../types/units-types"
+ 
+ export interface UnitsGateway {
+@@ -8,6 +9,10 @@ export interface UnitsGateway {
+ function createSupabaseUnitsGateway(): UnitsGateway {
+   return {
+     async listUnitsPayload() {
++      if (isErpCatalogMockEnabled()) {
++        return mockErpUnitsPayload
++      }
++
+       const supabase = getSupabaseBrowserClient()
+ 
+       if (!supabase) {
+diff --git a/src/vite-env.d.ts b/src/vite-env.d.ts
+index 25d5fc1..e38c0da 100644
+--- a/src/vite-env.d.ts
++++ b/src/vite-env.d.ts
+@@ -3,6 +3,7 @@
+ interface ImportMetaEnv {
+   readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string
+   readonly VITE_SUPABASE_URL?: string
++  readonly VITE_ERP_CATALOG_MOCK_ENABLED?: string
+ }
+ 
+ interface ImportMeta {

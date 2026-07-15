@@ -102,12 +102,14 @@ estacionamento/
 Copie as variáveis necessárias a partir de `.env.example`.
 
 - `VITE_SUPABASE_URL`
-- `VITE_SUPABASE_ANON_KEY`
+- `VITE_SUPABASE_PUBLISHABLE_KEY`
+- `VITE_ERP_CATALOG_MOCK_ENABLED`
 - `VITE_APP_ORIGIN`
 - `APP_HMAC_SECRET`
 - `APP_ALLOWED_ORIGINS`
 
 Em produção, `VITE_APP_ORIGIN` e `VITE_SUPABASE_URL` devem usar HTTPS. O client valida a origem em runtime para evitar execução em domínio não autorizado.
+`VITE_ERP_CATALOG_MOCK_ENABLED` só é aceito em desenvolvimento e injeta catálogo sintético de unidades, clientes e veículos enquanto o token do ERP não estiver disponível.
 
 O projeto já atende à exigência futura de `@supabase/supabase-js` por TypeScript 5+ usando TypeScript 6. Passkeys/WebAuthn continuam tratadas como recurso beta do Supabase: enriquecimentos administrativos de passkey são opcionais e não bloqueiam a listagem principal de usuários quando a origem de metadados WebAuthn não está disponível.
 

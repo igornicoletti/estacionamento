@@ -16,9 +16,9 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 
 import { useSettings } from "../hooks/use-settings"
-import { settingsCopy } from "../settings-copy"
 import { SettingsProfileSection } from "../sections/settings-profile-section"
 import { SettingsSecuritySection } from "../sections/settings-security-section"
+import { settingsCopy } from "../settings-copy"
 
 function SettingsCenteredState({ children }: { children: ReactNode }) {
   return (
@@ -144,7 +144,7 @@ export function SettingsRoute() {
   }
 
   return (
-    <PageSection className="flex-none pb-4">
+    <PageSection>
       <PageHeader title={settingsCopy.page.title} subtitle={settingsCopy.page.subtitle} />
       <div className="grid gap-4">
         {error ? (

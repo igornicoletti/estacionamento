@@ -16,7 +16,6 @@ import {
   FieldLabel,
 } from "@/components/ui/field"
 import { Textarea } from "@/components/ui/textarea"
-import { cn } from "@/lib/utils"
 
 import { accessRequestsCopy } from "../access-requests-copy"
 import { createRecoveryRequestsColumns } from "../columns/recovery-requests-columns"
@@ -53,13 +52,11 @@ function getRecoveryDialogDescription(decision: AccessRequestReviewDecision) {
 
 interface AccessRequestsPanelProps {
   canReview?: boolean
-  className?: string
   showHeader?: boolean
 }
 
 export function AccessRequestsPanel({
   canReview = true,
-  className,
   showHeader = true,
 }: AccessRequestsPanelProps = {}) {
   const {
@@ -125,7 +122,7 @@ export function AccessRequestsPanel({
   }
 
   return (
-    <div className={cn("flex min-h-0 flex-1 flex-col gap-4", className)}>
+    <PageSection>
       {showHeader ? (
         <PageHeader
           title={accessRequestsCopy.page.title}
@@ -255,7 +252,7 @@ export function AccessRequestsPanel({
         </Field>
       </AppDialog>
 
-    </div>
+    </PageSection>
   )
 }
 

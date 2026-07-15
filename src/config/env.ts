@@ -1,6 +1,7 @@
 type ClientEnv = {
   supabaseUrl: string
   supabasePublishableKey: string
+  erpCatalogMockEnabled: boolean
   authDevBypass: boolean
   appOrigin: string
   webauthnRpId: string
@@ -9,6 +10,7 @@ type ClientEnv = {
 type RawClientEnv = {
   VITE_SUPABASE_URL?: string
   VITE_SUPABASE_PUBLISHABLE_KEY?: string
+  VITE_ERP_CATALOG_MOCK_ENABLED?: string
   VITE_AUTH_DEV_BYPASS?: string
   VITE_APP_ORIGIN?: string
   VITE_WEBAUTHN_RP_ID?: string
@@ -39,6 +41,7 @@ type EnvErrorCode =
   | "ENV_SUPABASE_KEY_SECRET"
   | "ENV_SUPABASE_KEY_SERVICE_ROLE"
   | "ENV_SUPABASE_MISSING"
+  | "ENV_ERP_CATALOG_MOCK_PROD"
 
 function throwEnvError(
   code: EnvErrorCode,
@@ -295,12 +298,24 @@ function createClientEnv(): ClientEnv {
     runtimeEnv.VITE_AUTH_DEV_BYPASS,
     DEFAULT_AUTH_DEV_BYPASS
   )
+  const erpCatalogMockEnabled = parseBooleanEnv(
+    runtimeEnv.VITE_ERP_CATALOG_MOCK_ENABLED,
+    false
+  )
 
   if (runtimeEnv.PROD && requestedAuthDevBypass) {
     throwEnvError(
       "ENV_AUTH_BYPASS_PROD",
       "VITE_AUTH_DEV_BYPASS não pode ficar ativo em produção.",
       "Auth bypass requested in production mode."
+    )
+  }
+
+  if (runtimeEnv.PROD && erpCatalogMockEnabled) {
+    throwEnvError(
+      "ENV_ERP_CATALOG_MOCK_PROD",
+      "VITE_ERP_CATALOG_MOCK_ENABLED não pode ficar ativo em produção.",
+      "ERP catalog mock requested in production mode."
     )
   }
 
@@ -347,6 +362,7 @@ function createClientEnv(): ClientEnv {
   return {
     supabaseUrl,
     supabasePublishableKey,
+    erpCatalogMockEnabled: runtimeEnv.DEV && erpCatalogMockEnabled,
     authDevBypass: runtimeEnv.DEV && requestedAuthDevBypass,
     appOrigin,
     webauthnRpId,

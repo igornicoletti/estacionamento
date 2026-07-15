@@ -12,7 +12,7 @@ export const clientsCopy = {
     },
   },
   actions: {
-    backToClients: "Voltar para clientes",
+    backToClients: "Voltar",
     history: "Histórico",
     sync: "Sincronizar",
     openVehicles: "Veículos",

@@ -114,7 +114,7 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
         return (
           <DataTableTextLink href={href} target="_blank" rel="noreferrer">
             {row.original.des_coordenada_empresa}
-            <ExternalLinkIcon aria-hidden="true" />
+            <ExternalLinkIcon aria-hidden="true" className='size-3.5 text-muted-foreground' />
           </DataTableTextLink>
         )
       },
@@ -179,8 +179,8 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
         label: "Detalhes",
         onSelect: (row) => options.onOpenDetails(row.original),
       },
-      ...(options.onSelectUsers ? [{ id: "users" as const, label: unitsCopy.actions.users, onSelect: (row: { original: Unit }) => options.onSelectUsers?.(row.original) }] : []),
       ...(options.onConfigureYard ? [{ id: "yard-settings" as const, label: unitsCopy.actions.configureYard, onSelect: (row: { original: Unit }) => options.onConfigureYard?.(row.original) }] : []),
+      ...(options.onSelectUsers ? [{ id: "users" as const, label: unitsCopy.actions.users, onSelect: (row: { original: Unit }) => options.onSelectUsers?.(row.original) }] : []),
     ]),
   ]
 }

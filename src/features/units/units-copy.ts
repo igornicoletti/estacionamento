@@ -12,8 +12,8 @@ export const unitsCopy = {
     },
   },
   actions: {
-    backToUnits: "Voltar para unidades",
-    configureYard: "Configurar pátio",
+    backToUnits: "Voltar",
+    configureYard: "Editar",
     history: "Histórico",
     sync: "Sincronizar",
     users: "Usuários",

@@ -1,4 +1,9 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
+import {
+  isErpCatalogMockEnabled,
+  mockErpClientVehiclesPayload,
+  mockErpClientsPayload,
+} from "@/features/erp-mock"
 import { type ErpClientPayload, type ErpClientVehiclePayload } from "../types/clients-types"
 
 export interface ClientsGateway {
@@ -55,6 +60,10 @@ async function fetchAllBatches<TRow>(loader: (from: number, to: number) => Promi
 function createSupabaseClientsGateway(): ClientsGateway {
   return {
     async listClientsPayload() {
+      if (isErpCatalogMockEnabled()) {
+        return mockErpClientsPayload
+      }
+
       const supabase = getSupabaseBrowserClient()
 
       if (!supabase) {
@@ -92,6 +101,10 @@ function createSupabaseClientsGateway(): ClientsGateway {
       })
     },
     async listClientVehiclesPayload() {
+      if (isErpCatalogMockEnabled()) {
+        return mockErpClientVehiclesPayload
+      }
+
       const supabase = getSupabaseBrowserClient()
 
       if (!supabase) {

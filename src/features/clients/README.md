@@ -5,7 +5,7 @@ Feature responsável por listagem de clientes ativos sincronizados do ERP, veíc
 ## Decisões de implementação
 
 - A fonte de dados é real: `erp_clients`, `erp_client_vehicles`, `client_sync_runs` e Edge Function `clients-sync`.
-- O módulo não usa mocks locais.
+- O módulo só usa mock local quando `VITE_ERP_CATALOG_MOCK_ENABLED=true` em desenvolvimento.
 - A tabela usa `DataTable` genérico.
 - Detalhes usam `AppDetailsSheet` na rota, não componentes internos da tabela.
 - Estados vazios usam `AppEmptyState`.
