@@ -62,8 +62,8 @@ const statusBadgeClassNameByType: Record<SyncRunStatus, string> = {
 
 const statusLabelByType: Record<SyncRunStatus, string> = {
   failed: "Falhou",
-  success: "Concluida",
-  warning: "Concluida com alertas",
+  success: "Concluída",
+  warning: "Concluída com alertas",
 }
 
 const modeLabelByType: Record<SyncRunMode, string> = {
@@ -72,7 +72,7 @@ const modeLabelByType: Record<SyncRunMode, string> = {
 }
 
 const triggerLabelByType: Record<SyncRunTrigger, string> = {
-  automatic: "Automatica",
+  automatic: "Automática",
   manual: "Manual",
 }
 
@@ -100,10 +100,21 @@ function formatDuration(durationSeconds: number | null) {
   return `${minutes}min ${seconds}s`
 }
 
-function renderExecutionDetails(entry: SyncHistoryEntry) {
+function buildDetailRows(
+  entry: SyncHistoryEntry,
+  counters: readonly SyncHistoryCounter[]
+) {
   return [
     {
-      key: "Inicio",
+      key: "Duração",
+      value: formatDuration(entry.durationSeconds),
+    },
+    ...counters.map((counter) => ({
+      key: counter.label,
+      value: String(counter.value),
+    })),
+    {
+      key: "Início",
       value: formatDateTime(entry.startedAt),
     },
     {
@@ -117,10 +128,6 @@ function renderExecutionDetails(entry: SyncHistoryEntry) {
     {
       key: "Origem",
       value: triggerLabelByType[entry.trigger],
-    },
-    {
-      key: "Duracao",
-      value: formatDuration(entry.durationSeconds),
     },
   ]
 }
@@ -200,7 +207,7 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
               {entries.map((entry) => {
                 const StatusIcon = statusIconByType[entry.status]
                 const counters = getCounters(entry)
-                const details = renderExecutionDetails(entry)
+                const details = buildDetailRows(entry, counters)
 
                 return (
                   <li key={entry.id}>
@@ -234,50 +241,38 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
                           </button>
                         </CollapsibleTrigger>
 
-                        <CollapsibleContent className="mt-3 space-y-3 rounded-md bg-background/70 p-3">
-                          <div className="flex flex-wrap items-center gap-2">
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                              {modeLabelByType[entry.mode]}
-                            </span>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                              {triggerLabelByType[entry.trigger]}
-                            </span>
-                            <span className="rounded-full bg-muted px-2 py-0.5 text-xs font-medium text-muted-foreground">
-                              {formatDuration(entry.durationSeconds)}
-                            </span>
-                          </div>
-
-                          <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-muted-foreground">
-                            {counters.map((counter) => (
-                              <span key={`${entry.id}-summary-${counter.label}`}>
-                                {counter.label}: <span className="font-medium text-foreground">{counter.value}</span>
-                              </span>
-                            ))}
-                          </div>
-
-                          <dl className="grid grid-cols-2 gap-x-4 gap-y-3 sm:grid-cols-3">
+                        <CollapsibleContent className="mt-3 overflow-hidden rounded-md bg-background/70 p-3">
+                          <dl className="grid gap-y-2 text-sm">
                             {details.map((detail) => (
-                              <div key={`${entry.id}-${detail.key}-${detail.value}`} className="flex flex-col gap-0.5">
-                                <dt className="text-xs text-muted-foreground">{detail.key}</dt>
-                                <dd className="text-sm font-medium text-foreground">{detail.value}</dd>
+                              <div
+                                key={`${entry.id}-${detail.key}-${detail.value}`}
+                                className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4"
+                              >
+                                <dt className="min-w-0 truncate text-muted-foreground">{detail.key}</dt>
+                                <dd className="shrink-0 text-right font-medium tabular-nums text-foreground">
+                                  {detail.value}
+                                </dd>
                               </div>
                             ))}
                           </dl>
 
                           {entry.message ? (
-                            <p className="rounded-md bg-muted/60 p-2 text-sm text-muted-foreground">
+                            <p className="mt-3 rounded-md bg-muted/60 p-2 text-sm text-muted-foreground">
                               {entry.message}
                             </p>
                           ) : null}
 
                           {entry.errorDetails.length > 0 ? (
-                            <div className="rounded-md bg-destructive/5 p-2 text-sm text-destructive">
-                              <p className="font-medium">Detalhes da falha</p>
-                              <ul className="mt-1 list-disc space-y-1 pl-4">
+                            <div className="mt-3 rounded-md bg-destructive/5 p-3 text-sm text-destructive">
+                              <div className="flex items-center gap-2 font-medium">
+                                <AlertTriangleIcon aria-hidden="true" className="size-4" />
+                                <p>Detalhes da falha</p>
+                              </div>
+                              <div className="mt-2 space-y-1 text-destructive/90">
                                 {entry.errorDetails.map((detail) => (
-                                  <li key={`${entry.id}-${detail}`}>{detail}</li>
+                                  <p key={`${entry.id}-${detail}`}>{detail}</p>
                                 ))}
-                              </ul>
+                              </div>
                             </div>
                           ) : null}
                         </CollapsibleContent>

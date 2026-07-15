@@ -12,7 +12,7 @@ import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { AUTH_PERMISSION, AUTH_ROLE_KEY, useAuth } from "@/features/auth"
+import { AUTH_PERMISSION, useAuth } from "@/features/auth"
 import { SyncBlockingDialog } from "@/features/sync"
 import { useUsers } from "@/features/users"
 import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
@@ -43,18 +43,16 @@ const defaultUnitsColumnVisibility = {
 }
 
 function canManageOperationalData(auth: ReturnType<typeof useAuth>) {
-  return (
-    auth.access.hasPermission(AUTH_PERMISSION.all) ||
-    auth.profile?.role?.key === AUTH_ROLE_KEY.owner ||
-    auth.profile?.role?.key === AUTH_ROLE_KEY.admin
-  )
+  return auth.access.hasPermission(AUTH_PERMISSION.syncExecute)
 }
 
 export function UnitsRoute() {
   const navigate = useNavigate()
   const auth = useAuth()
   const { data: units, error, isLoading, refetch } = useUnits()
-  const { data: users } = useUsers()
+  const { data: users } = useUsers({
+    enabled: auth.access.hasPermission(AUTH_PERMISSION.usersRead),
+  })
   const {
     data: syncHistory,
     error: syncHistoryError,

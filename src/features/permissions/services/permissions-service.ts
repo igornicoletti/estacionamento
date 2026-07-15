@@ -42,6 +42,31 @@ interface RawRolePermissionRow {
   role: PermissionRole
 }
 
+const permissionGroupLabels: Record<string, string> = {
+  access_requests: "Solicitações de acesso",
+  audit: "Auditoria",
+  client_vehicles: "Veículos de clientes",
+  clients: "Clientes",
+  notifications: "Notificações",
+  permissions: "Permissões",
+  prices: "Preços",
+  profile: "Perfil",
+  rules: "Regras",
+  settings: "Configurações",
+  sync: "Sincronização",
+  system: "Sistema",
+  units: "Unidades",
+  users: "Usuários",
+}
+
+const criticalPermissionPrefixes = new Set([
+  "access_requests",
+  "audit",
+  "permissions",
+  "sync",
+  "users",
+])
+
 function isRecord(value: unknown): value is UnknownRecord {
   return typeof value === "object" && value !== null && !Array.isArray(value)
 }
@@ -136,16 +161,26 @@ function parsePermissionMatrixResponse(value: unknown): PermissionMatrixResponse
   }
 }
 
-function parseRawPermissionGroup(value: unknown): RawPermissionGroupRow | null {
-  if (!isRecord(value)) {
-    return null
+function resolvePermissionGroupKey(permissionKey: string) {
+  if (permissionKey === "*") {
+    return "system"
   }
 
-  const id = readString(value.id)
-  const key = readString(value.key)
-  const label = readString(value.label)
+  return permissionKey.split(".")[0] || "system"
+}
 
-  return id && key && label ? { id, key, label } : null
+function resolvePermissionGroup(permissionKey: string): RawPermissionGroupRow {
+  const groupKey = resolvePermissionGroupKey(permissionKey)
+
+  return {
+    id: groupKey,
+    key: groupKey,
+    label: permissionGroupLabels[groupKey] ?? groupKey,
+  }
+}
+
+function isCriticalPermission(permissionKey: string) {
+  return permissionKey === "*" || criticalPermissionPrefixes.has(resolvePermissionGroupKey(permissionKey))
 }
 
 function parseRawPermission(value: unknown): RawPermissionRow | null {
@@ -160,18 +195,18 @@ function parseRawPermission(value: unknown): RawPermissionRow | null {
   const isCritical = readBoolean(value.is_critical)
   const source = isPermissionSource(value.source) ? value.source : null
 
-  if (!id || !key || !label || !groupId || isCritical === null || !source) {
+  if (!key || !label) {
     return null
   }
 
   return {
     description: readNullableString(value.description),
-    group_id: groupId,
-    id,
-    is_critical: isCritical,
+    group_id: groupId ?? resolvePermissionGroupKey(key),
+    id: id ?? key,
+    is_critical: isCritical ?? isCriticalPermission(key),
     key,
     label,
-    source,
+    source: source ?? "system",
   }
 }
 
@@ -180,8 +215,9 @@ function parseRawRolePermission(value: unknown): RawRolePermissionRow | null {
     return null
   }
 
-  const permissionId = readString(value.permission_id)
-  const role = isPermissionRole(value.role) ? value.role : null
+  const permissionId = readString(value.permission_id) ?? readString(value.permission_key)
+  const rawRole = value.role ?? value.role_key
+  const role = isPermissionRole(rawRole) ? rawRole : null
 
   if (!permissionId || !role) {
     return null
@@ -214,6 +250,8 @@ function buildPermissionMatrixFromRows({
     rolesByPermissionId.set(rolePermission.permission_id, roles)
   }
 
+  const wildcardRoles = rolesByPermissionId.get("*") ?? new Set<PermissionRole>()
+
   return permissions.flatMap((permission) => {
     const group = groupById.get(permission.group_id)
 
@@ -222,7 +260,7 @@ function buildPermissionMatrixFromRows({
     }
 
     const roles = permissionRoleValues.filter((role) =>
-      rolesByPermissionId.get(permission.id)?.has(role)
+      rolesByPermissionId.get(permission.id)?.has(role) || wildcardRoles.has(role)
     )
 
     return [
@@ -245,49 +283,53 @@ function buildPermissionMatrixFromRows({
   })
 }
 
+function buildPermissionGroupsFromRows(permissions: readonly RawPermissionRow[]) {
+  return Array.from(
+    new Map(
+      permissions.map((permission) => {
+        const group = resolvePermissionGroup(permission.key)
+        return [group.id, group]
+      })
+    ).values()
+  )
+}
+
 async function listPermissionMatrixDirect(
   supabase: NonNullable<ReturnType<typeof getSupabaseBrowserClient>>
 ) {
-  const [groupsResponse, permissionsResponse, rolesResponse] = await Promise.all([
+  const [permissionsResponse, rolesResponse] = await Promise.all([
     supabase
-      .from("permission_groups")
-      .select("id, key, label")
-      .order("sort_order", { ascending: true })
+      .from("app_permissions")
+      .select("key, label, description")
       .order("label", { ascending: true }),
     supabase
-      .from("permissions")
-      .select("id, key, label, description, source, is_critical, group_id")
-      .eq("is_active", true)
-      .order("sort_order", { ascending: true })
-      .order("label", { ascending: true }),
-    supabase
-      .from("role_permissions")
-      .select("permission_id, role"),
+      .from("app_role_permissions")
+      .select("permission_key, role_key"),
   ])
 
-  if (groupsResponse.error || permissionsResponse.error || rolesResponse.error) {
+  if (permissionsResponse.error || rolesResponse.error) {
     throw new Error(permissionsCopy.error.load, {
-      cause: groupsResponse.error ?? permissionsResponse.error ?? rolesResponse.error,
+      cause: permissionsResponse.error ?? rolesResponse.error,
     })
   }
 
-  const groups = (groupsResponse.data ?? []).map(parseRawPermissionGroup)
   const permissions = (permissionsResponse.data ?? []).map(parseRawPermission)
   const rolePermissions = (rolesResponse.data ?? []).map(parseRawRolePermission)
 
   if (
-    groups.some((group) => group === null) ||
     permissions.some((permission) => permission === null) ||
     rolePermissions.some((rolePermission) => rolePermission === null)
   ) {
     throw new Error(permissionsCopy.error.invalidResponse)
   }
 
+  const validPermissions = permissions.filter(
+    (permission): permission is RawPermissionRow => Boolean(permission)
+  )
+
   return buildPermissionMatrixFromRows({
-    groups: groups.filter((group): group is RawPermissionGroupRow => Boolean(group)),
-    permissions: permissions.filter(
-      (permission): permission is RawPermissionRow => Boolean(permission)
-    ),
+    groups: buildPermissionGroupsFromRows(validPermissions),
+    permissions: validPermissions,
     rolePermissions: rolePermissions.filter(
       (rolePermission): rolePermission is RawRolePermissionRow =>
         Boolean(rolePermission)

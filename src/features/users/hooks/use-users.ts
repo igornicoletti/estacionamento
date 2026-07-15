@@ -19,9 +19,10 @@ import {
 } from "../types/users-types"
 import { usersCopy } from "../users-copy"
 
-export function useUsers() {
+export function useUsers(options: { enabled?: boolean } = {}) {
+  const enabled = options.enabled ?? true
   const [data, setData] = React.useState<UserRecord[]>([])
-  const [isLoading, setIsLoading] = React.useState(true)
+  const [isLoading, setIsLoading] = React.useState(enabled)
   const [isSaving, setIsSaving] = React.useState(false)
   const [error, setError] = React.useState<Error | null>(null)
 
@@ -29,6 +30,13 @@ export function useUsers() {
     isCurrent: () => boolean,
     options: { setLoading?: boolean } = {}
   ) => {
+    if (!enabled) {
+      setData([])
+      setError(null)
+      setIsLoading(false)
+      return
+    }
+
     const shouldSetLoading = options.setLoading ?? true
 
     try {
@@ -51,15 +59,18 @@ export function useUsers() {
         setIsLoading(false)
       }
     }
-  }, [])
+  }, [enabled])
 
   const refetch = React.useCallback(() => {
+    if (!enabled) {
+      return Promise.resolve()
+    }
+
     return loadUsers(() => true, { setLoading: true })
-  }, [loadUsers])
+  }, [enabled, loadUsers])
 
   const addUser = React.useCallback(async (input: CreateUserInput) => {
     setIsSaving(true)
-    setError(null)
 
     try {
       const createdUser = await createUser(input)
@@ -67,7 +78,6 @@ export function useUsers() {
       return createdUser
     } catch (caughtError) {
       const nextError = toError(caughtError, usersCopy.errors.create)
-      setError(nextError)
       throw nextError
     } finally {
       setIsSaving(false)
@@ -76,7 +86,6 @@ export function useUsers() {
 
   const editUser = React.useCallback(async (input: UpdateUserInput) => {
     setIsSaving(true)
-    setError(null)
 
     try {
       const updatedUser = await updateUser(input)
@@ -86,7 +95,6 @@ export function useUsers() {
       return updatedUser
     } catch (caughtError) {
       const nextError = toError(caughtError, usersCopy.errors.update)
-      setError(nextError)
       throw nextError
     } finally {
       setIsSaving(false)
@@ -154,6 +162,15 @@ export function useUsers() {
   }, [])
 
   React.useEffect(() => {
+    if (!enabled) {
+      queueMicrotask(() => {
+        setData([])
+        setError(null)
+        setIsLoading(false)
+      })
+      return
+    }
+
     let isMounted = true
 
     void Promise.resolve().then(() => loadUsers(() => isMounted))
@@ -161,7 +178,7 @@ export function useUsers() {
     return () => {
       isMounted = false
     }
-  }, [loadUsers])
+  }, [enabled, loadUsers])
 
   return {
     data,

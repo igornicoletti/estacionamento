@@ -8,6 +8,8 @@ export const pricesCopy = {
     save: "Salvar",
     cancel: "Cancelar",
     details: "Detalhes",
+    activate: "Ativar",
+    deactivate: "Inativar",
   },
   filters: {
     scope: "Escopo",
@@ -69,7 +71,7 @@ export const pricesCopy = {
       cycleHours: "Informe um ciclo entre 1 e 720 horas.",
       graceMinutes: "Informe uma carência entre 0 e 1440 minutos.",
       toleranceMinutes: "Informe uma tolerância entre 0 e 240 minutos.",
-      startsAt: "Informe o início da vigência.",
+      startsAt: "Informe uma data de início a partir de hoje.",
       endsAt: "Informe uma data final válida e posterior ao início.",
       reason: "Informe uma justificativa com pelo menos 10 caracteres.",
     },
@@ -88,6 +90,11 @@ export const pricesCopy = {
       loading: "Salvando tabela de preço...",
       success: "Tabela de preço salva.",
       error: "Não foi possível salvar a tabela de preço.",
+    },
+    toggle: {
+      loading: "Atualizando tabela de preço...",
+      success: "Tabela de preço atualizada.",
+      error: "Não foi possível atualizar a tabela de preço.",
     },
   },
 } as const

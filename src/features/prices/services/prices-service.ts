@@ -3,6 +3,7 @@ import { getSupabaseBrowserClient } from "@/lib"
 import { pricesCopy } from "../prices-copy"
 import {
   type PriceTable,
+  type PriceRecordStatus,
   type SavePriceTableInput,
 } from "../types/prices-types"
 import { parsePriceTable, parsePriceTables } from "../utils/prices-parsers"
@@ -37,6 +38,12 @@ function getSupabaseOrThrow() {
   return supabase
 }
 
+function getTodayStartTime() {
+  const date = new Date()
+  date.setHours(0, 0, 0, 0)
+  return date.getTime()
+}
+
 function validatePriceInput(input: SavePriceTableInput) {
   if (input.scope === "unit") {
     if (!input.unitId?.trim()) {
@@ -64,7 +71,9 @@ function validatePriceInput(input: SavePriceTableInput) {
     throw new Error(pricesCopy.form.validation.toleranceMinutes)
   }
 
-  if (!input.startsAt) {
+  const startsAtTime = input.startsAt ? new Date(input.startsAt).getTime() : Number.NaN
+
+  if (!input.startsAt || !Number.isFinite(startsAtTime) || startsAtTime < getTodayStartTime()) {
     throw new Error(pricesCopy.form.validation.startsAt)
   }
 
@@ -153,4 +162,29 @@ export async function savePriceTable(input: SavePriceTableInput): Promise<PriceT
   }
 
   return getPriceTableById(data)
+}
+
+export async function updatePriceTableStatus(
+  id: string,
+  status: PriceRecordStatus
+): Promise<PriceTable> {
+  const supabase = getSupabaseOrThrow()
+  const { data, error } = await supabase
+    .from("commercial_price_tables")
+    .update({ status })
+    .eq("id", id)
+    .select(priceTableSelect)
+    .single()
+
+  if (error) {
+    throw new Error(pricesCopy.feedback.toggle.error, { cause: error })
+  }
+
+  const price = parsePriceTable(data)
+
+  if (!price) {
+    throw new Error(pricesCopy.feedback.toggle.error)
+  }
+
+  return price
 }

@@ -8,7 +8,7 @@ import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
-import { AUTH_PERMISSION, AUTH_ROLE_KEY, useAuth } from "@/features/auth"
+import { AUTH_PERMISSION, useAuth } from "@/features/auth"
 import { getVehicleVipStatus, useVipRules } from "@/features/rules"
 import { SyncBlockingDialog } from "@/features/sync"
 
@@ -39,11 +39,7 @@ function normalizeDisplayText(value: string) {
 }
 
 function canManageOperationalData(auth: ReturnType<typeof useAuth>) {
-  return (
-    auth.access.hasPermission(AUTH_PERMISSION.all) ||
-    auth.profile?.role?.key === AUTH_ROLE_KEY.owner ||
-    auth.profile?.role?.key === AUTH_ROLE_KEY.admin
-  )
+  return auth.access.hasPermission(AUTH_PERMISSION.syncExecute)
 }
 
 export function ClientVehiclesRoute() {

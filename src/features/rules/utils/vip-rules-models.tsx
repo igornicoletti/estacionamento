@@ -12,6 +12,7 @@ export function getCommercialRuleTypeLabel(type: CommercialRuleType) {
   const labels: Record<CommercialRuleType, string> = {
     fuel_benefit: rulesCopy.labels.fuelBenefit,
     vip: rulesCopy.labels.vip,
+    yard_cleaning: rulesCopy.labels.yardCleaning,
     yard_cleaning_occupancy: rulesCopy.labels.yardCleaningOccupancy,
     yard_cleaning_stale_vehicle: rulesCopy.labels.yardCleaningStaleVehicle,
   }
@@ -115,7 +116,11 @@ export function buildCommercialRuleSummary(rule: VipRule) {
     return `Alerta a partir de ${rule.yardOccupancyThreshold ?? 0} vagas preenchidas`
   }
 
-  return `Alerta após ${rule.yardStaleVehicleHours ?? 0} h sem saída`
+  if (rule.ruleType === "yard_cleaning_stale_vehicle") {
+    return `Alerta após ${rule.yardStaleVehicleHours ?? 0} h sem saída`
+  }
+
+  return `Alerta com ${rule.yardOccupancyThreshold ?? 0} vagas ou ${rule.yardStaleVehicleHours ?? 0} h sem saída`
 }
 
 export function buildVipRuleDetails(rule: VipRule): readonly AppDetailsSheetItem[] {
@@ -143,14 +148,14 @@ export function buildVipRuleDetails(rule: VipRule): readonly AppDetailsSheetItem
     )
   }
 
-  if (rule.ruleType === "yard_cleaning_occupancy") {
+  if (rule.ruleType === "yard_cleaning_occupancy" || rule.ruleType === "yard_cleaning") {
     items.push({
       label: rulesCopy.table.yardOccupancyThreshold,
       value: rule.yardOccupancyThreshold ?? rulesCopy.labels.emptyValue,
     })
   }
 
-  if (rule.ruleType === "yard_cleaning_stale_vehicle") {
+  if (rule.ruleType === "yard_cleaning_stale_vehicle" || rule.ruleType === "yard_cleaning") {
     items.push({
       label: rulesCopy.table.yardStaleVehicleHours,
       value: rule.yardStaleVehicleHours

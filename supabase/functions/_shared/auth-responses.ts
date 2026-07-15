@@ -13,9 +13,8 @@ export type AuthErrorCode =
   | "request_failed"
   | "unauthorized"
 
-// For non-preflight responses, use the production origin as default.
-// The browser only sends credentials to the origin that matched in the preflight,
-// so this is safe — non-matching origins are already rejected by the preflight handler.
+// CORS is rejected at the beginning of each handler. Responses without Origin
+// are used by server-to-server calls and do not receive a wildcard origin.
 export function jsonResponse(
   body: Record<string, unknown>,
   status = 200,

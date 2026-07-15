@@ -24,7 +24,7 @@ describe("NotificationsPopover", () => {
       </MemoryRouter>
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "Abrir notificações" }))
+    fireEvent.click(screen.getByRole("button", { name: "Abrir painel de notificações" }))
 
     await waitFor(() => {
       expect(screen.getByText("Notificações")).toBeInTheDocument()

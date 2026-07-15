@@ -39,13 +39,29 @@ export function PricesRoute() {
     isSaving,
     refetch,
     savePrice,
+    updateStatus,
   } = usePrices()
   const [selectedPrice, setSelectedPrice] = React.useState<PriceTable | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false)
 
+  const handleTogglePriceStatus = React.useCallback(
+    (price: PriceTable) => {
+      void notify.track(
+        updateStatus(price.id, price.status === "active" ? "inactive" : "active"),
+        pricesCopy.feedback.toggle
+      )
+    },
+    [updateStatus]
+  )
+
   const columns = React.useMemo(
-    () => createPricesColumns({ onOpenDetails: setSelectedPrice }),
-    []
+    () =>
+      createPricesColumns({
+        canManage,
+        onOpenDetails: setSelectedPrice,
+        onTogglePriceStatus: handleTogglePriceStatus,
+      }),
+    [canManage, handleTogglePriceStatus]
   )
 
   const scopeOptions = React.useMemo(

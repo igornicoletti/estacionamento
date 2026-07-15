@@ -5,7 +5,7 @@ import {
   getCorsHeaders,
   handleCors,
   jsonResponse,
-  requireAdminActor,
+  requirePermissionActor,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
@@ -884,7 +884,7 @@ Deno.serve(async (req) => {
     trigger = requestedTrigger
 
     if (actor) {
-      const adminActor = requireAdminActor(actor)
+      const adminActor = await requirePermissionActor(actor, "sync.execute")
       requestedBy = adminActor.authUserId
       trigger = "manual"
     } else {
@@ -922,6 +922,14 @@ Deno.serve(async (req) => {
       caughtError instanceof Error
         ? caughtError.message.slice(0, 500)
         : "unknown_error"
+
+    if (message === "Unauthorized" || message === "Forbidden") {
+      return jsonResponse(
+        { message: "Você não tem permissão para executar esta sincronização." },
+        message === "Unauthorized" ? 401 : 403,
+        req
+      )
+    }
 
     await registerFailedSyncRun(mode, trigger || requestedTrigger, requestedBy, message)
 

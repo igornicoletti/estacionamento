@@ -75,6 +75,27 @@ Deno.serve(async (request) => {
       return genericAuthError(400, request)
     }
 
+    const { data: consumedFlow, error: consumeFlowError } = await supabase.rpc(
+      "internal_consume_auth_flow",
+      {
+        p_allowed_purposes: ["first_access", "passkey_reset"],
+        p_cpf_hmac: cpfHash,
+        p_flow_id: input.flowId,
+      }
+    ) as {
+      data: Array<{ app_user_id: string; id: string; purpose: string }> | null
+      error: { message?: string } | null
+    }
+
+    if (consumeFlowError || !consumedFlow?.[0]) {
+      if (consumeFlowError) {
+        console.error("passkey_flow_consume_failed", {
+          error: consumeFlowError.message,
+        })
+      }
+      return genericAuthError(400, request)
+    }
+
     const updateResponse = await supabase
       .from("app_users")
       .update({
@@ -88,11 +109,6 @@ Deno.serve(async (request) => {
     if (updateResponse.error) {
       return genericAuthError(400, request)
     }
-
-    await supabase
-      .from("auth_flow_attempts")
-      .update({ consumed_at: new Date().toISOString() })
-      .eq("id", flow.id)
 
     await writeAuditEvent({
       actor: actor.name,

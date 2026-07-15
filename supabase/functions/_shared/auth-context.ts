@@ -86,6 +86,25 @@ export async function actorHasPermission(
     return false
   }
 
+  const appPermissionResponse = await supabase
+    .from("app_role_permissions")
+    .select("permission_key")
+    .eq("role_key", actor.role)
+    .in("permission_key", [permissionKey, "*"])
+    .limit(1)
+
+  if (!appPermissionResponse.error && (appPermissionResponse.data ?? []).length > 0) {
+    return true
+  }
+
+  if (appPermissionResponse.error) {
+    console.error("app_permission_lookup_failed", {
+      permissionKey,
+      role: actor.role,
+      error: appPermissionResponse.error.message,
+    })
+  }
+
   const permissionResponse = await supabase
     .from("permissions")
     .select("id")
@@ -106,23 +125,23 @@ export async function actorHasPermission(
     }
   }
 
-  const legacyResponse = await supabase
-    .from("app_role_permissions")
-    .select("permission_key")
-    .eq("role_key", actor.role)
-    .in("permission_key", [permissionKey, "*"])
-    .limit(1)
+  return false
+}
 
-  if (legacyResponse.error) {
-    console.error("permission_lookup_failed", {
-      permissionKey,
-      role: actor.role,
-      error: legacyResponse.error.message,
-    })
-    return false
+export async function requirePermissionActor(
+  actor: Awaited<ReturnType<typeof getAuthenticatedActor>>,
+  permissionKey: string,
+  supabase: SupabaseAdminClient = createAdminClient()
+) {
+  if (!actor || actor.status !== "active") {
+    throw new Error("Unauthorized")
   }
 
-  return (legacyResponse.data ?? []).length > 0
+  if (!(await actorHasPermission(actor, permissionKey, supabase))) {
+    throw new Error("Forbidden")
+  }
+
+  return actor
 }
 
 export function requireAdminActor(actor: Awaited<ReturnType<typeof getAuthenticatedActor>>) {

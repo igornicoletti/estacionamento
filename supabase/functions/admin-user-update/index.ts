@@ -10,7 +10,7 @@ import {
   maskCpf,
   maskPhone,
   normalizeCpf,
-  requireAdminActor,
+  requirePermissionActor,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
@@ -22,9 +22,13 @@ Deno.serve(async (request) => {
   if (cors) return cors
 
   try {
-    const actor = requireAdminActor(await getAuthenticatedActor(request))
-    const input = adminUpdateUserSchema.parse(await request.json())
     const supabase = createAdminClient()
+    const actor = await requirePermissionActor(
+      await getAuthenticatedActor(request),
+      "users.manage",
+      supabase
+    )
+    const input = adminUpdateUserSchema.parse(await request.json())
     const actorUser = await getAppUserByAuthUserId(supabase, actor.authUserId)
     const targetUser = await getAppUserByAuthUserId(supabase, input.targetUserId)
 

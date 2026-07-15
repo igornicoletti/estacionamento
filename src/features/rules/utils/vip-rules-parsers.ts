@@ -141,10 +141,10 @@ export function parseVipRule(value: unknown): VipRule | null {
     active: value.status === "active",
     fuelMinLiters: ruleType === "fuel_benefit" ? readNumber(value.fuel_min_liters) : null,
     benefitHours: ruleType === "fuel_benefit" ? readNumber(value.benefit_hours) : null,
-    yardOccupancyThreshold: ruleType === "yard_cleaning_occupancy"
+    yardOccupancyThreshold: ruleType === "yard_cleaning_occupancy" || ruleType === "yard_cleaning"
       ? readInteger(value.yard_occupancy_threshold)
       : null,
-    yardStaleVehicleHours: ruleType === "yard_cleaning_stale_vehicle"
+    yardStaleVehicleHours: ruleType === "yard_cleaning_stale_vehicle" || ruleType === "yard_cleaning"
       ? readNumber(value.yard_stale_vehicle_hours)
       : null,
     reason: readNullableString(value.reason),

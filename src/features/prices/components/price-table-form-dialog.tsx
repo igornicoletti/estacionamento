@@ -46,6 +46,16 @@ interface UnitOption {
 
 const defaultStartsAt = () => toDateTimeLocalValue(new Date())
 
+function getTodayStart() {
+  const date = new Date()
+  date.setHours(0, 0, 0, 0)
+  return date
+}
+
+function getTodayStartInputValue() {
+  return toDateTimeLocalValue(getTodayStart())
+}
+
 function readNumber(value: string) {
   const parsed = Number(value.replace(",", "."))
   return Number.isFinite(parsed) ? parsed : Number.NaN
@@ -101,6 +111,7 @@ export function PriceTableFormDialog({
     () => unitOptions.find((unit) => unit.value === unitId) ?? null,
     [unitId, unitOptions]
   )
+  const minStartsAt = React.useMemo(() => getTodayStartInputValue(), [])
 
   function resetForm() {
     setScope("network")
@@ -161,6 +172,10 @@ export function PriceTableFormDialog({
     }
 
     if (!startsAtDate) {
+      nextErrors.startsAt = pricesCopy.form.validation.startsAt
+    }
+
+    if (startsAtDate && startsAtDate < getTodayStart()) {
       nextErrors.startsAt = pricesCopy.form.validation.startsAt
     }
 
@@ -259,7 +274,7 @@ export function PriceTableFormDialog({
             <SelectTrigger className="w-full">
               <SelectValue placeholder={pricesCopy.form.scopePlaceholder} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="network">{pricesCopy.labels.network}</SelectItem>
               <SelectItem value="unit">{pricesCopy.labels.unit}</SelectItem>
             </SelectContent>
@@ -387,6 +402,7 @@ export function PriceTableFormDialog({
           <Input
             id="price-starts-at"
             type="datetime-local"
+            min={minStartsAt}
             value={startsAt}
             onChange={(event) => {
               setStartsAt(event.target.value)
@@ -420,7 +436,7 @@ export function PriceTableFormDialog({
             <SelectTrigger className="w-full">
               <SelectValue placeholder={pricesCopy.form.statusPlaceholder} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="active">{pricesCopy.labels.active}</SelectItem>
               <SelectItem value="inactive">{pricesCopy.labels.inactive}</SelectItem>
             </SelectContent>

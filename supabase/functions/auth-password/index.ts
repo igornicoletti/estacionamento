@@ -65,29 +65,28 @@ function resolveNextAction(status: string): NextAction {
 
 async function recordFailedAttempt(
   cpfHash: string,
-  currentAttempts: number,
   targetName: string
 ) {
   const admin = createAdminClient()
-  const failedAttempts = currentAttempts + 1
-  const lockedUntil =
-    failedAttempts >= maxFailedAttempts
-      ? new Date(Date.now() + lockMinutes * 60_000).toISOString()
-      : null
+  const { data, error } = await admin.rpc("internal_record_auth_failed_attempt", {
+    p_cpf_hmac: cpfHash,
+    p_lock_minutes: lockMinutes,
+    p_max_attempts: maxFailedAttempts,
+  }) as {
+    data: Array<{ failed_attempts: number; locked_until: string | null }> | null
+    error: { message?: string } | null
+  }
 
-  await admin
-    .from("app_users")
-    .update({
-      failed_attempts: failedAttempts,
-      last_failed_at: new Date().toISOString(),
-      locked_until: lockedUntil,
-    })
-    .eq("cpf_hmac", cpfHash)
+  if (error) {
+    console.error("failed_attempt_rpc_failed", { error: error.message })
+  }
+
+  const result = data?.[0]
 
   await writeAuditEvent({
     actor: "Sistema",
     event: "login_failed",
-    metadata: { locked: Boolean(lockedUntil) },
+    metadata: { locked: Boolean(result?.locked_until) },
     scope: "login",
     success: false,
     target: targetName,
@@ -123,38 +122,32 @@ async function consumePasswordFlow(input: {
   flowId: string
 }) {
   const admin = createAdminClient()
-  const flowResponse = await admin
-    .from("auth_flow_attempts")
-    .select("id, app_user_id, consumed_at, expires_at")
-    .eq("flow_id", input.flowId)
-    .eq("cpf_hmac", input.cpfHash)
-    .maybeSingle()
-
-  if (
-    flowResponse.error ||
-    !flowResponse.data ||
-    flowResponse.data.consumed_at ||
-    new Date(flowResponse.data.expires_at).getTime() <= Date.now()
-  ) {
-    throw new Error("Fluxo expirado.")
+  const { data, error } = await admin.rpc("internal_consume_auth_flow", {
+    p_allowed_purposes: ["first_access", "password_reset"],
+    p_cpf_hmac: input.cpfHash,
+    p_flow_id: input.flowId,
+  }) as {
+    data: Array<{ app_user_id: string; id: string; purpose: string }> | null
+    error: { message?: string } | null
   }
 
-  await admin
-    .from("auth_flow_attempts")
-    .update({ consumed_at: new Date().toISOString() })
-    .eq("id", flowResponse.data.id)
+  if (error || !data?.[0]) {
+    if (error) {
+      console.error("password_flow_consume_failed", { error: error.message })
+    }
+    throw new Error("Fluxo expirado.")
+  }
 }
 
 async function clearFailedAttempts(authUserId: string) {
   const admin = createAdminClient()
-  await admin
-    .from("app_users")
-    .update({
-      failed_attempts: 0,
-      last_failed_at: null,
-      locked_until: null,
-    })
-    .eq("auth_user_id", authUserId)
+  const { error } = await admin.rpc("internal_clear_auth_failed_attempts", {
+    p_auth_user_id: authUserId,
+  })
+
+  if (error) {
+    console.error("clear_failed_attempts_rpc_failed", { error: error.message })
+  }
 }
 
 Deno.serve(async (request) => {
@@ -192,7 +185,7 @@ Deno.serve(async (request) => {
     })
 
     if (signInResponse.error || !signInResponse.data.session) {
-      await recordFailedAttempt(cpfHash, appUser.failed_attempts, appUser.name)
+      await recordFailedAttempt(cpfHash, appUser.name)
       return genericAuthError(401, request)
     }
 

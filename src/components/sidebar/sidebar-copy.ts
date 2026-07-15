@@ -4,12 +4,12 @@ export const sidebarCopy = {
     shortName: "RMC",
   },
   header: {
-    openNavigation: "Alternar navegação",
+    openNavigation: "Abrir navegação",
   },
   profile: {
     fallbackName: "Usuário",
     fallbackRole: "Proprietário",
-    developmentMode: "Modo desenvolvimento",
+    developmentMode: "Modo de desenvolvimento",
   },
   menu: {
     changePhoto: "Alterar foto",
@@ -20,20 +20,20 @@ export const sidebarCopy = {
     openUserMenu: (name: string) => `${name} - abrir menu de usuário`,
   },
   dialog: {
-    signOutTitle: "Encerrar sessão",
+    signOutTitle: "Sair da conta",
     signOutDescription:
-      "Deseja realmente sair agora? Você precisará fazer login novamente para continuar.",
+      "Você tem certeza que deseja sair da sua conta? Você precisará entrar novamente para acessar o sistema.",
     signOutCancel: "Cancelar",
-    signOutConfirm: "Sair",
+    signOutConfirm: "Continuar",
   },
   notifications: {
-    open: "Abrir notificações",
+    open: "Abrir painel de notificações",
     panelTitle: "Notificações",
     markAllRead: "Marcar todas como lidas",
-    updatingAll: "Atualizando...",
-    unreadOnlyEmptyTitle: "Sem notificações não lidas",
+    updatingAll: "Atualizando todas as notificações",
+    unreadOnlyEmptyTitle: "Nada de novo por aqui",
     unreadOnlyEmptyDescription:
-      "Tudo certo por aqui. Quando surgir algo novo, aparecerá neste painel.",
+      "Você está atualizado! Não há notificações não lidas.",
     viewAll: "Ver todas",
   },
 } as const

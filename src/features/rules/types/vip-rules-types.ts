@@ -1,6 +1,7 @@
 export const commercialRuleTypeValues = [
   "vip",
   "fuel_benefit",
+  "yard_cleaning",
   "yard_cleaning_occupancy",
   "yard_cleaning_stale_vehicle",
 ] as const
@@ -55,6 +56,8 @@ export type SaveVipRuleInput =
       clientName: string
       vehicleId: number | null
       vehiclePlate: string | null
+      appliesToAllVehicles: boolean
+      vehicleIds: number[]
       appliesToAllUnits: boolean
       unitIds: string[]
       active: boolean
@@ -67,6 +70,15 @@ export type SaveVipRuleInput =
       unitIds: string[]
       fuelMinLiters: number
       benefitHours: number
+      active: boolean
+      reason: string
+      notes: string | null
+    }
+  | {
+      ruleType: "yard_cleaning"
+      unitIds: string[]
+      yardOccupancyThreshold: number
+      yardStaleVehicleHours: number
       active: boolean
       reason: string
       notes: string | null

@@ -10,7 +10,7 @@ import {
   maskCpf,
   maskPhone,
   normalizeCpf,
-  requireAdminActor,
+  requirePermissionActor,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
@@ -22,7 +22,12 @@ Deno.serve(async (request) => {
   if (cors) return cors
 
   try {
-    const actor = requireAdminActor(await getAuthenticatedActor(request))
+    const supabase = createAdminClient()
+    const actor = await requirePermissionActor(
+      await getAuthenticatedActor(request),
+      "users.manage",
+      supabase
+    )
     const input = adminCreateUserSchema.parse(await request.json())
 
     if (!canAssignRole({
@@ -43,7 +48,6 @@ Deno.serve(async (request) => {
       return genericAuthError(400, request)
     }
 
-    const supabase = createAdminClient()
     const cpf = normalizeCpf(input.cpf)
     const cpfHash = await hashSensitiveValue(cpf)
     const technicalEmail = `auth+${crypto.randomUUID()}@estacionamento.redemontecarlo.com.br`

@@ -5,6 +5,7 @@ export {
   actorHasPermission,
   getAuthenticatedActor,
   requireAdminActor,
+  requirePermissionActor,
 } from "./auth-context.ts"
 export { getCorsHeaders, handleCors } from "./auth-cors.ts"
 export {

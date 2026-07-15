@@ -52,6 +52,12 @@ export function RulesRoute() {
           clientName: rule.clientName ?? "",
           vehicleId: rule.vehicleId,
           vehiclePlate: rule.vehiclePlate,
+          appliesToAllVehicles: rule.targetType === "client"
+            ? rule.appliesToAllVehicles
+            : false,
+          vehicleIds: rule.targetType === "vehicle" && rule.vehicleId
+            ? [rule.vehicleId]
+            : rule.vehicleIds,
           appliesToAllUnits: rule.appliesToAllUnits,
           unitIds: rule.unitIds,
           active,
@@ -82,6 +88,20 @@ export function RulesRoute() {
           ruleType: "yard_cleaning_occupancy",
           unitIds: rule.unitIds,
           yardOccupancyThreshold: rule.yardOccupancyThreshold ?? 0,
+          active,
+          reason: active
+            ? "Ativação administrativa de alerta de limpeza de pátio."
+            : "Inativação administrativa de alerta de limpeza de pátio.",
+          notes: null,
+        }
+      }
+
+      if (rule.ruleType === "yard_cleaning") {
+        return {
+          ruleType: "yard_cleaning",
+          unitIds: rule.unitIds,
+          yardOccupancyThreshold: rule.yardOccupancyThreshold ?? 0,
+          yardStaleVehicleHours: rule.yardStaleVehicleHours ?? 0,
           active,
           reason: active
             ? "Ativação administrativa de alerta de limpeza de pátio."
@@ -183,7 +203,7 @@ export function RulesRoute() {
         }}
         filterFields={[
           {
-            id: "targetType",
+            id: "ruleType",
             title: rulesCopy.filters.targetType,
             options: typeOptions,
           },

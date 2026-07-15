@@ -120,26 +120,28 @@ export function DataTableFacetedFilter<TData, TValue>({
         aria-label={title}
         className="h-9 min-h-9 w-full min-w-44 flex-nowrap overflow-hidden lg:w-64"
       >
-        <ComboboxValue>
-          <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-            {visibleSelectedOptions.map((option) => (
-              <ComboboxChip
-                key={option.value}
-                className="min-w-0 max-w-[8rem] shrink-0"
-              >
-                <span className="truncate">{option.label}</span>
-              </ComboboxChip>
-            ))}
-            {hiddenSelectedCount > 0 ? (
-              <ComboboxChip showRemove={false} className="shrink-0">
-                +{hiddenSelectedCount} {dataTableCopy.facetedFilter.selectedSuffix}
-              </ComboboxChip>
-            ) : null}
-          </span>
-        </ComboboxValue>
+        {selectedOptions.length > 0 ? (
+          <ComboboxValue>
+            <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
+              {visibleSelectedOptions.map((option) => (
+                <ComboboxChip
+                  key={option.value}
+                  className="min-w-0 max-w-[8rem] shrink-0"
+                >
+                  <span className="truncate">{option.label}</span>
+                </ComboboxChip>
+              ))}
+              {hiddenSelectedCount > 0 ? (
+                <ComboboxChip showRemove={false} className="shrink-0">
+                  +{hiddenSelectedCount} {dataTableCopy.facetedFilter.selectedSuffix}
+                </ComboboxChip>
+              ) : null}
+            </span>
+          </ComboboxValue>
+        ) : null}
         <ComboboxChipsInput
           aria-label={title}
-          className="min-w-0 flex-1"
+          className="min-w-0 flex-1 text-left"
           placeholder={selectedOptions.length > 0 ? "" : title}
         />
       </ComboboxChips>

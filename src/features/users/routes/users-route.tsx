@@ -143,6 +143,23 @@ export function UsersRoute() {
   const auth = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const remoteMode = Boolean(getSupabaseBrowserClient()) && !shouldBypassAuthInDev()
+  const canReadUsers = auth.access.hasPermission(AUTH_PERMISSION.usersRead)
+  const canManageUsers = auth.access.hasPermission(AUTH_PERMISSION.usersManage)
+  const canCreateUsers = canManageUsers
+  const canEditUsers = canManageUsers
+  const canBlockUsers = canManageUsers
+  const canResetPasswords = canManageUsers
+  const canResetPasskeys = canManageUsers
+  const canClearLocks = canManageUsers
+  const canRevokeUserSessions = canManageUsers
+  const canExportUsers = canReadUsers
+  const canReadAccessRequests =
+    auth.access.hasPermission(AUTH_PERMISSION.accessRequestsRead)
+  const canReviewAccessRequests =
+    auth.access.hasPermission(AUTH_PERMISSION.accessRequestsReview)
+  const canAssignOwnerRole =
+    auth.profile?.role?.key === AUTH_ROLE_KEY.owner ||
+    auth.access.hasPermission(AUTH_PERMISSION.all)
   const {
     data,
     error,
@@ -156,7 +173,7 @@ export function UsersRoute() {
     resetPasskey,
     clearLock,
     revokeSessions,
-  } = useUsers()
+  } = useUsers({ enabled: canReadUsers })
   const unitsSnapshot = useUnits()
   const units = unitsSnapshot.data
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
@@ -176,23 +193,6 @@ export function UsersRoute() {
   const isEditMode = editingUser !== null
   const selectedRole = form.watch("role")
   const isGlobalScopeRole = isGlobalRole(selectedRole)
-  const canAssignOwnerRole =
-    auth.profile?.role?.key === AUTH_ROLE_KEY.owner ||
-    auth.access.hasPermission(AUTH_PERMISSION.all)
-  const canReadUsers = auth.access.hasPermission(AUTH_PERMISSION.usersRead)
-  const canManageUsers = auth.access.hasPermission(AUTH_PERMISSION.usersManage)
-  const canCreateUsers = canManageUsers
-  const canEditUsers = canManageUsers
-  const canBlockUsers = canManageUsers
-  const canResetPasswords = canManageUsers
-  const canResetPasskeys = canManageUsers
-  const canClearLocks = canManageUsers
-  const canRevokeUserSessions = canManageUsers
-  const canExportUsers = canReadUsers
-  const canReadAccessRequests =
-    auth.access.hasPermission(AUTH_PERMISSION.accessRequestsRead)
-  const canReviewAccessRequests =
-    auth.access.hasPermission(AUTH_PERMISSION.accessRequestsReview)
   const selectedTab =
     canReadAccessRequests &&
       searchParams.get("tab") === ACCESS_REQUESTS_TAB_VALUE

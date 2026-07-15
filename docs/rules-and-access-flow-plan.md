@@ -26,27 +26,24 @@ Modelo aplicado para manter uma unica tabela e um unico formulario dinamico:
 - Usar `type` para diferenciar:
   - `vip`: cliente ou veiculo.
   - `fuel_benefit`: isencao por abastecimento.
-  - `yard_cleaning_occupancy`: alerta por ocupacao da unidade.
-  - `yard_cleaning_stale_vehicle`: alerta por permanencia sem saida.
+  - `yard_cleaning`: alerta de limpeza de patio por ocupacao da unidade e permanencia sem saida.
 - Campos comuns:
   - `id`, `type`, `target_type`, `applies_to_all_units`, `unit_ids`, `status`, `starts_at`, `ends_at`, `reason`, `created_at`, `updated_at`, `created_by`, `updated_by`.
 - Campos especificos ficam tipados em `commercial_rules` e validados por constraints/RPC:
   - VIP: `client_id`, `client_name`, `vehicle_id`, `vehicle_plate`.
   - Abastecimento: `fuel_min_liters`, `benefit_hours`.
-  - Limpeza por ocupacao: `yard_occupancy_threshold`.
-  - Limpeza por permanencia: `yard_stale_vehicle_hours`.
+  - Limpeza de patio: `yard_occupancy_threshold` e `yard_stale_vehicle_hours`.
 - A tabela da UI deve ser unica, com colunas: tipo, abrangencia, regra, status, vigencia e atualizado em.
 - O formulario deve alternar campos por `rule_type`:
   - VIP: cliente, veiculo opcional, unidades ou rede.
   - Abastecimento: unidade ou rede, litros minimos e horas de beneficio.
-  - Limpeza por ocupacao: unidade e limite de vagas preenchidas. A capacidade total da unidade vem de `unit_yard_settings.parking_spots`.
-  - Limpeza por permanencia: unidade ou rede, limite em horas/dias sem saida.
+  - Limpeza de patio: uma unidade, vagas configuradas em `unit_yard_configs.parking_spots`, limite de vagas preenchidas e limite em horas sem saida.
 
 Status de implementacao local:
 
 1. Sidebar: primeiro item renomeado para Dashboard, com icone de dashboard e sem label de grupo "Area de trabalho".
 2. Banco: migracao adiciona tipos de limpeza de patio, campos especificos, constraints de payload e RPC `save_commercial_rule_version`.
-3. UI: formulario dinamico cadastra VIP, isencao por abastecimento, limpeza por ocupacao e limpeza por permanencia.
+3. UI: formulario dinamico cadastra VIP, isencao por abastecimento e limpeza de patio consolidada.
 4. UI: tabela de regras permanece unica e exibe tipo, regra, abrangencia, status e atualizado em.
 5. Pendente: motor de alertas operacionais. Ele precisa consumir ocupacao/entradas sem saida e gerar notificacoes/tarefas com deduplicacao.
 

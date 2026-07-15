@@ -33,28 +33,37 @@ interface RolePermissionRow {
   role: PermissionRole
 }
 
+const permissionGroupLabels: Record<string, string> = {
+  access_requests: "Solicitações de acesso",
+  audit: "Auditoria",
+  client_vehicles: "Veículos de clientes",
+  clients: "Clientes",
+  notifications: "Notificações",
+  permissions: "Permissões",
+  prices: "Preços",
+  profile: "Perfil",
+  rules: "Regras",
+  settings: "Configurações",
+  sync: "Sincronização",
+  system: "Sistema",
+  units: "Unidades",
+  users: "Usuários",
+}
+
+const criticalPermissionPrefixes = new Set([
+  "access_requests",
+  "audit",
+  "permissions",
+  "sync",
+  "users",
+])
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
 
-function isPermissionSource(value: unknown): value is PermissionSource {
-  return value === "system" || value === "custom"
-}
-
 function isPermissionRole(value: unknown): value is PermissionRole {
   return permissionRoles.some((role) => role === value)
-}
-
-function parsePermissionGroup(value: unknown): PermissionGroupRow | null {
-  if (!isRecord(value)) {
-    return null
-  }
-
-  return typeof value.id === "string" &&
-    typeof value.key === "string" &&
-    typeof value.label === "string"
-    ? { id: value.id, key: value.key, label: value.label }
-    : null
 }
 
 function parsePermission(value: unknown): PermissionRow | null {
@@ -62,21 +71,20 @@ function parsePermission(value: unknown): PermissionRow | null {
     return null
   }
 
-  return typeof value.id === "string" &&
-    typeof value.key === "string" &&
+  const key = typeof value.key === "string" ? value.key : ""
+  const groupKey = resolvePermissionGroupKey(key)
+
+  return key &&
     typeof value.label === "string" &&
-    typeof value.group_id === "string" &&
-    typeof value.is_critical === "boolean" &&
-    isPermissionSource(value.source) &&
     (typeof value.description === "string" || value.description === null)
     ? {
         description: value.description,
-        group_id: value.group_id,
-        id: value.id,
-        is_critical: value.is_critical,
-        key: value.key,
+        group_id: groupKey,
+        id: key,
+        is_critical: isCriticalPermission(key),
+        key,
         label: value.label,
-        source: value.source,
+        source: "system",
       }
     : null
 }
@@ -86,8 +94,11 @@ function parseRolePermission(value: unknown): RolePermissionRow | null {
     return null
   }
 
-  return typeof value.permission_id === "string" && isPermissionRole(value.role)
-    ? { permission_id: value.permission_id, role: value.role }
+  const permissionKey = value.permission_key
+  const roleKey = value.role_key
+
+  return typeof permissionKey === "string" && isPermissionRole(roleKey)
+    ? { permission_id: permissionKey, role: roleKey }
     : null
 }
 
@@ -99,6 +110,28 @@ function createEmptyRoleAccess(): Record<PermissionRole, boolean> {
     operator: false,
     owner: false,
   }
+}
+
+function resolvePermissionGroupKey(permissionKey: string) {
+  if (permissionKey === "*") {
+    return "system"
+  }
+
+  return permissionKey.split(".")[0] || "system"
+}
+
+function resolvePermissionGroup(permissionKey: string): PermissionGroupRow {
+  const groupKey = resolvePermissionGroupKey(permissionKey)
+
+  return {
+    id: groupKey,
+    key: groupKey,
+    label: permissionGroupLabels[groupKey] ?? groupKey,
+  }
+}
+
+function isCriticalPermission(permissionKey: string) {
+  return permissionKey === "*" || criticalPermissionPrefixes.has(resolvePermissionGroupKey(permissionKey))
 }
 
 Deno.serve(async (req) => {
@@ -124,38 +157,28 @@ Deno.serve(async (req) => {
       return authError("forbidden", 403, req)
     }
 
-    const [groupsResponse, permissionsResponse, rolesResponse] = await Promise.all([
+    const [permissionsResponse, rolesResponse] = await Promise.all([
       supabase
-        .from("permission_groups")
-        .select("id, key, label")
-        .order("sort_order", { ascending: true })
+        .from("app_permissions")
+        .select("key, label, description")
         .order("label", { ascending: true }),
       supabase
-        .from("permissions")
-        .select("id, key, label, description, source, is_critical, group_id")
-        .eq("is_active", true)
-        .order("sort_order", { ascending: true })
-        .order("label", { ascending: true }),
-      supabase
-        .from("role_permissions")
-        .select("permission_id, role"),
+        .from("app_role_permissions")
+        .select("permission_key, role_key"),
     ])
 
-    if (groupsResponse.error || permissionsResponse.error || rolesResponse.error) {
+    if (permissionsResponse.error || rolesResponse.error) {
       console.error("permission_matrix_query_failed", {
-        groups: groupsResponse.error?.message,
         permissions: permissionsResponse.error?.message,
         roles: rolesResponse.error?.message,
       })
       return authError("dependency_unavailable", 503, req)
     }
 
-    const groups = (groupsResponse.data ?? []).map(parsePermissionGroup)
     const permissions = (permissionsResponse.data ?? []).map(parsePermission)
     const rolePermissions = (rolesResponse.data ?? []).map(parseRolePermission)
 
     if (
-      groups.some((group) => group === null) ||
       permissions.some((permission) => permission === null) ||
       rolePermissions.some((rolePermission) => rolePermission === null)
     ) {
@@ -163,11 +186,14 @@ Deno.serve(async (req) => {
       return authError("invalid_response", 502, req)
     }
 
-    const groupById = new Map(
-      groups
-        .filter((group): group is PermissionGroupRow => Boolean(group))
-        .map((group) => [group.id, group])
-    )
+    const groupById = new Map<string, PermissionGroupRow>()
+
+    for (const permission of permissions.filter(
+      (item): item is PermissionRow => Boolean(item)
+    )) {
+      groupById.set(permission.group_id, resolvePermissionGroup(permission.key))
+    }
+
     const rolesByPermissionId = new Map<string, Set<PermissionRole>>()
 
     for (const rolePermission of rolePermissions.filter(
@@ -187,8 +213,9 @@ Deno.serve(async (req) => {
           return []
         }
 
+        const wildcardRoles = rolesByPermissionId.get("*") ?? new Set<PermissionRole>()
         const roles = permissionRoles.filter((role) =>
-          rolesByPermissionId.get(permission.id)?.has(role)
+          rolesByPermissionId.get(permission.id)?.has(role) || wildcardRoles.has(role)
         )
         const roleAccess = createEmptyRoleAccess()
 

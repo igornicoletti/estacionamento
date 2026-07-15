@@ -18,10 +18,14 @@ import {
 
 interface CreatePricesColumnsOptions {
   onOpenDetails?: (price: PriceTable) => void
+  onTogglePriceStatus?: (price: PriceTable) => void
+  canManage?: boolean
 }
 
 export function createPricesColumns({
   onOpenDetails,
+  onTogglePriceStatus,
+  canManage = false,
 }: CreatePricesColumnsOptions = {}): ColumnDef<PriceTable>[] {
   return [
     {
@@ -111,14 +115,28 @@ export function createPricesColumns({
         )
       },
     },
-    createActionsColumn<PriceTable>([
+    createActionsColumn<PriceTable>((row) => [
       {
         id: "details",
         label: pricesCopy.actions.details,
-        onSelect: (row) => {
+        onSelect: () => {
           onOpenDetails?.(row.original)
         },
       },
+      ...(canManage
+        ? [
+          {
+            id: "toggle-status" as const,
+            label: row.original.status === "active"
+              ? pricesCopy.actions.deactivate
+              : pricesCopy.actions.activate,
+            variant: row.original.status === "active" ? "destructive" as const : "default" as const,
+            onSelect: () => {
+              onTogglePriceStatus?.(row.original)
+            },
+          },
+        ]
+        : []),
     ]),
   ]
 }

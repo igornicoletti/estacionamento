@@ -43,6 +43,16 @@ function normalizeUnitIds(unitIds: readonly string[]) {
   ).sort((left, right) => left.localeCompare(right))
 }
 
+function normalizeVehicleIds(vehicleIds: readonly number[]) {
+  return Array.from(
+    new Set(
+      vehicleIds
+        .map((vehicleId) => Math.trunc(vehicleId))
+        .filter((vehicleId) => Number.isFinite(vehicleId) && vehicleId > 0)
+    )
+  ).sort((left, right) => left - right)
+}
+
 function ensureUnitScope(unitIds: readonly string[]) {
   if (unitIds.length === 0) {
     throw new Error(rulesCopy.form.validation.unitIds)
@@ -70,6 +80,14 @@ function validateRuleInput(input: SaveVipRuleInput) {
         throw new Error(rulesCopy.form.validation.vehiclePlate)
       }
     }
+
+    if (
+      input.targetType === "client" &&
+      !input.appliesToAllVehicles &&
+      normalizeVehicleIds(input.vehicleIds).length === 0
+    ) {
+      throw new Error(rulesCopy.form.validation.vehicleIds)
+    }
   }
 
   if (input.ruleType === "fuel_benefit") {
@@ -86,6 +104,18 @@ function validateRuleInput(input: SaveVipRuleInput) {
     ensurePositiveInteger(
       input.yardOccupancyThreshold,
       rulesCopy.form.validation.yardOccupancyThreshold
+    )
+  }
+
+  if (input.ruleType === "yard_cleaning") {
+    ensureUnitScope(input.unitIds)
+    ensurePositiveInteger(
+      input.yardOccupancyThreshold,
+      rulesCopy.form.validation.yardOccupancyThreshold
+    )
+    ensurePositiveNumber(
+      input.yardStaleVehicleHours,
+      rulesCopy.form.validation.yardStaleVehicleHours
     )
   }
 
@@ -118,6 +148,9 @@ function buildCommercialRulePayload(input: SaveVipRuleInput) {
       p_type: input.ruleType,
       p_unit_ids: input.appliesToAllUnits ? [] : normalizeUnitIds(input.unitIds),
       p_vehicle_id: input.targetType === "vehicle" ? input.vehicleId : null,
+      p_vehicle_ids: input.targetType === "client" && !input.appliesToAllVehicles
+        ? normalizeVehicleIds(input.vehicleIds)
+        : [],
       p_vehicle_plate: input.targetType === "vehicle" ? input.vehiclePlate?.trim() ?? null : null,
       p_yard_occupancy_threshold: null,
       p_yard_stale_vehicle_hours: null,
@@ -138,9 +171,31 @@ function buildCommercialRulePayload(input: SaveVipRuleInput) {
       p_type: input.ruleType,
       p_unit_ids: input.scope === "network" ? [] : normalizeUnitIds(input.unitIds),
       p_vehicle_id: null,
+      p_vehicle_ids: [],
       p_vehicle_plate: null,
       p_yard_occupancy_threshold: null,
       p_yard_stale_vehicle_hours: null,
+    }
+  }
+
+  if (input.ruleType === "yard_cleaning") {
+    return {
+      p_active: input.active,
+      p_applies_to_all_units: false,
+      p_benefit_hours: null,
+      p_client_id: null,
+      p_client_name: null,
+      p_fuel_min_liters: null,
+      p_notes: input.notes?.trim() ? input.notes.trim() : null,
+      p_reason: input.reason.trim(),
+      p_target_type: "unit",
+      p_type: input.ruleType,
+      p_unit_ids: normalizeUnitIds(input.unitIds),
+      p_vehicle_id: null,
+      p_vehicle_ids: [],
+      p_vehicle_plate: null,
+      p_yard_occupancy_threshold: input.yardOccupancyThreshold,
+      p_yard_stale_vehicle_hours: input.yardStaleVehicleHours,
     }
   }
 
@@ -158,6 +213,7 @@ function buildCommercialRulePayload(input: SaveVipRuleInput) {
       p_type: input.ruleType,
       p_unit_ids: normalizeUnitIds(input.unitIds),
       p_vehicle_id: null,
+      p_vehicle_ids: [],
       p_vehicle_plate: null,
       p_yard_occupancy_threshold: input.yardOccupancyThreshold,
       p_yard_stale_vehicle_hours: null,
@@ -177,6 +233,7 @@ function buildCommercialRulePayload(input: SaveVipRuleInput) {
     p_type: input.ruleType,
     p_unit_ids: input.scope === "network" ? [] : normalizeUnitIds(input.unitIds),
     p_vehicle_id: null,
+    p_vehicle_ids: [],
     p_vehicle_plate: null,
     p_yard_occupancy_threshold: null,
     p_yard_stale_vehicle_hours: input.yardStaleVehicleHours,
@@ -273,6 +330,8 @@ export async function toggleClientVip(input: ToggleClientVipInput): Promise<VipR
     clientName: input.clientName,
     vehicleId: null,
     vehiclePlate: null,
+    appliesToAllVehicles: true,
+    vehicleIds: [],
     appliesToAllUnits: true,
     unitIds: [],
     active: input.enabled,
@@ -289,6 +348,8 @@ export async function toggleVehicleVip(input: ToggleVehicleVipInput): Promise<Vi
     clientName: input.clientName,
     vehicleId: input.vehicleId,
     vehiclePlate: input.vehiclePlate,
+    appliesToAllVehicles: false,
+    vehicleIds: [input.vehicleId],
     appliesToAllUnits: true,
     unitIds: [],
     active: input.enabled,

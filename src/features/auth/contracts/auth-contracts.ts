@@ -50,6 +50,7 @@ export const AUTH_PERMISSION = {
   accessRequestsReview: "access_requests.review",
   permissionsRead: "permissions.read",
   auditRead: "audit.read",
+  syncExecute: "sync.execute",
 } as const
 
 export const AUTH_ROLE_KEY = {
@@ -93,6 +94,7 @@ const adminPermissions = [
   AUTH_PERMISSION.rulesManage,
   AUTH_PERMISSION.usersManage,
   AUTH_PERMISSION.accessRequestsReview,
+  AUTH_PERMISSION.syncExecute,
 ] as const
 
 const fallbackPermissionsByRole: Record<AuthRoleKey, readonly AuthPermission[]> = {

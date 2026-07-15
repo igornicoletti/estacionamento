@@ -1,8 +1,9 @@
-import * as React from "react"
 import { SearchIcon } from "lucide-react"
+import * as React from "react"
 
 import { AppDialog } from "@/components/shared/app-dialog"
 import { Button } from "@/components/ui/button"
+import { Checkbox } from "@/components/ui/checkbox"
 import {
   Combobox,
   ComboboxChip,
@@ -15,14 +16,19 @@ import {
   ComboboxItem,
   ComboboxList,
   ComboboxValue,
+  useComboboxAnchor,
 } from "@/components/ui/combobox"
 import { Field, FieldError, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { InputGroupAddon } from "@/components/ui/input-group"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { listClientsSnapshot } from "@/features/clients"
-import { useUnits } from "@/features/units"
+import {
+  buildUnitYardConfigMap,
+  resolveUnitYardConfig,
+  useUnitYardConfigs,
+  useUnits,
+} from "@/features/units"
 import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
 
 import { rulesCopy } from "../rules-copy"
@@ -30,7 +36,6 @@ import {
   type CommercialRuleType,
   type RuleUnitScope,
   type SaveVipRuleInput,
-  type VipRuleTargetType,
 } from "../types/vip-rules-types"
 
 interface VipRuleFormDialogProps {
@@ -40,19 +45,18 @@ interface VipRuleFormDialogProps {
   onSubmit: (input: SaveVipRuleInput) => Promise<void>
 }
 
-type RuleFormTimeUnit = "days" | "hours"
+type RuleFormType = Extract<CommercialRuleType, "vip" | "fuel_benefit" | "yard_cleaning">
 
 type RuleFormErrors = Partial<Record<
   | "benefitHours"
   | "clientId"
   | "clientName"
   | "fuelMinLiters"
-  | "reason"
   | "unitIds"
-  | "vehicleId"
-  | "vehiclePlate"
+  | "vehicleIds"
   | "yardOccupancyThreshold"
-  | "yardStaleVehicleHours",
+  | "yardStaleVehicleHours"
+  | "yardUnitId",
   string
 >>
 
@@ -73,10 +77,10 @@ interface VehicleOption {
 interface UnitOption {
   value: string
   label: string
+  parkingSpots: number
 }
 
-const initialRuleType: CommercialRuleType = "vip"
-const initialTargetType: VipRuleTargetType = "client"
+const initialRuleType: RuleFormType = "vip"
 
 function readPositiveNumber(value: string) {
   const parsed = Number(value.replace(",", "."))
@@ -90,10 +94,16 @@ function readPositiveInteger(value: string) {
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 0
 }
 
-function toHours(value: string, unit: RuleFormTimeUnit) {
-  const parsed = readPositiveNumber(value)
+function getDefaultReason(ruleType: RuleFormType) {
+  if (ruleType === "vip") {
+    return "Cadastro administrativo de regra de cliente VIP."
+  }
 
-  return unit === "days" ? parsed * 24 : parsed
+  if (ruleType === "fuel_benefit") {
+    return "Cadastro administrativo de regra de abastecimento."
+  }
+
+  return "Cadastro administrativo de alerta de limpeza de pátio."
 }
 
 export function VipRuleFormDialog({
@@ -102,23 +112,21 @@ export function VipRuleFormDialog({
   isSaving,
   onSubmit,
 }: VipRuleFormDialogProps) {
-  const [ruleType, setRuleType] = React.useState<CommercialRuleType>(initialRuleType)
-  const [targetType, setTargetType] = React.useState<VipRuleTargetType>(initialTargetType)
+  const [ruleType, setRuleType] = React.useState<RuleFormType>(initialRuleType)
   const [clientId, setClientId] = React.useState("")
   const [clientName, setClientName] = React.useState("")
-  const [vehicleId, setVehicleId] = React.useState("")
-  const [vehiclePlate, setVehiclePlate] = React.useState("")
+  const [appliesToAllVehicles, setAppliesToAllVehicles] = React.useState(true)
+  const [vehicleIds, setVehicleIds] = React.useState<string[]>([])
   const [scope, setScope] = React.useState<RuleUnitScope>("network")
   const [unitIds, setUnitIds] = React.useState<string[]>([])
-  const [active, setActive] = React.useState("true")
+  const [yardUnitId, setYardUnitId] = React.useState("")
   const [fuelMinLiters, setFuelMinLiters] = React.useState("")
   const [benefitHours, setBenefitHours] = React.useState("")
   const [yardOccupancyThreshold, setYardOccupancyThreshold] = React.useState("")
-  const [yardStaleVehicleAmount, setYardStaleVehicleAmount] = React.useState("")
-  const [yardStaleVehicleUnit, setYardStaleVehicleUnit] =
-    React.useState<RuleFormTimeUnit>("hours")
-  const [reason, setReason] = React.useState("")
+  const [yardStaleVehicleHours, setYardStaleVehicleHours] = React.useState("")
   const [errors, setErrors] = React.useState<RuleFormErrors>({})
+  const vehicleAnchorRef = useComboboxAnchor()
+  const unitAnchorRef = useComboboxAnchor()
   const clientsSnapshot = useAsyncSnapshot({
     cacheKey: "rules:vip-form-clients:v2",
     errorMessage: rulesCopy.feedback.loadError,
@@ -126,6 +134,11 @@ export function VipRuleFormDialog({
     loadData: listClientsSnapshot,
   })
   const unitsSnapshot = useUnits()
+  const yardConfigsSnapshot = useUnitYardConfigs()
+  const yardConfigByUnitId = React.useMemo(
+    () => buildUnitYardConfigMap(yardConfigsSnapshot.data),
+    [yardConfigsSnapshot.data]
+  )
   const clientOptions = React.useMemo<ClientOption[]>(
     () =>
       clientsSnapshot.data.clients.map((client) => ({
@@ -142,7 +155,7 @@ export function VipRuleFormDialog({
   const vehicleOptions = React.useMemo<VehicleOption[]>(
     () =>
       clientsSnapshot.data.vehicles
-        .filter((vehicle) => !clientId || String(vehicle.cod_pessoa) === clientId)
+        .filter((vehicle) => String(vehicle.cod_pessoa) === clientId)
         .map((vehicle) => ({
           clientId: vehicle.cod_pessoa,
           id: vehicle.cod_veiculo,
@@ -152,41 +165,49 @@ export function VipRuleFormDialog({
         })),
     [clientId, clientsSnapshot.data.vehicles]
   )
-  const selectedVehicle = React.useMemo(
-    () => vehicleOptions.find((vehicle) => vehicle.value === vehicleId) ?? null,
-    [vehicleId, vehicleOptions]
+  const selectedVehicles = React.useMemo(
+    () => vehicleOptions.filter((vehicle) => vehicleIds.includes(vehicle.value)),
+    [vehicleIds, vehicleOptions]
   )
   const unitOptions = React.useMemo<UnitOption[]>(
     () =>
-      unitsSnapshot.data.map((unit) => ({
-        label: unit.nom_fantasia || unit.nom_razao_social || String(unit.cod_empresa),
-        value: String(unit.cod_empresa),
-      })),
-    [unitsSnapshot.data]
+      unitsSnapshot.data.map((unit) => {
+        const unitId = String(unit.cod_empresa)
+        const yardConfig = resolveUnitYardConfig(unitId, yardConfigByUnitId)
+
+        return {
+          label: unit.nom_fantasia || unit.nom_razao_social || unitId,
+          parkingSpots: yardConfig.parkingSpots,
+          value: unitId,
+        }
+      }),
+    [unitsSnapshot.data, yardConfigByUnitId]
   )
   const selectedUnits = React.useMemo(
     () => unitOptions.filter((unit) => unitIds.includes(unit.value)),
     [unitIds, unitOptions]
   )
-  const requiresUnits =
-    ruleType === "yard_cleaning_occupancy" || scope === "unit"
+  const selectedYardUnit = React.useMemo(
+    () => unitOptions.find((unit) => unit.value === yardUnitId) ?? null,
+    [unitOptions, yardUnitId]
+  )
+  const isLoadingCatalogs =
+    clientsSnapshot.isLoading || unitsSnapshot.isLoading || yardConfigsSnapshot.isLoading
+  const requiresUnitScope = ruleType !== "yard_cleaning" && scope === "unit"
 
   function resetForm() {
     setRuleType(initialRuleType)
-    setTargetType(initialTargetType)
     setClientId("")
     setClientName("")
-    setVehicleId("")
-    setVehiclePlate("")
+    setAppliesToAllVehicles(true)
+    setVehicleIds([])
     setScope("network")
     setUnitIds([])
-    setActive("true")
+    setYardUnitId("")
     setFuelMinLiters("")
     setBenefitHours("")
     setYardOccupancyThreshold("")
-    setYardStaleVehicleAmount("")
-    setYardStaleVehicleUnit("hours")
-    setReason("")
+    setYardStaleVehicleHours("")
     setErrors({})
   }
 
@@ -210,18 +231,12 @@ export function VipRuleFormDialog({
         nextErrors.clientName = rulesCopy.form.validation.clientName
       }
 
-      if (targetType === "vehicle") {
-        if (readPositiveInteger(vehicleId) <= 0) {
-          nextErrors.vehicleId = rulesCopy.form.validation.vehicleId
-        }
-
-        if (vehiclePlate.trim().length === 0) {
-          nextErrors.vehiclePlate = rulesCopy.form.validation.vehiclePlate
-        }
+      if (!appliesToAllVehicles && vehicleIds.length === 0) {
+        nextErrors.vehicleIds = rulesCopy.form.validation.vehicleIds
       }
     }
 
-    if (requiresUnits && unitIds.length === 0) {
+    if (requiresUnitScope && unitIds.length === 0) {
       nextErrors.unitIds = rulesCopy.form.validation.unitIds
     }
 
@@ -235,24 +250,20 @@ export function VipRuleFormDialog({
       }
     }
 
-    if (
-      ruleType === "yard_cleaning_occupancy" &&
-      readPositiveInteger(yardOccupancyThreshold) <= 0
-    ) {
-      nextErrors.yardOccupancyThreshold =
-        rulesCopy.form.validation.yardOccupancyThreshold
-    }
+    if (ruleType === "yard_cleaning") {
+      if (!yardUnitId) {
+        nextErrors.yardUnitId = rulesCopy.form.validation.unitIds
+      }
 
-    if (
-      ruleType === "yard_cleaning_stale_vehicle" &&
-      toHours(yardStaleVehicleAmount, yardStaleVehicleUnit) <= 0
-    ) {
-      nextErrors.yardStaleVehicleHours =
-        rulesCopy.form.validation.yardStaleVehicleHours
-    }
+      if (readPositiveInteger(yardOccupancyThreshold) <= 0) {
+        nextErrors.yardOccupancyThreshold =
+          rulesCopy.form.validation.yardOccupancyThreshold
+      }
 
-    if (reason.trim().length < 10) {
-      nextErrors.reason = rulesCopy.form.validation.reason
+      if (readPositiveNumber(yardStaleVehicleHours) <= 0) {
+        nextErrors.yardStaleVehicleHours =
+          rulesCopy.form.validation.yardStaleVehicleHours
+      }
     }
 
     return nextErrors
@@ -269,20 +280,24 @@ export function VipRuleFormDialog({
     }
 
     const common = {
-      active: active === "true",
+      active: true,
       notes: null,
-      reason,
+      reason: getDefaultReason(ruleType),
     }
 
     if (ruleType === "vip") {
       await onSubmit({
         ...common,
         ruleType,
-        targetType,
+        targetType: "client",
         clientId: readPositiveInteger(clientId),
         clientName,
-        vehicleId: targetType === "vehicle" ? readPositiveInteger(vehicleId) : null,
-        vehiclePlate: targetType === "vehicle" ? vehiclePlate : null,
+        vehicleId: null,
+        vehiclePlate: null,
+        appliesToAllVehicles,
+        vehicleIds: appliesToAllVehicles
+          ? []
+          : vehicleIds.map(readPositiveInteger).filter((vehicleId) => vehicleId > 0),
         appliesToAllUnits: scope === "network",
         unitIds: scope === "network" ? [] : unitIds,
       })
@@ -299,30 +314,52 @@ export function VipRuleFormDialog({
       })
     }
 
-    if (ruleType === "yard_cleaning_occupancy") {
+    if (ruleType === "yard_cleaning") {
       await onSubmit({
         ...common,
         ruleType,
-        unitIds,
+        unitIds: [yardUnitId],
         yardOccupancyThreshold: readPositiveInteger(yardOccupancyThreshold),
-      })
-    }
-
-    if (ruleType === "yard_cleaning_stale_vehicle") {
-      await onSubmit({
-        ...common,
-        ruleType,
-        scope,
-        unitIds: scope === "network" ? [] : unitIds,
-        yardStaleVehicleHours: toHours(yardStaleVehicleAmount, yardStaleVehicleUnit),
+        yardStaleVehicleHours: readPositiveNumber(yardStaleVehicleHours),
       })
     }
 
     handleOpenChange(false)
   }
 
+  function renderScopeField() {
+    if (ruleType === "yard_cleaning") {
+      return null
+    }
+
+    return (
+      <Field>
+        <FieldLabel>{rulesCopy.form.scope}</FieldLabel>
+        <Select
+          value={scope}
+          onValueChange={(value: RuleUnitScope) => {
+            setScope(value)
+            if (value === "network") {
+              setUnitIds([])
+            }
+            setErrors((state) => ({ ...state, unitIds: undefined }))
+          }}
+          disabled={isSaving}
+        >
+          <SelectTrigger className="w-full">
+            <SelectValue placeholder={rulesCopy.form.scopePlaceholder} />
+          </SelectTrigger>
+          <SelectContent position="popper">
+            <SelectItem value="network">{rulesCopy.labels.network}</SelectItem>
+            <SelectItem value="unit">{rulesCopy.labels.specificUnits}</SelectItem>
+          </SelectContent>
+        </Select>
+      </Field>
+    )
+  }
+
   function renderUnitsField() {
-    if (!requiresUnits) {
+    if (!requiresUnitScope) {
       return null
     }
 
@@ -344,22 +381,29 @@ export function VipRuleFormDialog({
           disabled={isSaving || unitsSnapshot.isLoading}
         >
           <ComboboxChips
+            ref={unitAnchorRef}
             data-no-drag-scroll="true"
             className="min-h-9 w-full"
             aria-invalid={Boolean(errors.unitIds)}
           >
-            <ComboboxValue>
-              {selectedUnits.map((unit) => (
-                <ComboboxChip key={unit.value}>{unit.label}</ComboboxChip>
-              ))}
-            </ComboboxValue>
+            {selectedUnits.length > 0 ? (
+              <ComboboxValue>
+                {selectedUnits.map((unit) => (
+                  <ComboboxChip key={unit.value}>{unit.label}</ComboboxChip>
+                ))}
+              </ComboboxValue>
+            ) : null}
             <ComboboxChipsInput
               id="rule-unit-ids"
               placeholder={rulesCopy.form.unitPlaceholder}
               disabled={isSaving || unitsSnapshot.isLoading}
             />
           </ComboboxChips>
-          <ComboboxContent data-no-drag-scroll="true" className="w-(--anchor-width) min-w-(--anchor-width)">
+          <ComboboxContent
+            anchor={unitAnchorRef}
+            data-no-drag-scroll="true"
+            className="w-(--anchor-width) min-w-(--anchor-width)"
+          >
             <ComboboxEmpty>{rulesCopy.form.unitEmpty}</ComboboxEmpty>
             <ComboboxList>
               <ComboboxCollection>
@@ -373,7 +417,6 @@ export function VipRuleFormDialog({
           </ComboboxContent>
         </Combobox>
         {errors.unitIds ? <FieldError>{errors.unitIds}</FieldError> : null}
-        <p className="text-xs text-muted-foreground">{rulesCopy.form.unitIdsHint}</p>
       </Field>
     )
   }
@@ -414,10 +457,13 @@ export function VipRuleFormDialog({
           <FieldLabel>{rulesCopy.form.ruleType}</FieldLabel>
           <Select
             value={ruleType}
-            onValueChange={(value: CommercialRuleType) => {
+            onValueChange={(value: RuleFormType) => {
               setRuleType(value)
-              setScope(value === "yard_cleaning_occupancy" ? "unit" : "network")
+              setScope("network")
               setUnitIds([])
+              setYardUnitId("")
+              setVehicleIds([])
+              setAppliesToAllVehicles(true)
               setErrors({})
             }}
             disabled={isSaving}
@@ -425,41 +471,16 @@ export function VipRuleFormDialog({
             <SelectTrigger className="w-full">
               <SelectValue placeholder={rulesCopy.form.ruleTypePlaceholder} />
             </SelectTrigger>
-            <SelectContent>
+            <SelectContent position="popper">
               <SelectItem value="vip">{rulesCopy.labels.vip}</SelectItem>
               <SelectItem value="fuel_benefit">{rulesCopy.labels.fuelBenefit}</SelectItem>
-              <SelectItem value="yard_cleaning_occupancy">{rulesCopy.labels.yardCleaningOccupancy}</SelectItem>
-              <SelectItem value="yard_cleaning_stale_vehicle">{rulesCopy.labels.yardCleaningStaleVehicle}</SelectItem>
+              <SelectItem value="yard_cleaning">{rulesCopy.labels.yardCleaning}</SelectItem>
             </SelectContent>
           </Select>
         </Field>
 
         {ruleType === "vip" ? (
           <>
-            <Field>
-              <FieldLabel>{rulesCopy.form.targetType}</FieldLabel>
-              <Select
-                value={targetType}
-                onValueChange={(value: VipRuleTargetType) => {
-                  setTargetType(value)
-                  if (value === "client") {
-                    setVehicleId("")
-                    setVehiclePlate("")
-                  }
-                  setErrors({})
-                }}
-                disabled={isSaving}
-              >
-                <SelectTrigger className="w-full">
-                  <SelectValue placeholder={rulesCopy.form.targetPlaceholder} />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="client">{rulesCopy.labels.client}</SelectItem>
-                  <SelectItem value="vehicle">{rulesCopy.labels.vehicle}</SelectItem>
-                </SelectContent>
-              </Select>
-            </Field>
-
             <Field data-invalid={Boolean(errors.clientId || errors.clientName)}>
               <FieldLabel htmlFor="rule-client">{rulesCopy.form.clientName}</FieldLabel>
               <Combobox<ClientOption>
@@ -470,14 +491,13 @@ export function VipRuleFormDialog({
 
                   setClientId(selectedOption?.value ?? "")
                   setClientName(selectedOption?.label ?? "")
-                  setVehicleId("")
-                  setVehiclePlate("")
+                  setVehicleIds([])
+                  setAppliesToAllVehicles(true)
                   setErrors((state) => ({
                     ...state,
                     clientId: undefined,
                     clientName: undefined,
-                    vehicleId: undefined,
-                    vehiclePlate: undefined,
+                    vehicleIds: undefined,
                   }))
                 }}
                 itemToStringLabel={(client) => client.label}
@@ -514,39 +534,64 @@ export function VipRuleFormDialog({
               ) : null}
             </Field>
 
-            {targetType === "vehicle" ? (
-              <Field data-invalid={Boolean(errors.vehicleId || errors.vehiclePlate)}>
-                <FieldLabel htmlFor="rule-vehicle">{rulesCopy.form.vehiclePlate}</FieldLabel>
-                <Combobox<VehicleOption>
-                  items={vehicleOptions}
-                  value={selectedVehicle}
-                  onValueChange={(value: VehicleOption | VehicleOption[] | null) => {
-                    const selectedOption = Array.isArray(value) ? value[0] ?? null : value
+            <Field>
+              <label className="flex items-center gap-2 text-sm font-medium">
+                <Checkbox
+                  checked={appliesToAllVehicles}
+                  disabled={isSaving || !clientId}
+                  onCheckedChange={(checked) => {
+                    const nextValue = checked === true
+                    setAppliesToAllVehicles(nextValue)
+                    if (nextValue) {
+                      setVehicleIds([])
+                    }
+                    setErrors((state) => ({ ...state, vehicleIds: undefined }))
+                  }}
+                />
+                {rulesCopy.form.applyAllVehicles}
+              </label>
+            </Field>
 
-                    setVehicleId(selectedOption?.value ?? "")
-                    setVehiclePlate(selectedOption?.plate ?? "")
-                    setErrors((state) => ({
-                      ...state,
-                      vehicleId: undefined,
-                      vehiclePlate: undefined,
-                    }))
+            {!appliesToAllVehicles ? (
+              <Field data-invalid={Boolean(errors.vehicleIds)}>
+                <FieldLabel htmlFor="rule-vehicle">{rulesCopy.form.vehiclePlate}</FieldLabel>
+                <Combobox<VehicleOption, true>
+                  items={vehicleOptions}
+                  multiple
+                  value={selectedVehicles}
+                  onValueChange={(value) => {
+                    const selectedOptions = Array.isArray(value) ? value : value ? [value] : []
+
+                    setVehicleIds(selectedOptions.map((vehicle) => vehicle.value))
+                    setErrors((state) => ({ ...state, vehicleIds: undefined }))
                   }}
                   itemToStringLabel={(vehicle) => vehicle.label}
                   itemToStringValue={(vehicle) => `${vehicle.value} ${vehicle.label}`}
                   disabled={isSaving || clientsSnapshot.isLoading || !clientId}
                 >
-                  <ComboboxInput
-                    id="rule-vehicle"
-                    className="h-9 w-full"
-                    placeholder={rulesCopy.form.vehiclePlaceholder}
-                    disabled={isSaving || clientsSnapshot.isLoading || !clientId}
-                    aria-invalid={Boolean(errors.vehicleId || errors.vehiclePlate)}
+                  <ComboboxChips
+                    ref={vehicleAnchorRef}
+                    data-no-drag-scroll="true"
+                    className="min-h-9 w-full"
+                    aria-invalid={Boolean(errors.vehicleIds)}
                   >
-                    <InputGroupAddon>
-                      <SearchIcon />
-                    </InputGroupAddon>
-                  </ComboboxInput>
-                  <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
+                    {selectedVehicles.length > 0 ? (
+                      <ComboboxValue>
+                        {selectedVehicles.map((vehicle) => (
+                          <ComboboxChip key={vehicle.value}>{vehicle.plate}</ComboboxChip>
+                        ))}
+                      </ComboboxValue>
+                    ) : null}
+                    <ComboboxChipsInput
+                      id="rule-vehicle"
+                      placeholder={rulesCopy.form.vehiclePlaceholder}
+                      disabled={isSaving || clientsSnapshot.isLoading || !clientId}
+                    />
+                  </ComboboxChips>
+                  <ComboboxContent
+                    anchor={vehicleAnchorRef}
+                    className="w-(--anchor-width) min-w-(--anchor-width)"
+                  >
                     <ComboboxEmpty>{rulesCopy.form.vehicleEmpty}</ComboboxEmpty>
                     <ComboboxList>
                       <ComboboxCollection>
@@ -559,40 +604,13 @@ export function VipRuleFormDialog({
                     </ComboboxList>
                   </ComboboxContent>
                 </Combobox>
-                {errors.vehicleId ? <FieldError>{errors.vehicleId}</FieldError> : null}
-                {errors.vehiclePlate && !errors.vehicleId ? (
-                  <FieldError>{errors.vehiclePlate}</FieldError>
-                ) : null}
+                {errors.vehicleIds ? <FieldError>{errors.vehicleIds}</FieldError> : null}
               </Field>
             ) : null}
           </>
         ) : null}
 
-        {ruleType !== "yard_cleaning_occupancy" ? (
-          <Field>
-            <FieldLabel>{rulesCopy.form.scope}</FieldLabel>
-            <Select
-              value={scope}
-              onValueChange={(value: RuleUnitScope) => {
-                setScope(value)
-                if (value === "network") {
-                  setUnitIds([])
-                }
-                setErrors((state) => ({ ...state, unitIds: undefined }))
-              }}
-              disabled={isSaving}
-            >
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder={rulesCopy.form.scopePlaceholder} />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="network">{rulesCopy.labels.network}</SelectItem>
-                <SelectItem value="unit">{rulesCopy.labels.unit}</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-        ) : null}
-
+        {renderScopeField()}
         {renderUnitsField()}
 
         {ruleType === "fuel_benefit" ? (
@@ -632,93 +650,100 @@ export function VipRuleFormDialog({
           </div>
         ) : null}
 
-        {ruleType === "yard_cleaning_occupancy" ? (
-          <Field data-invalid={Boolean(errors.yardOccupancyThreshold)}>
-            <FieldLabel htmlFor="rule-yard-threshold">{rulesCopy.form.yardOccupancyThreshold}</FieldLabel>
-            <Input
-              id="rule-yard-threshold"
-              className="h-9"
-              inputMode="numeric"
-              value={yardOccupancyThreshold}
-              onChange={(event) => {
-                setYardOccupancyThreshold(event.target.value)
-                setErrors((state) => ({ ...state, yardOccupancyThreshold: undefined }))
-              }}
-              disabled={isSaving}
-              aria-invalid={Boolean(errors.yardOccupancyThreshold)}
-            />
-            {errors.yardOccupancyThreshold ? (
-              <FieldError>{errors.yardOccupancyThreshold}</FieldError>
-            ) : null}
-          </Field>
-        ) : null}
+        {ruleType === "yard_cleaning" ? (
+          <>
+            <Field data-invalid={Boolean(errors.yardUnitId)}>
+              <FieldLabel htmlFor="rule-yard-unit">{rulesCopy.form.yardUnit}</FieldLabel>
+              <Combobox<UnitOption>
+                items={unitOptions}
+                value={selectedYardUnit}
+                onValueChange={(value: UnitOption | UnitOption[] | null) => {
+                  const selectedOption = Array.isArray(value) ? value[0] ?? null : value
 
-        {ruleType === "yard_cleaning_stale_vehicle" ? (
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Field data-invalid={Boolean(errors.yardStaleVehicleHours)}>
-              <FieldLabel htmlFor="rule-yard-stale">{rulesCopy.form.yardStaleVehicleAmount}</FieldLabel>
-              <Input
-                id="rule-yard-stale"
-                className="h-9"
-                inputMode="decimal"
-                value={yardStaleVehicleAmount}
-                onChange={(event) => {
-                  setYardStaleVehicleAmount(event.target.value)
-                  setErrors((state) => ({ ...state, yardStaleVehicleHours: undefined }))
+                  setYardUnitId(selectedOption?.value ?? "")
+                  setErrors((state) => ({ ...state, yardUnitId: undefined }))
                 }}
-                disabled={isSaving}
-                aria-invalid={Boolean(errors.yardStaleVehicleHours)}
-              />
-              {errors.yardStaleVehicleHours ? (
-                <FieldError>{errors.yardStaleVehicleHours}</FieldError>
-              ) : null}
-            </Field>
-            <Field>
-              <FieldLabel>{rulesCopy.form.yardStaleVehicleUnit}</FieldLabel>
-              <Select
-                value={yardStaleVehicleUnit}
-                onValueChange={(value: RuleFormTimeUnit) => setYardStaleVehicleUnit(value)}
-                disabled={isSaving}
+                itemToStringLabel={(unit) => unit.label}
+                itemToStringValue={(unit) => `${unit.value} ${unit.label}`}
+                disabled={isSaving || isLoadingCatalogs}
               >
-                <SelectTrigger className="w-full">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="hours">{rulesCopy.form.timeHours}</SelectItem>
-                  <SelectItem value="days">{rulesCopy.form.timeDays}</SelectItem>
-                </SelectContent>
-              </Select>
+                <ComboboxInput
+                  id="rule-yard-unit"
+                  className="h-9 w-full"
+                  placeholder={rulesCopy.form.yardUnitPlaceholder}
+                  disabled={isSaving || isLoadingCatalogs}
+                  aria-invalid={Boolean(errors.yardUnitId)}
+                >
+                  <InputGroupAddon>
+                    <SearchIcon />
+                  </InputGroupAddon>
+                </ComboboxInput>
+                <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
+                  <ComboboxEmpty>{rulesCopy.form.yardUnitEmpty}</ComboboxEmpty>
+                  <ComboboxList>
+                    <ComboboxCollection>
+                      {(unit: UnitOption) => (
+                        <ComboboxItem key={unit.value} value={unit}>
+                          {unit.label}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxCollection>
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+              {errors.yardUnitId ? <FieldError>{errors.yardUnitId}</FieldError> : null}
             </Field>
-          </div>
+
+            <div className="rounded-md bg-secondary px-3 py-2 text-sm">
+              <span className="text-muted-foreground">{rulesCopy.form.yardParkingSpots}: </span>
+              <span className="font-medium">
+                {selectedYardUnit
+                  ? selectedYardUnit.parkingSpots || rulesCopy.form.yardParkingSpotsEmpty
+                  : rulesCopy.labels.emptyValue}
+              </span>
+            </div>
+
+            <div className="grid gap-4 sm:grid-cols-2">
+              <Field data-invalid={Boolean(errors.yardOccupancyThreshold)}>
+                <FieldLabel htmlFor="rule-yard-threshold">{rulesCopy.form.yardOccupancyThreshold}</FieldLabel>
+                <Input
+                  id="rule-yard-threshold"
+                  className="h-9"
+                  inputMode="numeric"
+                  value={yardOccupancyThreshold}
+                  onChange={(event) => {
+                    setYardOccupancyThreshold(event.target.value)
+                    setErrors((state) => ({ ...state, yardOccupancyThreshold: undefined }))
+                  }}
+                  disabled={isSaving}
+                  aria-invalid={Boolean(errors.yardOccupancyThreshold)}
+                />
+                {errors.yardOccupancyThreshold ? (
+                  <FieldError>{errors.yardOccupancyThreshold}</FieldError>
+                ) : null}
+              </Field>
+
+              <Field data-invalid={Boolean(errors.yardStaleVehicleHours)}>
+                <FieldLabel htmlFor="rule-yard-stale">{rulesCopy.form.yardStaleVehicleAmount}</FieldLabel>
+                <Input
+                  id="rule-yard-stale"
+                  className="h-9"
+                  inputMode="decimal"
+                  value={yardStaleVehicleHours}
+                  onChange={(event) => {
+                    setYardStaleVehicleHours(event.target.value)
+                    setErrors((state) => ({ ...state, yardStaleVehicleHours: undefined }))
+                  }}
+                  disabled={isSaving}
+                  aria-invalid={Boolean(errors.yardStaleVehicleHours)}
+                />
+                {errors.yardStaleVehicleHours ? (
+                  <FieldError>{errors.yardStaleVehicleHours}</FieldError>
+                ) : null}
+              </Field>
+            </div>
+          </>
         ) : null}
-
-        <Field>
-          <FieldLabel>{rulesCopy.form.status}</FieldLabel>
-          <Select value={active} onValueChange={setActive} disabled={isSaving}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={rulesCopy.form.statusPlaceholder} />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="true">{rulesCopy.labels.active}</SelectItem>
-              <SelectItem value="false">{rulesCopy.labels.inactive}</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
-
-        <Field data-invalid={Boolean(errors.reason)}>
-          <FieldLabel htmlFor="rule-reason">{rulesCopy.form.reason}</FieldLabel>
-          <Textarea
-            id="rule-reason"
-            value={reason}
-            onChange={(event) => {
-              setReason(event.target.value)
-              setErrors((state) => ({ ...state, reason: undefined }))
-            }}
-            disabled={isSaving}
-            aria-invalid={Boolean(errors.reason)}
-          />
-          {errors.reason ? <FieldError>{errors.reason}</FieldError> : null}
-        </Field>
       </form>
     </AppDialog>
   )
