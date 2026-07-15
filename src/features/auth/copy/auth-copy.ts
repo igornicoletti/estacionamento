@@ -90,8 +90,8 @@ export const authCopy = {
     title: "Sessão prestes a expirar",
     secondsRemaining: (seconds: number) =>
       `Sua sessão será encerrada por inatividade em ${seconds} segundo${seconds === 1 ? "" : "s"}.`,
-    continueSession: "Continuar sessão",
-    signOutNow: "Sair agora",
+    continueSession: "Continuar",
+    signOutNow: "Cancelar",
     expiredTitle: "Sessão encerrada",
     expiredDescription:
       "Sua sessão foi encerrada por inatividade. Faça login novamente para continuar.",
