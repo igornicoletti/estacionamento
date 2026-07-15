@@ -12,7 +12,6 @@ import {
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
-  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
@@ -135,21 +134,6 @@ export function UserMenu() {
           collisionPadding={8}
           className="w-64 max-w-[calc(100vw-1rem)]"
         >
-          <DropdownMenuLabel className="p-0 font-normal">
-            <div className="grid justify-items-center gap-2 px-1 py-2 text-center text-sm leading-tight">
-              <Avatar size="lg">
-                {auth.profile?.avatarUrl ? (
-                  <AvatarImage src={auth.profile.avatarUrl} alt="" />
-                ) : null}
-                <AvatarFallback>{fallback}</AvatarFallback>
-              </Avatar>
-              <span className="truncate font-medium">{displayName}</span>
-              <span className="truncate text-xs text-muted-foreground">
-                {displayMeta}
-              </span>
-            </div>
-          </DropdownMenuLabel>
-          <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
               <Link to={appRoutePaths.profile}>

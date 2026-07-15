@@ -1,8 +1,10 @@
+import { ptBR } from "date-fns/locale"
+import { CalendarIcon, Clock2Icon, SearchIcon } from "lucide-react"
 import * as React from "react"
-import { SearchIcon } from "lucide-react"
 
 import { AppDialog } from "@/components/shared/app-dialog"
 import { Button } from "@/components/ui/button"
+import { Calendar } from "@/components/ui/calendar"
 import {
   Combobox,
   ComboboxCollection,
@@ -14,8 +16,19 @@ import {
 } from "@/components/ui/combobox"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { InputGroupAddon } from "@/components/ui/input-group"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { InputGroup, InputGroupAddon, InputGroupInput } from "@/components/ui/input-group"
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "@/components/ui/popover"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 import { Textarea } from "@/components/ui/textarea"
 import { useUnits } from "@/features/units"
 
@@ -34,26 +47,48 @@ interface PriceTableFormDialogProps {
   onSubmit: (input: SavePriceTableInput) => Promise<void>
 }
 
-type PriceTableFormErrors = Partial<Record<
-  "unitId" | "unitName" | "amount" | "cycleHours" | "graceMinutes" | "toleranceMinutes" | "startsAt" | "endsAt" | "reason",
-  string
->>
+type PriceTableFormErrors = Partial<
+  Record<
+    | "unitId"
+    | "unitName"
+    | "amount"
+    | "cycleHours"
+    | "graceMinutes"
+    | "toleranceMinutes"
+    | "startsAt"
+    | "endsAt"
+    | "reason",
+    string
+  >
+>
 
 interface UnitOption {
   value: string
   label: string
 }
 
+interface DateTimeFieldProps {
+  disabled?: boolean
+  error?: string
+  id: string
+  label: string
+  minDate: Date
+  onChange: (value: string) => void
+  placeholder: string
+  required?: boolean
+  value: string
+}
+
 const defaultStartsAt = () => toDateTimeLocalValue(new Date())
 
 function getTodayStart() {
-  const date = new Date()
-  date.setHours(0, 0, 0, 0)
-  return date
+  return getDateStart(new Date())
 }
 
-function getTodayStartInputValue() {
-  return toDateTimeLocalValue(getTodayStart())
+function getDateStart(value: Date) {
+  const date = new Date(value)
+  date.setHours(0, 0, 0, 0)
+  return date
 }
 
 function readNumber(value: string) {
@@ -80,12 +115,139 @@ function toIsoOrNull(value: string) {
   return readDateTime(value)?.toISOString() ?? null
 }
 
+function getTimeValue(value: string) {
+  return value.split("T")[1]?.slice(0, 5) ?? "00:00"
+}
+
+function toDateTimeValue(date: Date, time: string) {
+  const [hours = "0", minutes = "0"] = time.split(":")
+  const nextDate = new Date(date)
+
+  nextDate.setHours(Number(hours), Number(minutes), 0, 0)
+
+  return toDateTimeLocalValue(nextDate)
+}
+
+function formatDateTimeFieldValue(value: string) {
+  const date = readDateTime(value)
+
+  if (!date) {
+    return null
+  }
+
+  return new Intl.DateTimeFormat("pt-BR", {
+    dateStyle: "short",
+    timeStyle: "short",
+  }).format(date)
+}
+
+function getMinEndDate(startsAt: string, fallback: Date) {
+  const startsAtDate = readDateTime(startsAt)
+
+  if (!startsAtDate) {
+    return fallback
+  }
+
+  const startsAtDay = getDateStart(startsAtDate)
+
+  return startsAtDay > fallback ? startsAtDay : fallback
+}
+
+function DateTimeField({
+  disabled = false,
+  error,
+  id,
+  label,
+  minDate,
+  onChange,
+  placeholder,
+  required = false,
+  value,
+}: DateTimeFieldProps) {
+  const selectedDate = React.useMemo(() => readDateTime(value), [value])
+  const formattedValue = React.useMemo(
+    () => formatDateTimeFieldValue(value),
+    [value]
+  )
+  const timeValue = selectedDate ? getTimeValue(value) : ""
+
+  function handleDateSelect(date: Date | undefined) {
+    if (!date) {
+      if (!required) {
+        onChange("")
+      }
+
+      return
+    }
+
+    onChange(toDateTimeValue(date, timeValue || "00:00"))
+  }
+
+  function handleTimeChange(event: React.ChangeEvent<HTMLInputElement>) {
+    if (!selectedDate) {
+      return
+    }
+
+    onChange(toDateTimeValue(selectedDate, event.target.value || "00:00"))
+  }
+
+  return (
+    <Field data-invalid={Boolean(error)}>
+      <FieldLabel htmlFor={id}>{label}</FieldLabel>
+      <div className="grid gap-2 sm:grid-cols-[1fr_auto]">
+        <Popover>
+          <PopoverTrigger asChild>
+            <Button
+              id={id}
+              type="button"
+              variant="outline"
+              className="w-full justify-start text-left font-normal"
+              disabled={disabled}
+              aria-invalid={Boolean(error)}
+            >
+              <CalendarIcon aria-hidden="true" />
+              {formattedValue ?? placeholder}
+            </Button>
+          </PopoverTrigger>
+          <PopoverContent align="start" className="w-full p-0">
+            <Calendar
+              mode="single"
+              selected={selectedDate ?? undefined}
+              onSelect={handleDateSelect}
+              disabled={{ before: minDate }}
+              defaultMonth={selectedDate ?? minDate}
+              locale={ptBR}
+            />
+          </PopoverContent>
+        </Popover>
+
+        <InputGroup>
+          <InputGroupInput
+            type="time"
+            step="60"
+            value={timeValue}
+            onChange={handleTimeChange}
+            disabled={disabled || !selectedDate}
+            aria-label={`${label} - horário`}
+            className="appearance-none [&::-webkit-calendar-picker-indicator]:hidden [&::-webkit-calendar-picker-indicator]:appearance-none"
+          />
+          <InputGroupAddon>
+            <Clock2Icon className="text-muted-foreground" aria-hidden="true" />
+          </InputGroupAddon>
+        </InputGroup>
+      </div>
+      {error ? <FieldError>{error}</FieldError> : null}
+    </Field>
+  )
+}
+
 export function PriceTableFormDialog({
   open,
   onOpenChange,
   isSaving,
   onSubmit,
 }: PriceTableFormDialogProps) {
+  const todayStart = React.useMemo(() => getTodayStart(), [])
   const [scope, setScope] = React.useState<PriceTableScope>("network")
   const [unitId, setUnitId] = React.useState("")
   const [unitName, setUnitName] = React.useState("")
@@ -102,7 +264,10 @@ export function PriceTableFormDialog({
   const unitOptions = React.useMemo<UnitOption[]>(
     () =>
       unitsSnapshot.data.map((unit) => ({
-        label: unit.nom_fantasia || unit.nom_razao_social || String(unit.cod_empresa),
+        label:
+          unit.nom_fantasia ||
+          unit.nom_razao_social ||
+          String(unit.cod_empresa),
         value: String(unit.cod_empresa),
       })),
     [unitsSnapshot.data]
@@ -111,7 +276,10 @@ export function PriceTableFormDialog({
     () => unitOptions.find((unit) => unit.value === unitId) ?? null,
     [unitId, unitOptions]
   )
-  const minStartsAt = React.useMemo(() => getTodayStartInputValue(), [])
+  const minEndsAt = React.useMemo(
+    () => getMinEndDate(startsAt, todayStart),
+    [startsAt, todayStart]
+  )
 
   function resetForm() {
     setScope("network")
@@ -159,23 +327,31 @@ export function PriceTableFormDialog({
       nextErrors.amount = pricesCopy.form.validation.amount
     }
 
-    if (!Number.isInteger(parsedCycleHours) || parsedCycleHours < 1 || parsedCycleHours > 720) {
+    if (
+      !Number.isInteger(parsedCycleHours) ||
+      parsedCycleHours < 1 ||
+      parsedCycleHours > 720
+    ) {
       nextErrors.cycleHours = pricesCopy.form.validation.cycleHours
     }
 
-    if (!Number.isInteger(parsedGraceMinutes) || parsedGraceMinutes < 0 || parsedGraceMinutes > 1440) {
+    if (
+      !Number.isInteger(parsedGraceMinutes) ||
+      parsedGraceMinutes < 0 ||
+      parsedGraceMinutes > 1440
+    ) {
       nextErrors.graceMinutes = pricesCopy.form.validation.graceMinutes
     }
 
-    if (!Number.isInteger(parsedToleranceMinutes) || parsedToleranceMinutes < 0 || parsedToleranceMinutes > 240) {
+    if (
+      !Number.isInteger(parsedToleranceMinutes) ||
+      parsedToleranceMinutes < 0 ||
+      parsedToleranceMinutes > 240
+    ) {
       nextErrors.toleranceMinutes = pricesCopy.form.validation.toleranceMinutes
     }
 
-    if (!startsAtDate) {
-      nextErrors.startsAt = pricesCopy.form.validation.startsAt
-    }
-
-    if (startsAtDate && startsAtDate < getTodayStart()) {
+    if (!startsAtDate || startsAtDate < getTodayStart()) {
       nextErrors.startsAt = pricesCopy.form.validation.startsAt
     }
 
@@ -232,7 +408,7 @@ export function PriceTableFormDialog({
       title={pricesCopy.form.title}
       description={pricesCopy.form.description}
       footerClassName="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:justify-stretch"
-      footer={(
+      footer={
         <>
           <Button
             type="button"
@@ -254,210 +430,248 @@ export function PriceTableFormDialog({
             {pricesCopy.actions.save}
           </Button>
         </>
-      )}
+      }
     >
-      <form id="price-table-form" className="grid gap-4" onSubmit={(event) => { void handleSubmit(event) }}>
-        <Field>
-          <FieldLabel>{pricesCopy.form.scope}</FieldLabel>
-          <Select
-            value={scope}
-            onValueChange={(value: PriceTableScope) => {
-              setScope(value)
-              if (value === "network") {
-                setUnitId("")
-                setUnitName("")
-              }
-              setErrors({})
-            }}
-            disabled={isSaving}
-          >
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={pricesCopy.form.scopePlaceholder} />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectItem value="network">{pricesCopy.labels.network}</SelectItem>
-              <SelectItem value="unit">{pricesCopy.labels.unit}</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
+      <form
+        id="price-table-form"
+        onSubmit={(event) => {
+          void handleSubmit(event)
+        }}
+      >
+        <FieldGroup>
+          <Field>
+            <FieldLabel>{pricesCopy.form.scope}</FieldLabel>
+            <Select
+              value={scope}
+              onValueChange={(value: PriceTableScope) => {
+                setScope(value)
 
-        {scope === "unit" ? (
-          <Field data-invalid={Boolean(errors.unitId || errors.unitName)}>
-            <FieldLabel htmlFor="price-unit">{pricesCopy.form.unitName}</FieldLabel>
-            <Combobox<UnitOption>
-              items={unitOptions}
-              value={selectedUnit}
-              onValueChange={(value: UnitOption | UnitOption[] | null) => {
-                const selectedOption = Array.isArray(value) ? value[0] ?? null : value
+                if (value === "network") {
+                  setUnitId("")
+                  setUnitName("")
+                }
 
-                setUnitId(selectedOption?.value ?? "")
-                setUnitName(selectedOption?.label ?? "")
-                setErrors((state) => ({
-                  ...state,
-                  unitId: undefined,
-                  unitName: undefined,
-                }))
+                setErrors({})
               }}
-              itemToStringLabel={(unit) => unit.label}
-              itemToStringValue={(unit) => `${unit.value} ${unit.label}`}
-              disabled={isSaving || unitsSnapshot.isLoading}
+              disabled={isSaving}
             >
-              <ComboboxInput
-                id="price-unit"
-                className="h-9 w-full"
-                placeholder={pricesCopy.form.unitPlaceholder}
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={pricesCopy.form.scopePlaceholder} />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value="network">{pricesCopy.labels.network}</SelectItem>
+                <SelectItem value="unit">{pricesCopy.labels.unit}</SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
+
+          {scope === "unit" ? (
+            <Field data-invalid={Boolean(errors.unitId || errors.unitName)}>
+              <FieldLabel htmlFor="price-unit">
+                {pricesCopy.form.unitName}
+              </FieldLabel>
+              <Combobox<UnitOption>
+                items={unitOptions}
+                value={selectedUnit}
+                onValueChange={(value: UnitOption | UnitOption[] | null) => {
+                  const selectedOption = Array.isArray(value)
+                    ? value[0] ?? null
+                    : value
+
+                  setUnitId(selectedOption?.value ?? "")
+                  setUnitName(selectedOption?.label ?? "")
+                  setErrors((state) => ({
+                    ...state,
+                    unitId: undefined,
+                    unitName: undefined,
+                  }))
+                }}
+                itemToStringLabel={(unit) => unit.label}
+                itemToStringValue={(unit) => `${unit.value} ${unit.label}`}
                 disabled={isSaving || unitsSnapshot.isLoading}
-                aria-invalid={Boolean(errors.unitId || errors.unitName)}
               >
-                <InputGroupAddon>
-                  <SearchIcon />
-                </InputGroupAddon>
-              </ComboboxInput>
-              <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
-                <ComboboxEmpty>{pricesCopy.form.unitEmpty}</ComboboxEmpty>
-                <ComboboxList>
-                  <ComboboxCollection>
-                    {(unit: UnitOption) => (
-                      <ComboboxItem key={unit.value} value={unit}>
-                        {unit.label}
-                      </ComboboxItem>
-                    )}
-                  </ComboboxCollection>
-                </ComboboxList>
-              </ComboboxContent>
-            </Combobox>
-            {errors.unitId ? <FieldError>{errors.unitId}</FieldError> : null}
-            {errors.unitName && !errors.unitId ? <FieldError>{errors.unitName}</FieldError> : null}
-          </Field>
-        ) : null}
+                <ComboboxInput
+                  id="price-unit"
+                  className="h-9 w-full"
+                  placeholder={pricesCopy.form.unitPlaceholder}
+                  disabled={isSaving || unitsSnapshot.isLoading}
+                  aria-invalid={Boolean(errors.unitId || errors.unitName)}
+                >
+                  <InputGroupAddon>
+                    <SearchIcon />
+                  </InputGroupAddon>
+                </ComboboxInput>
+                <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
+                  <ComboboxEmpty>{pricesCopy.form.unitEmpty}</ComboboxEmpty>
+                  <ComboboxList>
+                    <ComboboxCollection>
+                      {(unit: UnitOption) => (
+                        <ComboboxItem key={unit.value} value={unit}>
+                          {unit.label}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxCollection>
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+              {errors.unitId ? <FieldError>{errors.unitId}</FieldError> : null}
+              {errors.unitName && !errors.unitId ? (
+                <FieldError>{errors.unitName}</FieldError>
+              ) : null}
+            </Field>
+          ) : null}
 
-        <FieldGroup className="grid gap-4 sm:grid-cols-2">
-          <Field data-invalid={Boolean(errors.amount)}>
-            <FieldLabel htmlFor="price-amount">{pricesCopy.form.amount}</FieldLabel>
-            <Input
-              id="price-amount"
-              inputMode="decimal"
-              value={amount}
-              onChange={(event) => {
-                setAmount(event.target.value)
-                setErrors((state) => ({ ...state, amount: undefined }))
-              }}
-              disabled={isSaving}
-              aria-invalid={Boolean(errors.amount)}
-            />
-            {errors.amount ? <FieldError>{errors.amount}</FieldError> : null}
-          </Field>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <Field data-invalid={Boolean(errors.amount)}>
+              <FieldLabel htmlFor="price-amount">
+                {pricesCopy.form.amount}
+              </FieldLabel>
+              <Input
+                id="price-amount"
+                inputMode="decimal"
+                value={amount}
+                onChange={(event) => {
+                  setAmount(event.target.value)
+                  setErrors((state) => ({ ...state, amount: undefined }))
+                }}
+                disabled={isSaving}
+                aria-invalid={Boolean(errors.amount)}
+              />
+              {errors.amount ? <FieldError>{errors.amount}</FieldError> : null}
+            </Field>
 
-          <Field data-invalid={Boolean(errors.cycleHours)}>
-            <FieldLabel htmlFor="price-cycle-hours">{pricesCopy.form.cycleHours}</FieldLabel>
-            <Input
-              id="price-cycle-hours"
-              inputMode="numeric"
-              value={cycleHours}
-              onChange={(event) => {
-                setCycleHours(event.target.value)
-                setErrors((state) => ({ ...state, cycleHours: undefined }))
-              }}
-              disabled={isSaving}
-              aria-invalid={Boolean(errors.cycleHours)}
-            />
-            {errors.cycleHours ? <FieldError>{errors.cycleHours}</FieldError> : null}
-          </Field>
+            <Field data-invalid={Boolean(errors.cycleHours)}>
+              <FieldLabel htmlFor="price-cycle-hours">
+                {pricesCopy.form.cycleHours}
+              </FieldLabel>
+              <Input
+                id="price-cycle-hours"
+                inputMode="numeric"
+                value={cycleHours}
+                onChange={(event) => {
+                  setCycleHours(event.target.value)
+                  setErrors((state) => ({ ...state, cycleHours: undefined }))
+                }}
+                disabled={isSaving}
+                aria-invalid={Boolean(errors.cycleHours)}
+              />
+              {errors.cycleHours ? (
+                <FieldError>{errors.cycleHours}</FieldError>
+              ) : null}
+            </Field>
 
-          <Field data-invalid={Boolean(errors.graceMinutes)}>
-            <FieldLabel htmlFor="price-grace-minutes">{pricesCopy.form.graceMinutes}</FieldLabel>
-            <Input
-              id="price-grace-minutes"
-              inputMode="numeric"
-              value={graceMinutes}
-              onChange={(event) => {
-                setGraceMinutes(event.target.value)
-                setErrors((state) => ({ ...state, graceMinutes: undefined }))
-              }}
-              disabled={isSaving}
-              aria-invalid={Boolean(errors.graceMinutes)}
-            />
-            {errors.graceMinutes ? <FieldError>{errors.graceMinutes}</FieldError> : null}
-          </Field>
+            <Field data-invalid={Boolean(errors.graceMinutes)}>
+              <FieldLabel htmlFor="price-grace-minutes">
+                {pricesCopy.form.graceMinutes}
+              </FieldLabel>
+              <Input
+                id="price-grace-minutes"
+                inputMode="numeric"
+                value={graceMinutes}
+                onChange={(event) => {
+                  setGraceMinutes(event.target.value)
+                  setErrors((state) => ({
+                    ...state,
+                    graceMinutes: undefined,
+                  }))
+                }}
+                disabled={isSaving}
+                aria-invalid={Boolean(errors.graceMinutes)}
+              />
+              {errors.graceMinutes ? (
+                <FieldError>{errors.graceMinutes}</FieldError>
+              ) : null}
+            </Field>
 
-          <Field data-invalid={Boolean(errors.toleranceMinutes)}>
-            <FieldLabel htmlFor="price-tolerance-minutes">{pricesCopy.form.toleranceMinutes}</FieldLabel>
-            <Input
-              id="price-tolerance-minutes"
-              inputMode="numeric"
-              value={toleranceMinutes}
-              onChange={(event) => {
-                setToleranceMinutes(event.target.value)
-                setErrors((state) => ({ ...state, toleranceMinutes: undefined }))
-              }}
-              disabled={isSaving}
-              aria-invalid={Boolean(errors.toleranceMinutes)}
-            />
-            {errors.toleranceMinutes ? <FieldError>{errors.toleranceMinutes}</FieldError> : null}
-          </Field>
-        </FieldGroup>
+            <Field data-invalid={Boolean(errors.toleranceMinutes)}>
+              <FieldLabel htmlFor="price-tolerance-minutes">
+                {pricesCopy.form.toleranceMinutes}
+              </FieldLabel>
+              <Input
+                id="price-tolerance-minutes"
+                inputMode="numeric"
+                value={toleranceMinutes}
+                onChange={(event) => {
+                  setToleranceMinutes(event.target.value)
+                  setErrors((state) => ({
+                    ...state,
+                    toleranceMinutes: undefined,
+                  }))
+                }}
+                disabled={isSaving}
+                aria-invalid={Boolean(errors.toleranceMinutes)}
+              />
+              {errors.toleranceMinutes ? (
+                <FieldError>{errors.toleranceMinutes}</FieldError>
+              ) : null}
+            </Field>
+          </div>
 
-        <Field data-invalid={Boolean(errors.startsAt)}>
-          <FieldLabel htmlFor="price-starts-at">{pricesCopy.form.startsAt}</FieldLabel>
-          <Input
+          <DateTimeField
             id="price-starts-at"
-            type="datetime-local"
-            min={minStartsAt}
+            label={pricesCopy.form.startsAt}
             value={startsAt}
-            onChange={(event) => {
-              setStartsAt(event.target.value)
+            onChange={(value) => {
+              setStartsAt(value)
               setErrors((state) => ({ ...state, startsAt: undefined }))
             }}
+            placeholder={pricesCopy.form.startsAt}
+            minDate={todayStart}
             disabled={isSaving}
-            aria-invalid={Boolean(errors.startsAt)}
+            error={errors.startsAt}
+            required
           />
-          {errors.startsAt ? <FieldError>{errors.startsAt}</FieldError> : null}
-        </Field>
 
-        <Field data-invalid={Boolean(errors.endsAt)}>
-          <FieldLabel htmlFor="price-ends-at">{pricesCopy.form.endsAt}</FieldLabel>
-          <Input
+          <DateTimeField
             id="price-ends-at"
-            type="datetime-local"
+            label={pricesCopy.form.endsAt}
             value={endsAt}
-            onChange={(event) => {
-              setEndsAt(event.target.value)
+            onChange={(value) => {
+              setEndsAt(value)
               setErrors((state) => ({ ...state, endsAt: undefined }))
             }}
+            placeholder={pricesCopy.labels.noEndDate}
+            minDate={minEndsAt}
             disabled={isSaving}
-            aria-invalid={Boolean(errors.endsAt)}
+            error={errors.endsAt}
           />
-          {errors.endsAt ? <FieldError>{errors.endsAt}</FieldError> : null}
-        </Field>
 
-        <Field>
-          <FieldLabel>{pricesCopy.form.status}</FieldLabel>
-          <Select value={status} onValueChange={(value: PriceRecordStatus) => setStatus(value)} disabled={isSaving}>
-            <SelectTrigger className="w-full">
-              <SelectValue placeholder={pricesCopy.form.statusPlaceholder} />
-            </SelectTrigger>
-            <SelectContent position="popper">
-              <SelectItem value="active">{pricesCopy.labels.active}</SelectItem>
-              <SelectItem value="inactive">{pricesCopy.labels.inactive}</SelectItem>
-            </SelectContent>
-          </Select>
-        </Field>
+          <Field>
+            <FieldLabel>{pricesCopy.form.status}</FieldLabel>
+            <Select
+              value={status}
+              onValueChange={(value: PriceRecordStatus) => setStatus(value)}
+              disabled={isSaving}
+            >
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder={pricesCopy.form.statusPlaceholder} />
+              </SelectTrigger>
+              <SelectContent position="popper">
+                <SelectItem value="active">{pricesCopy.labels.active}</SelectItem>
+                <SelectItem value="inactive">
+                  {pricesCopy.labels.inactive}
+                </SelectItem>
+              </SelectContent>
+            </Select>
+          </Field>
 
-        <Field data-invalid={Boolean(errors.reason)}>
-          <FieldLabel htmlFor="price-reason">{pricesCopy.form.reason}</FieldLabel>
-          <Textarea
-            id="price-reason"
-            value={reason}
-            onChange={(event) => {
-              setReason(event.target.value)
-              setErrors((state) => ({ ...state, reason: undefined }))
-            }}
-            disabled={isSaving}
-            aria-invalid={Boolean(errors.reason)}
-          />
-          {errors.reason ? <FieldError>{errors.reason}</FieldError> : null}
-        </Field>
-
+          <Field data-invalid={Boolean(errors.reason)}>
+            <FieldLabel htmlFor="price-reason">
+              {pricesCopy.form.reason}
+            </FieldLabel>
+            <Textarea
+              id="price-reason"
+              value={reason}
+              onChange={(event) => {
+                setReason(event.target.value)
+                setErrors((state) => ({ ...state, reason: undefined }))
+              }}
+              disabled={isSaving}
+              aria-invalid={Boolean(errors.reason)}
+            />
+            {errors.reason ? <FieldError>{errors.reason}</FieldError> : null}
+          </Field>
+        </FieldGroup>
       </form>
     </AppDialog>
   )

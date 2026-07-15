@@ -1,13 +1,13 @@
-import { BellIcon } from "lucide-react"
+import { BellIcon, CheckCheckIcon } from "lucide-react"
 import * as React from "react"
 
-import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
-import { AppEmptyState } from "@/components/shared/app-empty-state"
 import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 
@@ -109,6 +109,7 @@ export function NotificationsRoute() {
                 void handleMarkAllAsRead()
               }}
             >
+              <CheckCheckIcon />
               {isUpdatingBatch
                 ? notificationsCopy.actions.updatingAll
                 : notificationsCopy.actions.markAllAsRead}

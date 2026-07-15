@@ -21,7 +21,7 @@ interface DataTableBaseRowAction {
   label: string
   disabled?: boolean
   onSelect?: (row: Row<unknown>) => void
-  shortcut?: string
+  shortcut?: string | React.ReactNode
   variant?: DataTableRowActionVariant
   separatorBefore?: boolean
 }

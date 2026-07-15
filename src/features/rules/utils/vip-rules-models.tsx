@@ -109,7 +109,7 @@ export function buildCommercialRuleSummary(rule: VipRule) {
   }
 
   if (rule.ruleType === "fuel_benefit") {
-    return `${rule.fuelMinLiters ?? 0} L mínimos concedem ${rule.benefitHours ?? 0} h`
+    return `${rule.fuelMinLiters ?? 0}L mínimos concedem ${rule.benefitHours ?? 0}H`
   }
 
   if (rule.ruleType === "yard_cleaning_occupancy") {
@@ -117,10 +117,10 @@ export function buildCommercialRuleSummary(rule: VipRule) {
   }
 
   if (rule.ruleType === "yard_cleaning_stale_vehicle") {
-    return `Alerta após ${rule.yardStaleVehicleHours ?? 0} h sem saída`
+    return `Alerta após ${rule.yardStaleVehicleHours ?? 0}H sem saída`
   }
 
-  return `Alerta com ${rule.yardOccupancyThreshold ?? 0} vagas ou ${rule.yardStaleVehicleHours ?? 0} h sem saída`
+  return `Alerta com ${rule.yardOccupancyThreshold ?? 0} vagas ou ${rule.yardStaleVehicleHours ?? 0}H sem saída`
 }
 
 export function buildVipRuleDetails(rule: VipRule): readonly AppDetailsSheetItem[] {

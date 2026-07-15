@@ -11,6 +11,8 @@ import {
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
 
+import { AppEmptyState } from '@/components/shared'
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group'
 import {
   SettingsProfileError,
   validateAvatarFile,
@@ -221,20 +223,16 @@ export function ProfilePhotoDialog({
                 />
               </span>
             ) : (
-              <>
-                <UploadCloudIcon className="size-8 text-muted-foreground" aria-hidden="true" />
-                <span className="grid gap-1">
-                  <span className="text-sm font-medium">
-                    {settingsCopy.photoDialog.dropTitle}
+              <AppEmptyState
+                media={<UploadCloudIcon aria-hidden="true" />}
+                title={settingsCopy.photoDialog.dropTitle}
+                description={settingsCopy.photoDialog.dropDescription}
+                actions={
+                  <span className="text-sm font-medium text-primary">
+                    {settingsCopy.photoDialog.browse}
                   </span>
-                  <span className="text-xs text-muted-foreground">
-                    {settingsCopy.photoDialog.dropDescription}
-                  </span>
-                </span>
-                <span className="text-sm font-medium text-primary">
-                  {settingsCopy.photoDialog.browse}
-                </span>
-              </>
+                }
+              />
             )}
           </FieldLabel>
           <Input
@@ -250,9 +248,8 @@ export function ProfilePhotoDialog({
         </Field>
       ) : (
         <Field>
-          <div className="flex items-center gap-2 rounded-lg border px-3">
-            <LinkIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
-            <Input
+          <InputGroup>
+            <InputGroupInput
               id="profile-photo-url"
               value={urlValue}
               onChange={(event) => {
@@ -265,9 +262,12 @@ export function ProfilePhotoDialog({
               }}
               placeholder={settingsCopy.photoDialog.urlPlaceholder}
               inputMode="url"
-              className="border-0 px-0 shadow-none focus-visible:ring-0"
+              type="url"
             />
-          </div>
+            <InputGroupAddon align="inline-start">
+              <LinkIcon aria-hidden="true" />
+            </InputGroupAddon>
+          </InputGroup>
         </Field>
       )}
 

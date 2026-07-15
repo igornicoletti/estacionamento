@@ -1,15 +1,14 @@
-import { ArrowUpRightIcon, FileQuestionIcon, ShieldAlertIcon } from "lucide-react"
+import { ArrowUpRightIcon, FileQuestionIcon, ShieldAlertIcon, ShieldIcon } from "lucide-react"
 import type { ReactNode } from "react"
 import { Link, Navigate, Outlet, useLocation } from "react-router"
 
 import { appCopy } from "@/app/app-copy"
 import { appRoutePaths } from "@/app/router/route-registry"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
-import { shouldBypassAuthInDev } from "@/config"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { canAccessProtectedApp, type AuthPermission } from "@/features/auth"
-import { useAuth } from "@/features/auth"
+import { shouldBypassAuthInDev } from "@/config"
+import { canAccessProtectedApp, useAuth, type AuthPermission } from "@/features/auth"
 
 interface PrivateRouteGateProps {
   children?: ReactNode
@@ -86,6 +85,7 @@ export function AuthenticatedHomeRoute() {
   return (
     <CenteredRouteState>
       <AppEmptyState
+        media={<ShieldIcon aria-hidden="true" />}
         className="mx-auto max-w-xl"
         title={copy.title}
         description={copy.description}
@@ -101,7 +101,7 @@ export function RouteAccessDenied() {
     <CenteredRouteState>
       <AppEmptyState
         className="mx-auto max-w-xl"
-        media={<ShieldAlertIcon />}
+        media={<ShieldAlertIcon aria-hidden="true" />}
         title={copy.title}
         description={copy.description}
         actions={

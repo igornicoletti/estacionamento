@@ -2,13 +2,14 @@ import { type ColumnDef } from "@tanstack/react-table"
 import { Link } from "react-router"
 
 import {
-  DataTableTextAction,
   DataTableRowActions,
+  DataTableTextAction,
   type DataTableRowAction,
 } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import { formatDateTime, getBadgeToneClassName } from "@/lib"
 
+import { ArrowUpRightIcon } from 'lucide-react'
 import { notificationsCopy } from "../notifications-copy"
 import {
   notificationStatusLabels,
@@ -32,6 +33,12 @@ export function createNotificationsColumns(
   options: CreateNotificationsColumnsOptions = {}
 ): ColumnDef<NotificationRecord>[] {
   return [
+    {
+      accessorKey: "occurredAt",
+      meta: { label: notificationsCopy.details.date },
+      header: notificationsCopy.details.date,
+      cell: ({ row }) => formatDateTime(row.original.occurredAt),
+    },
     {
       accessorKey: "title",
       meta: { label: "Título" },
@@ -74,12 +81,6 @@ export function createNotificationsColumns(
           </Badge>
         </div>
       ),
-    },
-    {
-      accessorKey: "occurredAt",
-      meta: { label: notificationsCopy.details.date },
-      header: notificationsCopy.details.date,
-      cell: ({ row }) => formatDateTime(row.original.occurredAt),
     },
     {
       accessorKey: "href",
@@ -140,7 +141,7 @@ export function createNotificationsColumns(
             id: "open-destination",
             label: notificationsCopy.actions.openDestination,
             disabled: !isInternalNotificationHref(row.original.href),
-            shortcut: isInternalNotificationHref(row.original.href) ? "↗" : undefined,
+            shortcut: isInternalNotificationHref(row.original.href) ? <ArrowUpRightIcon className='size-3 text-muted-foreground' /> : undefined,
             onSelect: (currentRow) => {
               const href = currentRow.original.href
 
