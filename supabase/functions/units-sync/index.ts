@@ -131,14 +131,14 @@ function resolveSyncErrorResponse(message: string) {
   if (/invalid peer certificate|notvalidforname/i.test(message)) {
     return {
       status: 502,
-      message: "O certificado TLS do ERP não corresponde ao host configurado. Verifique ERP_BASE_URL e o certificado do serviço.",
+      message: "Erro de comunicação com o sistema externo. Contate o suporte.",
     }
   }
 
   if (message.startsWith("Missing required env ERP_") || message.startsWith("ERP_")) {
     return {
       status: 500,
-      message: "Configuração da integração ERP inválida. Contate o suporte.",
+      message: "Erro de configuração interna. Contate o suporte.",
     }
   }
 
@@ -541,7 +541,7 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
       unchanged,
       failed: failedItems.length,
     },
-  })
+  }).catch((e) => console.error("[audit-fail]", e))
 
   return {
     runId: String(run?.id ?? ""),
@@ -606,7 +606,7 @@ async function registerFailedSyncRun(
         status: "failed",
         runId: run?.id,
       },
-    })
+    }).catch((e) => console.error("[audit-fail]", e))
   } catch (failedRunError) {
     console.error("[units-sync:register-failed-run-error]", failedRunError)
   }

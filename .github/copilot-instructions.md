@@ -25,7 +25,8 @@ Vitest config lives in `vite.config.ts` (not a separate vitest.config): `environ
 - `src/components/sidebar/` — app shell/header built on shadcn/ui.
 - `src/components/toast/` — central notification API; sanitizes and translates messages before display.
 - `src/components/ui/` — shadcn/ui primitives (some files like `carousel.tsx`, `chart.tsx` are eslint-ignored, generated/vendor code).
-- `src/app/router/route-definitions.ts` — single source of truth for route metadata; routes are lazy-loaded (`React.lazy`/`Suspense`) and wrapped in `ProtectedRoute` (Supabase session + business profile `active` + capability check).
+- `src/app/router/route-registry.ts` — single source of truth for route metadata; routes are lazy-loaded (`React.lazy`/`Suspense`) and wrapped in `ProtectedRoute` (Supabase session + business profile `active` + capability check).
+- `src/features/auth/authorization/authorization-policy.ts` — centralized authorization policy: role hierarchy, permission mappings, role → permission resolution, unit scope logic.
 - `src/features/<name>/` — one directory per domain feature (`auth`, `units`, `clients`, `users`, `audit`, `permissions`, `prices`, `rules`, `settings`, `notifications`), each typically with `columns/`, `components/`, `hooks/`, `routes/`, `services/`, `types/`, `utils/`.
 
 ### Gateway pattern (data-access features)

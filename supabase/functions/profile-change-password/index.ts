@@ -47,7 +47,7 @@ Deno.serve(async (request) => {
     })
 
     if (verifyError) {
-      return genericAuthError(401, request)
+      return genericAuthError(400, request)
     }
 
     const updateResponse = await supabase.auth.admin.updateUserById(
@@ -70,7 +70,7 @@ Deno.serve(async (request) => {
       success: true,
       target: actor.name,
       targetUserId: actor.authUserId,
-    })
+    }).catch((e) => console.error("[audit-fail]", e))
 
     return jsonResponse({ message: "Senha alterada." }, 200, request)
   } catch {

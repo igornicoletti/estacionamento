@@ -148,5 +148,13 @@ export const usersCopy = {
     requiredCpf: "Informe o CPF do usuário.",
     requiredPhone: "Informe o telefone do usuário.",
     invalidPassword: "Senha inválida.",
+    adminActionUnavailable: "Esta ação só está disponível com o backend remoto configurado.",
+  },
+  adminReasons: {
+    resetAccess: "Reset solicitado pelo painel administrativo.",
+    resetPasskey: "Reset de passkey solicitado pelo painel administrativo.",
+    clearLock: "Bloqueio removido pelo painel administrativo.",
+    revokeSessions: "Sessões revogadas pelo painel administrativo.",
+    blockUser: "Bloqueio aplicado pelo painel administrativo.",
   },
 } as const

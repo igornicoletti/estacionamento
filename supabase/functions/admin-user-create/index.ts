@@ -14,8 +14,8 @@ import {
   writeAuditEvent,
 } from "../_shared/index.ts"
 
-import { createAdminClient } from "../_shared/auth-supabase-admin.ts"
 import { canAssignRole, isGlobalRole } from "../_shared/admin-users.ts"
+import { createAdminClient } from "../_shared/auth-supabase-admin.ts"
 
 Deno.serve(async (request) => {
   const cors = handleCors(request)
@@ -123,7 +123,7 @@ Deno.serve(async (request) => {
       success: true,
       target: input.name.trim(),
       targetUserId: authUserId,
-    })
+    }).catch((e) => console.error("[audit-fail]", e))
 
     return jsonResponse({ ok: true, id: appUserId, appUserId, authUserId, message: "Usuário criado." }, 200, request)
   } catch {

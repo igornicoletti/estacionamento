@@ -81,19 +81,19 @@ Deno.serve(async (request) => {
       readString(currentResponse.data.pending_phone_display) ?? pendingPhoneMasked
     const updatePayload = decision === "approved"
       ? {
-          pending_phone_display: null,
-          pending_phone_masked: null,
-          phone_display: pendingPhoneDisplay,
-          phone_masked: pendingPhoneMasked,
-          updated_at: new Date().toISOString(),
-          updated_by: actor.authUserId,
-        }
+        pending_phone_display: null,
+        pending_phone_masked: null,
+        phone_display: pendingPhoneDisplay,
+        phone_masked: pendingPhoneMasked,
+        updated_at: new Date().toISOString(),
+        updated_by: actor.authUserId,
+      }
       : {
-          pending_phone_display: null,
-          pending_phone_masked: null,
-          updated_at: new Date().toISOString(),
-          updated_by: actor.authUserId,
-        }
+        pending_phone_display: null,
+        pending_phone_masked: null,
+        updated_at: new Date().toISOString(),
+        updated_by: actor.authUserId,
+      }
 
     const updateResponse = await supabase
       .from("app_users")
@@ -121,7 +121,7 @@ Deno.serve(async (request) => {
       success: true,
       target: String(currentResponse.data.name),
       targetUserId,
-    })
+    }).catch((e) => console.error("[audit-fail]", e))
 
     return jsonResponse({ status: decision }, 200, request)
   } catch (error) {

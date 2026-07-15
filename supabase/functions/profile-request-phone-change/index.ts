@@ -50,7 +50,7 @@ Deno.serve(async (request) => {
       success: true,
       target: actor.name,
       targetUserId: actor.authUserId,
-    })
+    }).catch((e) => console.error("[audit-fail]", e))
 
     return jsonResponse({ message: "Solicitação registrada." }, 200, request)
   } catch {

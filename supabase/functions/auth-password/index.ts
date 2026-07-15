@@ -90,7 +90,7 @@ async function recordFailedAttempt(
     scope: "login",
     success: false,
     target: targetName,
-  })
+  }).catch((e) => console.error("[audit-fail]", e))
 }
 
 async function createPasswordFlow(input: {
@@ -235,7 +235,7 @@ Deno.serve(async (request) => {
         success: true,
         target: appUser.name,
         targetUserId: appUser.auth_user_id,
-      })
+      }).catch((e) => console.error("[audit-fail]", e))
 
       return jsonResponse({
         flowId: passkeyFlowId,
@@ -267,11 +267,11 @@ Deno.serve(async (request) => {
         nextAction,
         ...(nextAction === "register_passkey"
           ? {
-              session: {
-                access_token: signInResponse.data.session.access_token,
-                refresh_token: signInResponse.data.session.refresh_token,
-              },
-            }
+            session: {
+              access_token: signInResponse.data.session.access_token,
+              refresh_token: signInResponse.data.session.refresh_token,
+            },
+          }
           : {}),
       }, 200, request)
     }
@@ -289,7 +289,7 @@ Deno.serve(async (request) => {
       success: true,
       target: appUser.name,
       targetUserId: appUser.auth_user_id,
-    })
+    }).catch((e) => console.error("[audit-fail]", e))
 
     return jsonResponse({
       flowId: null,

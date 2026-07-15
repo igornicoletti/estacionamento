@@ -90,7 +90,7 @@ Deno.serve(async (request) => {
       scope: "system",
       success: true,
       target: requestId,
-    })
+    }).catch((e) => console.error("[audit-fail]", e))
 
     return jsonResponse({ status }, 200, request)
   } catch (error) {

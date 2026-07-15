@@ -1,5 +1,7 @@
 import { z } from "zod"
 
+import { isValidCpf } from "@/lib/cpf"
+
 import { authCopy } from "../copy/auth-copy"
 
 const cpfRegex = /^\d{11}$|^\d{3}\.\d{3}\.\d{3}-\d{2}$/
@@ -58,37 +60,12 @@ export function formatPhoneInput(value: string) {
   return `(${digits.slice(0, 2)}) ${digits.slice(2, 7)}-${digits.slice(7)}`
 }
 
-function isValidCpfChecksum(value: string) {
-  const digits = normalizeCpf(value)
-
-  if (digits.length !== 11 || /^(\d)\1{10}$/.test(digits)) {
-    return false
-  }
-
-  const numbers = Array.from(digits, Number)
-  const firstCheck = numbers
-    .slice(0, 9)
-    .reduce((sum, digit, index) => sum + digit * (10 - index), 0)
-  const firstDigit = (firstCheck * 10) % 11
-  const normalizedFirstDigit = firstDigit === 10 ? 0 : firstDigit
-  const secondCheck = numbers
-    .slice(0, 10)
-    .reduce((sum, digit, index) => sum + digit * (11 - index), 0)
-  const secondDigit = (secondCheck * 10) % 11
-  const normalizedSecondDigit = secondDigit === 10 ? 0 : secondDigit
-
-  return (
-    numbers[9] === normalizedFirstDigit &&
-    numbers[10] === normalizedSecondDigit
-  )
-}
-
 export const authCpfSchema = z
   .string({ error: authCopy.validation.cpfRequired })
   .trim()
   .min(1, { error: authCopy.validation.cpfRequired })
   .regex(cpfRegex, { error: authCopy.validation.cpfInvalid })
-  .refine(isValidCpfChecksum, { error: authCopy.validation.cpfInvalid })
+  .refine((value) => isValidCpf(normalizeCpf(value)), { error: authCopy.validation.cpfInvalid })
 
 export const authPasswordSchema = z
   .string({ error: authCopy.validation.passwordRequired })

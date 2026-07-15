@@ -7,7 +7,7 @@ export {
   signInWithPasskey,
   signInWithPassword,
   signOutCurrentSession,
-  subscribeToAuthSessionChanges,
+  subscribeToAuthSessionChanges
 } from "./api/auth-api"
 
 export type {
@@ -22,7 +22,7 @@ export type {
   AuthSessionPayload,
   AuthStartResponse,
   ProfileActionResponse,
-  RecoveryRequestResponse,
+  RecoveryRequestResponse
 } from "./types/auth-types"
 
 export {
@@ -46,7 +46,7 @@ export {
   type AuthNextAction,
   type AuthPermission,
   type AuthRoleKey,
-  type AuthStatus,
+  type AuthStatus
 } from "./contracts/auth-contracts"
 
 export { authCopy } from "./copy/auth-copy"
@@ -63,10 +63,22 @@ export {
   type AuthInactivityState,
   type AuthSessionStatus,
   type AuthSessionValue,
-  type RequiredPasswordChallenge,
+  type RequiredPasswordChallenge
 } from "./context/auth-provider"
 
 export { AuthPageCard } from "./components/auth-page-card"
+
+export {
+  allRoles,
+  canManageRole,
+  getAssignableRoles,
+  hasAllPermissions,
+  hasAnyPermission,
+  isGlobalRole,
+  isRoleSuperior,
+  permissionsByRole,
+  unitScopedRoles
+} from "./authorization/authorization-policy"
 
 export {
   authCpfSchema,
@@ -86,5 +98,5 @@ export {
   type AuthRecoveryPayload,
   type FieldErrors,
   type RecoveryReason,
-  type RequiredPasswordValues,
+  type RequiredPasswordValues
 } from "./validation/auth-validation"

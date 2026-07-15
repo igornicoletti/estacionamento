@@ -143,14 +143,6 @@ function assertActionUserId(userId: string) {
   }
 }
 
-const RESET_ACCESS_REASON = "Reset solicitado pelo painel administrativo."
-const RESET_PASSKEY_REASON = "Reset de passkey solicitado pelo painel administrativo."
-const CLEAR_LOCK_REASON = "Bloqueio removido pelo painel administrativo."
-const REVOKE_SESSIONS_REASON = "Sessões revogadas pelo painel administrativo."
-const BLOCK_USER_REASON = "Bloqueio aplicado pelo painel administrativo."
-const LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE =
-  "Esta ação só está disponível com o backend remoto configurado."
-
 async function listUnitsCatalog(): Promise<UnitCatalogItem[]> {
   const units = await listUnits()
 
@@ -182,7 +174,7 @@ function isMemoryUsersEnabled() {
 
 function assertUsersBackendConfigured() {
   if (!isRemoteUsersEnabled() && !isMemoryUsersEnabled()) {
-    throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)
+    throw new Error(usersCopy.errors.adminActionUnavailable)
   }
 }
 
@@ -652,7 +644,7 @@ export async function blockUser(userId: string): Promise<UserRecord> {
   assertUsersBackendConfigured()
 
   return isRemoteUsersEnabled()
-    ? invokeAdminUserAction("admin-user-block", userId, BLOCK_USER_REASON, usersCopy.feedback.block.error)
+    ? invokeAdminUserAction("admin-user-block", userId, usersCopy.adminReasons.blockUser, usersCopy.feedback.block.error)
     : blockUserInMemory(userId)
 }
 
@@ -661,7 +653,7 @@ export async function resetUserAccess(userId: string): Promise<UserRecord> {
   assertUsersBackendConfigured()
 
   return isRemoteUsersEnabled()
-    ? invokeAdminUserAction("admin-user-reset-password", userId, RESET_ACCESS_REASON, usersCopy.feedback.reset.error)
+    ? invokeAdminUserAction("admin-user-reset-password", userId, usersCopy.adminReasons.resetAccess, usersCopy.feedback.reset.error)
     : resetUserAccessInMemory(userId)
 }
 
@@ -672,12 +664,12 @@ export async function resetUserPasskey(userId: string): Promise<UserRecord> {
     return invokeAdminUserAction(
       "admin-user-reset-passkey",
       userId,
-      RESET_PASSKEY_REASON,
+      usersCopy.adminReasons.resetPasskey,
       usersCopy.feedback.resetPasskey.error
     )
   }
 
-  throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)
+  throw new Error(usersCopy.errors.adminActionUnavailable)
 }
 
 export async function clearUserLock(userId: string): Promise<UserRecord> {
@@ -687,12 +679,12 @@ export async function clearUserLock(userId: string): Promise<UserRecord> {
     return invokeAdminUserAction(
       "admin-user-clear-lock",
       userId,
-      CLEAR_LOCK_REASON,
+      usersCopy.adminReasons.clearLock,
       usersCopy.feedback.clearLock.error
     )
   }
 
-  throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)
+  throw new Error(usersCopy.errors.adminActionUnavailable)
 }
 
 export async function revokeUserSessions(userId: string): Promise<UserRecord> {
@@ -702,10 +694,10 @@ export async function revokeUserSessions(userId: string): Promise<UserRecord> {
     return invokeAdminUserAction(
       "admin-user-revoke-sessions",
       userId,
-      REVOKE_SESSIONS_REASON,
+      usersCopy.adminReasons.revokeSessions,
       usersCopy.feedback.revokeSessions.error
     )
   }
 
-  throw new Error(LOCAL_ADMIN_ACTION_UNAVAILABLE_MESSAGE)
+  throw new Error(usersCopy.errors.adminActionUnavailable)
 }
