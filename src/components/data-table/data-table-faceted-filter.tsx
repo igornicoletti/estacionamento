@@ -118,7 +118,7 @@ export function DataTableFacetedFilter<TData, TValue>({
         ref={anchorRef}
         data-no-drag-scroll="true"
         aria-label={title}
-        className="h-9 min-h-9 w-full min-w-44 flex-nowrap overflow-hidden lg:w-64"
+        className="min-h-9 w-full min-w-44 overflow-hidden lg:w-64"
       >
         {selectedOptions.length > 0 ? (
           <ComboboxValue>
@@ -126,7 +126,7 @@ export function DataTableFacetedFilter<TData, TValue>({
               {visibleSelectedOptions.map((option) => (
                 <ComboboxChip
                   key={option.value}
-                  className="min-w-0 max-w-[8rem] shrink-0"
+                  className="min-w-0 max-w-32 shrink-0"
                 >
                   <span className="truncate">{option.label}</span>
                 </ComboboxChip>

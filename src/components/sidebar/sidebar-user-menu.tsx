@@ -1,4 +1,4 @@
-import { BellIcon, ImageUpIcon, LogOutIcon, UserIcon, UserRoundIcon } from "lucide-react"
+import { BellIcon, ImageUpIcon, LogOutIcon, UserRoundIcon } from "lucide-react"
 import * as React from "react"
 import { Link } from "react-router"
 
@@ -16,8 +16,8 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import type { AuthProfile } from "@/features/auth/api"
 import { useAuth } from "@/features/auth"
+import type { AuthProfile } from "@/features/auth/api"
 import {
   getProfileInitials,
   ProfilePhotoDialog,
@@ -165,12 +165,6 @@ export function UserMenu() {
             >
               <ImageUpIcon />
               {sidebarCopy.menu.changePhoto}
-            </DropdownMenuItem>
-            <DropdownMenuItem asChild>
-              <Link to={appRoutePaths.settings}>
-                <UserIcon />
-                {sidebarCopy.menu.settings}
-              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
               <Link to={appRoutePaths.notifications}>

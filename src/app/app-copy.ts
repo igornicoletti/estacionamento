@@ -70,6 +70,10 @@ export const appCopy = {
       label: "Recuperar acesso",
       description: "Solicitação de recuperação de acesso.",
     },
+    yard: {
+      label: "Pátio Virtual",
+      description: "Visualizar ocupação e movimentação do pátio em tempo real.",
+    },
   },
   fallback: {
     accessDenied: {

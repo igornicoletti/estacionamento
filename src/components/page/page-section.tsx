@@ -12,7 +12,7 @@ export function PageSection({
   ...props
 }: PageSectionProps) {
   return (
-    <section className={cn("flex min-h-0 flex-1 flex-col gap-6", className)} {...props}>
+    <section className={cn("animate-section-in flex min-h-0 flex-1 flex-col gap-5", className)} {...props}>
       {children}
     </section>
   )

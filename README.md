@@ -90,7 +90,7 @@ estacionamento/
 - `src/app/router/`: metadados de rota, lazy loading, guards, fallbacks e error boundary.
 - `src/features/auth/`: sessão, autenticação por CPF/senha, recuperação, permissões e inatividade.
 - `src/features/prices/`: tabelas comerciais versionadas via RPC `create_commercial_price_table`.
-- `src/features/rules/`: regras VIP versionadas via RPC `save_vip_rule_version`.
+- `src/features/rules/`: regras comerciais versionadas via RPC `save_commercial_rule_version`.
 - `src/features/users/`: administração de usuários, bloqueio, fatores e sessões via Edge Functions.
 - `supabase/functions/`: funções públicas de auth e funções administrativas com JWT.
 - `supabase/migrations/`: schema, RLS, permissões, RPCs, auditoria e restrições comerciais.

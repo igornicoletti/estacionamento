@@ -26,15 +26,15 @@ export function SidebarProfile() {
   const label = resolveProfileRoleLabel(profile)
 
   return (
-    <SidebarMenu className="px-2 py-3">
+    <SidebarMenu className="px-2 py-2">
       <SidebarMenuItem>
         <SidebarMenuButton
           type="button"
           tabIndex={-1}
           aria-disabled="true"
-          className="uppercase font-bold text-primary bg-primary/10 border border-primary hover:bg-primary/20 focus:bg-primary/20 dark:bg-primary/20 dark:hover:bg-primary/30 dark:focus:bg-primary/30"
+          className="text-[0.6875rem] uppercase font-semibold tracking-wider text-sidebar-primary-foreground bg-sidebar-accent/60 hover:bg-sidebar-accent/80 focus:bg-sidebar-accent/80"
         >
-          <ShieldIcon />
+          <ShieldIcon className="size-3.5" />
           <span>{label}</span>
         </SidebarMenuButton>
       </SidebarMenuItem>

@@ -2,7 +2,6 @@ import {
   AlertTriangleIcon,
   CheckCircle2Icon,
   ChevronDownIcon,
-  CircleDotIcon,
   RefreshCcwIcon,
   XCircleIcon,
 } from "lucide-react"
@@ -203,46 +202,50 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
           ) : null}
 
           {!isLoading && !errorMessage && entries.length > 0 ? (
-            <ol className="space-y-2">
+            <ol className="relative ml-2 border-l-2 border-border/60 pl-4 space-y-3">
               {entries.map((entry) => {
                 const StatusIcon = statusIconByType[entry.status]
                 const counters = getCounters(entry)
                 const details = buildDetailRows(entry, counters)
 
                 return (
-                  <li key={entry.id}>
+                  <li key={entry.id} className="relative">
+                    <span
+                      aria-hidden="true"
+                      className={cn(
+                        "absolute left-[-1.4rem] top-3 size-2.5 rounded-full ring-2 ring-background",
+                        entry.status === "success" ? "bg-success" :
+                          entry.status === "warning" ? "bg-warning" : "bg-destructive"
+                      )}
+                    />
                     <Collapsible defaultOpen={false} className="group/timeline-item">
-                      <div className="rounded-lg bg-muted/40 p-3">
+                      <div className="rounded-lg bg-muted/30 p-3">
                         <CollapsibleTrigger asChild>
                           <button
                             type="button"
                             className="flex w-full items-center justify-between gap-3 text-left"
                           >
                             <div className="flex min-w-0 items-center gap-2">
-                              <CircleDotIcon
-                                aria-hidden="true"
-                                className="size-3 shrink-0 text-muted-foreground"
-                              />
-                              <p className="truncate text-sm font-medium text-foreground">
+                              <p className="truncate text-xs font-medium text-foreground">
                                 {formatDateTime(entry.startedAt)}
                               </p>
                               <span
                                 className={cn(
-                                  "inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-xs font-medium",
+                                  "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.625rem] font-medium",
                                   statusBadgeClassNameByType[entry.status]
                                 )}
                               >
-                                <StatusIcon className="size-3.5" />
+                                <StatusIcon className="size-3" />
                                 {statusLabelByType[entry.status]}
                               </span>
                             </div>
 
-                            <ChevronDownIcon className="mt-0.5 size-4 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/timeline-item:rotate-180" />
+                            <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/timeline-item:rotate-180" />
                           </button>
                         </CollapsibleTrigger>
 
-                        <CollapsibleContent className="mt-3 overflow-hidden rounded-md bg-background/70 p-3">
-                          <dl className="grid gap-y-2 text-sm">
+                        <CollapsibleContent className="mt-2 overflow-hidden rounded-md bg-background/60 p-2.5">
+                          <dl className="grid gap-y-1.5 text-xs">
                             {details.map((detail) => (
                               <div
                                 key={`${entry.id}-${detail.key}-${detail.value}`}
@@ -257,18 +260,15 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
                           </dl>
 
                           {entry.message ? (
-                            <p className="mt-3 rounded-md bg-muted/60 p-2 text-sm text-muted-foreground">
+                            <p className="mt-2 rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
                               {entry.message}
                             </p>
                           ) : null}
 
                           {entry.errorDetails.length > 0 ? (
-                            <div className="mt-3 rounded-md bg-destructive/5 p-3 text-sm text-destructive">
-                              <div className="flex items-center gap-2 font-medium">
-                                <AlertTriangleIcon aria-hidden="true" className="size-4" />
-                                <p>Detalhes da falha</p>
-                              </div>
-                              <div className="mt-2 space-y-1 text-destructive/90">
+                            <div className="mt-2 flex items-start gap-2 rounded-md bg-destructive/5 p-2 text-xs text-destructive">
+                              <AlertTriangleIcon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+                              <div className="space-y-0.5">
                                 {entry.errorDetails.map((detail) => (
                                   <p key={`${entry.id}-${detail}`}>{detail}</p>
                                 ))}

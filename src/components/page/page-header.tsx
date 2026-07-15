@@ -22,20 +22,20 @@ export function PageHeader({
   return (
     <header
       className={cn(
-        "flex min-h-0 flex-col gap-6 lg:min-h-0 lg:flex-row lg:items-end lg:justify-between",
+        "flex min-h-0 flex-col gap-4 lg:min-h-0 lg:flex-row lg:items-end lg:justify-between",
         className
       )}
     >
-      <div className={cn("min-w-0 space-y-1", contentClassName)}>
+      <div className={cn("min-w-0 space-y-0.5", contentClassName)}>
         {headingContent ? (
           headingContent
         ) : (
           <>
-            <h1 className="text-xl font-bold tracking-tight sm:text-2xl">
+            <h1 className="text-lg font-semibold tracking-tight sm:text-xl">
               {title}
             </h1>
             {subtitle ? (
-              <p className="text-sm/relaxed text-muted-foreground">
+              <p className="text-[0.8125rem]/relaxed text-muted-foreground">
                 {subtitle}
               </p>
             ) : null}

@@ -1,23 +1,22 @@
-import { ImageIcon, ImageUpIcon, LinkIcon, UploadCloudIcon } from "lucide-react"
+import { LinkIcon, UploadCloudIcon } from "lucide-react"
 import * as React from "react"
 
 import { AppDialog } from "@/components/shared/app-dialog"
 import { Button } from "@/components/ui/button"
 import {
   Field,
-  FieldDescription,
   FieldError,
   FieldLabel,
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { cn } from "@/lib/utils"
 
-import { settingsCopy } from "../settings-copy"
 import {
   SettingsProfileError,
   validateAvatarFile,
   validateAvatarUrl,
 } from "../services/settings-profile-service"
+import { settingsCopy } from "../settings-copy"
 
 export interface ProfilePhotoDialogProps {
   avatarUrl: string | null
@@ -137,10 +136,9 @@ export function ProfilePhotoDialog({
       onOpenChange={onOpenChange}
       title={settingsCopy.photoDialog.title}
       description={settingsCopy.photoDialog.description}
-      className="sm:max-w-md"
-      bodyClassName="max-h-[70vh]"
-      footerClassName="grid grid-cols-2 gap-2 sm:grid-cols-2 sm:justify-stretch"
       contentProps={{ showCloseButton: false }}
+      bodyClassName="flex flex-col gap-4"
+      footerClassName="grid grid-cols-2 gap-2"
       footer={(
         <>
           <Button
@@ -168,108 +166,112 @@ export function ProfilePhotoDialog({
         </>
       )}
     >
-      <div className="grid gap-4">
-        <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="w-full">
-            <TabsTrigger value="upload">
-              <UploadCloudIcon aria-hidden="true" />
-              {settingsCopy.photoDialog.uploadTab}
-            </TabsTrigger>
-            <TabsTrigger value="url">
-              <LinkIcon aria-hidden="true" />
-              {settingsCopy.photoDialog.urlTab}
-            </TabsTrigger>
-          </TabsList>
+      <div className="flex w-full gap-2 rounded-lg bg-muted p-1">
+        <button
+          type="button"
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            activeTab === "upload"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          onClick={() => setActiveTab("upload")}
+        >
+          <UploadCloudIcon className="size-4" aria-hidden="true" />
+          {settingsCopy.photoDialog.uploadTab}
+        </button>
+        <button
+          type="button"
+          className={cn(
+            "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            activeTab === "url"
+              ? "bg-background text-foreground shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          )}
+          onClick={() => setActiveTab("url")}
+        >
+          <LinkIcon className="size-4" aria-hidden="true" />
+          {settingsCopy.photoDialog.urlTab}
+        </button>
+      </div>
 
-          <TabsContent value="upload" className="pt-3">
-            <Field>
-              <FieldLabel
-                htmlFor={fileInputId}
-                className="grid cursor-pointer gap-3 rounded-lg border border-dashed p-3 text-center"
-                onDragOver={(event) => {
-                  event.preventDefault()
-                }}
-                onDrop={(event) => {
-                  event.preventDefault()
-                  const file = event.dataTransfer.files[0]
+      {activeTab === "upload" ? (
+        <Field>
+          <FieldLabel
+            htmlFor={fileInputId}
+            className="flex cursor-pointer flex-col items-center gap-3 rounded-lg border border-dashed border-border p-8 text-center transition-colors hover:border-primary/40 hover:bg-muted/30"
+            onDragOver={(event) => {
+              event.preventDefault()
+            }}
+            onDrop={(event) => {
+              event.preventDefault()
+              const file = event.dataTransfer.files[0]
 
-                  if (file) {
-                    selectFile(file)
-                  }
-                }}
-              >
-                <span className="flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg bg-muted">
-                  {previewUrl ? (
-                    <img
-                      src={previewUrl}
-                      alt=""
-                      className="size-full object-cover"
-                    />
-                  ) : (
-                    <ImageIcon className="size-10 text-muted-foreground" aria-hidden="true" />
-                  )}
-                </span>
+              if (file) {
+                selectFile(file)
+              }
+            }}
+          >
+            {previewUrl && isUploadTab ? (
+              <span className="flex w-full max-w-xs items-center justify-center overflow-hidden rounded-md">
+                <img
+                  src={previewUrl}
+                  alt=""
+                  className="max-h-48 w-auto rounded-md object-contain"
+                />
+              </span>
+            ) : (
+              <>
+                <UploadCloudIcon className="size-8 text-muted-foreground" aria-hidden="true" />
                 <span className="grid gap-1">
-                  <span className="inline-flex items-center justify-center gap-2 text-sm font-medium">
-                    <ImageUpIcon className="size-4 text-muted-foreground" aria-hidden="true" />
+                  <span className="text-sm font-medium">
                     {settingsCopy.photoDialog.dropTitle}
                   </span>
                   <span className="text-xs text-muted-foreground">
                     {settingsCopy.photoDialog.dropDescription}
                   </span>
-                  <span className="mx-auto mt-1 inline-flex h-9 items-center rounded-lg border px-3 text-sm">
-                    {settingsCopy.photoDialog.browse}
-                  </span>
                 </span>
-              </FieldLabel>
-              <Input
-                id={fileInputId}
-                type="file"
-                accept="image/png,image/jpeg,image/webp"
-                className="sr-only"
-                onChange={(event) => {
-                  handleFileChange(event)
-                  event.target.value = ""
-                }}
-              />
-            </Field>
-          </TabsContent>
+                <span className="text-sm font-medium text-primary">
+                  {settingsCopy.photoDialog.browse}
+                </span>
+              </>
+            )}
+          </FieldLabel>
+          <Input
+            id={fileInputId}
+            type="file"
+            accept="image/png,image/jpeg,image/webp"
+            className="sr-only"
+            onChange={(event) => {
+              handleFileChange(event)
+              event.target.value = ""
+            }}
+          />
+        </Field>
+      ) : (
+        <Field>
+          <div className="flex items-center gap-2 rounded-lg border px-3">
+            <LinkIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden="true" />
+            <Input
+              id="profile-photo-url"
+              value={urlValue}
+              onChange={(event) => {
+                setUrlValue(event.target.value)
+                setSelectedFile(null)
+                if (selectedPreviewUrl) {
+                  URL.revokeObjectURL(selectedPreviewUrl)
+                }
+                setSelectedPreviewUrl(null)
+              }}
+              placeholder={settingsCopy.photoDialog.urlPlaceholder}
+              inputMode="url"
+              className="border-0 px-0 shadow-none focus-visible:ring-0"
+            />
+          </div>
+        </Field>
+      )}
 
-          <TabsContent value="url" className="pt-3">
-            <Field>
-              <FieldLabel htmlFor="profile-photo-url">
-                {settingsCopy.photoDialog.urlLabel}
-              </FieldLabel>
-              <Input
-                id="profile-photo-url"
-                value={urlValue}
-                onChange={(event) => {
-                  setUrlValue(event.target.value)
-                  setSelectedFile(null)
-                  if (selectedPreviewUrl) {
-                    URL.revokeObjectURL(selectedPreviewUrl)
-                  }
-                  setSelectedPreviewUrl(null)
-                }}
-                placeholder={settingsCopy.photoDialog.urlPlaceholder}
-                inputMode="url"
-              />
-              <FieldDescription>
-                {settingsCopy.photoDialog.description}
-              </FieldDescription>
-            </Field>
-            <div className="mt-3 flex aspect-square w-full items-center justify-center overflow-hidden rounded-lg bg-muted">
-              {previewUrl && !isUploadTab ? (
-                <img src={previewUrl} alt="" className="size-full object-cover" />
-              ) : (
-                <ImageIcon className="size-10 text-muted-foreground" aria-hidden="true" />
-              )}
-            </div>
-          </TabsContent>
-        </Tabs>
-
-        {error ? <FieldError>{error}</FieldError> : null}
-      </div>
+      {error ? <FieldError>{error}</FieldError> : null}
     </AppDialog>
   )
 }

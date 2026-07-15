@@ -25,8 +25,9 @@ export function AuthenticatedLayout() {
         <SidebarInset className="min-h-0 overflow-hidden">
           <AppHeader />
           <div
+            key={location.pathname}
             className={cn(
-              "flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-clip p-4",
+              "animate-page-in flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-clip p-4 md:p-6",
               isNaturalFlowPage ? "md:overflow-y-auto" : "md:overflow-hidden"
             )}
           >

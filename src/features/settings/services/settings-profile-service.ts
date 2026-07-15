@@ -5,6 +5,7 @@ import type { SettingsProfileUpdateInput } from "../types/settings-types"
 const PROFILE_UPDATE_FUNCTION = "profile-update"
 const AVATARS_BUCKET = "avatars"
 const MAX_AVATAR_SIZE_BYTES = 5 * 1024 * 1024
+const MAX_AVATAR_DIMENSION_PX = 4096
 const ACCEPTED_AVATAR_TYPES = new Set(["image/jpeg", "image/png", "image/webp"])
 
 export class SettingsProfileError extends Error {
@@ -65,6 +66,36 @@ export function validateAvatarFile(file: File) {
   if (file.size > MAX_AVATAR_SIZE_BYTES) {
     throw new SettingsProfileError("A imagem deve ter no máximo 5 MB.")
   }
+
+  if (file.size === 0) {
+    throw new SettingsProfileError("O arquivo está vazio ou corrompido.")
+  }
+}
+
+export async function validateAvatarDimensions(file: File): Promise<void> {
+  return new Promise((resolve, reject) => {
+    const img = new Image()
+    const objectUrl = URL.createObjectURL(file)
+
+    img.onload = () => {
+      URL.revokeObjectURL(objectUrl)
+
+      if (img.width > MAX_AVATAR_DIMENSION_PX || img.height > MAX_AVATAR_DIMENSION_PX) {
+        reject(new SettingsProfileError(`A imagem deve ter no máximo ${MAX_AVATAR_DIMENSION_PX}x${MAX_AVATAR_DIMENSION_PX} pixels.`))
+      } else if (img.width === 0 || img.height === 0) {
+        reject(new SettingsProfileError("Não foi possível processar a imagem. Verifique se o arquivo não está corrompido."))
+      } else {
+        resolve()
+      }
+    }
+
+    img.onerror = () => {
+      URL.revokeObjectURL(objectUrl)
+      reject(new SettingsProfileError("Não foi possível carregar a imagem. Verifique se o arquivo não está corrompido."))
+    }
+
+    img.src = objectUrl
+  })
 }
 
 export function validateAvatarUrl(value: string) {
@@ -122,7 +153,7 @@ export async function updateCurrentProfile(input: SettingsProfileUpdateInput) {
   if (response.error) {
     throw new SettingsProfileError(
       (await readFunctionErrorMessage(response.error)) ??
-        "Não foi possível atualizar o perfil."
+      "Não foi possível atualizar o perfil."
     )
   }
 

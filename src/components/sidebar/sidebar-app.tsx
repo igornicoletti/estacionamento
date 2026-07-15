@@ -20,18 +20,18 @@ export function AppSidebar({ homeHref }: AppSidebarProps) {
   return (
     <Sidebar
       collapsible="icon"
-      className="group-data-[side=left]:border-r-0 group-data-[side=right]:border-l-0"
+      className="group-data-[side=left]:border-r-0 group-data-[side=left]:border-sidebar-border/40 group-data-[side=right]:border-l group-data-[side=right]:border-sidebar-border/40"
     >
-      <SidebarHeader className="h-16 bg-background">
+      <SidebarHeader className="h-14 bg-background backdrop-blur-sm">
         <SidebarBrand homeHref={homeHref} />
       </SidebarHeader>
 
-      <SidebarContent className="overflow-x-hidden">
+      <SidebarContent className="overflow-x-hidden gap-1 px-1">
         <SidebarProfile />
         <SidebarNavigation />
       </SidebarContent>
 
-      <SidebarFooter>
+      <SidebarFooter className="border-t border-sidebar-border/30">
         <SidebarCollapseControl />
       </SidebarFooter>
 

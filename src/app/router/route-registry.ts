@@ -23,6 +23,7 @@ export const appRouteIds = {
   settings: "app.settings",
   settingsProfileAlias: "app.settings.profileAlias",
   unitUsers: "app.unitUsers",
+  yard: "app.yard",
   notFound: "not-found",
 } as const
 
@@ -41,6 +42,7 @@ export const appRoutePaths = {
   notifications: "/notificacoes",
   settings: "/configuracoes",
   profile: "/perfil",
+  yard: "/patio-virtual",
 } as const satisfies Record<string, `/${string}`>
 
 export const appRouteSegments = {
@@ -59,6 +61,7 @@ export const appRouteSegments = {
   notifications: "notificacoes",
   settings: "configuracoes",
   profile: "perfil",
+  yard: "patio-virtual",
 } as const
 
 export const appRouteGroupIds = {
@@ -286,6 +289,22 @@ export const authenticatedRouteRegistry = [
     navigation: {
       group: appRouteGroupIds.utilities,
       order: 10,
+    },
+  },
+  {
+    id: appRouteIds.yard,
+    path: appRouteSegments.yard,
+    href: appRoutePaths.yard,
+    label: appCopy.routes.yard.label,
+    description: appCopy.routes.yard.description,
+    requiredPermissions: [appPermissionKeys.unitsRead],
+    lazy: () =>
+      import("@/features/yard/routes/yard-route").then((module) => ({
+        Component: module.YardRoute,
+      })),
+    navigation: {
+      group: appRouteGroupIds.monitoring,
+      order: 30,
     },
   },
   {
