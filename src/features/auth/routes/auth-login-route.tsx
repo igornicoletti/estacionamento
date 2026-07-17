@@ -45,12 +45,14 @@ export function AuthLoginRoute() {
   const [submitMode, setSubmitMode] = React.useState<
     "password" | "passkey" | "register-passkey" | null
   >(null)
+  const submitModeRef = React.useRef<typeof submitMode>(null)
   const isPasswordSubmitting =
     auth.isSubmitting &&
     (submitMode === "password" || submitMode === "register-passkey")
   const isPasskeySubmitting = auth.isSubmitting && submitMode === "passkey"
 
   async function handlePasskeyRegistration(flowId: string | null, cpfValue: string) {
+    submitModeRef.current = "register-passkey"
     setSubmitMode("register-passkey")
 
     try {
@@ -71,12 +73,18 @@ export function AuthLoginRoute() {
       setNewPassword("")
       setConfirmPassword("")
     } finally {
+      submitModeRef.current = null
       setSubmitMode(null)
     }
   }
 
   async function handleLoginSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (submitModeRef.current || auth.isSubmitting) {
+      return
+    }
+
     const parsed = authLoginSchema.safeParse({ cpf, password })
 
     if (!parsed.success) {
@@ -85,6 +93,7 @@ export function AuthLoginRoute() {
     }
 
     setLoginErrors({})
+    submitModeRef.current = "password"
     setSubmitMode("password")
 
     try {
@@ -108,11 +117,17 @@ export function AuthLoginRoute() {
           : authCopy.errors.invalidCredentials
       )
     } finally {
+      submitModeRef.current = null
       setSubmitMode(null)
     }
   }
 
   async function handlePasskeyLogin() {
+    if (submitModeRef.current || auth.isSubmitting) {
+      return
+    }
+
+    submitModeRef.current = "passkey"
     setSubmitMode("passkey")
 
     try {
@@ -125,6 +140,7 @@ export function AuthLoginRoute() {
           : authCopy.errors.passkeyLoginFailed
       )
     } finally {
+      submitModeRef.current = null
       setSubmitMode(null)
     }
   }
@@ -133,6 +149,11 @@ export function AuthLoginRoute() {
     event: React.FormEvent<HTMLFormElement>
   ) {
     event.preventDefault()
+
+    if (submitModeRef.current || auth.isSubmitting) {
+      return
+    }
+
     const parsed = requiredPasswordSchema.safeParse({
       newPassword,
       confirmPassword,
@@ -144,6 +165,7 @@ export function AuthLoginRoute() {
     }
 
     setPasswordErrors({})
+    submitModeRef.current = "password"
     setSubmitMode("password")
 
     try {
@@ -168,6 +190,7 @@ export function AuthLoginRoute() {
           : authCopy.errors.invalidCredentials
       )
     } finally {
+      submitModeRef.current = null
       setSubmitMode(null)
     }
   }

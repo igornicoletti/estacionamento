@@ -26,7 +26,7 @@ import { isUnitSyncInProgressError, triggerUnitsSync } from "../services/unit-sy
 import { type Unit } from "../types/units-types"
 import { unitsCopy } from "../units-copy"
 import {
-  buildActiveUnitUserStats,
+  buildUnitUserStats,
   buildUnitYardConfigMap,
   parseYardSpotsInput,
   resolveUnitYardConfig,
@@ -70,7 +70,7 @@ export function UnitsRoute() {
 
   const canSyncUnits = canManageOperationalData(auth)
   const yardConfigByUnitId = React.useMemo(() => buildUnitYardConfigMap(unitYardConfigs), [unitYardConfigs])
-  const userStatsByUnitId = React.useMemo(() => buildActiveUnitUserStats(users), [users])
+  const userStatsByUnitId = React.useMemo(() => buildUnitUserStats(users), [users])
 
   const selectedUnitYardConfig = selectedUnit
     ? resolveUnitYardConfig(String(selectedUnit.cod_empresa), yardConfigByUnitId)
@@ -110,7 +110,7 @@ export function UnitsRoute() {
   )
 
   async function handleSaveYardSettings() {
-    if (!configuringUnit) {
+    if (!configuringUnit || isSavingYard) {
       return
     }
 
@@ -159,27 +159,23 @@ export function UnitsRoute() {
       await refreshOperationalSnapshots()
 
       if (result.status === "failed") {
-        notify.error(result.message || unitsCopy.sync.feedback.error)
+        notify.error(unitsCopy.sync.feedback.error)
         return
       }
 
       if (result.status === "warning") {
-        notify.warning(result.message || unitsCopy.sync.feedback.inProgress)
+        notify.warning(unitsCopy.sync.feedback.inProgress)
         return
       }
 
-      notify.success(result.message || unitsCopy.sync.feedback.success)
+      notify.success(unitsCopy.sync.feedback.success)
     } catch (caughtError) {
       await refreshOperationalSnapshots()
 
       if (isUnitSyncInProgressError(caughtError)) {
         notify.warning(unitsCopy.sync.feedback.inProgress)
       } else {
-        notify.error(
-          caughtError instanceof Error && caughtError.message.trim()
-            ? caughtError.message
-            : unitsCopy.sync.feedback.error
-        )
+        notify.error(unitsCopy.sync.feedback.error)
       }
     } finally {
       setIsSyncing(false)

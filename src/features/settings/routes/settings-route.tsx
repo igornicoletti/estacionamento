@@ -14,6 +14,7 @@ import { notify } from "@/components/toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
+import type { AuthPasskeyRegistrationResult } from "@/features/auth"
 
 import { useSettings } from "../hooks/use-settings"
 import {
@@ -47,22 +48,34 @@ export function SettingsRoute() {
   const [isSavingPhoto, setIsSavingPhoto] = React.useState(false)
   const [isPhotoDialogOpen, setIsPhotoDialogOpen] = React.useState(false)
   const [isRegisteringPasskey, setIsRegisteringPasskey] = React.useState(false)
+  const isSavingProfileRef = React.useRef(false)
+  const isSavingPhotoRef = React.useRef(false)
+  const isRegisteringPasskeyRef = React.useRef(false)
+  const activePasskeyRegistrationRef =
+    React.useRef<Promise<AuthPasskeyRegistrationResult> | null>(null)
 
   async function handleSaveProfile(input: Parameters<typeof saveProfile>[0]) {
+    if (isSavingProfileRef.current) {
+      return
+    }
+
+    isSavingProfileRef.current = true
     setIsSavingProfile(true)
 
     try {
       await notify.track(saveProfile(input), settingsCopy.feedback.profile)
     } finally {
+      isSavingProfileRef.current = false
       setIsSavingProfile(false)
     }
   }
 
   async function handleSavePhotoFile(file: File) {
-    if (!profile) {
+    if (!profile || isSavingPhotoRef.current) {
       return
     }
 
+    isSavingPhotoRef.current = true
     setIsSavingPhoto(true)
 
     try {
@@ -77,15 +90,17 @@ export function SettingsRoute() {
       })(), settingsCopy.feedback.profile)
       setIsPhotoDialogOpen(false)
     } finally {
+      isSavingPhotoRef.current = false
       setIsSavingPhoto(false)
     }
   }
 
   async function handleSavePhotoUrl(avatarUrl: string | null) {
-    if (!profile) {
+    if (!profile || isSavingPhotoRef.current) {
       return
     }
 
+    isSavingPhotoRef.current = true
     setIsSavingPhoto(true)
 
     try {
@@ -96,16 +111,28 @@ export function SettingsRoute() {
       }), settingsCopy.feedback.profile)
       setIsPhotoDialogOpen(false)
     } finally {
+      isSavingPhotoRef.current = false
       setIsSavingPhoto(false)
     }
   }
 
   async function handleRegisterPasskey() {
+    if (activePasskeyRegistrationRef.current) {
+      return activePasskeyRegistrationRef.current
+    }
+
+    isRegisteringPasskeyRef.current = true
     setIsRegisteringPasskey(true)
+    activePasskeyRegistrationRef.current = notify.track(
+      registerPasskey(),
+      settingsCopy.feedback.passkey
+    )
 
     try {
-      return await notify.track(registerPasskey(), settingsCopy.feedback.passkey)
+      return await activePasskeyRegistrationRef.current
     } finally {
+      activePasskeyRegistrationRef.current = null
+      isRegisteringPasskeyRef.current = false
       setIsRegisteringPasskey(false)
     }
   }
@@ -130,7 +157,7 @@ export function SettingsRoute() {
             className="mx-auto max-w-xl"
             media={<AlertTriangleIcon />}
             title={settingsCopy.error.title}
-            description={error}
+            description={settingsCopy.empty.description}
             actions={
               <Button
                 type="button"
@@ -187,7 +214,7 @@ export function SettingsRoute() {
           <Alert className="border-destructive/30 bg-destructive/5 text-foreground">
             <AlertTriangleIcon className="text-destructive" aria-hidden="true" />
             <AlertTitle>{settingsCopy.error.noticeTitle}</AlertTitle>
-            <AlertDescription>{error}</AlertDescription>
+            <AlertDescription>{settingsCopy.feedback.profile.error}</AlertDescription>
           </Alert>
         ) : null}
         <SettingsProfileSection

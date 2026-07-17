@@ -31,14 +31,13 @@ export {
   createPasswordAuthClient
 } from "./auth-supabase-admin.ts"
 export {
-  adminActionSchema,
   adminCreateUserSchema,
   adminUpdateUserSchema,
   authPasswordSchema,
   authStartSchema,
   flowCpfSchema,
+  newPasswordSchema,
   profilePasswordSchema,
-  profilePhoneSchema,
   profileUpdateSchema,
   recoveryRequestSchema
 } from "./auth-validation.ts"

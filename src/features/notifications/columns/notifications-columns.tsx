@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { formatDateTime, getBadgeToneClassName } from "@/lib"
 
-import { ArrowUpRightIcon } from 'lucide-react'
+import { ArrowUpRightIcon } from "lucide-react"
 import { notificationsCopy } from "../notifications-copy"
 import {
   notificationStatusLabels,
@@ -25,8 +25,18 @@ interface CreateNotificationsColumnsOptions {
   isNotificationUpdating?: (notificationId: string) => boolean
 }
 
-function resolveNotificationStatusVariant(status: NotificationRecord["status"]) {
-  return status === "read" ? undefined : ("info" as const)
+function resolveNotificationStatusBadge(status: NotificationRecord["status"]) {
+  if (status === "read") {
+    return {
+      tone: undefined,
+      variant: "default" as const,
+    }
+  }
+
+  return {
+    tone: "warning" as const,
+    variant: "secondary" as const,
+  }
 }
 
 export function createNotificationsColumns(
@@ -69,18 +79,20 @@ export function createNotificationsColumns(
       meta: { label: notificationsCopy.details.status },
       header: () => <div className="text-center">{notificationsCopy.details.status}</div>,
       enableSorting: false,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          <Badge
-            variant="secondary"
-            className={getBadgeToneClassName(
-              resolveNotificationStatusVariant(row.original.status)
-            )}
-          >
-            {notificationStatusLabels[row.original.status]}
-          </Badge>
-        </div>
-      ),
+      cell: ({ row }) => {
+        const badge = resolveNotificationStatusBadge(row.original.status)
+
+        return (
+          <div className="flex justify-center">
+            <Badge
+              variant={badge.variant}
+              className={getBadgeToneClassName(badge.tone)}
+            >
+              {notificationStatusLabels[row.original.status]}
+            </Badge>
+          </div>
+        )
+      },
     },
     {
       accessorKey: "href",
@@ -141,7 +153,9 @@ export function createNotificationsColumns(
             id: "open-destination",
             label: notificationsCopy.actions.openDestination,
             disabled: !isInternalNotificationHref(row.original.href),
-            shortcut: isInternalNotificationHref(row.original.href) ? <ArrowUpRightIcon className='size-3 text-muted-foreground' /> : undefined,
+            shortcut: isInternalNotificationHref(row.original.href) ? (
+              <ArrowUpRightIcon className="size-3 text-muted-foreground" />
+            ) : undefined,
             onSelect: (currentRow) => {
               const href = currentRow.original.href
 

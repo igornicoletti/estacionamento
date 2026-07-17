@@ -2,11 +2,11 @@ import {
   recoveryReasonValues,
   type RecoveryReason,
 } from "@/features/auth"
+import { resolveVisibleSensitiveValue } from "@/lib"
 
 import { accessRequestsCopy } from "../access-requests-copy"
 import {
   type AccessRecoveryRequestRecord,
-  type PendingPhoneChangeRequestRecord,
 } from "../types/access-requests-types"
 
 type UnknownRecord = Record<PropertyKey, unknown>
@@ -40,7 +40,11 @@ export function parseRecoveryRequest(
 
   const id = readString(value.id)
   const createdAt = readString(value.created_at)
-  const phoneMasked = readString(value.phone_masked)
+  const phoneMasked =
+    resolveVisibleSensitiveValue(
+      readString(value.phone_display),
+      readString(value.phone_masked)
+    ) ?? accessRequestsCopy.shared.unavailableSensitiveValue
   const reason = isRecoveryReason(value.reason) ? value.reason : null
 
   if (!id || !createdAt || !phoneMasked || !reason) {
@@ -54,33 +58,6 @@ export function parseRecoveryRequest(
     id,
     phoneMasked,
     reason,
-  }
-}
-
-export function parsePhoneChangeRequest(
-  value: unknown
-): PendingPhoneChangeRequestRecord | null {
-  if (!isRecord(value)) {
-    return null
-  }
-
-  const authUserId = readString(value.auth_user_id)
-  const id = readString(value.id)
-  const name = readString(value.name)
-  const pendingPhoneMasked = readString(value.pending_phone_masked)
-  const requestedAt = readString(value.updated_at)
-
-  if (!authUserId || !id || !name || !pendingPhoneMasked || !requestedAt) {
-    return null
-  }
-
-  return {
-    authUserId,
-    currentPhoneMasked: readNullableString(value.phone_masked),
-    id,
-    name,
-    pendingPhoneMasked,
-    requestedAt,
   }
 }
 
@@ -99,23 +76,5 @@ export function parseRecoveryRequests(
 
   return requests.filter(
     (request): request is AccessRecoveryRequestRecord => request !== null
-  )
-}
-
-export function parsePhoneChangeRequests(
-  value: unknown
-): PendingPhoneChangeRequestRecord[] {
-  if (!Array.isArray(value)) {
-    throw new Error(accessRequestsCopy.feedback.invalidResponse)
-  }
-
-  const requests = value.map(parsePhoneChangeRequest)
-
-  if (requests.some((request) => request === null)) {
-    throw new Error(accessRequestsCopy.feedback.invalidResponse)
-  }
-
-  return requests.filter(
-    (request): request is PendingPhoneChangeRequestRecord => request !== null
   )
 }

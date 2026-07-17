@@ -28,9 +28,9 @@ export function createVipRulesColumns({
       meta: { label: rulesCopy.table.type },
       header: rulesCopy.table.type,
       cell: ({ row }) => (
-        <Badge variant="outline">
+        <span className="font-medium text-foreground">
           {getCommercialRuleTypeLabel(row.original.ruleType)}
-        </Badge>
+        </span>
       ),
     },
     {

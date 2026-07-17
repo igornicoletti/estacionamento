@@ -19,50 +19,55 @@ export function useVipRules() {
     loadData: listVipRules,
   })
   const [isSaving, setIsSaving] = React.useState(false)
+  const activeMutationRef = React.useRef<Promise<VipRule> | null>(null)
+
+  const runMutation = React.useCallback(async (mutation: () => Promise<VipRule>) => {
+    if (activeMutationRef.current) {
+      return activeMutationRef.current
+    }
+
+    setIsSaving(true)
+    activeMutationRef.current = mutation()
+
+    try {
+      return await activeMutationRef.current
+    } finally {
+      activeMutationRef.current = null
+      setIsSaving(false)
+    }
+  }, [])
 
   const saveRule = React.useCallback(
     async (input: SaveVipRuleInput) => {
-      setIsSaving(true)
-
-      try {
+      return runMutation(async () => {
         const rule = await saveVipRule(input)
         await snapshot.refetch()
         return rule
-      } finally {
-        setIsSaving(false)
-      }
+      })
     },
-    [snapshot]
+    [runMutation, snapshot]
   )
 
   const saveClientToggle = React.useCallback(
     async (input: Parameters<typeof toggleClientVip>[0]) => {
-      setIsSaving(true)
-
-      try {
+      return runMutation(async () => {
         const rule = await toggleClientVip(input)
         await snapshot.refetch()
         return rule
-      } finally {
-        setIsSaving(false)
-      }
+      })
     },
-    [snapshot]
+    [runMutation, snapshot]
   )
 
   const saveVehicleToggle = React.useCallback(
     async (input: Parameters<typeof toggleVehicleVip>[0]) => {
-      setIsSaving(true)
-
-      try {
+      return runMutation(async () => {
         const rule = await toggleVehicleVip(input)
         await snapshot.refetch()
         return rule
-      } finally {
-        setIsSaving(false)
-      }
+      })
     },
-    [snapshot]
+    [runMutation, snapshot]
   )
 
   return {

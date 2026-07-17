@@ -18,7 +18,7 @@ Componente genérico de tabela baseado em TanStack Table e componentes shadcn/ui
 - Use `globalSearch` para busca textual única.
 - Use `filterFields` para filtros facetados multi-select.
 - Use `defaultColumnVisibility` para esconder colunas técnicas usadas apenas por filtros.
-- Não coloque detalhes de domínio dentro do `DataTable`; use rota + `AppSheet`.
+- Não coloque detalhes de domínio dentro do `DataTable`; use rota + `AppDetailsSheet`.
 
 ## Dependências visuais
 

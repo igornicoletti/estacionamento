@@ -57,6 +57,7 @@ export function AuthRecoveryRoute() {
     React.useState<AuthRecoveryFormValues>(getInitialValues)
   const [errors, setErrors] =
     React.useState<FieldErrors<AuthRecoveryFormValues>>({})
+  const isSubmittingRef = React.useRef(false)
 
   const shouldShowDescription = values.reason === "other"
 
@@ -84,6 +85,11 @@ export function AuthRecoveryRoute() {
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
+
+    if (isSubmittingRef.current) {
+      return
+    }
+
     const parsed = authRecoverySchema.safeParse(values)
 
     if (!parsed.success) {
@@ -92,6 +98,7 @@ export function AuthRecoveryRoute() {
     }
 
     setErrors({})
+    isSubmittingRef.current = true
     setIsSubmitting(true)
 
     try {
@@ -105,6 +112,7 @@ export function AuthRecoveryRoute() {
           : authCopy.errors.recoveryFailed
       )
     } finally {
+      isSubmittingRef.current = false
       setIsSubmitting(false)
     }
   }

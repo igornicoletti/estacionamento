@@ -58,6 +58,25 @@ function getAvatarExtension(file: File) {
   return "jpg"
 }
 
+function readRequiresPasskeyRegistration(value: unknown) {
+  if (typeof value !== "object" || value === null || !("data" in value)) {
+    return false
+  }
+
+  const data = (value as { data?: unknown }).data
+
+  if (
+    typeof data !== "object" ||
+    data === null ||
+    !("requiresPasskeyRegistration" in data)
+  ) {
+    return false
+  }
+
+  return (data as { requiresPasskeyRegistration?: unknown })
+    .requiresPasskeyRegistration === true
+}
+
 export function validateAvatarFile(file: File) {
   if (!ACCEPTED_AVATAR_TYPES.has(file.type)) {
     throw new SettingsProfileError("Envie uma imagem JPG, PNG ou WebP.")
@@ -162,5 +181,6 @@ export async function updateCurrentProfile(input: SettingsProfileUpdateInput) {
     email: input.email?.trim() || null,
     name: input.name.trim(),
     phoneMasked: input.phone?.trim() || null,
+    requiresPasskeyRegistration: readRequiresPasskeyRegistration(response.data),
   }
 }

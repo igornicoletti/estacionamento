@@ -37,6 +37,7 @@ export type AppAlertDialogProps = Omit<
   showFooter?: boolean
   cancelLabel?: React.ReactNode
   actionLabel?: React.ReactNode
+  actionVariant?: React.ComponentProps<typeof AlertDialogAction>["variant"]
   pendingLabel?: React.ReactNode
   onAction?: () => void | Promise<void>
   closeOnAction?: boolean
@@ -60,6 +61,7 @@ export function AppAlertDialog({
   showFooter = true,
   cancelLabel = "Cancelar",
   actionLabel = "Confirmar",
+  actionVariant = "default",
   pendingLabel = "Confirmando...",
   onAction,
   closeOnAction = true,
@@ -137,6 +139,7 @@ export function AppAlertDialog({
 
                 <AlertDialogAction
                   size="lg"
+                  variant={actionVariant}
                   disabled={isPending}
                   onClick={handleActionClick}
                 >

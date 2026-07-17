@@ -44,6 +44,13 @@ export function createClientsColumns(options: CreateClientsColumnsOptions): Colu
       ),
     },
     {
+      accessorKey: "nom_fantasia",
+      meta: { label: clientsCopy.table.tradeName },
+      header: clientsCopy.table.tradeName,
+      size: 180,
+      cell: ({ row }) => row.original.nom_fantasia || "—",
+    },
+    {
       accessorKey: "num_cnpj_cpf",
       meta: { label: clientsCopy.table.document },
       header: clientsCopy.table.document,

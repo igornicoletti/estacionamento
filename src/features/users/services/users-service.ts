@@ -7,6 +7,7 @@ import {
   getSupabaseBrowserClient,
   isValidPhone,
   onlyDigits,
+  resolveVisibleSensitiveValue,
 } from "@/lib"
 
 import {
@@ -366,9 +367,14 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
         id: appUser.id,
         authUserId: appUser.auth_user_id,
         name: appUser.name,
-        cpf: appUser.cpf_display || appUser.cpf_masked,
+        cpf:
+          resolveVisibleSensitiveValue(appUser.cpf_display, appUser.cpf_masked) ??
+          "",
         email: appUser.email,
-        phoneMasked: appUser.phone_display || appUser.phone_masked,
+        phoneMasked: resolveVisibleSensitiveValue(
+          appUser.phone_display,
+          appUser.phone_masked
+        ),
         role: appUser.role,
         status: appUser.status,
         lockedUntil: appUser.locked_until ?? null,
@@ -474,7 +480,6 @@ async function updateUserInSupabase(input: UpdateUserInput): Promise<UserRecord>
 async function invokeAdminUserAction(
   functionName: string,
   userId: string,
-  reason: string,
   errorMessage: string
 ): Promise<UserRecord> {
   const supabase = getSupabaseBrowserClient()
@@ -494,7 +499,6 @@ async function invokeAdminUserAction(
     functionName,
     {
       body: {
-        reason,
         targetUserId: targetUser.authUserId,
       },
     }
@@ -644,7 +648,7 @@ export async function blockUser(userId: string): Promise<UserRecord> {
   assertUsersBackendConfigured()
 
   return isRemoteUsersEnabled()
-    ? invokeAdminUserAction("admin-user-block", userId, usersCopy.adminReasons.blockUser, usersCopy.feedback.block.error)
+    ? invokeAdminUserAction("admin-user-block", userId, usersCopy.feedback.block.error)
     : blockUserInMemory(userId)
 }
 
@@ -653,7 +657,7 @@ export async function resetUserAccess(userId: string): Promise<UserRecord> {
   assertUsersBackendConfigured()
 
   return isRemoteUsersEnabled()
-    ? invokeAdminUserAction("admin-user-reset-password", userId, usersCopy.adminReasons.resetAccess, usersCopy.feedback.reset.error)
+    ? invokeAdminUserAction("admin-user-reset-password", userId, usersCopy.feedback.reset.error)
     : resetUserAccessInMemory(userId)
 }
 
@@ -664,7 +668,6 @@ export async function resetUserPasskey(userId: string): Promise<UserRecord> {
     return invokeAdminUserAction(
       "admin-user-reset-passkey",
       userId,
-      usersCopy.adminReasons.resetPasskey,
       usersCopy.feedback.resetPasskey.error
     )
   }
@@ -679,7 +682,6 @@ export async function clearUserLock(userId: string): Promise<UserRecord> {
     return invokeAdminUserAction(
       "admin-user-clear-lock",
       userId,
-      usersCopy.adminReasons.clearLock,
       usersCopy.feedback.clearLock.error
     )
   }
@@ -694,7 +696,6 @@ export async function revokeUserSessions(userId: string): Promise<UserRecord> {
     return invokeAdminUserAction(
       "admin-user-revoke-sessions",
       userId,
-      usersCopy.adminReasons.revokeSessions,
       usersCopy.feedback.revokeSessions.error
     )
   }

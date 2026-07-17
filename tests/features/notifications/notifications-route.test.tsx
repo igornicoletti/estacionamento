@@ -34,4 +34,26 @@ describe("NotificationsRoute", () => {
     expect(screen.queryByText("ID")).not.toBeInTheDocument()
     expect(screen.queryByText("N-001")).not.toBeInTheDocument()
   })
+
+  it("uses primary badge for read notifications and warning badge for unread notifications", async () => {
+    render(
+      <MemoryRouter>
+        <NotificationsProvider>
+          <NotificationsRoute />
+        </NotificationsProvider>
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("Sincronização concluída")).toBeInTheDocument()
+    })
+
+    const unreadBadge = screen.getAllByText("Não lida")[0]?.closest("[data-slot='badge']")
+    const readBadge = screen.getByText("Lida").closest("[data-slot='badge']")
+
+    expect(unreadBadge).toHaveAttribute("data-variant", "secondary")
+    expect(unreadBadge).toHaveClass("bg-warning/10")
+    expect(readBadge).toHaveAttribute("data-variant", "default")
+    expect(readBadge).not.toHaveClass("bg-warning/10")
+  })
 })

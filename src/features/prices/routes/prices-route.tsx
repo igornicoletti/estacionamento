@@ -1,4 +1,4 @@
-import { BadgeDollarSignIcon, PlusIcon, SearchXIcon } from "lucide-react"
+import { BadgeDollarSignIcon, PlusIcon, SearchXIcon, ShieldAlertIcon } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -6,6 +6,7 @@ import {
   DataTable,
 } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
+import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
@@ -43,16 +44,35 @@ export function PricesRoute() {
   } = usePrices()
   const [selectedPrice, setSelectedPrice] = React.useState<PriceTable | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false)
+  const [pendingDeactivationPrice, setPendingDeactivationPrice] =
+    React.useState<PriceTable | null>(null)
 
   const handleTogglePriceStatus = React.useCallback(
     (price: PriceTable) => {
+      if (price.status === "active") {
+        setPendingDeactivationPrice(price)
+        return
+      }
+
       void notify.track(
-        updateStatus(price.id, price.status === "active" ? "inactive" : "active"),
+        updateStatus(price.id, "active"),
         pricesCopy.feedback.toggle
       )
     },
     [updateStatus]
   )
+
+  const handleConfirmPriceDeactivation = React.useCallback(async () => {
+    if (!pendingDeactivationPrice) {
+      return
+    }
+
+    await notify.track(
+      updateStatus(pendingDeactivationPrice.id, "inactive"),
+      pricesCopy.feedback.toggle
+    )
+    setPendingDeactivationPrice(null)
+  }, [pendingDeactivationPrice, updateStatus])
 
   const columns = React.useMemo(
     () =>
@@ -117,7 +137,7 @@ export function PricesRoute() {
         tableStateStorageKey={PRICES_TABLE_STATE_KEY}
         getRowId={(price) => price.id}
         globalSearch={{
-          columnIds: ["id", "unitId", "unitName", "reason", "notes"],
+          columnIds: ["id", "unitId", "unitName", "notes"],
           placeholder: pricesCopy.filters.searchPlaceholder,
         }}
         searchFields={[
@@ -181,6 +201,29 @@ export function PricesRoute() {
           onSubmit={handleCreatePrice}
         />
       ) : null}
+
+      <AppAlertDialog
+        open={Boolean(pendingDeactivationPrice)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingDeactivationPrice(null)
+          }
+        }}
+        media={<ShieldAlertIcon />}
+        title={pricesCopy.dialogs.deactivateTitle}
+        description={pricesCopy.dialogs.deactivateDescription}
+        cancelLabel={pricesCopy.actions.cancel}
+        actionLabel={pricesCopy.dialogs.deactivateConfirm}
+        actionVariant="destructive"
+        pendingLabel={pricesCopy.feedback.toggle.loading}
+        onAction={handleConfirmPriceDeactivation}
+      >
+        {pendingDeactivationPrice ? (
+          <p className="px-4 text-sm font-medium text-foreground">
+            {getPriceUnitLabel(pendingDeactivationPrice)}
+          </p>
+        ) : null}
+      </AppAlertDialog>
     </PageSection>
   )
 }

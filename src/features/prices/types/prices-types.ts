@@ -28,7 +28,6 @@ export interface PriceTable {
   computedStatus: PriceComputedStatus
   version: number
   parentId: string | null
-  reason: string | null
   notes: string | null
   updatedAt: string
   tiers: PriceTier[]
@@ -45,6 +44,5 @@ export interface SavePriceTableInput {
   startsAt: string
   endsAt: string | null
   status: PriceRecordStatus
-  reason: string
   notes: string | null
 }

@@ -113,7 +113,6 @@ export function parsePriceTable(value: unknown): PriceTable | null {
     computedStatus: "inactive",
     version: Math.trunc(version),
     parentId: readNullableString(value.parent_id),
-    reason: readNullableString(value.reason),
     notes: readNullableString(value.notes),
     updatedAt,
     tiers: parseTierList(value.commercial_price_tiers),

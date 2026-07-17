@@ -104,6 +104,7 @@ export function createUsersColumns(
       accessorKey: "cpf",
       meta: { label: usersCopy.form.fields.cpf },
       header: usersCopy.form.fields.cpf,
+      cell: ({ row }) => row.original.cpf || "—",
     },
     {
       accessorKey: "phoneMasked",

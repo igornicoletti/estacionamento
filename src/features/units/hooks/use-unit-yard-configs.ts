@@ -12,15 +12,24 @@ export function useUnitYardConfigs() {
     loadData: listUnitYardConfigs,
   })
   const [isSaving, setIsSaving] = React.useState(false)
+  const activeSaveRef = React.useRef<Promise<UnitYardConfig> | null>(null)
 
   const saveConfig = React.useCallback(async (input: UpsertUnitYardConfigInput) => {
-    setIsSaving(true)
+    if (activeSaveRef.current) {
+      return activeSaveRef.current
+    }
 
-    try {
+    setIsSaving(true)
+    activeSaveRef.current = (async () => {
       const config = await upsertUnitYardConfig(input)
       await snapshot.refetch()
       return config
+    })()
+
+    try {
+      return await activeSaveRef.current
     } finally {
+      activeSaveRef.current = null
       setIsSaving(false)
     }
   }, [snapshot])

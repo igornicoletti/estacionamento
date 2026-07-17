@@ -37,7 +37,7 @@ Evite imports diretos de subpastas fora da própria feature, exceto quando houve
 ## Decisões de implementação
 
 - `DataTable` permanece genérico.
-- Detalhes de usuário são responsabilidade da rota via `AppSheet`.
+- Detalhes de usuário são responsabilidade da rota via `AppDetailsSheet`.
 - Confirmações destrutivas usam `AppAlertDialog`.
 - Formulários usam `AppDialog`.
 - Campo de senha usa `AppPasswordField`.

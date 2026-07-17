@@ -5,6 +5,7 @@ import {
   getAuthenticatedActor,
   handleCors,
   jsonResponse,
+  newPasswordSchema,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
@@ -51,20 +52,108 @@ Deno.serve(async (request) => {
 
     const requestId = readString(body.requestId)
     const decision = readDecision(body.decision)
-    const reviewReason = readString(body.reviewReason)
+    const temporaryPassword = readString(body.temporaryPassword)
 
-    if (!requestId || !decision || !reviewReason || reviewReason.length < 10) {
+    if (!requestId || !decision) {
       return authError("invalid_payload", 400, request)
     }
 
-    const status = decision === "approved" ? "approved" : "denied"
+    if (
+      decision === "approved" &&
+      !newPasswordSchema.safeParse(temporaryPassword).success
+    ) {
+      return authError("invalid_payload", 400, request)
+    }
+
+    const recoveryResponse = await supabase
+      .from("access_recovery_requests")
+      .select("id, cpf_hmac")
+      .eq("id", requestId)
+      .eq("status", "pending")
+      .maybeSingle()
+
+    if (recoveryResponse.error || !recoveryResponse.data) {
+      if (recoveryResponse.error) {
+        console.error("recovery_review_lookup_failed", recoveryResponse.error.message)
+        return authError("request_failed", 400, request)
+      }
+
+      return authError("not_found", 404, request)
+    }
+
+    const targetResponse = await supabase
+      .from("app_users")
+      .select("id, auth_user_id, name")
+      .eq("cpf_hmac", recoveryResponse.data.cpf_hmac)
+      .maybeSingle()
+
+    if (targetResponse.error) {
+      console.error("recovery_target_lookup_failed", targetResponse.error.message)
+      return authError("request_failed", 400, request)
+    }
+
+    const target = targetResponse.data
+
+    if (decision === "approved" && !target) {
+      return authError("not_found", 404, request)
+    }
+
+    if (decision === "approved" && target && temporaryPassword) {
+      const passwordResponse = await supabase.auth.admin.updateUserById(
+        target.auth_user_id,
+        { password: temporaryPassword }
+      )
+
+      if (passwordResponse.error) {
+        console.error("recovery_password_update_failed", passwordResponse.error.message)
+        return authError("request_failed", 400, request)
+      }
+
+      const targetUpdateResponse = await supabase
+        .from("app_users")
+        .update({
+          failed_attempts: 0,
+          last_failed_at: null,
+          locked_until: null,
+          status: "password_reset",
+          updated_at: new Date().toISOString(),
+          updated_by: actor.authUserId,
+        })
+        .eq("auth_user_id", target.auth_user_id)
+
+      if (targetUpdateResponse.error) {
+        console.error("recovery_target_update_failed", targetUpdateResponse.error.message)
+        return authError("request_failed", 400, request)
+      }
+
+      await supabase.auth.admin.signOut(target.auth_user_id, "global")
+    }
+
+    if (decision === "denied" && target) {
+      const targetUpdateResponse = await supabase
+        .from("app_users")
+        .update({
+          locked_until: null,
+          status: "inactive",
+          updated_at: new Date().toISOString(),
+          updated_by: actor.authUserId,
+        })
+        .eq("auth_user_id", target.auth_user_id)
+
+      if (targetUpdateResponse.error) {
+        console.error("recovery_target_block_failed", targetUpdateResponse.error.message)
+        return authError("request_failed", 400, request)
+      }
+
+      await supabase.auth.admin.signOut(target.auth_user_id, "global")
+    }
+
     const updateResponse = await supabase
       .from("access_recovery_requests")
       .update({
         reviewed_at: new Date().toISOString(),
         reviewed_by: actor.authUserId,
-        review_reason: reviewReason,
-        status,
+        status: decision,
       })
       .eq("id", requestId)
       .eq("status", "pending")
@@ -84,15 +173,19 @@ Deno.serve(async (request) => {
       actor: actor.name,
       actorUserId: actor.authUserId,
       event: "access_recovery_reviewed",
-      metadata: { decision, requestId },
-      reason: reviewReason,
+      metadata: {
+        decision,
+        requestId,
+        targetUserId: target?.auth_user_id ?? null,
+      },
       request,
       scope: "system",
       success: true,
-      target: requestId,
+      target: target?.name ?? requestId,
+      targetUserId: target?.auth_user_id ?? null,
     }).catch((e) => console.error("[audit-fail]", e))
 
-    return jsonResponse({ status }, 200, request)
+    return jsonResponse({ status: decision }, 200, request)
   } catch (error) {
     console.error("recovery_review_request_failed", error)
     return authError("request_failed", 400, request)

@@ -1,4 +1,5 @@
 import type { AuthProfile } from "@/features/auth"
+import { resolveVisibleSensitiveValue } from "@/lib"
 
 import { settingsCopy } from "../settings-copy"
 import type { SettingsProfileSummary } from "../types/settings-types"
@@ -37,11 +38,11 @@ export function resolveProfileEmail(value: string | null | undefined) {
 }
 
 export function resolveProfilePhone(value: string | null | undefined) {
-  return normalizeText(value) ?? settingsCopy.profile.noPhone
+  return resolveVisibleSensitiveValue(value) ?? settingsCopy.profile.noPhone
 }
 
 export function resolveProfileCpf(value: string | null | undefined) {
-  return normalizeText(value) ?? settingsCopy.profile.noCpf
+  return resolveVisibleSensitiveValue(value) ?? settingsCopy.profile.noCpf
 }
 
 export function resolveProfileRole(value: string | null | undefined) {

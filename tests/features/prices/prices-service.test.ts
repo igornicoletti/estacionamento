@@ -19,7 +19,6 @@ function createPriceTable(overrides: Partial<PriceTable> = {}): PriceTable {
     id: "price-network",
     notes: null,
     parentId: null,
-    reason: "Configuração comercial validada.",
     scope: "network",
     startsAt: "2026-07-01T12:00:00.000Z",
     status: "active",

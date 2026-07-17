@@ -14,26 +14,11 @@ export interface AccessRecoveryRequestRecord {
   reason: RecoveryReason
 }
 
-export interface PendingPhoneChangeRequestRecord {
-  id: string
-  authUserId: string
-  currentPhoneMasked: string | null
-  name: string
-  pendingPhoneMasked: string
-  requestedAt: string
-}
-
 export interface AccessRequestsSnapshot {
-  phoneChanges: PendingPhoneChangeRequestRecord[]
   recoveryRequests: AccessRecoveryRequestRecord[]
 }
 
-export type AccessRequestDetailsTarget =
-  | {
-      type: "recovery"
-      request: AccessRecoveryRequestRecord
-    }
-  | {
-      type: "phone"
-      request: PendingPhoneChangeRequestRecord
-    }
+export interface AccessRequestDetailsTarget {
+  type: "recovery"
+  request: AccessRecoveryRequestRecord
+}

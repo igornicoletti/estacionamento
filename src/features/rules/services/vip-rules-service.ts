@@ -60,10 +60,6 @@ function ensureUnitScope(unitIds: readonly string[]) {
 }
 
 function validateRuleInput(input: SaveVipRuleInput) {
-  if (input.reason.trim().length < 10) {
-    throw new Error(rulesCopy.form.validation.reason)
-  }
-
   if (input.ruleType === "vip") {
     ensurePositiveInteger(input.clientId, rulesCopy.form.validation.clientId)
 
@@ -143,7 +139,6 @@ function buildCommercialRulePayload(input: SaveVipRuleInput) {
       p_client_name: input.clientName.trim(),
       p_fuel_min_liters: null,
       p_notes: input.notes?.trim() ? input.notes.trim() : null,
-      p_reason: input.reason.trim(),
       p_target_type: input.targetType,
       p_type: input.ruleType,
       p_unit_ids: input.appliesToAllUnits ? [] : normalizeUnitIds(input.unitIds),
@@ -166,7 +161,6 @@ function buildCommercialRulePayload(input: SaveVipRuleInput) {
       p_client_name: null,
       p_fuel_min_liters: input.fuelMinLiters,
       p_notes: input.notes?.trim() ? input.notes.trim() : null,
-      p_reason: input.reason.trim(),
       p_target_type: input.scope,
       p_type: input.ruleType,
       p_unit_ids: input.scope === "network" ? [] : normalizeUnitIds(input.unitIds),
@@ -187,7 +181,6 @@ function buildCommercialRulePayload(input: SaveVipRuleInput) {
       p_client_name: null,
       p_fuel_min_liters: null,
       p_notes: input.notes?.trim() ? input.notes.trim() : null,
-      p_reason: input.reason.trim(),
       p_target_type: "unit",
       p_type: input.ruleType,
       p_unit_ids: normalizeUnitIds(input.unitIds),
@@ -208,7 +201,6 @@ function buildCommercialRulePayload(input: SaveVipRuleInput) {
       p_client_name: null,
       p_fuel_min_liters: null,
       p_notes: input.notes?.trim() ? input.notes.trim() : null,
-      p_reason: input.reason.trim(),
       p_target_type: "unit",
       p_type: input.ruleType,
       p_unit_ids: normalizeUnitIds(input.unitIds),
@@ -228,7 +220,6 @@ function buildCommercialRulePayload(input: SaveVipRuleInput) {
     p_client_name: null,
     p_fuel_min_liters: null,
     p_notes: input.notes?.trim() ? input.notes.trim() : null,
-    p_reason: input.reason.trim(),
     p_target_type: input.scope,
     p_type: input.ruleType,
     p_unit_ids: input.scope === "network" ? [] : normalizeUnitIds(input.unitIds),
@@ -278,7 +269,6 @@ const commercialRuleSelect = [
   "yard_occupancy_threshold",
   "yard_stale_vehicle_hours",
   "status",
-  "reason",
   "notes",
   "updated_at",
 ].join(",")
@@ -335,7 +325,6 @@ export async function toggleClientVip(input: ToggleClientVipInput): Promise<VipR
     appliesToAllUnits: true,
     unitIds: [],
     active: input.enabled,
-    reason: input.enabled ? "Ativação administrativa de regra VIP." : "Inativação administrativa de regra VIP.",
     notes: null,
   })
 }
@@ -353,7 +342,6 @@ export async function toggleVehicleVip(input: ToggleVehicleVipInput): Promise<Vi
     appliesToAllUnits: true,
     unitIds: [],
     active: input.enabled,
-    reason: input.enabled ? "Ativação administrativa de regra VIP." : "Inativação administrativa de regra VIP.",
     notes: null,
   })
 }

@@ -1,4 +1,4 @@
-import { getSupabaseBrowserClient } from "@/lib"
+import { getSupabaseBrowserClient, resolveVisibleSensitiveValue } from "@/lib"
 
 import {
   AUTH_FUNCTIONS,
@@ -129,8 +129,8 @@ function mapAuthProfile(value: unknown): AuthProfile | null {
     }),
     unitId: getString(value.unit_id),
     unitName: getString(value.unit_name),
-    phoneMasked: getRequiredString(value, "phone_masked"),
-    cpfMasked: getString(value.cpf_masked),
+    phoneMasked: resolveVisibleSensitiveValue(getString(value.phone_masked)) ?? "",
+    cpfMasked: resolveVisibleSensitiveValue(getString(value.cpf_masked)),
     email: getString(value.email),
     avatarPath:
       avatarReference && !isExternalAvatarUrl(avatarReference)

@@ -20,7 +20,6 @@ const clientRule: VipRule = {
   fuelMinLiters: null,
   id: "vip-client:1001",
   notes: null,
-  reason: "Regra administrativa validada.",
   ruleSummary: "Cliente VIP",
   ruleType: "vip",
   scopeLabel: "Todas as unidades",
@@ -48,7 +47,7 @@ describe("vip rules model", () => {
   it("resolves client and vehicle vip states from active rules", () => {
     expect(getClientVipStatus({ cod_pessoa: 1001 } as never, [clientRule])).toBe(true)
     expect(getVehicleVipStatus({ cod_pessoa: 1001, cod_veiculo: 2002 } as never, [clientRule])).toBe(true)
-    expect(isClientVipFromRules([vehicleRule], 1001)).toBe(false)
+    expect(isClientVipFromRules([vehicleRule], 1001)).toBe(true)
     expect(isVehicleVipFromRules([vehicleRule], 1001, 2002)).toBe(true)
   })
 
@@ -56,6 +55,7 @@ describe("vip rules model", () => {
     const inactive = { ...clientRule, active: false }
 
     expect(isClientVipFromRules([inactive], 1001)).toBe(false)
+    expect(isClientVipFromRules([{ ...vehicleRule, active: false }], 1001)).toBe(false)
     expect(formatVipRuleUnitScope(clientRule)).toBe("Todas as unidades")
     expect(getVipRuleVehicleScopeLabel(vehicleRule)).toBe("ABC1D23")
   })

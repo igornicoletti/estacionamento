@@ -79,6 +79,10 @@ export function ProfilePhotoDialog({
   }
 
   async function handleSaveFile() {
+    if (isSaving) {
+      return
+    }
+
     if (!selectedFile || !selectedPreviewUrl) {
       setError("Selecione uma imagem para continuar.")
       return
@@ -88,6 +92,10 @@ export function ProfilePhotoDialog({
   }
 
   async function handleSaveUrl() {
+    if (isSaving) {
+      return
+    }
+
     try {
       await onSaveUrl(validateAvatarUrl(urlValue))
     } catch (caughtError) {

@@ -19,20 +19,22 @@ describe("access-requests-service", () => {
     invokeMock.mockResolvedValue({ data: { message: "ok" }, error: null })
   })
 
-  it("invokes the phone-change review edge function", async () => {
+  it("invokes the recovery review edge function with a temporary password", async () => {
     const service = await import(
       "@/features/access-requests/services/access-requests-service"
     )
 
-    await service.reviewPhoneChange(
-      "22222222-2222-2222-2222-222222222222",
-      "approved"
+    await service.reviewRecoveryRequest(
+      "11111111-1111-1111-1111-111111111111",
+      "approved",
+      "SenhaTemporaria123!"
     )
 
-    expect(invokeMock).toHaveBeenCalledWith("admin-phone-change-review", {
+    expect(invokeMock).toHaveBeenCalledWith("admin-recovery-review", {
       body: {
         decision: "approved",
-        targetUserId: "22222222-2222-2222-2222-222222222222",
+        requestId: "11111111-1111-1111-1111-111111111111",
+        temporaryPassword: "SenhaTemporaria123!",
       },
     })
   })

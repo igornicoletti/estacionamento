@@ -14,14 +14,13 @@ import {
 } from "../types/access-requests-types"
 
 const initialSnapshot: AccessRequestsSnapshot = {
-  phoneChanges: [],
   recoveryRequests: [],
 }
 
 async function loadAccessRequests(): Promise<AccessRequestsSnapshot> {
   const recoveryRequests = await listPendingRecoveryRequests()
 
-  return { phoneChanges: [], recoveryRequests }
+  return { recoveryRequests }
 }
 
 export function useAccessRequests() {
@@ -43,13 +42,13 @@ export function useAccessRequests() {
     async (
       requestId: string,
       decision: AccessRequestReviewDecision,
-      reviewReason: string
+      temporaryPassword?: string
     ) => {
       setIsReviewing(true)
       setError(null)
 
       try {
-        await reviewRecoveryRequest(requestId, decision, reviewReason)
+        await reviewRecoveryRequest(requestId, decision, temporaryPassword)
         await refetch()
       } catch (caughtError) {
         const nextError = toError(

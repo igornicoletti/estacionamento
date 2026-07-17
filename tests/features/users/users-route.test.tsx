@@ -18,17 +18,6 @@ const recoveryRequestsRows = [
   },
 ]
 
-const pendingPhoneChangeRows = [
-  {
-    auth_user_id: "22222222-2222-2222-2222-222222222222",
-    id: "33333333-3333-3333-3333-333333333333",
-    name: "Mariana Souza",
-    pending_phone_masked: "(11) 99999-0000",
-    phone_masked: "(11) 98888-7777",
-    updated_at: "2026-07-05T10:45:00Z",
-  },
-]
-
 vi.mock("@/lib/supabase-browser", () => {
   return {
     getSupabaseBrowserClient: () => ({
@@ -50,16 +39,6 @@ function createRecoveryRequestsQueryChain(rows: typeof recoveryRequestsRows) {
   return chain
 }
 
-function createPendingPhoneChangesQueryChain(rows: typeof pendingPhoneChangeRows) {
-  const chain = {
-    select: () => chain,
-    not: () => chain,
-    order: () => Promise.resolve({ data: rows, error: null }),
-  }
-
-  return chain
-}
-
 describe("UsersRoute", () => {
   beforeEach(async () => {
     const { clearAsyncSnapshotCache } = await import("@/hooks/use-async-snapshot")
@@ -70,10 +49,6 @@ describe("UsersRoute", () => {
     fromMock.mockImplementation((table: string) => {
       if (table === "access_recovery_requests") {
         return createRecoveryRequestsQueryChain(recoveryRequestsRows)
-      }
-
-      if (table === "app_users") {
-        return createPendingPhoneChangesQueryChain(pendingPhoneChangeRows)
       }
 
       throw new Error(`Unexpected table: ${table}`)
@@ -131,6 +106,53 @@ describe("UsersRoute", () => {
     await waitFor(() => {
       expect(screen.getByText("Informe o nome do usuário.")).toBeInTheDocument()
     })
+  })
+
+  it("cadastra um usuário com perfil global pelo formulário", async () => {
+    render(
+      <MemoryRouter>
+        <UsersRoute />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("Usuario Teste")).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar" }))
+
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Novo usuário" })).toBeInTheDocument()
+    })
+
+    fireEvent.change(screen.getByLabelText("Nome*"), {
+      target: { value: "Nova Administradora" },
+    })
+    fireEvent.change(screen.getByLabelText("CPF*"), {
+      target: { value: "52998224725" },
+    })
+    fireEvent.change(screen.getByLabelText("E-mail"), {
+      target: { value: "nova.admin@example.com" },
+    })
+    fireEvent.change(screen.getByLabelText("Telefone*"), {
+      target: { value: "11988887777" },
+    })
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Perfil" }), {
+      key: "ArrowDown",
+    })
+    fireEvent.click(await screen.findByRole("option", { name: "Administrador" }))
+    fireEvent.change(screen.getByLabelText("Senha de primeiro acesso*"), {
+      target: { value: "SenhaForte123!" },
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar" }))
+
+    await waitFor(() => {
+      expect(screen.getByText("Nova Administradora")).toBeInTheDocument()
+    })
+    expect(
+      screen.queryByRole("heading", { name: "Novo usuário" })
+    ).not.toBeInTheDocument()
   })
 
   it("exibe solicitações de acesso na aba de usuários", async () => {

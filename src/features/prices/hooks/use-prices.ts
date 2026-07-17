@@ -22,16 +22,26 @@ export function usePrices() {
     loadData: listPriceTables,
   })
   const [isSaving, setIsSaving] = React.useState(false)
+  const activeSaveRef = React.useRef<Promise<PriceTable> | null>(null)
+  const activeStatusRef = React.useRef<Promise<PriceTable> | null>(null)
 
   const savePrice = React.useCallback(
     async (input: SavePriceTableInput) => {
-      setIsSaving(true)
+      if (activeSaveRef.current) {
+        return activeSaveRef.current
+      }
 
-      try {
+      setIsSaving(true)
+      activeSaveRef.current = (async () => {
         const price = await savePriceTable(input)
         await snapshot.refetch()
         return price
+      })()
+
+      try {
+        return await activeSaveRef.current
       } finally {
+        activeSaveRef.current = null
         setIsSaving(false)
       }
     },
@@ -40,13 +50,21 @@ export function usePrices() {
 
   const updateStatus = React.useCallback(
     async (id: string, status: PriceRecordStatus) => {
-      setIsSaving(true)
+      if (activeStatusRef.current) {
+        return activeStatusRef.current
+      }
 
-      try {
+      setIsSaving(true)
+      activeStatusRef.current = (async () => {
         const price = await updatePriceTableStatus(id, status)
         await snapshot.refetch()
         return price
+      })()
+
+      try {
+        return await activeStatusRef.current
       } finally {
+        activeStatusRef.current = null
         setIsSaving(false)
       }
     },

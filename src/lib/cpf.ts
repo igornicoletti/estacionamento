@@ -1,7 +1,6 @@
 import { onlyDigits } from "./normalize"
 
 const cpfDigitsLength = 11
-const maskedCpfFallback = "***.***.***-**"
 
 export { onlyDigits }
 
@@ -39,16 +38,4 @@ export function isValidCpf(value: string) {
     numbers[9] === normalizedFirstDigit &&
     numbers[10] === normalizedSecondDigit
   )
-}
-
-export function maskCpfForDisplay(value: string) {
-  const digits = onlyDigits(value)
-
-  if (digits.length === 0) {
-    return maskedCpfFallback
-  }
-
-  const suffix = digits.slice(-2).padStart(2, "*")
-
-  return `***.***.***-${suffix}`
 }

@@ -14,7 +14,6 @@ describe("prices-form-schema", () => {
     startsAt: new Date(Date.now() + 86_400_000).toISOString(),
     endsAt: null,
     status: "active" as const,
-    reason: "Ajuste de preço para a rede completa",
     notes: null,
   }
 
@@ -61,12 +60,6 @@ describe("prices-form-schema", () => {
   it("rejects toleranceMinutes above max", () => {
     expect(
       priceTableFormSchema.safeParse({ ...validInput, toleranceMinutes: 241 }).success
-    ).toBe(false)
-  })
-
-  it("rejects reason shorter than 10 characters", () => {
-    expect(
-      priceTableFormSchema.safeParse({ ...validInput, reason: "short" }).success
     ).toBe(false)
   })
 

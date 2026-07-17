@@ -33,12 +33,9 @@ export function createPricesColumns({
       meta: { label: pricesCopy.table.scope },
       header: pricesCopy.table.scope,
       cell: ({ row }) => (
-        <Badge
-          variant="secondary"
-          className={getBadgeToneClassName(row.original.scope === "network" ? "info" : undefined)}
-        >
+        <span className="font-medium text-foreground">
           {getPriceScopeLabel(row.original)}
-        </Badge>
+        </span>
       ),
     },
     {

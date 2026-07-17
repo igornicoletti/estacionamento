@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import {
   beforeEach,
   describe,
@@ -7,41 +7,61 @@ import {
   vi,
 } from "vitest"
 
-import { PricesRoute, type PriceTable } from "@/features/prices"
+import {
+  PricesRoute,
+  type PriceTable,
+  type SavePriceTableInput,
+} from "@/features/prices"
 
-const { listPriceTablesMock } = vi.hoisted(() => ({
+const {
+  listPriceTablesMock,
+  savePriceTableMock,
+  updatePriceTableStatusMock,
+} = vi.hoisted(() => ({
   listPriceTablesMock: vi.fn<() => Promise<PriceTable[]>>(),
+  savePriceTableMock: vi.fn<(input: SavePriceTableInput) => Promise<PriceTable>>(),
+  updatePriceTableStatusMock:
+    vi.fn<(id: string, status: PriceTable["status"]) => Promise<PriceTable>>(),
 }))
 
 vi.mock("@/features/prices/services/prices-service", () => ({
   listPriceTables: listPriceTablesMock,
-  savePriceTable: vi.fn(),
+  savePriceTable: savePriceTableMock,
+  updatePriceTableStatus: updatePriceTableStatusMock,
 }))
 
 describe("PricesRoute", () => {
+  const activePrice: PriceTable = {
+    amount: 25,
+    computedStatus: "active",
+    cycleHours: 24,
+    endsAt: null,
+    graceMinutes: 15,
+    id: "price-network",
+    notes: "Tabela operacional vigente.",
+    parentId: null,
+    scope: "network",
+    startsAt: "2026-07-01T12:00:00.000Z",
+    status: "active",
+    tiers: [],
+    toleranceMinutes: 10,
+    unitId: null,
+    unitName: null,
+    updatedAt: "2026-07-02T12:00:00.000Z",
+    version: 1,
+  }
+
   beforeEach(() => {
-    listPriceTablesMock.mockResolvedValue([
-      {
-        amount: 25,
-        computedStatus: "active",
-        cycleHours: 24,
-        endsAt: null,
-        graceMinutes: 15,
-        id: "price-network",
-        notes: "Tabela operacional vigente.",
-        parentId: null,
-        reason: "Configuração comercial validada.",
-        scope: "network",
-        startsAt: "2026-07-01T12:00:00.000Z",
-        status: "active",
-        tiers: [],
-        toleranceMinutes: 10,
-        unitId: null,
-        unitName: null,
-        updatedAt: "2026-07-02T12:00:00.000Z",
-        version: 1,
-      },
-    ])
+    listPriceTablesMock.mockReset()
+    savePriceTableMock.mockReset()
+    updatePriceTableStatusMock.mockReset()
+    listPriceTablesMock.mockResolvedValue([activePrice])
+    savePriceTableMock.mockResolvedValue(activePrice)
+    updatePriceTableStatusMock.mockResolvedValue({
+      ...activePrice,
+      computedStatus: "expired",
+      status: "inactive",
+    })
   })
 
   it("renders price tables with reusable data table controls", async () => {
@@ -55,7 +75,96 @@ describe("PricesRoute", () => {
 
     expect(screen.getByPlaceholderText("Buscar tabelas de preço...")).toBeInTheDocument()
     expect(screen.getByText("Rede")).toBeInTheDocument()
+    expect(screen.getByText("Rede").closest("[data-slot='badge']")).toBeNull()
     expect(screen.getByText("24 horas")).toBeInTheDocument()
     expect(screen.getByText("15 min")).toBeInTheDocument()
+  })
+
+  it("validates required price fields before saving", async () => {
+    render(<PricesRoute />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Todas as unidades")).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" }))
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Adicionar tabela de preço" })).toBeInTheDocument()
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
+
+    expect(await screen.findByText("Informe um valor base válido.")).toBeInTheDocument()
+    expect(savePriceTableMock).not.toHaveBeenCalled()
+  })
+
+  it("creates a network price table and closes the form on success", async () => {
+    render(<PricesRoute />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Todas as unidades")).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" }))
+    fireEvent.change(screen.getByLabelText("Valor base"), {
+      target: { value: "30,5" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
+
+    await waitFor(() => {
+      expect(savePriceTableMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          amount: 30.5,
+          scope: "network",
+          status: "active",
+        })
+      )
+    })
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Adicionar tabela de preço" })
+      ).not.toBeInTheDocument()
+    })
+  })
+
+  it("keeps the price form open with a sanitized error when save fails", async () => {
+    savePriceTableMock.mockRejectedValueOnce(new Error("duplicate key value violates constraint"))
+
+    render(<PricesRoute />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Todas as unidades")).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" }))
+    fireEvent.change(screen.getByLabelText("Valor base"), {
+      target: { value: "30" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
+
+    expect(
+      await screen.findByText("Não foi possível salvar. Revise os dados e tente novamente.")
+    ).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Adicionar tabela de preço" })).toBeInTheDocument()
+    expect(screen.queryByText(/duplicate key/i)).not.toBeInTheDocument()
+  })
+
+  it("requires AppAlertDialog confirmation before deactivating a price table", async () => {
+    render(<PricesRoute />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Todas as unidades")).toBeInTheDocument()
+    })
+
+    fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Inativar" }))
+
+    expect(screen.getByRole("heading", { name: "Inativar tabela de preço" })).toBeInTheDocument()
+    expect(updatePriceTableStatusMock).not.toHaveBeenCalled()
+
+    fireEvent.click(screen.getByRole("button", { name: "Inativar tabela" }))
+
+    await waitFor(() => {
+      expect(updatePriceTableStatusMock).toHaveBeenCalledWith("price-network", "inactive")
+    })
   })
 })

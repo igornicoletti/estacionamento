@@ -26,6 +26,10 @@ function isValidPhoneDigits(value: string) {
   return !hasRepeatedDigits(value) && !hasRepeatedDigits(value.slice(2))
 }
 
+function readString(value: unknown) {
+  return typeof value === "string" && value.trim().length > 0 ? value.trim() : null
+}
+
 Deno.serve(async (request) => {
   const cors = handleCors(request)
 
@@ -62,6 +66,49 @@ Deno.serve(async (request) => {
     }
 
     const formattedPhone = normalizedPhone ? formatPhone(normalizedPhone) : null
+    const maskedPhone = normalizedPhone ? maskPhone(normalizedPhone) : null
+    const currentProfileResponse = await supabase
+      .from("app_users")
+      .select("id, phone_display, phone_masked")
+      .eq("auth_user_id", actor.authUserId)
+      .maybeSingle()
+
+    if (currentProfileResponse.error || !currentProfileResponse.data) {
+      console.error("profile_lookup_failed", {
+        actorUserId: actor.authUserId,
+        error: currentProfileResponse.error?.message,
+      })
+      return authError("request_failed", 400, request)
+    }
+
+    const currentPhoneDisplay = readString(currentProfileResponse.data.phone_display)
+    const currentPhoneMasked = readString(currentProfileResponse.data.phone_masked)
+    const phoneChanged = Boolean(
+      formattedPhone &&
+        (currentPhoneDisplay
+          ? currentPhoneDisplay !== formattedPhone
+          : currentPhoneMasked !== maskedPhone)
+    )
+    let shouldResetPasskey = false
+
+    if (phoneChanged) {
+      const passkeyCountResponse = await supabase
+        .schema("auth")
+        .from("webauthn_credentials")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", actor.authUserId)
+
+      if (passkeyCountResponse.error) {
+        console.error("profile_passkey_lookup_failed", {
+          actorUserId: actor.authUserId,
+          error: passkeyCountResponse.error.message,
+        })
+        return authError("request_failed", 400, request)
+      }
+
+      shouldResetPasskey = (passkeyCountResponse.count ?? 0) > 0
+    }
+
     const updatePayload: Record<string, unknown> = {
       avatar_url: normalizedAvatarUrl,
       email: normalizedEmail,
@@ -70,24 +117,56 @@ Deno.serve(async (request) => {
       updated_by: actor.authUserId,
     }
 
-    if (formattedPhone && normalizedPhone) {
+    if (formattedPhone && normalizedPhone && maskedPhone) {
       updatePayload.phone_display = formattedPhone
-      updatePayload.phone_masked = maskPhone(normalizedPhone)
-      updatePayload.pending_phone_display = null
-      updatePayload.pending_phone_masked = null
+      updatePayload.phone_masked = maskedPhone
+    }
+
+    if (shouldResetPasskey) {
+      updatePayload.failed_attempts = 0
+      updatePayload.last_failed_at = null
+      updatePayload.locked_until = null
+      updatePayload.status = "passkey_reset"
     }
 
     const updateResponse = await supabase
       .from("app_users")
       .update(updatePayload)
       .eq("auth_user_id", actor.authUserId)
+      .select("id")
+      .maybeSingle()
 
-    if (updateResponse.error) {
+    if (updateResponse.error || !updateResponse.data) {
       console.error("profile_update_failed", {
         actorUserId: actor.authUserId,
-        error: updateResponse.error.message,
+        error: updateResponse.error?.message,
       })
       return authError("request_failed", 400, request)
+    }
+
+    if (shouldResetPasskey) {
+      const credentialsResponse = await supabase
+        .schema("auth")
+        .from("webauthn_credentials")
+        .delete()
+        .eq("user_id", actor.authUserId)
+
+      if (credentialsResponse.error) {
+        console.error("profile_passkey_revoke_failed", {
+          actorUserId: actor.authUserId,
+          error: credentialsResponse.error.message,
+        })
+        return authError("request_failed", 400, request)
+      }
+
+      await supabase
+        .schema("auth")
+        .from("mfa_factors")
+        .delete()
+        .eq("user_id", actor.authUserId)
+        .eq("factor_type", "webauthn")
+
+      await supabase.auth.admin.signOut(actor.authUserId, "global")
     }
 
     await writeAuditEvent({
@@ -101,6 +180,20 @@ Deno.serve(async (request) => {
       targetUserId: actor.authUserId,
     }).catch((e) => console.error("[audit-fail]", e))
 
+    if (shouldResetPasskey) {
+      await writeAuditEvent({
+        actor: actor.name,
+        actorUserId: actor.authUserId,
+        event: "passkey_reset_requested",
+        metadata: { source: "profile_phone_changed" },
+        request,
+        scope: "system",
+        success: true,
+        target: actor.name,
+        targetUserId: actor.authUserId,
+      }).catch((e) => console.error("[audit-fail]", e))
+    }
+
     return jsonResponse(
       {
         ok: true,
@@ -109,8 +202,11 @@ Deno.serve(async (request) => {
           email: normalizedEmail,
           name: input.name.trim(),
           phoneMasked: formattedPhone,
+          requiresPasskeyRegistration: shouldResetPasskey,
         },
-        message: "Perfil atualizado.",
+        message: shouldResetPasskey
+          ? "Perfil atualizado. Cadastre uma nova passkey para continuar."
+          : "Perfil atualizado.",
       },
       200,
       request

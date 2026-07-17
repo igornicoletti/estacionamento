@@ -164,16 +164,23 @@ export function buildVipRuleDetails(rule: VipRule): readonly AppDetailsSheetItem
     })
   }
 
-  items.push(
-    { label: rulesCopy.table.reason, value: rule.reason ?? rulesCopy.labels.emptyValue },
-    { label: rulesCopy.table.updatedAt, value: formatDateTime(rule.updatedAt) }
-  )
+  items.push({ label: rulesCopy.table.updatedAt, value: formatDateTime(rule.updatedAt) })
 
   return items
 }
 
 export function isClientVipFromRules(rules: readonly VipRule[], clientId: number) {
-  return rules.some((rule) => rule.active && rule.ruleType === "vip" && rule.targetType === "client" && rule.clientId === clientId)
+  return rules.some((rule) => {
+    if (!rule.active || rule.ruleType !== "vip" || rule.clientId !== clientId) {
+      return false
+    }
+
+    if (rule.targetType === "vehicle") {
+      return Boolean(rule.vehicleId)
+    }
+
+    return rule.appliesToAllVehicles || rule.vehicleIds.length > 0
+  })
 }
 
 export function isVehicleVipFromRules(

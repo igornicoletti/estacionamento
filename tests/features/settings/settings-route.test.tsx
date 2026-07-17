@@ -15,7 +15,7 @@ describe("SettingsRoute", () => {
 
     expect(screen.getByText("Foto do perfil")).toBeInTheDocument()
     expect(screen.getByLabelText("Nome")).toBeEnabled()
-    expect(screen.getByDisplayValue("***.***.***-25")).toBeDisabled()
+    expect(screen.getByDisplayValue("529.982.247-25")).toBeDisabled()
     expect(screen.getByText("Segurança e credenciais")).toBeInTheDocument()
     expect(screen.getByText("Alterações auditadas")).toBeInTheDocument()
     expect(screen.getByText("Passkey")).toBeInTheDocument()

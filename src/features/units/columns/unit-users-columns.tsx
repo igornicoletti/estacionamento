@@ -25,7 +25,12 @@ export function createUnitUsersColumns(options: CreateUnitUsersColumnsOptions): 
         </DataTableTextAction>
       ),
     },
-    { accessorKey: "cpf", meta: { label: unitsCopy.table.cpf }, header: unitsCopy.table.cpf },
+    {
+      accessorKey: "cpf",
+      meta: { label: unitsCopy.table.cpf },
+      header: unitsCopy.table.cpf,
+      cell: ({ row }) => row.original.cpf || "—",
+    },
     {
       accessorKey: "email",
       meta: { label: unitsCopy.table.email },

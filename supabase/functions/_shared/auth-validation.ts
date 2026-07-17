@@ -36,7 +36,7 @@ const cpfSchema = cpfFormatSchema.refine(
   "CPF inválido."
 )
 const passwordSchema = z.string().min(8).max(128)
-const newPasswordSchema = z
+export const newPasswordSchema = z
   .string()
   .min(12)
   .max(128)
@@ -85,11 +85,6 @@ export const adminUpdateUserSchema = z.object({
   unitId: z.string().optional(),
 })
 
-export const adminActionSchema = z.object({
-  reason: z.string().min(10),
-  targetUserId: z.string().uuid(),
-})
-
 export const flowCpfSchema = z.object({
   cpf: cpfSchema,
   flowId: z.string().uuid(),
@@ -98,10 +93,6 @@ export const flowCpfSchema = z.object({
 export const profilePasswordSchema = z.object({
   currentPassword: passwordSchema,
   newPassword: newPasswordSchema,
-})
-
-export const profilePhoneSchema = z.object({
-  phone: z.string().min(10).max(20),
 })
 
 export const profileUpdateSchema = z.object({

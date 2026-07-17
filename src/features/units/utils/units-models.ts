@@ -87,11 +87,11 @@ export function resolveUnitYardConfig(
   return configs.get(unitId) ?? resolveDefaultUnitYardConfig(unitId)
 }
 
-export function buildActiveUnitUserStats(users: readonly UserRecord[]) {
+export function buildUnitUserStats(users: readonly UserRecord[]) {
   const stats = new Map<string, { managers: number; operators: number }>()
 
   for (const user of users) {
-    if (!user.unitId || user.status !== "active") {
+    if (!user.unitId) {
       continue
     }
 
@@ -110,6 +110,8 @@ export function buildActiveUnitUserStats(users: readonly UserRecord[]) {
 
   return stats
 }
+
+export const buildActiveUnitUserStats = buildUnitUserStats
 
 export function resolveUnitUsersSnapshot(users: readonly UserRecord[], unitId: string) {
   return users.filter((user) => user.unitId === unitId)

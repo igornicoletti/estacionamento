@@ -25,6 +25,7 @@ export function useUsers(options: { enabled?: boolean } = {}) {
   const [isLoading, setIsLoading] = React.useState(enabled)
   const [isSaving, setIsSaving] = React.useState(false)
   const [error, setError] = React.useState<Error | null>(null)
+  const activeSaveRef = React.useRef<Promise<UserRecord> | null>(null)
 
   const loadUsers = React.useCallback(async (
     isCurrent: () => boolean,
@@ -70,33 +71,49 @@ export function useUsers(options: { enabled?: boolean } = {}) {
   }, [enabled, loadUsers])
 
   const addUser = React.useCallback(async (input: CreateUserInput) => {
-    setIsSaving(true)
+    if (activeSaveRef.current) {
+      return activeSaveRef.current
+    }
 
-    try {
+    setIsSaving(true)
+    activeSaveRef.current = (async () => {
       const createdUser = await createUser(input)
       setData((current) => [createdUser, ...current])
       return createdUser
+    })()
+
+    try {
+      return await activeSaveRef.current
     } catch (caughtError) {
       const nextError = toError(caughtError, usersCopy.errors.create)
       throw nextError
     } finally {
+      activeSaveRef.current = null
       setIsSaving(false)
     }
   }, [])
 
   const editUser = React.useCallback(async (input: UpdateUserInput) => {
-    setIsSaving(true)
+    if (activeSaveRef.current) {
+      return activeSaveRef.current
+    }
 
-    try {
+    setIsSaving(true)
+    activeSaveRef.current = (async () => {
       const updatedUser = await updateUser(input)
       setData((current) =>
         current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
       )
       return updatedUser
+    })()
+
+    try {
+      return await activeSaveRef.current
     } catch (caughtError) {
       const nextError = toError(caughtError, usersCopy.errors.update)
       throw nextError
     } finally {
+      activeSaveRef.current = null
       setIsSaving(false)
     }
   }, [])

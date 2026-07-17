@@ -35,10 +35,6 @@ export const priceTableFormSchema = z
       .min(1, { error: pricesCopy.form.validation.startsAt }),
     endsAt: z.string().nullable(),
     status: z.enum(priceRecordStatusValues),
-    reason: z
-      .string({ error: pricesCopy.form.validation.reason })
-      .trim()
-      .min(10, { error: pricesCopy.form.validation.reason }),
     notes: z.string().trim().nullable(),
   })
   .refine(

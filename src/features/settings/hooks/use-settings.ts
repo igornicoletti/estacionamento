@@ -71,6 +71,9 @@ export function useSettings(): SettingsSnapshot {
         avatarUrl: savedProfile.avatarUrl,
         email: savedProfile.email,
         name: savedProfile.name,
+        ...(savedProfile.requiresPasskeyRegistration
+          ? { passkeyStatus: "inactive" as const }
+          : {}),
         ...(savedProfile.phoneMasked ? { phoneMasked: savedProfile.phoneMasked } : {}),
       })
       await auth.actions.refreshProfile()

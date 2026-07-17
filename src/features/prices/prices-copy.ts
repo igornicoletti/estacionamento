@@ -11,6 +11,11 @@ export const pricesCopy = {
     activate: "Ativar",
     deactivate: "Inativar",
   },
+  dialogs: {
+    deactivateTitle: "Inativar tabela de preço",
+    deactivateDescription: "A tabela selecionada deixará de ser aplicada em novas cobranças.",
+    deactivateConfirm: "Inativar tabela",
+  },
   filters: {
     scope: "Escopo",
     status: "Status",
@@ -29,7 +34,6 @@ export const pricesCopy = {
     status: "Status",
     version: "Versão",
     tiers: "Faixas",
-    reason: "Justificativa",
     notes: "Observações",
     updatedAt: "Atualizado em",
   },
@@ -58,7 +62,6 @@ export const pricesCopy = {
     startsAt: "Início da vigência",
     endsAt: "Fim da vigência",
     status: "Status",
-    reason: "Justificativa",
     notes: "Observações",
     scopePlaceholder: "Selecione o escopo",
     statusPlaceholder: "Selecione o status",
@@ -73,7 +76,7 @@ export const pricesCopy = {
       toleranceMinutes: "Informe uma tolerância entre 0 e 240 minutos.",
       startsAt: "Informe uma data de início a partir de hoje.",
       endsAt: "Informe uma data final válida e posterior ao início.",
-      reason: "Informe uma justificativa com pelo menos 10 caracteres.",
+      submit: "Não foi possível salvar. Revise os dados e tente novamente.",
     },
   },
   empty: {

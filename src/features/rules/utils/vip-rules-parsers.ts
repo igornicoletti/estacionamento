@@ -29,7 +29,6 @@ export interface RawCommercialRuleRow {
   yard_occupancy_threshold: number | null
   yard_stale_vehicle_hours: number | string | null
   status: "active" | "inactive"
-  reason: string | null
   notes: string | null
   updated_at: string
 }
@@ -147,7 +146,6 @@ export function parseVipRule(value: unknown): VipRule | null {
     yardStaleVehicleHours: ruleType === "yard_cleaning_stale_vehicle" || ruleType === "yard_cleaning"
       ? readNumber(value.yard_stale_vehicle_hours)
       : null,
-    reason: readNullableString(value.reason),
     notes: readNullableString(value.notes),
     ruleSummary: "",
     scopeLabel: "",

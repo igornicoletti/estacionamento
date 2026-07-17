@@ -16,17 +16,6 @@ const recoveryRequestsRows = [
   },
 ]
 
-const pendingPhoneChangeRows = [
-  {
-    auth_user_id: "22222222-2222-2222-2222-222222222222",
-    id: "33333333-3333-3333-3333-333333333333",
-    name: "Mariana Souza",
-    pending_phone_masked: "(11) 99999-0000",
-    phone_masked: "(11) 98888-7777",
-    updated_at: "2026-07-05T10:45:00Z",
-  },
-]
-
 vi.mock("@/lib/supabase-browser", () => {
   return {
     getSupabaseBrowserClient: () => ({
@@ -42,16 +31,6 @@ function createRecoveryRequestsQueryChain(rows: typeof recoveryRequestsRows) {
   const chain = {
     select: () => chain,
     eq: () => chain,
-    order: () => Promise.resolve({ data: rows, error: null }),
-  }
-
-  return chain
-}
-
-function createPendingPhoneChangesQueryChain(rows: typeof pendingPhoneChangeRows) {
-  const chain = {
-    select: () => chain,
-    not: () => chain,
     order: () => Promise.resolve({ data: rows, error: null }),
   }
 
@@ -79,10 +58,6 @@ describe("AccessRequestsRoute", () => {
     fromMock.mockImplementation((table: string) => {
       if (table === "access_recovery_requests") {
         return createRecoveryRequestsQueryChain(recoveryRequestsRows)
-      }
-
-      if (table === "app_users") {
-        return createPendingPhoneChangesQueryChain(pendingPhoneChangeRows)
       }
 
       throw new Error(`Unexpected table: ${table}`)
@@ -125,9 +100,9 @@ describe("AccessRequestsRoute", () => {
     fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
     fireEvent.click(await screen.findByRole("menuitem", { name: "Aprovar" }))
 
-    const reviewReasonField = await screen.findByLabelText("Motivo da análise")
-    fireEvent.change(reviewReasonField, {
-      target: { value: "Solicitação validada pela equipe administrativa." },
+    const temporaryPasswordField = await screen.findByLabelText(/Senha temporária/)
+    fireEvent.change(temporaryPasswordField, {
+      target: { value: "SenhaTemporaria123!" },
     })
     fireEvent.click(
       screen.getByRole("button", { name: "Aprovar solicitação" })
@@ -138,7 +113,45 @@ describe("AccessRequestsRoute", () => {
         body: {
           decision: "approved",
           requestId: "11111111-1111-1111-1111-111111111111",
-          reviewReason: "Solicitação validada pela equipe administrativa.",
+          temporaryPassword: "SenhaTemporaria123!",
+        },
+      })
+    })
+  })
+
+  it("submits a recovery denial action after destructive confirmation", async () => {
+    invokeMock.mockResolvedValue({ data: { message: "ok" }, error: null })
+
+    const { AccessRequestsRoute } = await import("@/features/access-requests")
+
+    render(
+      <MemoryRouter>
+        <AccessRequestsRoute />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("(11) 98765-4321")).toBeInTheDocument()
+    })
+
+    fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Negar" }))
+
+    expect(screen.getByRole("heading", { name: "Negar solicitação" })).toBeInTheDocument()
+    expect(invokeMock).not.toHaveBeenCalled()
+    expect(
+      screen.getByRole("button", { name: "Negar solicitação" })
+    ).toBeEnabled()
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Negar solicitação" })
+    )
+
+    await waitFor(() => {
+      expect(invokeMock).toHaveBeenCalledWith("admin-recovery-review", {
+        body: {
+          decision: "denied",
+          requestId: "11111111-1111-1111-1111-111111111111",
         },
       })
     })

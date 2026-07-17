@@ -58,7 +58,7 @@ type RuleFormErrors = Partial<Record<
   | "yardStaleVehicleHours"
   | "yardUnitId",
   string
->>
+> & { form?: string }>
 
 interface ClientOption {
   id: number
@@ -92,18 +92,6 @@ function readPositiveInteger(value: string) {
   const parsed = Number(value)
 
   return Number.isInteger(parsed) && parsed > 0 ? parsed : 0
-}
-
-function getDefaultReason(ruleType: RuleFormType) {
-  if (ruleType === "vip") {
-    return rulesCopy.auditReasons.create.vip
-  }
-
-  if (ruleType === "fuel_benefit") {
-    return rulesCopy.auditReasons.create.fuelBenefit
-  }
-
-  return rulesCopy.auditReasons.create.yardCleaning
 }
 
 export function VipRuleFormDialog({
@@ -272,6 +260,10 @@ export function VipRuleFormDialog({
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
 
+    if (isSaving) {
+      return
+    }
+
     const nextErrors = validate()
 
     if (Object.keys(nextErrors).length > 0) {
@@ -282,49 +274,54 @@ export function VipRuleFormDialog({
     const common = {
       active: true,
       notes: null,
-      reason: getDefaultReason(ruleType),
     }
 
-    if (ruleType === "vip") {
-      await onSubmit({
-        ...common,
-        ruleType,
-        targetType: "client",
-        clientId: readPositiveInteger(clientId),
-        clientName,
-        vehicleId: null,
-        vehiclePlate: null,
-        appliesToAllVehicles,
-        vehicleIds: appliesToAllVehicles
-          ? []
-          : vehicleIds.map(readPositiveInteger).filter((vehicleId) => vehicleId > 0),
-        appliesToAllUnits: scope === "network",
-        unitIds: scope === "network" ? [] : unitIds,
-      })
-    }
+    setErrors({})
 
-    if (ruleType === "fuel_benefit") {
-      await onSubmit({
-        ...common,
-        ruleType,
-        scope,
-        unitIds: scope === "network" ? [] : unitIds,
-        fuelMinLiters: readPositiveNumber(fuelMinLiters),
-        benefitHours: readPositiveNumber(benefitHours),
-      })
-    }
+    try {
+      if (ruleType === "vip") {
+        await onSubmit({
+          ...common,
+          ruleType,
+          targetType: "client",
+          clientId: readPositiveInteger(clientId),
+          clientName,
+          vehicleId: null,
+          vehiclePlate: null,
+          appliesToAllVehicles,
+          vehicleIds: appliesToAllVehicles
+            ? []
+            : vehicleIds.map(readPositiveInteger).filter((vehicleId) => vehicleId > 0),
+          appliesToAllUnits: scope === "network",
+          unitIds: scope === "network" ? [] : unitIds,
+        })
+      }
 
-    if (ruleType === "yard_cleaning") {
-      await onSubmit({
-        ...common,
-        ruleType,
-        unitIds: [yardUnitId],
-        yardOccupancyThreshold: readPositiveInteger(yardOccupancyThreshold),
-        yardStaleVehicleHours: readPositiveNumber(yardStaleVehicleHours),
-      })
-    }
+      if (ruleType === "fuel_benefit") {
+        await onSubmit({
+          ...common,
+          ruleType,
+          scope,
+          unitIds: scope === "network" ? [] : unitIds,
+          fuelMinLiters: readPositiveNumber(fuelMinLiters),
+          benefitHours: readPositiveNumber(benefitHours),
+        })
+      }
 
-    handleOpenChange(false)
+      if (ruleType === "yard_cleaning") {
+        await onSubmit({
+          ...common,
+          ruleType,
+          unitIds: [yardUnitId],
+          yardOccupancyThreshold: readPositiveInteger(yardOccupancyThreshold),
+          yardStaleVehicleHours: readPositiveNumber(yardStaleVehicleHours),
+        })
+      }
+
+      handleOpenChange(false)
+    } catch {
+      setErrors({ form: rulesCopy.form.validation.submit })
+    }
   }
 
   function renderScopeField() {
@@ -346,7 +343,7 @@ export function VipRuleFormDialog({
           }}
           disabled={isSaving}
         >
-          <SelectTrigger className="w-full">
+          <SelectTrigger className="w-full" aria-label={rulesCopy.form.scope}>
             <SelectValue placeholder={rulesCopy.form.scopePlaceholder} />
           </SelectTrigger>
           <SelectContent position="popper">
@@ -468,7 +465,7 @@ export function VipRuleFormDialog({
             }}
             disabled={isSaving}
           >
-            <SelectTrigger className="w-full">
+            <SelectTrigger className="w-full" aria-label={rulesCopy.form.ruleType}>
               <SelectValue placeholder={rulesCopy.form.ruleTypePlaceholder} />
             </SelectTrigger>
             <SelectContent position="popper">
@@ -743,6 +740,12 @@ export function VipRuleFormDialog({
               </Field>
             </div>
           </>
+        ) : null}
+
+        {errors.form ? (
+          <Field data-invalid>
+            <FieldError>{errors.form}</FieldError>
+          </Field>
         ) : null}
       </form>
     </AppDialog>

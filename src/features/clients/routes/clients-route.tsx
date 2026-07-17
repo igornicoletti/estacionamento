@@ -94,27 +94,23 @@ export function ClientsRoute() {
       await refreshOperationalSnapshots()
 
       if (result.status === "failed") {
-        notify.error(result.message || clientsCopy.sync.feedback.error)
+        notify.error(clientsCopy.sync.feedback.error)
         return
       }
 
       if (result.status === "warning") {
-        notify.warning(result.message || clientsCopy.sync.feedback.inProgress)
+        notify.warning(clientsCopy.sync.feedback.inProgress)
         return
       }
 
-      notify.success(result.message || clientsCopy.sync.feedback.success)
+      notify.success(clientsCopy.sync.feedback.success)
     } catch (caughtError) {
       await refreshOperationalSnapshots()
 
       if (isClientSyncInProgressError(caughtError)) {
         notify.warning(clientsCopy.sync.feedback.inProgress)
       } else {
-        notify.error(
-          caughtError instanceof Error && caughtError.message.trim()
-            ? caughtError.message
-            : clientsCopy.sync.feedback.error
-        )
+        notify.error(clientsCopy.sync.feedback.error)
       }
     } finally {
       setIsSyncing(false)
@@ -148,7 +144,7 @@ export function ClientsRoute() {
         columnVisibilityStorageKey={clientsTableColumnVisibilityKey}
         getRowId={(client) => String(client.cod_pessoa)}
         globalSearch={{
-          columnIds: ["cod_pessoa", "nom_pessoa", "num_cnpj_cpf", "nom_cidade", "qtd_veiculos"],
+          columnIds: ["cod_pessoa", "nom_pessoa", "nom_fantasia", "num_cnpj_cpf", "nom_cidade", "qtd_veiculos"],
           placeholder: clientsCopy.pages.clients.searchPlaceholder,
         }}
         filterFields={[

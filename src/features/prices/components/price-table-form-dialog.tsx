@@ -29,7 +29,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { Textarea } from "@/components/ui/textarea"
 import { useUnits } from "@/features/units"
 
 import { pricesCopy } from "../prices-copy"
@@ -56,10 +55,9 @@ type PriceTableFormErrors = Partial<
     | "graceMinutes"
     | "toleranceMinutes"
     | "startsAt"
-    | "endsAt"
-    | "reason",
+    | "endsAt",
     string
-  >
+  > & { form?: string }
 >
 
 interface UnitOption {
@@ -92,6 +90,10 @@ function getDateStart(value: Date) {
 }
 
 function readNumber(value: string) {
+  if (!value.trim()) {
+    return Number.NaN
+  }
+
   const parsed = Number(value.replace(",", "."))
   return Number.isFinite(parsed) ? parsed : Number.NaN
 }
@@ -258,7 +260,6 @@ export function PriceTableFormDialog({
   const [startsAt, setStartsAt] = React.useState(defaultStartsAt)
   const [endsAt, setEndsAt] = React.useState("")
   const [status, setStatus] = React.useState<PriceRecordStatus>("active")
-  const [reason, setReason] = React.useState("")
   const [errors, setErrors] = React.useState<PriceTableFormErrors>({})
   const unitsSnapshot = useUnits()
   const unitOptions = React.useMemo<UnitOption[]>(
@@ -292,7 +293,6 @@ export function PriceTableFormDialog({
     setStartsAt(defaultStartsAt())
     setEndsAt("")
     setStatus("active")
-    setReason("")
     setErrors({})
   }
 
@@ -359,15 +359,15 @@ export function PriceTableFormDialog({
       nextErrors.endsAt = pricesCopy.form.validation.endsAt
     }
 
-    if (reason.trim().length < 10) {
-      nextErrors.reason = pricesCopy.form.validation.reason
-    }
-
     return nextErrors
   }
 
   async function handleSubmit(event: React.FormEvent) {
     event.preventDefault()
+
+    if (isSaving) {
+      return
+    }
 
     const nextErrors = validate()
 
@@ -383,22 +383,27 @@ export function PriceTableFormDialog({
       return
     }
 
-    await onSubmit({
-      scope,
-      unitId: scope === "unit" ? unitId : null,
-      unitName: scope === "unit" ? unitName : null,
-      amount: readNumber(amount),
-      cycleHours: readInteger(cycleHours),
-      graceMinutes: readInteger(graceMinutes),
-      toleranceMinutes: readInteger(toleranceMinutes),
-      startsAt: startsAtIso,
-      endsAt: toIsoOrNull(endsAt),
-      status,
-      reason,
-      notes: null,
-    })
+    setErrors({})
 
-    handleOpenChange(false)
+    try {
+      await onSubmit({
+        scope,
+        unitId: scope === "unit" ? unitId : null,
+        unitName: scope === "unit" ? unitName : null,
+        amount: readNumber(amount),
+        cycleHours: readInteger(cycleHours),
+        graceMinutes: readInteger(graceMinutes),
+        toleranceMinutes: readInteger(toleranceMinutes),
+        startsAt: startsAtIso,
+        endsAt: toIsoOrNull(endsAt),
+        status,
+        notes: null,
+      })
+
+      handleOpenChange(false)
+    } catch {
+      setErrors({ form: pricesCopy.form.validation.submit })
+    }
   }
 
   return (
@@ -455,7 +460,7 @@ export function PriceTableFormDialog({
               }}
               disabled={isSaving}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full" aria-label={pricesCopy.form.scope}>
                 <SelectValue placeholder={pricesCopy.form.scopePlaceholder} />
               </SelectTrigger>
               <SelectContent position="popper">
@@ -643,7 +648,7 @@ export function PriceTableFormDialog({
               onValueChange={(value: PriceRecordStatus) => setStatus(value)}
               disabled={isSaving}
             >
-              <SelectTrigger className="w-full">
+              <SelectTrigger className="w-full" aria-label={pricesCopy.form.status}>
                 <SelectValue placeholder={pricesCopy.form.statusPlaceholder} />
               </SelectTrigger>
               <SelectContent position="popper">
@@ -655,22 +660,11 @@ export function PriceTableFormDialog({
             </Select>
           </Field>
 
-          <Field data-invalid={Boolean(errors.reason)}>
-            <FieldLabel htmlFor="price-reason">
-              {pricesCopy.form.reason}
-            </FieldLabel>
-            <Textarea
-              id="price-reason"
-              value={reason}
-              onChange={(event) => {
-                setReason(event.target.value)
-                setErrors((state) => ({ ...state, reason: undefined }))
-              }}
-              disabled={isSaving}
-              aria-invalid={Boolean(errors.reason)}
-            />
-            {errors.reason ? <FieldError>{errors.reason}</FieldError> : null}
-          </Field>
+          {errors.form ? (
+            <Field data-invalid>
+              <FieldError>{errors.form}</FieldError>
+            </Field>
+          ) : null}
         </FieldGroup>
       </form>
     </AppDialog>

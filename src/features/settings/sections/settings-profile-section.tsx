@@ -133,6 +133,10 @@ export function SettingsProfileSection({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
+    if (isSaving) {
+      return
+    }
+
     const validationErrors = validateProfileForm({
       email,
       name,

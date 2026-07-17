@@ -120,7 +120,6 @@ export function buildPriceDetails(price: PriceTable): readonly AppDetailsSheetIt
     { label: pricesCopy.table.status, value: getPriceStatusLabel(price.computedStatus) },
     { label: pricesCopy.table.version, value: String(price.version) },
     { label: pricesCopy.table.tiers, value: tiers },
-    { label: pricesCopy.table.reason, value: price.reason ?? pricesCopy.labels.emptyValue },
     { label: pricesCopy.table.notes, value: price.notes ?? pricesCopy.labels.emptyValue },
     { label: pricesCopy.table.updatedAt, value: formatPriceDateTime(price.updatedAt) },
   ]

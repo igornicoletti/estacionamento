@@ -1,5 +1,6 @@
 import {
   createAdminClient,
+  formatPhone,
   genericAuthError,
   handleCors,
   hashSensitiveValue,
@@ -41,6 +42,7 @@ async function handleRecoveryRequest(request: Request): Promise<Response> {
     cpf_hmac: cpfHash,
     description: input.description || null,
     email: input.email,
+    phone_display: formatPhone(input.phone),
     phone_masked: maskPhone(input.phone),
     reason: input.reason,
     request_ip_hash: ipHash,

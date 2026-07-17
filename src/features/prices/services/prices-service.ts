@@ -22,7 +22,6 @@ const priceTableSelect = [
   "status",
   "version",
   "parent_id",
-  "reason",
   "notes",
   "updated_at",
   "commercial_price_tiers(id,sequence,limit_hours,amount,notes)",
@@ -77,9 +76,15 @@ function validatePriceInput(input: SavePriceTableInput) {
     throw new Error(pricesCopy.form.validation.startsAt)
   }
 
-  if (input.reason.trim().length < 10) {
-    throw new Error(pricesCopy.form.validation.reason)
+  const endsAtTime = input.endsAt ? new Date(input.endsAt).getTime() : null
+
+  if (
+    input.endsAt &&
+    (endsAtTime === null || !Number.isFinite(endsAtTime) || endsAtTime <= startsAtTime)
+  ) {
+    throw new Error(pricesCopy.form.validation.endsAt)
   }
+
 }
 
 function createPricePayload(input: SavePriceTableInput) {
@@ -97,7 +102,6 @@ function createPricePayload(input: SavePriceTableInput) {
     ends_at: input.endsAt,
     status: input.status,
     version: 1,
-    reason: input.reason.trim(),
     notes: input.notes?.trim() ? input.notes.trim() : null,
   }
 }
@@ -146,7 +150,6 @@ export async function savePriceTable(input: SavePriceTableInput): Promise<PriceT
     p_ends_at: payload.ends_at,
     p_grace_minutes: payload.grace_minutes,
     p_notes: payload.notes,
-    p_reason: payload.reason,
     p_scope: payload.scope,
     p_starts_at: payload.starts_at,
     p_status: payload.status,

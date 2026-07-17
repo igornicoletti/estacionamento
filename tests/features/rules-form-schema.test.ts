@@ -20,7 +20,6 @@ describe("rules-form-schema", () => {
       appliesToAllUnits: true,
       unitIds: [],
       active: true,
-      reason: "Cliente preferencial da rede",
       notes: null,
     }
 
@@ -30,11 +29,6 @@ describe("rules-form-schema", () => {
 
     it("rejects missing clientId", () => {
       const result = vipRuleFormSchema.safeParse({ ...validVip, clientId: -1 })
-      expect(result.success).toBe(false)
-    })
-
-    it("rejects short reason", () => {
-      const result = vipRuleFormSchema.safeParse({ ...validVip, reason: "curta" })
       expect(result.success).toBe(false)
     })
 
@@ -52,7 +46,6 @@ describe("rules-form-schema", () => {
       fuelMinLiters: 50,
       benefitHours: 2,
       active: true,
-      reason: "Benefício de horas grátis para abastecimento",
       notes: null,
     }
 
@@ -91,7 +84,6 @@ describe("rules-form-schema", () => {
         appliesToAllUnits: true,
         unitIds: [],
         active: true,
-        reason: "VIP para testes automatizados",
         notes: null,
       })
       expect(result.success).toBe(true)
@@ -105,7 +97,6 @@ describe("rules-form-schema", () => {
         fuelMinLiters: 30,
         benefitHours: 1,
         active: true,
-        reason: "Benefício padrão para abastecimento",
         notes: null,
       })
       expect(result.success).toBe(true)
@@ -118,7 +109,6 @@ describe("rules-form-schema", () => {
         yardOccupancyThreshold: 80,
         yardStaleVehicleHours: 24,
         active: true,
-        reason: "Alerta de limpeza do pátio",
         notes: null,
       })
       expect(result.success).toBe(true)
@@ -131,7 +121,6 @@ describe("rules-form-schema", () => {
         yardOccupancyThreshold: 80,
         yardStaleVehicleHours: 24,
         active: true,
-        reason: "Alerta de limpeza do pátio",
         notes: null,
       })
       expect(result.success).toBe(false)

@@ -1,4 +1,4 @@
-import { ClipboardListIcon, PlusIcon, SearchXIcon } from "lucide-react"
+import { ClipboardListIcon, PlusIcon, SearchXIcon, ShieldAlertIcon } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -6,6 +6,7 @@ import {
   DataTable,
 } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
+import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
@@ -41,13 +42,11 @@ export function RulesRoute() {
   } = useVipRules()
   const [selectedRule, setSelectedRule] = React.useState<VipRule | null>(null)
   const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false)
+  const [pendingDeactivationRule, setPendingDeactivationRule] =
+    React.useState<VipRule | null>(null)
 
   const buildToggleInput = React.useCallback(
     (rule: VipRule, active: boolean): SaveVipRuleInput => {
-      const auditReasons = active
-        ? rulesCopy.auditReasons.activate
-        : rulesCopy.auditReasons.deactivate
-
       if (rule.ruleType === "vip") {
         return {
           ruleType: "vip",
@@ -65,7 +64,6 @@ export function RulesRoute() {
           appliesToAllUnits: rule.appliesToAllUnits,
           unitIds: rule.unitIds,
           active,
-          reason: auditReasons.vip,
           notes: null,
         }
       }
@@ -78,7 +76,6 @@ export function RulesRoute() {
           fuelMinLiters: rule.fuelMinLiters ?? 0,
           benefitHours: rule.benefitHours ?? 0,
           active,
-          reason: auditReasons.fuelBenefit,
           notes: null,
         }
       }
@@ -89,7 +86,6 @@ export function RulesRoute() {
           unitIds: rule.unitIds,
           yardOccupancyThreshold: rule.yardOccupancyThreshold ?? 0,
           active,
-          reason: auditReasons.yardCleaning,
           notes: null,
         }
       }
@@ -101,7 +97,6 @@ export function RulesRoute() {
           yardOccupancyThreshold: rule.yardOccupancyThreshold ?? 0,
           yardStaleVehicleHours: rule.yardStaleVehicleHours ?? 0,
           active,
-          reason: auditReasons.yardCleaning,
           notes: null,
         }
       }
@@ -112,7 +107,6 @@ export function RulesRoute() {
         unitIds: rule.unitIds,
         yardStaleVehicleHours: rule.yardStaleVehicleHours ?? 0,
         active,
-        reason: auditReasons.yardStaleVehicle,
         notes: null,
       }
     },
@@ -121,13 +115,30 @@ export function RulesRoute() {
 
   const handleToggleRuleActive = React.useCallback(
     (rule: VipRule) => {
+      if (rule.active) {
+        setPendingDeactivationRule(rule)
+        return
+      }
+
       void notify.track(
-        saveRule(buildToggleInput(rule, !rule.active)),
+        saveRule(buildToggleInput(rule, true)),
         rulesCopy.feedback.toggle
       )
     },
     [buildToggleInput, saveRule]
   )
+
+  const handleConfirmRuleDeactivation = React.useCallback(async () => {
+    if (!pendingDeactivationRule) {
+      return
+    }
+
+    await notify.track(
+      saveRule(buildToggleInput(pendingDeactivationRule, false)),
+      rulesCopy.feedback.toggle
+    )
+    setPendingDeactivationRule(null)
+  }, [buildToggleInput, pendingDeactivationRule, saveRule])
 
   const handleCreateRule = React.useCallback(
     async (input: SaveVipRuleInput) => {
@@ -250,6 +261,29 @@ export function RulesRoute() {
           onSubmit={handleCreateRule}
         />
       ) : null}
+
+      <AppAlertDialog
+        open={Boolean(pendingDeactivationRule)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setPendingDeactivationRule(null)
+          }
+        }}
+        media={<ShieldAlertIcon />}
+        title={rulesCopy.dialogs.deactivateTitle}
+        description={rulesCopy.dialogs.deactivateDescription}
+        cancelLabel={rulesCopy.actions.cancel}
+        actionLabel={rulesCopy.dialogs.deactivateConfirm}
+        actionVariant="destructive"
+        pendingLabel={rulesCopy.feedback.toggle.loading}
+        onAction={handleConfirmRuleDeactivation}
+      >
+        {pendingDeactivationRule ? (
+          <p className="px-4 text-sm font-medium text-foreground">
+            {pendingDeactivationRule.ruleSummary}
+          </p>
+        ) : null}
+      </AppAlertDialog>
     </PageSection>
   )
 }

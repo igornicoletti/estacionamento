@@ -1,15 +1,15 @@
 # Access Requests
 
-Feature responsável pela análise administrativa de solicitações pendentes de recuperação de acesso e alteração de telefone.
+Feature responsável pela análise administrativa de solicitações pendentes de recuperação de acesso.
 
 ## Decisões
 
 - A rota usa `DataTable` apenas como tabela genérica.
 - Estados vazios e resultados filtrados usam `AppEmptyState`.
 - Detalhes de solicitação usam `AppDetailsSheet`.
-- Confirmações de telefone usam `AppAlertDialog`.
-- Análise de recuperação usa `AppDialog` com justificativa obrigatória.
-- Não há mock local; a leitura vem de `access_recovery_requests` e `app_users`.
+- Aprovação de recuperação usa `AppDialog` com senha temporária obrigatória.
+- Negativa de recuperação usa `AppAlertDialog`.
+- Não há mock local; a leitura vem de `access_recovery_requests`.
 - Ações administrativas passam por Edge Functions.
 - A autorização real permanece no backend, em Edge Functions, RLS e policies.
 
@@ -32,7 +32,6 @@ src/features/access-requests/
 
 ```txt
 supabase/functions/admin-recovery-review
-supabase/functions/admin-phone-change-review
 supabase/migrations/0004_auth_recovery_requests.sql
 supabase/migrations/0006_fix_rls_recursion.sql
 ```
@@ -42,6 +41,5 @@ supabase/migrations/0006_fix_rls_recursion.sql
 A feature consome:
 
 - `access_recovery_requests` com `status = pending`.
-- `app_users` com `pending_phone_masked is not null`.
 
 A autorização administrativa exige usuário ativo com role `owner` ou `admin`.

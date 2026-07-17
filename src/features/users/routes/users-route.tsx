@@ -776,6 +776,7 @@ export function UsersRoute() {
                     <SelectTrigger
                       className="w-full data-[size=default]:h-9"
                       aria-invalid={Boolean(fieldState.error)}
+                      aria-label={usersCopy.form.roleLabel}
                     >
                       <SelectValue placeholder={usersCopy.form.placeholders.role} />
                     </SelectTrigger>
@@ -886,9 +887,9 @@ export function UsersRoute() {
         <Tabs
           value={selectedTab}
           onValueChange={handleUsersTabChange}
-          className="min-h-0 flex-1 flex-col data-[state=active]:flex data-[state=inactive]:hidden"
+          className="grid min-h-0 gap-4"
         >
-          <TabsList variant="line">
+          <TabsList variant="line" className="w-fit">
             <TabsTrigger value={USERS_TAB_VALUE}>
               {usersCopy.page.title}
             </TabsTrigger>

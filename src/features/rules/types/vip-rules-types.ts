@@ -41,7 +41,6 @@ export interface VipRule {
   benefitHours: number | null
   yardOccupancyThreshold: number | null
   yardStaleVehicleHours: number | null
-  reason: string | null
   notes: string | null
   ruleSummary: string
   scopeLabel: string
@@ -61,7 +60,6 @@ export type SaveVipRuleInput =
       appliesToAllUnits: boolean
       unitIds: string[]
       active: boolean
-      reason: string
       notes: string | null
     }
   | {
@@ -71,7 +69,6 @@ export type SaveVipRuleInput =
       fuelMinLiters: number
       benefitHours: number
       active: boolean
-      reason: string
       notes: string | null
     }
   | {
@@ -80,7 +77,6 @@ export type SaveVipRuleInput =
       yardOccupancyThreshold: number
       yardStaleVehicleHours: number
       active: boolean
-      reason: string
       notes: string | null
     }
   | {
@@ -88,7 +84,6 @@ export type SaveVipRuleInput =
       unitIds: string[]
       yardOccupancyThreshold: number
       active: boolean
-      reason: string
       notes: string | null
     }
   | {
@@ -97,7 +92,6 @@ export type SaveVipRuleInput =
       unitIds: string[]
       yardStaleVehicleHours: number
       active: boolean
-      reason: string
       notes: string | null
     }
 

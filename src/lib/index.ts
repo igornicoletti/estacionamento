@@ -2,7 +2,6 @@ export { getBadgeToneClassName, type BadgeTone } from "./badge"
 export {
   formatCpf,
   isValidCpf,
-  maskCpfForDisplay,
   onlyDigits
 } from "./cpf"
 export { toError } from "./errors"
@@ -16,5 +15,6 @@ export {
   isValidPhone
 } from "./phone"
 export { withTimeout } from "./promise"
+export { resolveVisibleSensitiveValue } from "./sensitive-display"
 export { getSupabaseBrowserClient } from "./supabase-browser"
 export { cn } from "./utils"

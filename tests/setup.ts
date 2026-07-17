@@ -35,12 +35,22 @@ if (!HTMLElement.prototype.scrollIntoView) {
   })
 }
 
+if (!globalThis.ResizeObserver) {
+  Object.defineProperty(globalThis, "ResizeObserver", {
+    value: class ResizeObserver {
+      observe() {}
+      unobserve() {}
+      disconnect() {}
+    },
+  })
+}
+
 const { testAuthContext, testAuthSession } = vi.hoisted(() => {
   const profile = {
     authUserId: "test-auth-user",
     avatarPath: null,
     avatarUrl: null,
-    cpfMasked: "***.***.***-25",
+    cpfMasked: "529.982.247-25",
     email: "admin.test@example.com",
     id: "USR-001",
     name: "Administrador Teste",

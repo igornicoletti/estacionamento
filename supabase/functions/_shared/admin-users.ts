@@ -20,7 +20,6 @@ export interface AdminActionContext {
   admin: EdgeSupabaseClient
   actor: AppUserRow
   target: AppUserRow
-  reason: string | null
   request: Request
 }
 
@@ -157,7 +156,6 @@ async function recordAudit(
   actor: AppUserRow | null,
   event: string,
   target: AppUserRow | null,
-  reason: string | null,
   success: boolean,
   metadata: AuditMetadata = {}
 ) {
@@ -166,7 +164,6 @@ async function recordAudit(
     actor_user_id: actor?.auth_user_id ?? null,
     event,
     metadata,
-    reason,
     scope: "system",
     severity: success ? "info" : "warning",
     success,
@@ -180,7 +177,6 @@ export async function createAdminActionContext(
 ): Promise<AdminActionContext> {
   const body = await readJsonBody(request)
   const targetUserId = typeof body.targetUserId === "string" ? body.targetUserId : ""
-  const reason = typeof body.reason === "string" && body.reason.trim() ? body.reason.trim() : null
 
   if (!targetUserId) {
     throw new Error("Usuário alvo não informado.")
@@ -192,7 +188,7 @@ export async function createAdminActionContext(
   const target = await getAppUserByAuthUserId(admin, targetUserId)
 
   if (actor.status !== "active" || !isManagementRole(actor.role)) {
-    await recordAudit(admin, actor, "admin_user_action_denied", target, reason, false, {
+    await recordAudit(admin, actor, "admin_user_action_denied", target, false, {
       actorRole: actor.role,
       targetRole: target.role,
     })
@@ -200,14 +196,14 @@ export async function createAdminActionContext(
   }
 
   if (!canManageTarget(actor, target)) {
-    await recordAudit(admin, actor, "admin_user_action_denied", target, reason, false, {
+    await recordAudit(admin, actor, "admin_user_action_denied", target, false, {
       actorRole: actor.role,
       targetRole: target.role,
     })
     throw new Error("Ação não permitida para este usuário.")
   }
 
-  return { admin, actor, target, reason, request }
+  return { admin, actor, target, request }
 }
 
 export async function completeAdminAction(
@@ -215,7 +211,7 @@ export async function completeAdminAction(
   event: string,
   metadata: AuditMetadata = {}
 ) {
-  await recordAudit(context.admin, context.actor, event, context.target, context.reason, true, {
+  await recordAudit(context.admin, context.actor, event, context.target, true, {
     actorRole: context.actor.role,
     targetRole: context.target.role,
     ...metadata,

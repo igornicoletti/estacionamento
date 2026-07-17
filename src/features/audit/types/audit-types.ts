@@ -37,8 +37,6 @@ export const auditEventLabels: Record<string, string> = {
   passkey_reset_requested: "Redefinição de passkey solicitada",
   password_changed: "Senha alterada",
   password_reset_requested: "Redefinição de senha solicitada",
-  phone_change_requested: "Alteração de telefone solicitada",
-  phone_change_reviewed: "Alteração de telefone revisada",
   price_table_created: "Tabela de preço criada",
   price_table_updated: "Tabela de preço atualizada",
   profile_updated: "Perfil atualizado",

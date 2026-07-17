@@ -4,10 +4,6 @@ import { rulesCopy } from "../rules-copy"
 
 const baseRuleFields = {
   active: z.boolean(),
-  reason: z
-    .string({ error: rulesCopy.form.validation.reason })
-    .trim()
-    .min(10, { error: rulesCopy.form.validation.reason }),
   notes: z.string().trim().nullable(),
 }
 

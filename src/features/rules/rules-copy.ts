@@ -11,6 +11,11 @@ export const rulesCopy = {
     save: "Salvar",
     cancel: "Cancelar",
   },
+  dialogs: {
+    deactivateTitle: "Inativar regra",
+    deactivateDescription: "A regra selecionada deixará de ser aplicada nas próximas validações.",
+    deactivateConfirm: "Inativar regra",
+  },
   filters: {
     targetType: "Tipo",
     status: "Status",
@@ -29,7 +34,6 @@ export const rulesCopy = {
     vehicles: "Veículos",
     status: "Status",
     updatedAt: "Atualizado em",
-    reason: "Justificativa",
     notes: "Observações",
     fuelMinLiters: "Litros mínimos",
     benefitHours: "Horas de benefício",
@@ -75,7 +79,6 @@ export const rulesCopy = {
     yardOccupancyThreshold: "Gerar alerta com vagas preenchidas a partir de",
     yardStaleVehicleAmount: "Horas de permanência para alerta",
     yardStaleVehicleUnit: "Unidade de tempo",
-    reason: "Justificativa",
     status: "Status",
     ruleTypePlaceholder: "Selecione o tipo de regra",
     targetPlaceholder: "Selecione o alvo",
@@ -103,7 +106,7 @@ export const rulesCopy = {
       benefitHours: "Informe uma quantidade de horas de benefício maior que zero.",
       yardOccupancyThreshold: "Informe uma quantidade de vagas maior que zero.",
       yardStaleVehicleHours: "Informe um tempo sem saída maior que zero.",
-      reason: "Informe uma justificativa com pelo menos 10 caracteres.",
+      submit: "Não foi possível salvar. Revise os dados e tente novamente.",
     },
   },
   empty: {
@@ -125,25 +128,6 @@ export const rulesCopy = {
       loading: "Atualizando regra...",
       success: "Regra atualizada.",
       error: "Não foi possível atualizar a regra.",
-    },
-  },
-  auditReasons: {
-    create: {
-      fuelBenefit: "Cadastro administrativo de regra de abastecimento.",
-      vip: "Cadastro administrativo de regra de cliente VIP.",
-      yardCleaning: "Cadastro administrativo de alerta de limpeza de pátio.",
-    },
-    activate: {
-      fuelBenefit: "Ativação administrativa de regra de abastecimento.",
-      vip: "Ativação administrativa de regra VIP.",
-      yardCleaning: "Ativação administrativa de alerta de limpeza de pátio.",
-      yardStaleVehicle: "Ativação administrativa de alerta de permanência no pátio.",
-    },
-    deactivate: {
-      fuelBenefit: "Inativação administrativa de regra de abastecimento.",
-      vip: "Inativação administrativa de regra VIP.",
-      yardCleaning: "Inativação administrativa de alerta de limpeza de pátio.",
-      yardStaleVehicle: "Inativação administrativa de alerta de permanência no pátio.",
     },
   },
 } as const
