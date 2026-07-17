@@ -30,11 +30,9 @@ export function SidebarProfile() {
       <SidebarMenuItem>
         <SidebarMenuButton
           type="button"
-          tabIndex={-1}
-          aria-disabled="true"
-          className="text-[0.6875rem] uppercase font-semibold tracking-wider text-sidebar-primary-foreground bg-sidebar-accent/60 hover:bg-sidebar-accent/80 focus:bg-sidebar-accent/80"
+          className="text-[0.6875rem] uppercase font-semibold tracking-wider text-sidebar-primary-foreground hover:text-sidebar-primary-foreground border border-sidebar-primary-foreground/20 bg-sidebar-primary-foreground/10 hover:bg-sidebar-primary-foreground/10 focus:bg-sidebar-primary-foreground/10"
         >
-          <ShieldIcon className="size-3.5" />
+          <ShieldIcon className="size-4" />
           <span>{label}</span>
         </SidebarMenuButton>
       </SidebarMenuItem>

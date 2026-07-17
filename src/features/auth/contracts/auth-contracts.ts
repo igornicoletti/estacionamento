@@ -25,7 +25,7 @@ export const AUTH_STORAGE_KEYS = {
 } as const
 
 export const AUTH_INACTIVITY = {
-  timeoutMs: 15 * 60 * 1000,
+  timeoutMs: 45 * 60 * 1000,
   warningMs: 60 * 1000,
   tickMs: 1000,
 } as const

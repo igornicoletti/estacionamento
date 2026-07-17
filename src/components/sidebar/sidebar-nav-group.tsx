@@ -17,6 +17,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar"
 
+import { cn } from '@/lib'
 import { routeIconById, type SidebarNavigationItem } from "./sidebar-config"
 
 interface SidebarNavGroupProps {
@@ -68,6 +69,7 @@ export function SidebarNavGroup({
                 asChild
                 isActive={isActive}
                 tooltip={item.label}
+                className={cn(isActive ? 'text-sidebar-primary-foreground! bg-sidebar-primary!' : '')}
               >
                 <NavLink to={item.href} onClick={handleNavigate}>
                   <ItemIcon />
