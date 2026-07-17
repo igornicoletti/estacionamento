@@ -4,6 +4,7 @@ import {
   mockErpClientVehiclesPayload,
   mockErpClientsPayload,
 } from "@/features/erp-mock"
+import { clientsCopy } from "../clients-copy"
 import { type ErpClientPayload, type ErpClientVehiclePayload } from "../types/clients-types"
 
 export interface ClientsGateway {
@@ -94,7 +95,7 @@ function createSupabaseClientsGateway(): ClientsGateway {
           .range(from, to)
 
         if (error) {
-          throw new Error(error.message)
+          throw new Error(clientsCopy.errors.clientsLoad, { cause: error })
         }
 
         return normalizeErpRows<ErpClientPayload>(data, clientPayloadKeys)
@@ -129,7 +130,7 @@ function createSupabaseClientsGateway(): ClientsGateway {
           .range(from, to)
 
         if (error) {
-          throw new Error(error.message)
+          throw new Error(clientsCopy.errors.vehiclesLoad, { cause: error })
         }
 
         return normalizeErpRows<ErpClientVehiclePayload>(

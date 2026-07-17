@@ -17,6 +17,17 @@ import {
 import { canAssignRole, isGlobalRole } from "../_shared/admin-users.ts"
 import { createAdminClient } from "../_shared/auth-supabase-admin.ts"
 
+function getTechnicalEmailDomain() {
+  const domain = Deno.env.get("APP_TECHNICAL_EMAIL_DOMAIN")?.trim().toLowerCase()
+
+  if (!domain || domain.includes("@") || !/^[a-z0-9.-]+\.[a-z]{2,}$/.test(domain)) {
+    console.error("technical_email_domain_invalid")
+    return null
+  }
+
+  return domain
+}
+
 Deno.serve(async (request) => {
   const cors = handleCors(request)
   if (cors) return cors
@@ -50,7 +61,13 @@ Deno.serve(async (request) => {
 
     const cpf = normalizeCpf(input.cpf)
     const cpfHash = await hashSensitiveValue(cpf)
-    const technicalEmail = `auth+${crypto.randomUUID()}@estacionamento.redemontecarlo.com.br`
+    const technicalEmailDomain = getTechnicalEmailDomain()
+
+    if (!technicalEmailDomain) {
+      return genericAuthError(500, request)
+    }
+
+    const technicalEmail = `auth+${crypto.randomUUID()}@${technicalEmailDomain}`
 
     const existingUserResponse = await supabase
       .from("app_users")

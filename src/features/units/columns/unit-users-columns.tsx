@@ -15,8 +15,8 @@ export function createUnitUsersColumns(options: CreateUnitUsersColumnsOptions): 
   return [
     {
       accessorKey: "name",
-      meta: { label: "Nome" },
-      header: "Nome",
+      meta: { label: unitsCopy.table.name },
+      header: unitsCopy.table.name,
       cell: ({ row }) => (
         <DataTableTextAction
           onClick={() => options.onOpenDetails(row.original)}
@@ -25,7 +25,7 @@ export function createUnitUsersColumns(options: CreateUnitUsersColumnsOptions): 
         </DataTableTextAction>
       ),
     },
-    { accessorKey: "cpf", meta: { label: "CPF" }, header: "CPF" },
+    { accessorKey: "cpf", meta: { label: unitsCopy.table.cpf }, header: unitsCopy.table.cpf },
     {
       accessorKey: "email",
       meta: { label: unitsCopy.table.email },
@@ -87,7 +87,7 @@ export function createUnitUsersColumns(options: CreateUnitUsersColumnsOptions): 
     createActionsColumn<UserRecord>([
       {
         id: "details",
-        label: "Detalhes",
+        label: unitsCopy.actions.details,
         onSelect: (row) => options.onOpenDetails(row.original),
       },
     ]),

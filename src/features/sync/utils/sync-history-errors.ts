@@ -2,6 +2,9 @@ const FALLBACK_ERROR_DETAIL =
   "Falha ao processar um item da sincronização."
 
 const reasonLabels: Record<string, string> = {
+  client_sync_run_insert_failed: "Não foi possível registrar o histórico da sincronização.",
+  client_vehicles_upsert_failed: "Não foi possível salvar parte dos veículos sincronizados.",
+  clients_upsert_failed: "Não foi possível salvar parte dos clientes sincronizados.",
   database_error: "Não foi possível salvar parte dos dados sincronizados.",
   invalid_payload: "Alguns registros recebidos estavam incompletos.",
   invalid_record: "Alguns registros recebidos estavam incompletos.",
@@ -9,6 +12,9 @@ const reasonLabels: Record<string, string> = {
   network_error: "Não foi possível consultar o ERP durante a sincronização.",
   request_failed: "Não foi possível concluir a comunicação com o ERP.",
   timeout: "O ERP demorou mais que o esperado para responder.",
+  sync_lock_error: "Não foi possível reservar a execução da sincronização.",
+  unit_sync_run_insert_failed: "Não foi possível registrar o histórico da sincronização.",
+  units_upsert_failed: "Não foi possível salvar parte das unidades sincronizadas.",
   validation_error: "Alguns registros recebidos não passaram pela validação.",
 }
 
@@ -38,7 +44,7 @@ function normalizeReasonText(value: string) {
     return reasonLabels.network_error
   }
 
-  if (/database|insert|update|permission|policy|rls/i.test(normalized)) {
+  if (/database|insert|update|upsert|permission|policy|rls/i.test(normalized)) {
     return reasonLabels.database_error
   }
 

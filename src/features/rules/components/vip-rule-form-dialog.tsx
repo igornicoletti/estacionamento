@@ -96,14 +96,14 @@ function readPositiveInteger(value: string) {
 
 function getDefaultReason(ruleType: RuleFormType) {
   if (ruleType === "vip") {
-    return "Cadastro administrativo de regra de cliente VIP."
+    return rulesCopy.auditReasons.create.vip
   }
 
   if (ruleType === "fuel_benefit") {
-    return "Cadastro administrativo de regra de abastecimento."
+    return rulesCopy.auditReasons.create.fuelBenefit
   }
 
-  return "Cadastro administrativo de alerta de limpeza de pátio."
+  return rulesCopy.auditReasons.create.yardCleaning
 }
 
 export function VipRuleFormDialog({

@@ -1,5 +1,6 @@
 import { SyncHistoryDialog } from "@/features/sync"
 import { type UnitSyncHistoryEntry } from "../types/units-sync-history-types"
+import { unitsCopy } from "../units-copy"
 
 interface UnitsSyncHistoryDialogProps {
   open: boolean
@@ -12,11 +13,11 @@ interface UnitsSyncHistoryDialogProps {
 
 function getCounters(entry: UnitSyncHistoryEntry) {
   return [
-    { label: "Unidades recebidas do ERP", value: entry.counters.received },
-    { label: "Unidades novas", value: entry.counters.created },
-    { label: "Unidades atualizadas", value: entry.counters.updated },
-    { label: "Unidades sem alteração", value: entry.counters.unchanged },
-    { label: "Unidades com falha", value: entry.counters.failed },
+    { label: unitsCopy.sync.history.counters.received, value: entry.counters.received },
+    { label: unitsCopy.sync.history.counters.created, value: entry.counters.created },
+    { label: unitsCopy.sync.history.counters.updated, value: entry.counters.updated },
+    { label: unitsCopy.sync.history.counters.unchanged, value: entry.counters.unchanged },
+    { label: unitsCopy.sync.history.counters.failed, value: entry.counters.failed },
   ]
 }
 
@@ -36,10 +37,10 @@ export function UnitsSyncHistoryDialog({
       isLoading={isLoading}
       error={error}
       onRetry={onRetry}
-      title="Histórico de sincronização"
-      description="Acompanhe as últimas execuções de sincronização de unidades."
-      emptyTitle="Ainda não há execuções registradas"
-      emptyDescription="Nenhuma execução de sincronização foi registrada até o momento."
+      title={unitsCopy.sync.history.title}
+      description={unitsCopy.sync.history.description}
+      emptyTitle={unitsCopy.sync.history.emptyTitle}
+      emptyDescription={unitsCopy.sync.history.emptyDescription}
       getCounters={getCounters}
     />
   )

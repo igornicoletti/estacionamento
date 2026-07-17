@@ -12,7 +12,7 @@ A implementação foi revisada contra os padrões atuais de `app`, `auth`, `user
 - A fonte de dados é a Edge Function `list-permission-matrix`.
 - A autorização real ocorre no backend, RLS e policies; o frontend apenas renderiza o resultado autorizado.
 - A rota usa uma busca global por tabela.
-- Grupo, origem, perfil e acesso são filtros facetados consumidos pelo `DataTable`.
+- Grupo e origem são filtros facetados consumidos pelo `DataTable`.
 - Estados vazios usam `AppEmptyState`.
 - Detalhes usam `AppDetailsSheet`, sem duplicação manual de `<dl>`, `<dt>` e `<dd>` na rota.
 - A tabela permanece genérica e não recebe lógica específica da feature.
@@ -48,8 +48,8 @@ src/features/permissions/
 ## Filtros
 
 - Busca global: `label`, `key`, `groupLabel`.
-- Filtros facetados: grupo, origem, perfil e acesso.
-- `roles` e `accessFilters` são colunas técnicas escondidas por padrão e usadas apenas para filtragem.
+- Filtros facetados: grupo e origem.
+- `roles` e `accessFilters` permanecem no modelo normalizado para compor detalhes e ícones da matriz, mas não são expostos como colunas ou filtros da tabela.
 
 ## Arquivos obsoletos
 

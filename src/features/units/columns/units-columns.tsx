@@ -134,7 +134,11 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
       cell: ({ row }) => {
         const totalUsers = getTotalUsers(row.original, options.getUserStats)
 
-        if (!options.onSelectUsers) {
+        if (!options.onSelectUsers || totalUsers === 0) {
+          if (totalUsers === 0) {
+            return "—"
+          }
+
           return totalUsers
         }
 
@@ -173,14 +177,34 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
       header: unitsCopy.table.spots,
       size: 90,
     },
-    createActionsColumn<Unit>([
-      {
-        id: "details",
-        label: "Detalhes",
-        onSelect: (row) => options.onOpenDetails(row.original),
-      },
-      ...(options.onConfigureYard ? [{ id: "yard-settings" as const, label: unitsCopy.actions.configureYard, onSelect: (row: { original: Unit }) => options.onConfigureYard?.(row.original) }] : []),
-      ...(options.onSelectUsers ? [{ id: "users" as const, label: unitsCopy.actions.users, onSelect: (row: { original: Unit }) => options.onSelectUsers?.(row.original) }] : []),
-    ]),
+    createActionsColumn<Unit>((row) => {
+      const totalUsers = getTotalUsers(row.original, options.getUserStats)
+
+      return [
+        {
+          id: "details",
+          label: unitsCopy.actions.details,
+          onSelect: () => options.onOpenDetails(row.original),
+        },
+        ...(options.onConfigureYard
+          ? [
+              {
+                id: "yard-settings" as const,
+                label: unitsCopy.actions.configureYard,
+                onSelect: () => options.onConfigureYard?.(row.original),
+              },
+            ]
+          : []),
+        ...(options.onSelectUsers && totalUsers > 0
+          ? [
+              {
+                id: "users" as const,
+                label: unitsCopy.actions.users,
+                onSelect: () => options.onSelectUsers?.(row.original),
+              },
+            ]
+          : []),
+      ]
+    }),
   ]
 }

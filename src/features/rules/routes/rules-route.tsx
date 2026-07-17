@@ -44,6 +44,10 @@ export function RulesRoute() {
 
   const buildToggleInput = React.useCallback(
     (rule: VipRule, active: boolean): SaveVipRuleInput => {
+      const auditReasons = active
+        ? rulesCopy.auditReasons.activate
+        : rulesCopy.auditReasons.deactivate
+
       if (rule.ruleType === "vip") {
         return {
           ruleType: "vip",
@@ -61,9 +65,7 @@ export function RulesRoute() {
           appliesToAllUnits: rule.appliesToAllUnits,
           unitIds: rule.unitIds,
           active,
-          reason: active
-            ? "Ativação administrativa de regra VIP."
-            : "Inativação administrativa de regra VIP.",
+          reason: auditReasons.vip,
           notes: null,
         }
       }
@@ -76,9 +78,7 @@ export function RulesRoute() {
           fuelMinLiters: rule.fuelMinLiters ?? 0,
           benefitHours: rule.benefitHours ?? 0,
           active,
-          reason: active
-            ? "Ativação administrativa de regra de abastecimento."
-            : "Inativação administrativa de regra de abastecimento.",
+          reason: auditReasons.fuelBenefit,
           notes: null,
         }
       }
@@ -89,9 +89,7 @@ export function RulesRoute() {
           unitIds: rule.unitIds,
           yardOccupancyThreshold: rule.yardOccupancyThreshold ?? 0,
           active,
-          reason: active
-            ? "Ativação administrativa de alerta de limpeza de pátio."
-            : "Inativação administrativa de alerta de limpeza de pátio.",
+          reason: auditReasons.yardCleaning,
           notes: null,
         }
       }
@@ -103,9 +101,7 @@ export function RulesRoute() {
           yardOccupancyThreshold: rule.yardOccupancyThreshold ?? 0,
           yardStaleVehicleHours: rule.yardStaleVehicleHours ?? 0,
           active,
-          reason: active
-            ? "Ativação administrativa de alerta de limpeza de pátio."
-            : "Inativação administrativa de alerta de limpeza de pátio.",
+          reason: auditReasons.yardCleaning,
           notes: null,
         }
       }
@@ -116,9 +112,7 @@ export function RulesRoute() {
         unitIds: rule.unitIds,
         yardStaleVehicleHours: rule.yardStaleVehicleHours ?? 0,
         active,
-        reason: active
-          ? "Ativação administrativa de alerta de permanência no pátio."
-          : "Inativação administrativa de alerta de permanência no pátio.",
+        reason: auditReasons.yardStaleVehicle,
         notes: null,
       }
     },

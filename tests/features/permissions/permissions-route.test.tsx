@@ -49,6 +49,10 @@ describe("PermissionsRoute", () => {
       ).toBeInTheDocument()
     })
 
+    expect(screen.getByText("Sistema")).toBeInTheDocument()
+    expect(screen.getAllByLabelText("Origem").length).toBeGreaterThan(0)
+    expect(screen.queryByLabelText("Perfis")).not.toBeInTheDocument()
+    expect(screen.queryByLabelText("Acesso")).not.toBeInTheDocument()
     expect(screen.getAllByText("Visualizar auditoria").length).toBeGreaterThan(0)
   })
 

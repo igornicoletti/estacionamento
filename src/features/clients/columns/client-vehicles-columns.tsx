@@ -33,7 +33,7 @@ export function createClientVehiclesColumns(options: CreateClientVehiclesColumns
         >
           <span className="inline-flex items-center gap-1">
             {row.original.nom_pessoa}
-            {row.original.vip === "sim" ? <CrownIcon aria-label="Veículo VIP" className="size-4 text-amber-500" /> : null}
+            {row.original.vip === "sim" ? <CrownIcon aria-label={clientsCopy.accessibility.vehicleVip} className="size-4 text-amber-500" /> : null}
           </span>
         </DataTableTextAction>
       ),
@@ -84,7 +84,7 @@ export function createClientVehiclesColumns(options: CreateClientVehiclesColumns
     createActionsColumn<ClientVehicleTableRow>([
       {
         id: "details",
-        label: "Detalhes",
+        label: clientsCopy.actions.details,
         onSelect: (row) => options.onOpenDetails(row.original),
       },
       ...(options.onToggleVip ? [{ id: "vip" as const, label: options.vipActionLabel ?? clientsCopy.actions.toggleVehicleVip, onSelect: (row: { original: ClientVehicleTableRow }) => options.onToggleVip?.(row.original) }] : []),

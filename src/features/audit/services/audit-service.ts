@@ -1,5 +1,6 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
+import { auditCopy } from "../audit-copy"
 import { type AuditEvent, type RawAuditEventPayload } from "../types/audit-types"
 import { sanitizeAuditEventsPayload } from "../utils/audit-normalizers"
 
@@ -51,7 +52,7 @@ export async function listAuditEvents(): Promise<AuditEventsResult> {
     .limit(AUDIT_EVENTS_FETCH_LIMIT + 1)
 
   if (error) {
-    throw new Error(error.message)
+    throw new Error(auditCopy.feedback.loadError, { cause: error })
   }
 
   const rows = (data ?? []) as unknown as RawAuditEventPayload[]

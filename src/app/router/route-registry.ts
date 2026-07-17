@@ -303,8 +303,8 @@ export const authenticatedRouteRegistry = [
         Component: module.YardRoute,
       })),
     navigation: {
-      group: appRouteGroupIds.monitoring,
-      order: 30,
+      group: appRouteGroupIds.workspace,
+      order: 1,
     },
   },
   {

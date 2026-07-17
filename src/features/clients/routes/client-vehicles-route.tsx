@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, DatabaseIcon, HistoryIcon, RefreshCcwIcon } from "lucide-react"
+import { ArrowLeftIcon, DatabaseIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate, useParams } from "react-router"
 
@@ -10,14 +10,10 @@ import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { AUTH_PERMISSION, useAuth } from "@/features/auth"
 import { getVehicleVipStatus, useVipRules } from "@/features/rules"
-import { SyncBlockingDialog } from "@/features/sync"
 
 import { clientsCopy } from "../clients-copy"
 import { createClientVehiclesColumns } from "../columns/client-vehicles-columns"
-import { ClientsSyncHistoryDialog } from "../components/clients-sync-history-dialog"
-import { useClientSyncHistory } from "../hooks/use-client-sync-history"
 import { useClientVehicles } from "../hooks/use-client-vehicles"
-import { isClientSyncInProgressError, triggerClientsSync } from "../services/client-sync-service"
 import { type ClientVehicleTableRow } from "../types/clients-types"
 import { getClientVehicleDetailItems } from "../utils/clients-details-model"
 import { mapClientVehicleToTableRow } from "../utils/clients-table-mappers"
@@ -48,16 +44,8 @@ export function ClientVehiclesRoute() {
   const params = useParams<{ cod_pessoa: string }>()
   const clientId = React.useMemo(() => parseClientId(params.cod_pessoa), [params.cod_pessoa])
   const { client, data, error, isLoading, refetch } = useClientVehicles(clientId)
-  const {
-    data: syncHistory,
-    error: syncHistoryError,
-    isLoading: isLoadingSyncHistory,
-    refetch: refetchSyncHistory,
-  } = useClientSyncHistory()
   const { data: vipRules, toggleVehicleVip } = useVipRules()
   const [selectedVehicle, setSelectedVehicle] = React.useState<ClientVehicleTableRow | null>(null)
-  const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
-  const [isSyncing, setIsSyncing] = React.useState(false)
 
   const canManageClients = canManageOperationalData(auth)
   const tableData = React.useMemo<ClientVehicleTableRow[]>(() => {
@@ -94,50 +82,6 @@ export function ClientVehiclesRoute() {
     [tableData]
   )
 
-  async function refreshOperationalSnapshots() {
-    await Promise.allSettled([refetch(), refetchSyncHistory()])
-  }
-
-  async function handleStartSync() {
-    if (isSyncing) {
-      return
-    }
-
-    setIsSyncing(true)
-
-    try {
-      const result = await triggerClientsSync("incremental")
-
-      await refreshOperationalSnapshots()
-
-      if (result.status === "failed") {
-        notify.error(result.message || clientsCopy.sync.feedback.error)
-        return
-      }
-
-      if (result.status === "warning") {
-        notify.warning(result.message || clientsCopy.sync.feedback.inProgress)
-        return
-      }
-
-      notify.success(result.message || clientsCopy.sync.feedback.success)
-    } catch (caughtError) {
-      await refreshOperationalSnapshots()
-
-      if (isClientSyncInProgressError(caughtError)) {
-        notify.warning(clientsCopy.sync.feedback.inProgress)
-      } else {
-        notify.error(
-          caughtError instanceof Error && caughtError.message.trim()
-            ? caughtError.message
-            : clientsCopy.sync.feedback.error
-        )
-      }
-    } finally {
-      setIsSyncing(false)
-    }
-  }
-
   return (
     <PageSection>
       <PageHeader
@@ -149,16 +93,6 @@ export function ClientVehiclesRoute() {
               <ArrowLeftIcon aria-hidden="true" />
               {clientsCopy.actions.backToClients}
             </Button>
-            <Button type="button" variant="secondary" size="lg" onClick={() => setIsHistoryOpen(true)}>
-              <HistoryIcon aria-hidden="true" />
-              {clientsCopy.actions.history}
-            </Button>
-            {canManageClients ? (
-              <Button type="button" variant="secondary" size="lg" disabled={isLoading || isSyncing} onClick={() => { void handleStartSync() }}>
-                <RefreshCcwIcon aria-hidden="true" />
-                {clientsCopy.actions.sync}
-              </Button>
-            ) : null}
           </PageHeaderActions>
         )}
       />
@@ -191,21 +125,6 @@ export function ClientVehiclesRoute() {
         title={selectedVehicle?.num_placa}
         description={selectedVehicle?.nom_pessoa}
         items={selectedVehicle ? getClientVehicleDetailItems(selectedVehicle) : []}
-      />
-
-      <ClientsSyncHistoryDialog
-        open={isHistoryOpen}
-        onOpenChange={setIsHistoryOpen}
-        entries={syncHistory}
-        isLoading={isLoadingSyncHistory}
-        error={syncHistoryError}
-        onRetry={() => { void refetchSyncHistory() }}
-      />
-
-      <SyncBlockingDialog
-        open={isSyncing}
-        title={clientsCopy.sync.runningTitle}
-        description={clientsCopy.sync.runningDescription}
       />
     </PageSection>
   )

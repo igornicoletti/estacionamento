@@ -173,6 +173,7 @@ export function ProfilePhotoDialog({
           type="button"
           className={cn(
             "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "whitespace-nowrap",
             activeTab === "upload"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"
@@ -186,6 +187,7 @@ export function ProfilePhotoDialog({
           type="button"
           className={cn(
             "flex flex-1 items-center justify-center gap-1.5 rounded-md px-3 py-1.5 text-sm font-medium transition-colors",
+            "whitespace-nowrap",
             activeTab === "url"
               ? "bg-background text-foreground shadow-sm"
               : "text-muted-foreground hover:text-foreground"

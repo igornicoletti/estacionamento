@@ -12,35 +12,10 @@ import {
   type AuditEvent,
   type AuditSeverity,
 } from "../types/audit-types"
+import { auditCopy } from "../audit-copy"
 
-const auditMetadataLabels: Record<string, string> = {
-  clientsCreated: "Clientes criados",
-  clientsReceived: "Clientes recebidos",
-  clientsUnchanged: "Clientes sem alteração",
-  clientsUpdated: "Clientes atualizados",
-  created: "Criados",
-  failed: "Falhas",
-  mode: "Modo",
-  received: "Recebidos",
-  status: "Status",
-  trigger: "Gatilho",
-  unchanged: "Sem alteração",
-  updated: "Atualizados",
-  vehiclesCreated: "Veículos criados",
-  vehiclesReceived: "Veículos recebidos",
-  vehiclesUnchanged: "Veículos sem alteração",
-  vehiclesUpdated: "Veículos atualizados",
-}
-
-const auditMetadataValueLabels: Record<string, string> = {
-  failed: "Falha",
-  full: "Completa",
-  incremental: "Incremental",
-  manual: "Manual",
-  scheduled: "Agendada",
-  success: "Sucesso",
-  warning: "Atenção",
-}
+const auditMetadataLabels: Readonly<Record<string, string>> = auditCopy.metadata.labels
+const auditMetadataValueLabels: Readonly<Record<string, string>> = auditCopy.metadata.values
 
 const hiddenAuditMetadataKeys = new Set([
   "registeredBy",
@@ -57,7 +32,7 @@ function resolveAuditOutcomeVariant(event: AuditEvent) {
     return "destructive" as const
   }
 
-  return "warning" as const
+  return "destructive" as const
 }
 
 function resolveAuditSeverityVariant(severity: AuditSeverity) {
@@ -74,15 +49,42 @@ function resolveAuditSeverityVariant(severity: AuditSeverity) {
 
 export function getAuditOutcomeLabel(event: AuditEvent) {
   if (event.success) {
-    return "Sucesso"
+    return auditCopy.labels.success
   }
 
-  return event.severity === "critical" ? "Crítico" : "Falha"
+  return event.severity === "critical"
+    ? auditCopy.labels.critical
+    : auditCopy.labels.failure
+}
+
+function humanizeAuditMetadataIdentifier(value: string) {
+  const humanized = value
+    .replace(/([a-z])([A-Z])/g, "$1 $2")
+    .replace(/[._-]+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+    .toLocaleLowerCase("pt-BR")
+
+  if (!humanized) {
+    return auditCopy.details.emptyValue
+  }
+
+  return humanized.charAt(0).toLocaleUpperCase("pt-BR") + humanized.slice(1)
 }
 
 function formatAuditMetadataValue(value: unknown) {
   if (typeof value === "string") {
-    return auditMetadataValueLabels[value] ?? value
+    const mappedValue = auditMetadataValueLabels[value]
+
+    if (mappedValue) {
+      return mappedValue
+    }
+
+    if (/^[a-z][a-z0-9_.-]*$/i.test(value)) {
+      return humanizeAuditMetadataIdentifier(value)
+    }
+
+    return value.replace(/[<>]/g, "")
   }
 
   if (typeof value === "number") {
@@ -90,7 +92,7 @@ function formatAuditMetadataValue(value: unknown) {
   }
 
   if (typeof value === "boolean") {
-    return value ? "Sim" : "Não"
+    return value ? auditCopy.labels.yes : auditCopy.labels.no
   }
 
   return null
@@ -117,14 +119,14 @@ function getAuditMetadataDetails(event: AuditEvent) {
 
 export function getAuditEventDetails(event: AuditEvent) {
   return [
-    { label: "Data/hora", value: formatDateTime(event.occurredAt) },
-    { label: "Responsável", value: event.actorName },
-    { label: "Escopo", value: auditScopeLabels[event.scope] },
-    { label: "Evento", value: event.eventLabel },
-    { label: "Alvo", value: event.target || "—" },
-    { label: "Resultado", value: getAuditOutcomeLabel(event) },
-    { label: "Severidade", value: auditSeverityLabels[event.severity] },
-    { label: "Motivo", value: event.reason ?? "—" },
+    { label: auditCopy.table.occurredAt, value: formatDateTime(event.occurredAt) },
+    { label: auditCopy.table.responsible, value: event.actorName },
+    { label: auditCopy.table.scope, value: auditScopeLabels[event.scope] },
+    { label: auditCopy.table.event, value: event.eventLabel },
+    { label: auditCopy.table.target, value: event.target || auditCopy.details.emptyValue },
+    { label: auditCopy.table.outcome, value: getAuditOutcomeLabel(event) },
+    { label: auditCopy.table.severity, value: auditSeverityLabels[event.severity] },
+    { label: auditCopy.details.reason, value: event.reason ?? auditCopy.details.emptyValue },
     ...getAuditMetadataDetails(event),
   ]
 }
@@ -135,14 +137,14 @@ export function createAuditColumns(options: {
   return [
     {
       accessorKey: "occurredAt",
-      meta: { label: "Data/hora" },
-      header: "Data/hora",
+      meta: { label: auditCopy.table.occurredAt },
+      header: auditCopy.table.occurredAt,
       cell: ({ row }) => formatDateTime(row.original.occurredAt),
     },
     {
       accessorKey: "actorName",
-      meta: { label: "Responsável" },
-      header: "Responsável",
+      meta: { label: auditCopy.table.responsible },
+      header: auditCopy.table.responsible,
       cell: ({ row }) => (
         <DataTableTextAction
           onClick={() => {
@@ -155,26 +157,26 @@ export function createAuditColumns(options: {
     },
     {
       accessorKey: "scope",
-      meta: { label: "Escopo" },
-      header: "Escopo",
+      meta: { label: auditCopy.table.scope },
+      header: auditCopy.table.scope,
       cell: ({ row }) => auditScopeLabels[row.original.scope],
     },
     {
       accessorKey: "event",
-      meta: { label: "Evento" },
-      header: "Evento",
+      meta: { label: auditCopy.table.event },
+      header: auditCopy.table.event,
       cell: ({ row }) => row.original.eventLabel,
     },
     {
       accessorKey: "target",
-      meta: { label: "Alvo" },
-      header: "Alvo",
-      cell: ({ row }) => row.original.target || "—",
+      meta: { label: auditCopy.table.target },
+      header: auditCopy.table.target,
+      cell: ({ row }) => row.original.target || auditCopy.details.emptyValue,
     },
     {
       id: "outcome",
-      meta: { label: "Resultado" },
-      header: () => <div className="text-center">Resultado</div>,
+      meta: { label: auditCopy.table.outcome },
+      header: () => <div className="text-center">{auditCopy.table.outcome}</div>,
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
@@ -189,8 +191,8 @@ export function createAuditColumns(options: {
     },
     {
       accessorKey: "severity",
-      meta: { label: "Severidade" },
-      header: () => <div className="text-center">Severidade</div>,
+      meta: { label: auditCopy.table.severity },
+      header: () => <div className="text-center">{auditCopy.table.severity}</div>,
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
@@ -206,7 +208,7 @@ export function createAuditColumns(options: {
     createActionsColumn<AuditEvent>([
       {
         id: "details",
-        label: "Detalhes",
+        label: auditCopy.actions.details,
         onSelect: (row) => {
           options.onOpenDetails?.(row.original)
         },

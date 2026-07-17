@@ -9,9 +9,7 @@ import { permissionsCopy } from "../permissions-copy"
 import {
   permissionRoleLabels,
   permissionRoleValues,
-  permissionAccessFilterLabels,
   permissionSourceLabels,
-  type PermissionAccessFilter,
   type PermissionMatrixRow,
   type PermissionRole,
 } from "../types/permissions-types"
@@ -55,6 +53,10 @@ function createRoleAccessColumn(
   }
 }
 
+function getSourceBadgeVariant(source: PermissionMatrixRow["source"]) {
+  return source === "custom" ? "default" : "secondary"
+}
+
 export function createPermissionsColumns({
   onOpenDetails,
 }: CreatePermissionsColumnsOptions = {}): ColumnDef<PermissionMatrixRow>[] {
@@ -84,12 +86,14 @@ export function createPermissionsColumns({
     {
       accessorKey: "source",
       cell: ({ row }) => (
-        <Badge variant="secondary">
-          {permissionSourceLabels[row.original.source]}
-        </Badge>
+        <div className="flex justify-center">
+          <Badge variant={getSourceBadgeVariant(row.original.source)}>
+            {permissionSourceLabels[row.original.source]}
+          </Badge>
+        </div>
       ),
       enableSorting: false,
-      header: permissionsCopy.labels.source,
+      header: () => <div className="text-center">{permissionsCopy.labels.source}</div>,
       meta: { label: permissionsCopy.labels.source },
     },
     {
@@ -101,34 +105,6 @@ export function createPermissionsColumns({
       meta: { label: permissionsCopy.labels.totalRoles },
     },
     ...permissionRoleValues.map(createRoleAccessColumn),
-    {
-      id: "roles",
-      accessorFn: (row) => row.roles,
-      cell: ({ row }) => row.original.roleLabels,
-      enableSorting: false,
-      header: permissionsCopy.filters.roles,
-      meta: {
-        label: permissionsCopy.filters.roles,
-        exportValue: (_value, row) => row.roleLabels,
-      },
-    },
-    {
-      id: "accessFilters",
-      accessorFn: (row) => row.accessFilters,
-      cell: ({ row }) =>
-        row.original.accessFilters
-          .map((access: PermissionAccessFilter) => permissionAccessFilterLabels[access])
-          .join(", "),
-      enableSorting: false,
-      header: permissionsCopy.filters.access,
-      meta: {
-        label: permissionsCopy.filters.access,
-        exportValue: (_value, row) =>
-          row.accessFilters
-            .map((access) => permissionAccessFilterLabels[access])
-            .join(", "),
-      },
-    },
     createActionsColumn<PermissionMatrixRow>([
       {
         id: "details",

@@ -18,11 +18,19 @@ export const notificationsCopy = {
   },
   details: {
     titleFallback: "Notificação",
+    title: "Título",
+    description: "Descrição",
     type: "Tipo",
     status: "Status",
     date: "Data",
     destination: "Destino",
     emptyDestination: "—",
+  },
+  table: {
+    actions: "Ações",
+  },
+  accessibility: {
+    openActions: "Abrir ações da notificação",
   },
   filters: {
     searchPlaceholder: "Buscar notificações...",

@@ -7,7 +7,6 @@ export {
 export { notificationsCopy } from "./notifications-copy"
 export {
   countUnreadNotifications,
-  createMemoryNotificationsGateway,
   listNotifications,
   markAllNotificationsAsRead,
   resetNotificationsGateway,

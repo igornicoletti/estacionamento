@@ -31,6 +31,7 @@ import {
   type SyncRunStatus,
   type SyncRunTrigger,
 } from "../types/sync-history-types"
+import { syncCopy } from "../sync-copy"
 
 interface SyncHistoryDialogProps<TEntry extends SyncHistoryEntry> {
   open: boolean
@@ -60,19 +61,19 @@ const statusBadgeClassNameByType: Record<SyncRunStatus, string> = {
 }
 
 const statusLabelByType: Record<SyncRunStatus, string> = {
-  failed: "Falhou",
-  success: "Concluída",
-  warning: "Concluída com alertas",
+  failed: syncCopy.history.status.failed,
+  success: syncCopy.history.status.success,
+  warning: syncCopy.history.status.warning,
 }
 
 const modeLabelByType: Record<SyncRunMode, string> = {
-  full: "Completa",
-  incremental: "Incremental",
+  full: syncCopy.history.mode.full,
+  incremental: syncCopy.history.mode.incremental,
 }
 
 const triggerLabelByType: Record<SyncRunTrigger, string> = {
-  automatic: "Automática",
-  manual: "Manual",
+  automatic: syncCopy.history.trigger.automatic,
+  manual: syncCopy.history.trigger.manual,
 }
 
 function formatDateTime(value: string) {
@@ -86,7 +87,7 @@ function formatDateTime(value: string) {
 
 function formatDuration(durationSeconds: number | null) {
   if (durationSeconds === null || durationSeconds < 0) {
-    return "-"
+    return syncCopy.history.details.emptyValue
   }
 
   const minutes = Math.floor(durationSeconds / 60)
@@ -105,7 +106,7 @@ function buildDetailRows(
 ) {
   return [
     {
-      key: "Duração",
+      key: syncCopy.history.details.duration,
       value: formatDuration(entry.durationSeconds),
     },
     ...counters.map((counter) => ({
@@ -113,19 +114,19 @@ function buildDetailRows(
       value: String(counter.value),
     })),
     {
-      key: "Início",
+      key: syncCopy.history.details.start,
       value: formatDateTime(entry.startedAt),
     },
     {
-      key: "Fim",
-      value: entry.finishedAt ? formatDateTime(entry.finishedAt) : "-",
+      key: syncCopy.history.details.end,
+      value: entry.finishedAt ? formatDateTime(entry.finishedAt) : syncCopy.history.details.emptyValue,
     },
     {
-      key: "Modo",
+      key: syncCopy.history.details.mode,
       value: modeLabelByType[entry.mode],
     },
     {
-      key: "Origem",
+      key: syncCopy.history.details.trigger,
       value: triggerLabelByType[entry.trigger],
     },
   ]
@@ -138,7 +139,7 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
   isLoading,
   error = null,
   onRetry,
-  retryLabel = "Tentar novamente",
+  retryLabel = syncCopy.history.retryLabel,
   title,
   description,
   emptyTitle,
@@ -181,7 +182,7 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
             <AppEmptyState
               className="min-h-32 rounded-md border border-solid p-4"
               media={<AlertTriangleIcon />}
-              title="Não foi possível carregar o histórico"
+              title={syncCopy.history.loadErrorTitle}
               description={errorMessage}
               actions={onRetry ? (
                 <Button type="button" variant="outline" size="lg" onClick={onRetry}>

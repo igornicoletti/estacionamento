@@ -3,6 +3,7 @@ import {
   normalizeSyncErrorDetails,
   normalizeSyncHistoryMessage,
 } from "@/features/sync/utils/sync-history-errors"
+import { unitsCopy } from "../units-copy"
 import { type UnitSyncHistoryEntry } from "../types/units-sync-history-types"
 
 const SYNC_HISTORY_LIMIT = 50
@@ -114,7 +115,7 @@ export async function listUnitSyncHistory(): Promise<UnitSyncHistoryEntry[]> {
     .limit(SYNC_HISTORY_LIMIT)
 
   if (error) {
-    throw new Error(error.message)
+    throw new Error(unitsCopy.sync.historyLoadError, { cause: error })
   }
 
   const rows: unknown = data

@@ -5,13 +5,10 @@ import {
   type AuditEvent,
   type RawAuditEventPayload,
 } from "../types/audit-types"
+import { auditCopy } from "../audit-copy"
 
-const auditTechnicalValueLabels: Record<string, string> = {
-  client_sync: "Sincronização de clientes",
-  unit_sync: "Sincronização de unidades",
-  usuario: "Usuário",
-  sistema: "Sistema",
-}
+const auditTechnicalValueLabels: Readonly<Record<string, string>> =
+  auditCopy.technical.valueLabels
 
 function sanitizeRawText(value: unknown) {
   if (typeof value === "string") {
@@ -57,11 +54,11 @@ function sanitizeTechnicalMessage(value: string) {
   const lower = normalized.toLocaleLowerCase("pt-BR")
 
   if (lower.includes("notvalidforname") || lower.includes("invalid peer certificate")) {
-    return "Não foi possível conectar ao serviço externo por falha na validação do certificado."
+    return auditCopy.technical.messages.certificate
   }
 
   if (lower.includes("error sending request") || lower.includes("client error")) {
-    return "Não foi possível se comunicar com o serviço externo."
+    return auditCopy.technical.messages.externalService
   }
 
   return normalized
@@ -138,7 +135,7 @@ export function sanitizeAuditEventPayload(
     scope: isAuditScope(payload.scope) ? payload.scope : "system",
     event,
     eventLabel: getAuditEventLabel(event),
-    actorName: sanitizeText(payload.actor) || "Sistema",
+    actorName: sanitizeText(payload.actor) || auditCopy.labels.systemActor,
     actorUserId: sanitizeNullableRawText(payload.actor_user_id),
     target: sanitizeText(payload.target),
     targetUserId: sanitizeNullableRawText(payload.target_user_id),

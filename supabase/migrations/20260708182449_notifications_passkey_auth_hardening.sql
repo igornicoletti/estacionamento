@@ -4,14 +4,6 @@ alter table public.app_users
 comment on column public.app_users.pending_phone_display is
   'Telefone completo pendente de aprovação administrativa. Não usar para busca; manter phone_masked para logs e cpf_hmac para deduplicação.';
 
-update public.app_users
-set
-  cpf_display = coalesce(cpf_display, '421.403.248-97'),
-  phone_display = coalesce(phone_display, '(17) 99130-4197')
-where
-  lower(name) = lower('Igor Nicoletti')
-  or lower(coalesce(email, '')) = lower('igor.nicoletti@redemontecarlo.com');
-
 create table if not exists public.app_session_activity (
   session_id uuid primary key,
   auth_user_id uuid not null references auth.users(id) on delete cascade,

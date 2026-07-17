@@ -161,7 +161,7 @@ async function tryAcquireSyncLock(mode: SyncMode, trigger: SyncTrigger, requeste
   })
 
   if (error) {
-    throw new Error(error.message)
+    throw new Error("sync_lock_error", { cause: error })
   }
 
   return Boolean(data)
@@ -464,7 +464,7 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
       .upsert(normalized, { onConflict: "cod_empresa" })
 
     if (upsertError) {
-      throw new Error(upsertError.message)
+      throw new Error("units_upsert_failed", { cause: upsertError })
     }
   }
 
@@ -519,7 +519,7 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
     .single()
 
   if (runError) {
-    throw new Error(runError.message)
+    throw new Error("unit_sync_run_insert_failed", { cause: runError })
   }
 
   await writeAuditEvent({

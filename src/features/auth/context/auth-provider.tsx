@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import { shouldBypassAuthInDev } from "@/config"
 import {
   AUTH_INACTIVITY,
   AUTH_NEXT_ACTION,
@@ -138,7 +139,11 @@ function now() {
 }
 
 function createPermissionSet(profile: AuthProfile | null) {
-  return new Set<AuthPermission>(profile?.permissions ?? [])
+  return new Set<AuthPermission>(
+    shouldBypassAuthInDev()
+      ? [AUTH_PERMISSION_WILDCARD, ...(profile?.permissions ?? [])]
+      : profile?.permissions ?? []
+  )
 }
 
 function resolveErrorMessage(caughtError: unknown) {

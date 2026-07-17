@@ -10,9 +10,46 @@ import {
 
 import {
   UnitsRoute,
+  configureUnitYardGateway,
   configureUnitsGateway,
+  resetUnitYardGateway,
   resetUnitsGateway,
 } from "@/features/units"
+import { setUsersGateway, type UserRecord } from "@/features/users"
+import type {
+  UnitYardConfig,
+  UpsertUnitYardConfigInput,
+} from "@/features/units/types/units-types"
+
+function configureMemoryYardGateway(seed: UnitYardConfig[] = []) {
+  const store = seed.map((item) => ({ ...item }))
+
+  configureUnitYardGateway({
+    async listConfigs() {
+      await Promise.resolve()
+      return store.map((item) => ({ ...item }))
+    },
+    async upsertConfig(input: UpsertUnitYardConfigInput) {
+      await Promise.resolve()
+
+      const config: UnitYardConfig = {
+        parkingSpots: input.parkingSpots,
+        patioActive: input.patioActive,
+        unitId: input.unitId,
+        updatedAt: "2026-07-17T12:00:00.000Z",
+      }
+      const index = store.findIndex((item) => item.unitId === config.unitId)
+
+      if (index >= 0) {
+        store[index] = config
+      } else {
+        store.push(config)
+      }
+
+      return { ...config }
+    },
+  })
+}
 
 beforeEach(() => {
   configureUnitsGateway({
@@ -40,11 +77,14 @@ beforeEach(() => {
 })
 
 afterEach(() => {
+  resetUnitYardGateway()
   resetUnitsGateway()
 })
 
 describe("UnitsRoute", () => {
   it("renders units header and opens row details from first column", async () => {
+    configureMemoryYardGateway()
+
     render(
       <MemoryRouter>
         <UnitsRoute />
@@ -67,7 +107,7 @@ describe("UnitsRoute", () => {
 
     fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
     expect(
-      await screen.findByRole("menuitem", { name: "Usuários" })
+      await screen.findByRole("menuitem", { name: "Funcionários" })
     ).toBeInTheDocument()
 
     const configureYardAction = await screen.findByRole("menuitem", { name: "Configurar pátio" })
@@ -77,5 +117,54 @@ describe("UnitsRoute", () => {
     expect(
       await screen.findByRole("heading", { name: "Configurar pátio da unidade" })
     ).toBeInTheDocument()
+
+    fireEvent.keyDown(screen.getByRole("combobox"), { key: "ArrowDown" })
+    fireEvent.click(await screen.findByRole("option", { name: "Ativo" }))
+    fireEvent.change(screen.getByLabelText("Quantidade de vagas"), {
+      target: { value: "42" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
+
+    await waitFor(() => {
+      expect(
+        screen.queryByRole("heading", { name: "Configurar pátio da unidade" })
+      ).not.toBeInTheDocument()
+    })
+
+    expect(screen.getByText("42")).toBeInTheDocument()
+  }, 15_000)
+
+  it("shows an inert dash when the unit has no employees", async () => {
+    configureMemoryYardGateway()
+    setUsersGateway({
+      async list(): Promise<UserRecord[]> {
+        await Promise.resolve()
+        return []
+      },
+      async saveAll() {
+        await Promise.resolve()
+      },
+    })
+
+    render(
+      <MemoryRouter>
+        <UnitsRoute />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("Monte Carlo Centro")).toBeInTheDocument()
+    })
+
+    expect(screen.getByText("Funcionários")).toBeInTheDocument()
+    expect(screen.getByText("—")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "0" })).not.toBeInTheDocument()
+
+    fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
+
+    expect(
+      await screen.findByRole("menuitem", { name: "Configurar pátio" })
+    ).toBeInTheDocument()
+    expect(screen.queryByRole("menuitem", { name: "Funcionários" })).not.toBeInTheDocument()
   }, 15_000)
 })

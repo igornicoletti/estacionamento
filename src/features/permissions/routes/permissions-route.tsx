@@ -13,10 +13,6 @@ import { createPermissionsColumns } from "../columns/permissions-columns"
 import { permissionsCopy } from "../permissions-copy"
 import { usePermissions } from "../hooks/use-permissions"
 import {
-  permissionAccessFilterLabels,
-  permissionAccessFilterValues,
-  permissionRoleLabels,
-  permissionRoleValues,
   permissionSourceLabels,
   permissionSourceValues,
   type PermissionMatrixRow,
@@ -48,38 +44,15 @@ export function PermissionsRoute() {
   )
   const sourceOptions = React.useMemo(
     () =>
-      permissionSourceValues.map((source) => ({
-        label: permissionSourceLabels[source],
-        value: source,
-      })),
-    []
-  )
-  const roleOptions = React.useMemo(
-    () =>
-      permissionRoleValues.map((role) => {
+      permissionSourceValues.map((source) => {
         const count = permissions.filter((permission) =>
-          permission.roles.includes(role)
+          permission.source === source
         ).length
 
         return {
           count,
-          label: permissionRoleLabels[role],
-          value: role,
-        }
-      }),
-    [permissions]
-  )
-  const accessOptions = React.useMemo(
-    () =>
-      permissionAccessFilterValues.map((access) => {
-        const count = permissions.filter((permission) =>
-          permission.accessFilters.includes(access)
-        ).length
-
-        return {
-          count,
-          label: permissionAccessFilterLabels[access],
-          value: access,
+          label: permissionSourceLabels[source],
+          value: source,
         }
       }),
     [permissions]
@@ -97,11 +70,8 @@ export function PermissionsRoute() {
         data={permissions}
         columnVisibilityStorageKey={PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY}
         defaultColumnVisibility={{
-          accessFilters: false,
           groupLabel: false,
           roleCount: false,
-          roles: false,
-          source: false,
         }}
         getRowId={(permission) => permission.id}
         globalSearch={{
@@ -118,16 +88,6 @@ export function PermissionsRoute() {
             id: "source",
             options: sourceOptions,
             title: permissionsCopy.filters.source,
-          },
-          {
-            id: "roles",
-            options: roleOptions,
-            title: permissionsCopy.filters.roles,
-          },
-          {
-            id: "accessFilters",
-            options: accessOptions,
-            title: permissionsCopy.filters.access,
           },
         ]}
         isLoading={isLoading}

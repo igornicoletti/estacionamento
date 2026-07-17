@@ -1,5 +1,6 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 import { isErpCatalogMockEnabled, mockErpUnitsPayload } from "@/features/erp-mock"
+import { unitsCopy } from "../units-copy"
 import { type ErpUnitPayload } from "../types/units-types"
 
 export interface UnitsGateway {
@@ -39,7 +40,7 @@ function createSupabaseUnitsGateway(): UnitsGateway {
         .order("cod_empresa", { ascending: true })
 
       if (error) {
-        throw new Error(error.message)
+        throw new Error(unitsCopy.errors.unitsLoad, { cause: error })
       }
 
       return normalizeErpRows(data, [

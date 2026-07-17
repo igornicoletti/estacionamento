@@ -14,7 +14,7 @@ function renderDestination(notification: NotificationRecord) {
   }
 
   return (
-    <span className="break-all font-mono text-xs">
+    <span className="break-all">
       {notification.href}
     </span>
   )

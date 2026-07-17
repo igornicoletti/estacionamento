@@ -90,15 +90,15 @@ describe("UsersRoute", () => {
     expect(screen.getByRole("heading", { name: "Usuários" })).toBeInTheDocument()
 
     await waitFor(() => {
-      expect(screen.getByText("Ana Pereira")).toBeInTheDocument()
+      expect(screen.getByText("Usuario Teste")).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole("button", { name: "Ana Pereira" }))
+    fireEvent.click(screen.getByRole("button", { name: "Usuario Teste" }))
 
-    expect(screen.getByRole("heading", { name: "Ana Pereira" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Usuario Teste" })).toBeInTheDocument()
     expect(screen.queryByText("ID")).not.toBeInTheDocument()
     expect(screen.queryByText("USR-001")).not.toBeInTheDocument()
-    expect(screen.getAllByText("529.982.247-25").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("111.444.777-35").length).toBeGreaterThan(0)
     expect(screen.queryByText("***.***.***-25")).not.toBeInTheDocument()
     expect(screen.queryByText("MFA")).not.toBeInTheDocument()
     expect(screen.getAllByText("Passkey").length).toBeGreaterThan(0)
@@ -114,7 +114,7 @@ describe("UsersRoute", () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText("Ana Pereira")).toBeInTheDocument()
+      expect(screen.getByText("Usuario Teste")).toBeInTheDocument()
     })
 
     fireEvent.click(screen.getByRole("button", { name: "Cadastrar" }))

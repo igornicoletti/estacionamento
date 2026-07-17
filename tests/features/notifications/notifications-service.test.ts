@@ -2,12 +2,13 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import {
   countUnreadNotifications,
-  createMemoryNotificationsGateway,
   listNotifications,
   setNotificationsGateway,
   setNotificationsStatus,
   type NotificationRecord,
 } from "@/features/notifications"
+
+import { createMemoryNotificationsGateway } from "../../helpers/notifications-memory-gateway"
 
 const notificationsFixture: NotificationRecord[] = [
   {

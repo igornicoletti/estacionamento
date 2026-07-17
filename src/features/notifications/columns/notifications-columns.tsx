@@ -41,8 +41,8 @@ export function createNotificationsColumns(
     },
     {
       accessorKey: "title",
-      meta: { label: "Título" },
-      header: "Título",
+      meta: { label: notificationsCopy.details.title },
+      header: notificationsCopy.details.title,
       cell: ({ row }) => (
         <DataTableTextAction
           onClick={() => {
@@ -55,8 +55,8 @@ export function createNotificationsColumns(
     },
     {
       accessorKey: "description",
-      meta: { label: "Descrição" },
-      header: "Descrição",
+      meta: { label: notificationsCopy.details.description },
+      header: notificationsCopy.details.description,
     },
     {
       accessorKey: "type",
@@ -102,8 +102,8 @@ export function createNotificationsColumns(
     },
     {
       id: "actions",
-      meta: { label: "Ações" },
-      header: () => <span className="sr-only">Ações</span>,
+      meta: { label: notificationsCopy.table.actions },
+      header: () => <span className="sr-only">{notificationsCopy.table.actions}</span>,
       enableSorting: false,
       enableHiding: false,
       size: 48,
@@ -159,7 +159,7 @@ export function createNotificationsColumns(
             <DataTableRowActions
               row={row}
               actions={actions}
-              label="Abrir ações da notificação"
+              label={notificationsCopy.accessibility.openActions}
             />
           </div>
         )

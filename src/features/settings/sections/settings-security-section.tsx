@@ -1,7 +1,13 @@
 import type { ReactNode } from "react"
 import * as React from "react"
 
-import { KeyRoundIcon, ShieldIcon } from "lucide-react"
+import {
+  KeyRoundIcon,
+  ListChecksIcon,
+  MonitorIcon,
+  ShieldCheckIcon,
+  ShieldIcon,
+} from "lucide-react"
 
 import { AppDialog } from "@/components/shared/app-dialog"
 import { Badge } from "@/components/ui/badge"
@@ -21,23 +27,30 @@ interface SettingsSecuritySectionProps {
   security: SettingsSecuritySummary
 }
 
-function SettingsSecurityItem({
-  title,
-  description,
+function SettingsSecurityPanel({
   children,
+  description,
+  icon,
+  title,
 }: {
-  title: string
-  description: string
   children: ReactNode
+  description: string
+  icon: ReactNode
+  title: string
 }) {
   return (
-    <div className="grid gap-3 rounded-md border border-border/50 p-3">
-      <div className="min-w-0 space-y-1">
-        <p className="text-sm font-medium">{title}</p>
-        <p className="text-xs text-muted-foreground">{description}</p>
+    <section className="grid gap-4 rounded-lg border border-border/60 bg-background p-4">
+      <div className="flex items-start gap-2">
+        <span className="mt-0.5 text-muted-foreground">{icon}</span>
+        <div className="min-w-0 space-y-0.5">
+          <h2 className="text-sm font-medium">{title}</h2>
+          <p className="text-xs leading-relaxed text-muted-foreground">
+            {description}
+          </p>
+        </div>
       </div>
-      <div className="min-w-0">{children}</div>
-    </div>
+      {children}
+    </section>
   )
 }
 
@@ -45,16 +58,16 @@ function SettingsSessionDetails({ security }: { security: SettingsSecuritySummar
   const copy = settingsCopy.security
   const items = [
     {
-      label: copy.sessionIp,
-      value: security.session.ipAddress ?? copy.sessionUnavailable,
-    },
-    {
       label: copy.sessionBrowser,
       value: security.session.browser,
     },
     {
       label: copy.sessionOperatingSystem,
       value: security.session.operatingSystem,
+    },
+    {
+      label: copy.sessionIp,
+      value: security.session.ipAddress ?? copy.sessionUnavailable,
     },
     {
       label: copy.sessionAuthenticatedAt,
@@ -71,7 +84,7 @@ function SettingsSessionDetails({ security }: { security: SettingsSecuritySummar
   return (
     <dl className="grid gap-3 sm:grid-cols-2">
       {items.map((item) => (
-        <div key={item.label} className="grid gap-1 rounded-md bg-secondary/60 p-3">
+        <div key={item.label} className="min-w-0 space-y-1">
           <dt className="text-xs font-medium text-muted-foreground">
             {item.label}
           </dt>
@@ -79,6 +92,48 @@ function SettingsSessionDetails({ security }: { security: SettingsSecuritySummar
         </div>
       ))}
     </dl>
+  )
+}
+
+function SettingsPermissionsDetails({
+  hasWildcardPermission,
+  permissions,
+}: {
+  hasWildcardPermission: boolean
+  permissions: SettingsSecuritySummary["permissions"]
+}) {
+  if (hasWildcardPermission) {
+    return (
+      <Badge variant="secondary" className={getBadgeToneClassName("success")}>
+        {settingsCopy.security.wildcardPermission}
+      </Badge>
+    )
+  }
+
+  if (permissions.length === 0) {
+    return (
+      <p className="text-sm text-muted-foreground">
+        {settingsCopy.security.noPermissions}
+      </p>
+    )
+  }
+
+  return (
+    <div className="grid gap-3">
+      <Badge variant="secondary" className="w-fit">
+        {settingsCopy.security.permissionsCount(permissions.length)}
+      </Badge>
+      <div className="flex flex-wrap gap-1.5">
+        {permissions.map((permission) => (
+          <code
+            key={permission}
+            className="rounded-md border border-border/60 bg-muted px-2 py-1 text-xs text-foreground"
+          >
+            {permission}
+          </code>
+        ))}
+      </div>
+    </div>
   )
 }
 
@@ -108,35 +163,36 @@ export function SettingsSecuritySection({
             <CardDescription>{settingsCopy.security.sectionDescription}</CardDescription>
           </div>
         </CardHeader>
-        <CardContent className="grid gap-3">
-          <SettingsSecurityItem
-            title={settingsCopy.security.sessionTitle}
-            description={settingsCopy.security.sessionDescription}
+        <CardContent className="grid gap-4 lg:grid-cols-2">
+          <SettingsSecurityPanel
+            title={settingsCopy.security.credentialsTitle}
+            description={settingsCopy.security.credentialsDescription}
+            icon={<KeyRoundIcon className="size-4" aria-hidden="true" />}
           >
-            <SettingsSessionDetails security={security} />
-          </SettingsSecurityItem>
-
-          <SettingsSecurityItem
-            title={settingsCopy.security.passkeyTitle}
-            description={
-              hasPasskey
-                ? settingsCopy.security.passkeyActiveDescription
-                : settingsCopy.security.passkeyInactiveDescription
-            }
-          >
-            <div className="flex flex-wrap items-center gap-2">
-              <Badge
-                variant="secondary"
-                className={getBadgeToneClassName(hasPasskey ? "success" : undefined)}
-              >
+            <div className="flex flex-col gap-3">
+              <div className="flex flex-wrap items-center gap-2">
+                <Badge
+                  variant="secondary"
+                  className={getBadgeToneClassName(hasPasskey ? "success" : undefined)}
+                >
+                  {hasPasskey
+                    ? settingsCopy.security.passkeyActive
+                    : settingsCopy.security.passkeyInactive}
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  {settingsCopy.security.passkeyTitle}
+                </span>
+              </div>
+              <p className="text-sm leading-relaxed text-muted-foreground">
                 {hasPasskey
-                  ? settingsCopy.security.passkeyActive
-                  : settingsCopy.security.passkeyInactive}
-              </Badge>
+                  ? settingsCopy.security.passkeyActiveDescription
+                  : settingsCopy.security.passkeyInactiveDescription}
+              </p>
               <Button
                 type="button"
                 variant="secondary"
                 size="lg"
+                className="w-full sm:w-fit"
                 disabled={isRegisteringPasskey}
                 onClick={() => {
                   void handleRegisterPasskey()
@@ -148,18 +204,28 @@ export function SettingsSecuritySection({
                   : settingsCopy.security.passkeyActivate}
               </Button>
             </div>
-          </SettingsSecurityItem>
+          </SettingsSecurityPanel>
 
-          <SettingsSecurityItem
-            title={settingsCopy.security.permissionsTitle}
-            description={settingsCopy.security.permissionsDescription}
+          <SettingsSecurityPanel
+            title={settingsCopy.security.sessionTitle}
+            description={settingsCopy.security.sessionDescription}
+            icon={<MonitorIcon className="size-4" aria-hidden="true" />}
           >
-            <span className="text-sm text-foreground">
-              {hasWildcardPermission
-                ? settingsCopy.security.wildcardPermission
-                : settingsCopy.security.permissionsCount(security.permissions.length)}
-            </span>
-          </SettingsSecurityItem>
+            <SettingsSessionDetails security={security} />
+          </SettingsSecurityPanel>
+
+          <div className="lg:col-span-2">
+            <SettingsSecurityPanel
+              title={settingsCopy.security.permissionsTitle}
+              description={settingsCopy.security.permissionsDescription}
+              icon={<ListChecksIcon className="size-4" aria-hidden="true" />}
+            >
+              <SettingsPermissionsDetails
+                hasWildcardPermission={hasWildcardPermission}
+                permissions={security.permissions}
+              />
+            </SettingsSecurityPanel>
+          </div>
         </CardContent>
       </Card>
 
@@ -202,10 +268,11 @@ export function SettingsSecuritySection({
             </div>
           </dl>
           <div className="rounded-lg bg-secondary p-3">
-            <p className="text-sm font-medium">
+            <p className="flex items-center gap-2 text-sm font-medium">
+              <ShieldCheckIcon className="size-4" aria-hidden="true" />
               {settingsCopy.security.passkeyInstructionTitle}
             </p>
-            <p className="mt-1 text-sm">
+            <p className="mt-1 text-sm text-muted-foreground">
               {settingsCopy.security.passkeyInstructionDescription}
             </p>
           </div>

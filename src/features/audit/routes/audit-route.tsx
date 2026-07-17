@@ -11,17 +11,24 @@ import {
 import { PageHeader, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 
+import { auditCopy } from "../audit-copy"
 import { createAuditColumns, getAuditEventDetails } from "../columns/audit-columns"
 import { useAudit } from "../hooks/use-audit"
 import {
   auditScopeLabels,
-  auditSeverityLabels,
   type AuditEvent,
 } from "../types/audit-types"
 import { filterAuditEvents } from "../utils/audit-filter-utils"
 
 const AUDIT_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.audit.columns.v2"
 const AUDIT_TABLE_STATE_KEY = "rmc.table.audit.state.v2"
+
+function removeColumnFilter(
+  columnFilters: ColumnFiltersState,
+  columnId: keyof AuditEvent
+) {
+  return columnFilters.filter((filter) => filter.id !== columnId)
+}
 
 export function AuditRoute() {
   const {
@@ -48,44 +55,74 @@ export function AuditRoute() {
     [columnFilters, events, globalFilter]
   )
 
+  const responsibleOptionEvents = React.useMemo(
+    () =>
+      filterAuditEvents(
+        events,
+        removeColumnFilter(columnFilters, "actorName"),
+        globalFilter
+      ),
+    [columnFilters, events, globalFilter]
+  )
+
+  const scopeOptionEvents = React.useMemo(
+    () =>
+      filterAuditEvents(
+        events,
+        removeColumnFilter(columnFilters, "scope"),
+        globalFilter
+      ),
+    [columnFilters, events, globalFilter]
+  )
+
+  const eventOptionEvents = React.useMemo(
+    () =>
+      filterAuditEvents(
+        events,
+        removeColumnFilter(columnFilters, "event"),
+        globalFilter
+      ),
+    [columnFilters, events, globalFilter]
+  )
+
+  const responsibleOptions = React.useMemo(
+    () =>
+      createDataTableFilterOptions(
+        responsibleOptionEvents,
+        (event) => event.actorName,
+        (event) => event.actorName
+      ),
+    [responsibleOptionEvents]
+  )
+
   const eventOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
-        events,
+        eventOptionEvents,
         (event) => event.event,
         (event) => event.eventLabel
       ),
-    [events]
+    [eventOptionEvents]
   )
 
   const scopeOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
-        events,
+        scopeOptionEvents,
         (event) => event.scope,
         (event) => auditScopeLabels[event.scope]
       ),
-    [events]
-  )
-
-  const severityOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        events,
-        (event) => event.severity,
-        (event) => auditSeverityLabels[event.severity]
-      ),
-    [events]
+    [scopeOptionEvents]
   )
 
   return (
     <PageSection>
       <PageHeader
-        title="Auditoria"
+        title={auditCopy.page.title}
         subtitle={
           isTruncated
-            ? `Acompanhe os eventos de segurança e ações realizadas. Exibindo os ${limit} eventos mais recentes.`
-            : "Acompanhe os eventos de segurança e as ações realizadas no sistema."
+            ? auditCopy.page.truncatedSubtitle(limit)
+            : auditCopy.page.subtitle
         }
       />
 
@@ -99,7 +136,7 @@ export function AuditRoute() {
         manualFiltering
         globalSearch={{
           columnIds: ["actorName", "event", "target"],
-          placeholder: "Buscar na auditoria...",
+          placeholder: auditCopy.page.searchPlaceholder,
         }}
         globalFilterValue={globalFilter}
         onGlobalFilterChange={setGlobalFilter}
@@ -109,19 +146,22 @@ export function AuditRoute() {
         onSortingChange={setSorting}
         filterFields={[
           {
-            id: "event",
-            title: "Eventos",
-            options: eventOptions,
+            id: "actorName",
+            title: auditCopy.filters.responsible,
+            options: responsibleOptions,
+            showCounts: true,
           },
           {
             id: "scope",
-            title: "Escopos",
+            title: auditCopy.filters.scopes,
             options: scopeOptions,
+            showCounts: true,
           },
           {
-            id: "severity",
-            title: "Severidade",
-            options: severityOptions,
+            id: "event",
+            title: auditCopy.filters.events,
+            options: eventOptions,
+            showCounts: true,
           },
         ]}
         isLoading={isLoading}
@@ -141,7 +181,7 @@ export function AuditRoute() {
           }
         }}
         title={selectedEvent ? `${selectedEvent.eventLabel} · ${selectedEvent.actorName}` : undefined}
-        description={selectedEvent?.reason || "Sem informações adicionais."}
+        description={selectedEvent?.reason || auditCopy.details.fallbackDescription}
         items={selectedEvent ? getAuditEventDetails(selectedEvent) : []}
       />
     </PageSection>

@@ -28,7 +28,7 @@ const auditEventsRows = [
     occurred_at: "2026-07-02T13:42:11Z",
     scope: "system",
     event: "user_created",
-    actor: "Igor Nicoletti",
+    actor: "Administrador Teste",
     actor_user_id: "user-1",
     target: "Usuário",
     target_user_id: "user-2",
@@ -142,21 +142,58 @@ describe("AuditRoute", () => {
     expect(screen.queryByText("0c0fdebe-44ba-444e-b68d-ba60566d8ac2")).not.toBeInTheDocument()
   })
 
+  it("renders audit filters in column order with counters", async () => {
+    const { AuditRoute } = await import("@/features/audit")
+
+    const { baseElement } = render(<AuditRoute />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Rede Monte Carlo")).toBeInTheDocument()
+    })
+
+    expect(screen.getAllByLabelText("Responsável").length).toBeGreaterThan(0)
+    expect(screen.getAllByLabelText("Escopos").length).toBeGreaterThan(0)
+    expect(screen.getAllByLabelText("Eventos").length).toBeGreaterThan(0)
+    expect(screen.queryByLabelText("Severidade")).not.toBeInTheDocument()
+
+    const responsibleFilter = screen.getByRole("combobox", {
+      name: "Responsável",
+    })
+
+    fireEvent.click(responsibleFilter)
+    fireEvent.keyDown(responsibleFilter, { key: "ArrowDown" })
+
+    await waitFor(() => {
+      const content = baseElement.querySelector('[data-slot="combobox-content"]')
+      const items = Array.from(
+        content?.querySelectorAll('[data-slot="combobox-item"]') ?? []
+      )
+      const administratorOption = items.find((item) =>
+        item.textContent?.includes("Administrador Teste")
+      )
+
+      expect(administratorOption?.textContent).toContain("1")
+    })
+  })
+
   it("opens event details from the responsible column", async () => {
     const { AuditRoute } = await import("@/features/audit")
 
     render(<AuditRoute />)
 
     const trigger = await screen.findByRole("button", {
-      name: "Igor Nicoletti",
+      name: "Administrador Teste",
     })
 
     fireEvent.click(trigger)
 
     expect(screen.getByText("Motivo")).toBeInTheDocument()
-    expect(screen.getByText("Usuário criado · Igor Nicoletti")).toBeInTheDocument()
+    expect(screen.getByText("Usuário criado · Administrador Teste")).toBeInTheDocument()
+    expect(screen.getByText("Perfil")).toBeInTheDocument()
+    expect(screen.getByText("Operador")).toBeInTheDocument()
     expect(
       screen.queryByText("11111111-1111-1111-1111-111111111111")
     ).not.toBeInTheDocument()
+    expect(screen.queryByText("operator")).not.toBeInTheDocument()
   })
 })

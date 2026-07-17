@@ -29,24 +29,24 @@ export function filterAuditEvents(
   columnFilters: ColumnFiltersState,
   globalFilter: string
 ) {
+  const responsibleFilters = resolveColumnFilterValues(columnFilters, "actorName")
   const eventFilters = resolveColumnFilterValues(columnFilters, "event")
   const scopeFilters = resolveColumnFilterValues(columnFilters, "scope")
-  const severityFilters = resolveColumnFilterValues(columnFilters, "severity")
   const normalizedQuery = normalizeFilterText(globalFilter)
 
   return events.filter((event) => {
+    if (
+      responsibleFilters.length > 0 &&
+      !responsibleFilters.includes(event.actorName)
+    ) {
+      return false
+    }
+
     if (eventFilters.length > 0 && !eventFilters.includes(event.event)) {
       return false
     }
 
     if (scopeFilters.length > 0 && !scopeFilters.includes(event.scope)) {
-      return false
-    }
-
-    if (
-      severityFilters.length > 0 &&
-      !severityFilters.includes(event.severity)
-    ) {
       return false
     }
 

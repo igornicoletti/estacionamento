@@ -177,7 +177,7 @@ async function tryAcquireSyncLock(mode: SyncMode, trigger: SyncTrigger, requeste
   })
 
   if (error) {
-    throw new Error(error.message)
+    throw new Error("sync_lock_error", { cause: error })
   }
 
   return Boolean(data)
@@ -635,7 +635,7 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
       .upsert(normalizedClients, { onConflict: "cod_pessoa" })
 
     if (clientsUpsertError) {
-      throw new Error(clientsUpsertError.message)
+      throw new Error("clients_upsert_failed", { cause: clientsUpsertError })
     }
   }
 
@@ -693,7 +693,7 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
       .upsert(normalizedVehicles, { onConflict: "cod_veiculo" })
 
     if (vehiclesUpsertError) {
-      throw new Error(vehiclesUpsertError.message)
+      throw new Error("client_vehicles_upsert_failed", { cause: vehiclesUpsertError })
     }
   }
 
@@ -753,7 +753,7 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
     .single()
 
   if (runError) {
-    throw new Error(runError.message)
+    throw new Error("client_sync_run_insert_failed", { cause: runError })
   }
 
   await writeAuditEvent({

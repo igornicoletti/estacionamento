@@ -16,6 +16,10 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 
 import { useSettings } from "../hooks/use-settings"
+import {
+  getProfileInitials,
+  ProfilePhotoDialog,
+} from "../components/profile-photo-dialog"
 import { SettingsProfileSection } from "../sections/settings-profile-section"
 import { SettingsSecuritySection } from "../sections/settings-security-section"
 import { settingsCopy } from "../settings-copy"
@@ -40,27 +44,59 @@ export function SettingsRoute() {
     uploadAvatarFile,
   } = useSettings()
   const [isSavingProfile, setIsSavingProfile] = React.useState(false)
+  const [isSavingPhoto, setIsSavingPhoto] = React.useState(false)
+  const [isPhotoDialogOpen, setIsPhotoDialogOpen] = React.useState(false)
   const [isRegisteringPasskey, setIsRegisteringPasskey] = React.useState(false)
 
-  async function handleSaveProfile(
-    input: Parameters<typeof saveProfile>[0],
-    avatarFile: File | null
-  ) {
+  async function handleSaveProfile(input: Parameters<typeof saveProfile>[0]) {
     setIsSavingProfile(true)
 
     try {
-      await notify.track((async () => {
-        const avatarUrl = avatarFile
-          ? await uploadAvatarFile(avatarFile)
-          : input.avatarUrl
-
-        await saveProfile({
-          ...input,
-          avatarUrl,
-        })
-      })(), settingsCopy.feedback.profile)
+      await notify.track(saveProfile(input), settingsCopy.feedback.profile)
     } finally {
       setIsSavingProfile(false)
+    }
+  }
+
+  async function handleSavePhotoFile(file: File) {
+    if (!profile) {
+      return
+    }
+
+    setIsSavingPhoto(true)
+
+    try {
+      await notify.track((async () => {
+        const avatarUrl = await uploadAvatarFile(file)
+
+        await saveProfile({
+          avatarUrl,
+          email: profile.email,
+          name: profile.name,
+        })
+      })(), settingsCopy.feedback.profile)
+      setIsPhotoDialogOpen(false)
+    } finally {
+      setIsSavingPhoto(false)
+    }
+  }
+
+  async function handleSavePhotoUrl(avatarUrl: string | null) {
+    if (!profile) {
+      return
+    }
+
+    setIsSavingPhoto(true)
+
+    try {
+      await notify.track(saveProfile({
+        avatarUrl,
+        email: profile.email,
+        name: profile.name,
+      }), settingsCopy.feedback.profile)
+      setIsPhotoDialogOpen(false)
+    } finally {
+      setIsSavingPhoto(false)
     }
   }
 
@@ -144,7 +180,7 @@ export function SettingsRoute() {
   }
 
   return (
-    <PageSection>
+    <PageSection className="mx-auto w-full max-w-5xl pb-6">
       <PageHeader title={settingsCopy.page.title} subtitle={settingsCopy.page.subtitle} />
       <div className="grid gap-4">
         {error ? (
@@ -166,6 +202,7 @@ export function SettingsRoute() {
           profile={profile}
           isSaving={isSavingProfile}
           onSave={handleSaveProfile}
+          onOpenPhotoDialog={() => setIsPhotoDialogOpen(true)}
         />
         <SettingsSecuritySection
           security={security}
@@ -180,6 +217,17 @@ export function SettingsRoute() {
           </AlertDescription>
         </Alert>
       </div>
+      {isPhotoDialogOpen ? (
+        <ProfilePhotoDialog
+          avatarUrl={profile.avatarUrl}
+          fallback={getProfileInitials(profile.name)}
+          isSaving={isSavingPhoto}
+          onOpenChange={setIsPhotoDialogOpen}
+          onSaveFile={handleSavePhotoFile}
+          onSaveUrl={handleSavePhotoUrl}
+          open={isPhotoDialogOpen}
+        />
+      ) : null}
     </PageSection>
   )
 }

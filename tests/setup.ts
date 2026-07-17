@@ -4,7 +4,6 @@ import * as React from "react"
 import { beforeEach, vi } from "vitest"
 
 import {
-  createMemoryNotificationsGateway,
   setNotificationsGateway,
   type NotificationRecord,
 } from "@/features/notifications"
@@ -14,17 +13,39 @@ import {
 } from "@/features/users/services/users-gateway"
 import { type UserRecord } from "@/features/users/types/users-types"
 
+import { createMemoryNotificationsGateway } from "./helpers/notifications-memory-gateway"
+
+if (!HTMLElement.prototype.hasPointerCapture) {
+  Object.defineProperties(HTMLElement.prototype, {
+    hasPointerCapture: {
+      value: () => false,
+    },
+    releasePointerCapture: {
+      value: () => undefined,
+    },
+    setPointerCapture: {
+      value: () => undefined,
+    },
+  })
+}
+
+if (!HTMLElement.prototype.scrollIntoView) {
+  Object.defineProperty(HTMLElement.prototype, "scrollIntoView", {
+    value: () => undefined,
+  })
+}
+
 const { testAuthContext, testAuthSession } = vi.hoisted(() => {
   const profile = {
     authUserId: "test-auth-user",
     avatarPath: null,
     avatarUrl: null,
     cpfMasked: "***.***.***-25",
-    email: "igor.nicoletti@redemontecarlo.com",
+    email: "admin.test@example.com",
     id: "USR-001",
-    name: "Igor Nicoletti",
+    name: "Administrador Teste",
     passkeyStatus: "active",
-    phoneMasked: "(17) 99130-4197",
+    phoneMasked: "(11) 90000-0001",
     permissions: ["*"],
     role: "owner",
     status: "active",
@@ -100,11 +121,11 @@ const { testAuthContext, testAuthSession } = vi.hoisted(() => {
 const seedUsers: UserRecord[] = [
   {
     authUserId: "03eb9a74-9507-41b6-9965-b5e106eb8d49",
-    cpf: "529.982.247-25",
-    email: "ana.pereira@redemontecarlo.com",
+    cpf: "111.444.777-35",
+    email: "usuario.teste@example.com",
     id: "USR-001",
     lastAccessAt: "2026-07-01 08:25",
-    name: "Ana Pereira",
+    name: "Usuario Teste",
     passkeyStatus: "active",
     phoneMasked: "(11) 98888-7777",
     role: "manager",
@@ -114,11 +135,11 @@ const seedUsers: UserRecord[] = [
   },
   {
     authUserId: "03eb9a74-9507-41b6-9965-b5e106eb8d49",
-    cpf: "111.444.777-35",
-    email: "carlos.lima@redemontecarlo.com",
+    cpf: "935.411.347-80",
+    email: "operador.teste@example.com",
     id: "USR-002",
     lastAccessAt: null,
-    name: "Carlos Lima",
+    name: "Operador Teste",
     passkeyStatus: "inactive",
     phoneMasked: "(11) 97777-6666",
     role: "operator",

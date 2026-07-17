@@ -94,5 +94,8 @@ describe("Clients routes", () => {
       screen.getByRole("heading", { name: "Auto Center Alfa Ltda" })
     ).toBeInTheDocument()
     expect(screen.getByText("ABC1D23")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Voltar" })).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Histórico" })).not.toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: "Sincronizar" })).not.toBeInTheDocument()
   }, 15_000)
 })

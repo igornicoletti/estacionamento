@@ -13,13 +13,13 @@ import { isGlobalRole, requiresSingleUnit } from "@/features/users/types/users-t
 
 describe("auth validation and authorization contracts", () => {
   it("validates CPF before allowing the password flow", () => {
-    expect(authCpfSchema.safeParse("529.982.247-25").success).toBe(true)
+    expect(authCpfSchema.safeParse("123.456.789-09").success).toBe(true)
     expect(authCpfSchema.safeParse("111.111.111-11").success).toBe(false)
   })
 
   it("requires current credentials and a strong matching replacement password", () => {
     expect(authLoginSchema.safeParse({
-      cpf: "529.982.247-25",
+      cpf: "123.456.789-09",
       password: "temporary",
     }).success).toBe(true)
     expect(requiredPasswordSchema.safeParse({
@@ -30,7 +30,7 @@ describe("auth validation and authorization contracts", () => {
 
   it("keeps recovery request inputs generic and validated", () => {
     const result = authRecoverySchema.safeParse({
-      cpf: "529.982.247-25",
+      cpf: "123.456.789-09",
       description: "",
       email: "",
       phone: "11987654321",

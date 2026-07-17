@@ -1,4 +1,4 @@
-import { render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
 import { SettingsRoute } from "@/features/settings"
@@ -20,5 +20,16 @@ describe("SettingsRoute", () => {
     expect(screen.getByText("Alterações auditadas")).toBeInTheDocument()
     expect(screen.getByText("Passkey")).toBeInTheDocument()
     expect(screen.getByText("Ativa")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Alterar foto" }))
+
+    expect(screen.getByRole("dialog")).toBeInTheDocument()
+    expect(screen.getByText("PNG, JPG ou WebP até 5 MB")).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }))
+
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    })
   })
 })

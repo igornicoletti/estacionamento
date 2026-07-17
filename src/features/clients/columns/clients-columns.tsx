@@ -38,7 +38,7 @@ export function createClientsColumns(options: CreateClientsColumnsOptions): Colu
         >
           <span className="inline-flex items-center gap-1">
             {row.original.nom_pessoa}
-            {row.original.vip === "sim" ? <CrownIcon aria-label="Cliente VIP" className="size-4 text-amber-500" /> : null}
+            {row.original.vip === "sim" ? <CrownIcon aria-label={clientsCopy.accessibility.clientVip} className="size-4 text-amber-500" /> : null}
           </span>
         </DataTableTextAction>
       ),
@@ -109,7 +109,7 @@ export function createClientsColumns(options: CreateClientsColumnsOptions): Colu
     createActionsColumn<ClientTableRow>([
       {
         id: "details",
-        label: "Detalhes",
+        label: clientsCopy.actions.details,
         onSelect: (row) => options.onOpenDetails(row.original),
       },
       {

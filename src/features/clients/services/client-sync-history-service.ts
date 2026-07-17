@@ -3,6 +3,7 @@ import {
   normalizeSyncErrorDetails,
   normalizeSyncHistoryMessage,
 } from "@/features/sync/utils/sync-history-errors"
+import { clientsCopy } from "../clients-copy"
 import { type ClientSyncHistoryEntry } from "../types/clients-sync-history-types"
 
 const SYNC_HISTORY_LIMIT = 50
@@ -134,7 +135,7 @@ export async function listClientSyncHistory(): Promise<ClientSyncHistoryEntry[]>
     .limit(SYNC_HISTORY_LIMIT)
 
   if (error) {
-    throw new Error(error.message)
+    throw new Error(clientsCopy.sync.historyLoadError, { cause: error })
   }
 
   const rows: unknown = data

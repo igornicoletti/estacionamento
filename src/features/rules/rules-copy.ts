@@ -127,4 +127,23 @@ export const rulesCopy = {
       error: "Não foi possível atualizar a regra.",
     },
   },
+  auditReasons: {
+    create: {
+      fuelBenefit: "Cadastro administrativo de regra de abastecimento.",
+      vip: "Cadastro administrativo de regra de cliente VIP.",
+      yardCleaning: "Cadastro administrativo de alerta de limpeza de pátio.",
+    },
+    activate: {
+      fuelBenefit: "Ativação administrativa de regra de abastecimento.",
+      vip: "Ativação administrativa de regra VIP.",
+      yardCleaning: "Ativação administrativa de alerta de limpeza de pátio.",
+      yardStaleVehicle: "Ativação administrativa de alerta de permanência no pátio.",
+    },
+    deactivate: {
+      fuelBenefit: "Inativação administrativa de regra de abastecimento.",
+      vip: "Inativação administrativa de regra VIP.",
+      yardCleaning: "Inativação administrativa de alerta de limpeza de pátio.",
+      yardStaleVehicle: "Inativação administrativa de alerta de permanência no pátio.",
+    },
+  },
 } as const

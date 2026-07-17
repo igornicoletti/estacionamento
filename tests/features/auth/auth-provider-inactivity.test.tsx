@@ -25,16 +25,16 @@ const signInWithPassword = vi.fn(() =>
 const getCurrentAuthProfile = vi.fn<() => Promise<AuthProfile | null>>()
 
 const profile: AuthProfile = {
-  authUserId: "auth-user-igor",
+  authUserId: "auth-user-admin-test",
   avatarPath: null,
   avatarUrl: null,
-  cpfMasked: "***.982.247-**",
-  email: "igor.nicoletti@redemontecarlo.com",
-  id: "app-user-igor",
-  name: "Igor Nicoletti",
+  cpfMasked: "***.456.789-**",
+  email: "admin.test@example.com",
+  id: "app-user-admin-test",
+  name: "Administrador Teste",
   passkeyStatus: "active",
   permissions: [AUTH_PERMISSION.all],
-  phoneMasked: "(17) *****-4197",
+  phoneMasked: "(11) *****-0001",
   role: {
     id: null,
     key: AUTH_ROLE_KEY.owner,

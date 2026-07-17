@@ -1,5 +1,6 @@
 export { SyncBlockingDialog } from "./components/sync-blocking-dialog"
 export { SyncHistoryDialog } from "./components/sync-history-dialog"
+export { syncCopy } from "./sync-copy"
 export type {
   SyncCounters,
   SyncHistoryCounter,

@@ -1,6 +1,6 @@
 # Units
 
-Feature responsável por listagem de unidades sincronizadas do ERP, usuários vinculados por unidade, configuração de pátio e histórico de sincronização.
+Feature responsável por listagem de unidades sincronizadas do ERP, funcionários vinculados por unidade, configuração de pátio e histórico de sincronização.
 
 ## Decisões de implementação
 

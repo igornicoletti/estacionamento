@@ -137,8 +137,8 @@ export function UnitsRoute() {
       )
       setConfiguringUnit(null)
       setYardError(null)
-    } catch (caughtError) {
-      setYardError(caughtError instanceof Error ? caughtError.message : unitsCopy.yard.feedback.error)
+    } catch {
+      setYardError(unitsCopy.yard.feedback.error)
     }
   }
 
@@ -265,7 +265,7 @@ export function UnitsRoute() {
             <FieldLabel>{unitsCopy.yard.statusLabel}</FieldLabel>
             <Select value={yardStatus} onValueChange={(value) => setYardStatus(value === "active" ? "active" : "inactive")} disabled={isSavingYard}>
               <SelectTrigger className="w-full data-[size=default]:h-9">
-                <SelectValue placeholder="Selecione" />
+                <SelectValue placeholder={unitsCopy.yard.statusPlaceholder} />
               </SelectTrigger>
               <SelectContent position="popper">
                 <SelectItem value="active">{unitsCopy.yard.statusActive}</SelectItem>

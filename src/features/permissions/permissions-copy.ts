@@ -5,9 +5,7 @@ export const permissionsCopy = {
       "Consulte a matriz efetiva de permissões por perfil registrada no banco.",
   },
   filters: {
-    access: "Acesso",
     groups: "Grupos",
-    roles: "Perfis",
     source: "Origem",
     searchPlaceholder: "Buscar permissões...",
   },
@@ -37,7 +35,7 @@ export const permissionsCopy = {
   empty: {
     title: "Nenhuma permissão cadastrada",
     description:
-      "A matriz de permissões ainda não foi carregada ou seedada no banco.",
+      "A matriz de permissões ainda não foi carregada no banco.",
   },
   filteredEmpty: {
     title: "Nenhuma permissão encontrada",

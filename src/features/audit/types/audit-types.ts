@@ -26,6 +26,7 @@ export const auditSeverityLabels: Record<AuditSeverity, string> = {
  */
 export const auditEventLabels: Record<string, string> = {
   account_locked: "Conta bloqueada",
+  admin_user_action_denied: "Ação administrativa negada",
   access_recovery_requested: "Recuperação de acesso solicitada",
   access_recovery_reviewed: "Recuperação de acesso revisada",
   "client.synced": "Clientes sincronizados",

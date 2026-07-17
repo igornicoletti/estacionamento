@@ -65,7 +65,7 @@ describe("Unit users route", () => {
     fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
 
     const usersMenuItem = await screen.findByRole("menuitem", {
-      name: "Usuários",
+      name: "Funcionários",
     })
     fireEvent.click(usersMenuItem)
 
