@@ -38,7 +38,9 @@ const routeErrorMediaByStatus: Record<number, ReactNode> = {
 
 function getRouteErrorContent(error: unknown): RouteErrorContent {
   if (isRouteErrorResponse(error)) {
-    const copy = appCopy.routeError.byStatus[error.status as keyof typeof appCopy.routeError.byStatus]
+    const copy = appCopy.routeError.byStatus[
+      error.status as keyof typeof appCopy.routeError.byStatus
+    ]
 
     return {
       media: routeErrorMediaByStatus[error.status] ?? <AlertTriangleIcon />,
@@ -104,7 +106,7 @@ export function RouteErrorBoundary() {
               }}
             >
               <RotateCcwIcon />
-              Tentar novamente
+              {appCopy.routeError.retry}
             </Button>
             <Button asChild variant="link" size="lg">
               <Link to={appRoutePaths.home} replace>

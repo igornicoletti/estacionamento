@@ -759,7 +759,7 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
   await writeAuditEvent({
     actor: requestedBy ? "usuario" : "sistema",
     actorUserId: requestedBy ?? undefined,
-    event: "client.synced",
+    event: "client_synced",
     scope: "system",
     severity: status === "failed" ? "critical" : status === "warning" ? "warning" : "info",
     success: status !== "failed",
@@ -837,7 +837,7 @@ async function registerFailedSyncRun(
     await writeAuditEvent({
       actor: requestedBy ? "usuario" : "sistema",
       actorUserId: requestedBy ?? undefined,
-      event: "client.synced",
+      event: "client_synced",
       scope: "system",
       severity: "critical",
       success: false,

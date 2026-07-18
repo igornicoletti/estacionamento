@@ -1,7 +1,7 @@
-import type { ComponentType } from "react"
-
 import { appCopy } from "@/app/app-copy"
 import { AUTH_PERMISSION, type AuthPermission } from "@/features/auth"
+
+import { routeLazyLoaders, type LazyRouteLoader } from "./route-lazy-loaders"
 
 export const appRouteIds = {
   root: "root",
@@ -75,13 +75,10 @@ export const appRouteGroupIds = {
 
 export const appPermissionKeys = AUTH_PERMISSION
 
-
 export type AppRouteId = (typeof appRouteIds)[keyof typeof appRouteIds]
 export type AppRoutePath = (typeof appRoutePaths)[keyof typeof appRoutePaths]
 export type AppRouteGroupId =
   (typeof appRouteGroupIds)[keyof typeof appRouteGroupIds]
-
-type LazyRouteLoader = () => Promise<{ Component: ComponentType }>
 
 export interface AppRouteRegistryItem {
   id: AppRouteId
@@ -105,10 +102,7 @@ export const publicRouteRegistry = [
     href: appRoutePaths.login,
     label: appCopy.routes.login.label,
     description: appCopy.routes.login.description,
-    lazy: () =>
-      import("@/features/auth/routes/auth-login-route").then((module) => ({
-        Component: module.AuthLoginRoute,
-      })),
+    lazy: routeLazyLoaders.login,
   },
   {
     id: appRouteIds.recovery,
@@ -116,10 +110,7 @@ export const publicRouteRegistry = [
     href: appRoutePaths.recovery,
     label: appCopy.routes.recovery.label,
     description: appCopy.routes.recovery.description,
-    lazy: () =>
-      import("@/features/auth/routes/auth-recovery-route").then((module) => ({
-        Component: module.AuthRecoveryRoute,
-      })),
+    lazy: routeLazyLoaders.recovery,
   },
 ] as const satisfies readonly AppRouteRegistryItem[]
 
@@ -136,16 +127,26 @@ export const authenticatedRouteRegistry = [
     },
   },
   {
+    id: appRouteIds.yard,
+    path: appRouteSegments.yard,
+    href: appRoutePaths.yard,
+    label: appCopy.routes.yard.label,
+    description: appCopy.routes.yard.description,
+    requiredPermissions: [appPermissionKeys.unitsRead],
+    lazy: routeLazyLoaders.yard,
+    navigation: {
+      group: appRouteGroupIds.workspace,
+      order: 1,
+    },
+  },
+  {
     id: appRouteIds.units,
     path: appRouteSegments.units,
     href: appRoutePaths.units,
     label: appCopy.routes.units.label,
     description: appCopy.routes.units.description,
     requiredPermissions: [appPermissionKeys.unitsRead],
-    lazy: () =>
-      import("@/features/units").then((module) => ({
-        Component: module.UnitsRoute,
-      })),
+    lazy: routeLazyLoaders.units,
     navigation: {
       group: appRouteGroupIds.records,
       order: 10,
@@ -158,10 +159,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.clients.label,
     description: appCopy.routes.clients.description,
     requiredPermissions: [appPermissionKeys.clientsRead],
-    lazy: () =>
-      import("@/features/clients").then((module) => ({
-        Component: module.ClientsRoute,
-      })),
+    lazy: routeLazyLoaders.clients,
     navigation: {
       group: appRouteGroupIds.records,
       order: 20,
@@ -174,10 +172,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.prices.label,
     description: appCopy.routes.prices.description,
     requiredPermissions: [appPermissionKeys.pricesRead],
-    lazy: () =>
-      import("@/features/prices").then((module) => ({
-        Component: module.PricesRoute,
-      })),
+    lazy: routeLazyLoaders.prices,
     navigation: {
       group: appRouteGroupIds.commercial,
       order: 10,
@@ -190,10 +185,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.rules.label,
     description: appCopy.routes.rules.description,
     requiredPermissions: [appPermissionKeys.rulesRead],
-    lazy: () =>
-      import("@/features/rules").then((module) => ({
-        Component: module.RulesRoute,
-      })),
+    lazy: routeLazyLoaders.rules,
     navigation: {
       group: appRouteGroupIds.commercial,
       order: 20,
@@ -206,10 +198,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.users.label,
     description: appCopy.routes.users.description,
     requiredPermissions: [appPermissionKeys.usersRead],
-    lazy: () =>
-      import("@/features/users").then((module) => ({
-        Component: module.UsersRoute,
-      })),
+    lazy: routeLazyLoaders.users,
     navigation: {
       group: appRouteGroupIds.access,
       order: 10,
@@ -222,10 +211,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.accessRequests.label,
     description: appCopy.routes.accessRequests.description,
     requiredPermissions: [appPermissionKeys.accessRequestsRead],
-    lazy: () =>
-      import("@/features/access-requests").then((module) => ({
-        Component: module.AccessRequestsRedirectRoute,
-      })),
+    lazy: routeLazyLoaders.accessRequests,
   },
   {
     id: appRouteIds.permissions,
@@ -234,10 +220,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.permissions.label,
     description: appCopy.routes.permissions.description,
     requiredPermissions: [appPermissionKeys.permissionsRead],
-    lazy: () =>
-      import("@/features/permissions").then((module) => ({
-        Component: module.PermissionsRoute,
-      })),
+    lazy: routeLazyLoaders.permissions,
     navigation: {
       group: appRouteGroupIds.access,
       order: 30,
@@ -250,10 +233,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.audit.label,
     description: appCopy.routes.audit.description,
     requiredPermissions: [appPermissionKeys.auditRead],
-    lazy: () =>
-      import("@/features/audit").then((module) => ({
-        Component: module.AuditRoute,
-      })),
+    lazy: routeLazyLoaders.audit,
     navigation: {
       group: appRouteGroupIds.monitoring,
       order: 10,
@@ -266,10 +246,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.notifications.label,
     description: appCopy.routes.notifications.description,
     requiredPermissions: [appPermissionKeys.notificationsRead],
-    lazy: () =>
-      import("@/features/notifications/routes/notifications-route").then((module) => ({
-        Component: module.NotificationsRoute,
-      })),
+    lazy: routeLazyLoaders.notifications,
     navigation: {
       group: appRouteGroupIds.monitoring,
       order: 20,
@@ -282,29 +259,10 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.settings.label,
     description: appCopy.routes.settings.description,
     requiredPermissions: [appPermissionKeys.settingsReadSelf],
-    lazy: () =>
-      import("@/features/settings").then((module) => ({
-        Component: module.SettingsRoute,
-      })),
+    lazy: routeLazyLoaders.settings,
     navigation: {
       group: appRouteGroupIds.utilities,
       order: 10,
-    },
-  },
-  {
-    id: appRouteIds.yard,
-    path: appRouteSegments.yard,
-    href: appRoutePaths.yard,
-    label: appCopy.routes.yard.label,
-    description: appCopy.routes.yard.description,
-    requiredPermissions: [appPermissionKeys.unitsRead],
-    lazy: () =>
-      import("@/features/yard/routes/yard-route").then((module) => ({
-        Component: module.YardRoute,
-      })),
-    navigation: {
-      group: appRouteGroupIds.workspace,
-      order: 1,
     },
   },
   {
@@ -313,10 +271,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.clientVehicles.label,
     description: appCopy.routes.clientVehicles.description,
     requiredPermissions: [appPermissionKeys.clientVehiclesRead],
-    lazy: () =>
-      import("@/features/clients").then((module) => ({
-        Component: module.ClientVehiclesRoute,
-      })),
+    lazy: routeLazyLoaders.clientVehicles,
   },
   {
     id: appRouteIds.unitUsers,
@@ -324,10 +279,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.users.label,
     description: appCopy.routes.users.description,
     requiredPermissions: [appPermissionKeys.unitsRead, appPermissionKeys.usersRead],
-    lazy: () =>
-      import("@/features/units").then((module) => ({
-        Component: module.UnitUsersRoute,
-      })),
+    lazy: routeLazyLoaders.unitUsers,
   },
   {
     id: appRouteIds.settingsProfileAlias,
@@ -336,10 +288,7 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.settings.label,
     description: appCopy.routes.settings.description,
     requiredPermissions: [appPermissionKeys.settingsReadSelf],
-    lazy: () =>
-      import("@/features/settings").then((module) => ({
-        Component: module.SettingsRoute,
-      })),
+    lazy: routeLazyLoaders.settings,
   },
 ] as const satisfies readonly AppRouteRegistryItem[]
 

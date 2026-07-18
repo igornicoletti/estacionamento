@@ -1,11 +1,11 @@
+import { auditCopy } from "../constants"
+import { getAuditEventLabel, humanizeAuditIdentifier } from "./audit-event-labels"
 import {
-  getAuditEventLabel,
   isAuditScope,
   isAuditSeverity,
   type AuditEvent,
   type RawAuditEventPayload,
-} from "../types/audit-types"
-import { auditCopy } from "../audit-copy"
+} from "./audit-types"
 
 const auditTechnicalValueLabels: Readonly<Record<string, string>> =
   auditCopy.technical.valueLabels
@@ -33,20 +33,7 @@ function toSentenceCase(value: string) {
 }
 
 function humanizeTechnicalIdentifier(value: string) {
-  const mapped = auditTechnicalValueLabels[value]
-
-  if (mapped) {
-    return mapped
-  }
-
-  const humanized = value
-    .replace(/([a-z])([A-Z])/g, "$1 $2")
-    .replace(/[._-]+/g, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .toLocaleLowerCase("pt-BR")
-
-  return toSentenceCase(humanized)
+  return auditTechnicalValueLabels[value] ?? humanizeAuditIdentifier(value)
 }
 
 function sanitizeTechnicalMessage(value: string) {
@@ -61,9 +48,7 @@ function sanitizeTechnicalMessage(value: string) {
     return auditCopy.technical.messages.externalService
   }
 
-  return normalized
-    .replace(/https?:\/\/\S+/gi, "serviço externo")
-    .replace(/[<>]/g, "")
+  return normalized.replace(/https?:\/\/\S+/gi, "serviço externo").replace(/[<>]/g, "")
 }
 
 function sanitizeText(value: unknown) {
@@ -114,14 +99,35 @@ function sanitizeBoolean(value: unknown): boolean {
   return value === true
 }
 
+function isSanitizableMetadataValue(value: unknown) {
+  return (
+    value === null ||
+    typeof value === "string" ||
+    typeof value === "number" ||
+    typeof value === "boolean"
+  )
+}
+
 function sanitizeMetadata(value: unknown): Record<string, unknown> | null {
   if (!value || typeof value !== "object" || Array.isArray(value)) {
     return null
   }
 
-  const entries = Object.entries(value as Record<string, unknown>)
+  const metadata = Object.entries(value as Record<string, unknown>).reduce<
+    Record<string, unknown>
+  >((accumulator, [key, item]) => {
+    const normalizedKey = sanitizeRawText(key)
 
-  return entries.length > 0 ? (value as Record<string, unknown>) : null
+    if (!normalizedKey || !isSanitizableMetadataValue(item)) {
+      return accumulator
+    }
+
+    accumulator[normalizedKey] = typeof item === "string" ? sanitizeTechnicalMessage(item) : item
+
+    return accumulator
+  }, {})
+
+  return Object.keys(metadata).length > 0 ? metadata : null
 }
 
 export function sanitizeAuditEventPayload(

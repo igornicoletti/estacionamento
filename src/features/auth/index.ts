@@ -1,30 +1,28 @@
 export {
+  AuthApiError,
   completeRequiredPassword,
   getCurrentAuthProfile,
   isPasskeySupported,
+  registerAuthenticatedPasskey,
   registerCurrentPasskey,
   requestAccessRecovery,
   signInWithPasskey,
   signInWithPassword,
   signOutCurrentSession,
-  subscribeToAuthSessionChanges
-} from "./api/auth-api"
-
-export type {
-  AppUserProfile,
-  AuthFlowActionResponse,
-  AuthFlowStep,
-  AuthPasskeyRegistrationResult,
-  AuthPasswordNextAction,
-  AuthPasswordResponse,
-  AuthProfile,
-  AuthRoleProfile,
-  AuthSessionPayload,
-  AuthStartResponse,
-  ProfileActionResponse,
-  RecoveryRequestResponse
-} from "./types/auth-types"
-
+  subscribeToAuthSessionChanges,
+} from "./api"
+export {
+  allRoles,
+  canManageRole,
+  getAssignableRoles,
+  hasAllPermissions,
+  hasAnyPermission,
+  isGlobalRole,
+  isRoleSuperior,
+  permissionsByRole,
+  unitScopedRoles,
+} from "./authorization"
+export { AuthPageCard } from "./components"
 export {
   AUTH_FUNCTIONS,
   AUTH_INACTIVITY,
@@ -46,16 +44,19 @@ export {
   type AuthNextAction,
   type AuthPermission,
   type AuthRoleKey,
-  type AuthStatus
-} from "./contracts/auth-contracts"
-
-export { authCopy } from "./copy/auth-copy"
-
+  type AuthStatus,
+} from "./contracts"
+export { authCopy } from "./copy"
 export {
+  AuthContext,
   AuthProvider,
+  clearAuthInactivitySessionExpired,
   consumeAuthInactivitySessionExpired,
+  createAuthAccessState,
   markAuthInactivitySessionExpired,
+  readAuthInactivitySessionExpired,
   useAuth,
+  useAuthInactivity,
   useAuthSession,
   type AuthAccessState,
   type AuthActions,
@@ -63,23 +64,23 @@ export {
   type AuthInactivityState,
   type AuthSessionStatus,
   type AuthSessionValue,
-  type RequiredPasswordChallenge
-} from "./context/auth-provider"
-
-export { AuthPageCard } from "./components/auth-page-card"
-
-export {
-  allRoles,
-  canManageRole,
-  getAssignableRoles,
-  hasAllPermissions,
-  hasAnyPermission,
-  isGlobalRole,
-  isRoleSuperior,
-  permissionsByRole,
-  unitScopedRoles
-} from "./authorization/authorization-policy"
-
+  type RequiredPasswordChallenge,
+} from "./context"
+export { AuthLoginRoute, AuthRecoveryRoute } from "./routes"
+export type {
+  AppUserProfile,
+  AuthFlowActionResponse,
+  AuthFlowStep,
+  AuthPasskeyRegistrationResult,
+  AuthPasswordNextAction,
+  AuthPasswordResponse,
+  AuthProfile,
+  AuthRoleProfile,
+  AuthSessionPayload,
+  AuthStartResponse,
+  ProfileActionResponse,
+  RecoveryRequestResponse,
+} from "./types"
 export {
   authCpfSchema,
   authLoginSchema,
@@ -98,5 +99,5 @@ export {
   type AuthRecoveryPayload,
   type FieldErrors,
   type RecoveryReason,
-  type RequiredPasswordValues
-} from "./validation/auth-validation"
+  type RequiredPasswordValues,
+} from "./validation"

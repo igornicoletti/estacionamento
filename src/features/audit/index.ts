@@ -1,30 +1,34 @@
-export { auditCopy } from "./audit-copy"
+export { auditCopy } from "./constants"
 export {
-  createAuditColumns,
-  getAuditEventDetails,
-  getAuditOutcomeLabel
-} from "./columns/audit-columns"
-export { useAudit } from "./hooks/use-audit"
-export { AuditRoute } from "./routes/audit-route"
-export { listAuditEvents } from "./services/audit-service"
+  AUDIT_EVENTS_FETCH_LIMIT,
+  AUDIT_TABLE_COLUMN_VISIBILITY_KEY,
+  AUDIT_TABLE_STATE_KEY,
+} from "./constants"
+export { useAudit, useAuditTableState } from "./hooks"
 export {
   auditEventLabels,
   auditScopeLabels,
   auditScopeValues,
   auditSeverityLabels,
   auditSeverityValues,
+  filterAuditEvents,
+  getAuditEventDetails,
   getAuditEventLabel,
+  getAuditOutcomeLabel,
+  humanizeAuditIdentifier,
   isAuditScope,
   isAuditSeverity,
+  removeAuditColumnFilter,
+  resolveAuditOutcomeVariant,
+  resolveAuditSeverityVariant,
+  sanitizeAuditEventPayload,
+  sanitizeAuditEventsPayload,
   type AuditEvent,
+  type AuditEventDetailItem,
   type AuditScope,
   type AuditSeverity,
-  type RawAuditEventPayload
-} from "./types/audit-types"
-export {
-  filterAuditEvents
-} from "./utils/audit-filter-utils"
-export {
-  sanitizeAuditEventPayload,
-  sanitizeAuditEventsPayload
-} from "./utils/audit-normalizers"
+  type RawAuditEventPayload,
+} from "./model"
+export { AuditRoute } from "./routes"
+export { listAuditEvents, type AuditEventsResult } from "./services"
+export { createAuditColumns, createAuditFilterFields } from "./table"

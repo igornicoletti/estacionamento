@@ -1,7 +1,8 @@
+export { appCopy } from "./app-copy"
 export { AppProviders } from "./app-providers"
-export { AppRouter } from "./router/app-router"
-export { routes } from "./router/routes"
+export { AuthenticatedLayout } from "./layouts"
 export {
+  AppRouter,
   appPermissionKeys,
   appRouteGroupIds,
   appRouteIds,
@@ -10,9 +11,11 @@ export {
   authenticatedRouteRegistry,
   navigationGroups,
   publicRouteRegistry,
+  routeLazyLoaders,
+  routes,
   type AppRouteGroupId,
   type AppRouteId,
   type AppRoutePath,
   type AppRouteRegistryItem,
-} from "./router/route-registry"
-export { AuthenticatedLayout } from "./layouts/authenticated-layout"
+  type LazyRouteLoader,
+} from "./router"

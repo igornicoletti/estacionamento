@@ -28,7 +28,7 @@ interface CreateNotificationsColumnsOptions {
 function resolveNotificationStatusBadge(status: NotificationRecord["status"]) {
   if (status === "read") {
     return {
-      tone: undefined,
+      tone: "info" as const,
       variant: "default" as const,
     }
   }

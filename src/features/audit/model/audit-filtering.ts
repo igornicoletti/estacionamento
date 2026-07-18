@@ -2,7 +2,7 @@ import { type ColumnFiltersState } from "@tanstack/react-table"
 
 import { normalizeFilterText } from "@/components/data-table"
 
-import { type AuditEvent } from "../types/audit-types"
+import { type AuditEvent } from "./audit-types"
 
 const auditGlobalSearchFields: ReadonlyArray<(event: AuditEvent) => string> = [
   (event) => event.actorName,
@@ -13,7 +13,7 @@ const auditGlobalSearchFields: ReadonlyArray<(event: AuditEvent) => string> = [
 
 function resolveColumnFilterValues(
   columnFilters: ColumnFiltersState,
-  columnId: string
+  columnId: keyof AuditEvent
 ) {
   const value = columnFilters.find((filter) => filter.id === columnId)?.value
 
@@ -22,6 +22,13 @@ function resolveColumnFilterValues(
   }
 
   return value.map(String)
+}
+
+export function removeAuditColumnFilter(
+  columnFilters: ColumnFiltersState,
+  columnId: keyof AuditEvent
+) {
+  return columnFilters.filter((filter) => filter.id !== columnId)
 }
 
 export function filterAuditEvents(

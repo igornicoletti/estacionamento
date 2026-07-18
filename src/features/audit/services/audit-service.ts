@@ -1,8 +1,11 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
-import { auditCopy } from "../audit-copy"
-import { type AuditEvent, type RawAuditEventPayload } from "../types/audit-types"
-import { sanitizeAuditEventsPayload } from "../utils/audit-normalizers"
+import { auditCopy, AUDIT_EVENTS_FETCH_LIMIT } from "../constants"
+import {
+  sanitizeAuditEventsPayload,
+  type AuditEvent,
+  type RawAuditEventPayload,
+} from "../model"
 
 const AUDIT_EVENTS_SELECT = [
   "id",
@@ -20,20 +23,12 @@ const AUDIT_EVENTS_SELECT = [
   "metadata",
 ].join(",")
 
-const AUDIT_EVENTS_FETCH_LIMIT = 500
-
 export interface AuditEventsResult {
   events: AuditEvent[]
   isTruncated: boolean
   limit: number
 }
 
-/**
- * Reads from the real, append-only `public.audit_events` table. RLS
- * restricts visible rows to actors whose `app_users` role is
- * owner/admin/auditor, so callers without that role will simply get an
- * empty (or Supabase-error) result rather than seeing other users' data.
- */
 export async function listAuditEvents(): Promise<AuditEventsResult> {
   const supabase = getSupabaseBrowserClient()
 

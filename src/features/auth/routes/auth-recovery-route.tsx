@@ -53,12 +53,9 @@ function getInitialValues(): AuthRecoveryFormValues {
 export function AuthRecoveryRoute() {
   const copy = authCopy.recovery
   const [isSubmitting, setIsSubmitting] = React.useState(false)
-  const [values, setValues] =
-    React.useState<AuthRecoveryFormValues>(getInitialValues)
-  const [errors, setErrors] =
-    React.useState<FieldErrors<AuthRecoveryFormValues>>({})
+  const [values, setValues] = React.useState<AuthRecoveryFormValues>(getInitialValues)
+  const [errors, setErrors] = React.useState<FieldErrors<AuthRecoveryFormValues>>({})
   const isSubmittingRef = React.useRef(false)
-
   const shouldShowDescription = values.reason === "other"
 
   function updateTextValue(key: keyof Omit<AuthRecoveryFormValues, "reason">) {
@@ -121,7 +118,7 @@ export function AuthRecoveryRoute() {
     <main className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
       <AuthPageCard title={copy.title} description={copy.description}>
         <form
-          onSubmit={(event) => {
+          onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
             void handleSubmit(event)
           }}
           noValidate
@@ -182,7 +179,7 @@ export function AuthRecoveryRoute() {
               </FieldLabel>
               <Select
                 value={values.reason || undefined}
-                onValueChange={(value) => updateReasonValue(value as RecoveryReason)}
+                onValueChange={(value: string) => updateReasonValue(value as RecoveryReason)}
               >
                 <SelectTrigger
                   id="recovery-reason"

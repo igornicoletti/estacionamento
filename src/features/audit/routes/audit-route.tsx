@@ -1,119 +1,31 @@
-import {
-  type ColumnFiltersState,
-  type SortingState,
-} from "@tanstack/react-table"
 import * as React from "react"
 
-import {
-  createDataTableFilterOptions,
-  DataTable,
-} from "@/components/data-table"
+import { DataTable } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 
-import { auditCopy } from "../audit-copy"
-import { createAuditColumns, getAuditEventDetails } from "../columns/audit-columns"
-import { useAudit } from "../hooks/use-audit"
 import {
-  auditScopeLabels,
-  type AuditEvent,
-} from "../types/audit-types"
-import { filterAuditEvents } from "../utils/audit-filter-utils"
-
-const AUDIT_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.audit.columns.v2"
-const AUDIT_TABLE_STATE_KEY = "rmc.table.audit.state.v2"
-
-function removeColumnFilter(
-  columnFilters: ColumnFiltersState,
-  columnId: keyof AuditEvent
-) {
-  return columnFilters.filter((filter) => filter.id !== columnId)
-}
+  AUDIT_TABLE_COLUMN_VISIBILITY_KEY,
+  AUDIT_TABLE_STATE_KEY,
+  auditCopy,
+} from "../constants"
+import { useAudit, useAuditTableState } from "../hooks"
+import { getAuditEventDetails, type AuditEvent } from "../model"
 
 export function AuditRoute() {
-  const {
-    data: events,
-    error,
-    isLoading,
-    isTruncated,
-    limit,
-    refetch,
-  } = useAudit()
+  const { data: events, error, isLoading, isTruncated, limit, refetch } = useAudit()
   const [selectedEvent, setSelectedEvent] = React.useState<AuditEvent | null>(null)
-  const [globalFilter, setGlobalFilter] = React.useState("")
-  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
-  const [sorting, setSorting] = React.useState<SortingState>([
-    { id: "occurredAt", desc: true },
-  ])
-  const columns = React.useMemo(
-    () => createAuditColumns({ onOpenDetails: setSelectedEvent }),
-    []
-  )
-
-  const filteredEvents = React.useMemo(
-    () => filterAuditEvents(events, columnFilters, globalFilter),
-    [columnFilters, events, globalFilter]
-  )
-
-  const responsibleOptionEvents = React.useMemo(
-    () =>
-      filterAuditEvents(
-        events,
-        removeColumnFilter(columnFilters, "actorName"),
-        globalFilter
-      ),
-    [columnFilters, events, globalFilter]
-  )
-
-  const scopeOptionEvents = React.useMemo(
-    () =>
-      filterAuditEvents(
-        events,
-        removeColumnFilter(columnFilters, "scope"),
-        globalFilter
-      ),
-    [columnFilters, events, globalFilter]
-  )
-
-  const eventOptionEvents = React.useMemo(
-    () =>
-      filterAuditEvents(
-        events,
-        removeColumnFilter(columnFilters, "event"),
-        globalFilter
-      ),
-    [columnFilters, events, globalFilter]
-  )
-
-  const responsibleOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        responsibleOptionEvents,
-        (event) => event.actorName,
-        (event) => event.actorName
-      ),
-    [responsibleOptionEvents]
-  )
-
-  const eventOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        eventOptionEvents,
-        (event) => event.event,
-        (event) => event.eventLabel
-      ),
-    [eventOptionEvents]
-  )
-
-  const scopeOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        scopeOptionEvents,
-        (event) => event.scope,
-        (event) => auditScopeLabels[event.scope]
-      ),
-    [scopeOptionEvents]
-  )
+  const {
+    columnFilters,
+    columns,
+    filteredEvents,
+    filterFields,
+    globalFilter,
+    setColumnFilters,
+    setGlobalFilter,
+    setSorting,
+    sorting,
+  } = useAuditTableState(events, setSelectedEvent)
 
   return (
     <PageSection>
@@ -144,26 +56,7 @@ export function AuditRoute() {
         onColumnFiltersChange={setColumnFilters}
         sorting={sorting}
         onSortingChange={setSorting}
-        filterFields={[
-          {
-            id: "actorName",
-            title: auditCopy.filters.responsible,
-            options: responsibleOptions,
-            showCounts: true,
-          },
-          {
-            id: "scope",
-            title: auditCopy.filters.scopes,
-            options: scopeOptions,
-            showCounts: true,
-          },
-          {
-            id: "event",
-            title: auditCopy.filters.events,
-            options: eventOptions,
-            showCounts: true,
-          },
-        ]}
+        filterFields={filterFields}
         isLoading={isLoading}
         error={error}
         onRetry={() => {

@@ -88,7 +88,7 @@ function SettingsSessionDetails({ security }: { security: SettingsSecuritySummar
           <dt className="text-xs font-medium text-muted-foreground">
             {item.label}
           </dt>
-          <dd className="break-words text-sm text-foreground">{item.value}</dd>
+          <dd className="wrap-break-word text-sm text-foreground">{item.value}</dd>
         </div>
       ))}
     </dl>

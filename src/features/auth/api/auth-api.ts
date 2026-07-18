@@ -6,18 +6,20 @@ import {
   AUTH_STATUS,
   normalizeAuthStatus,
   resolveAuthProfilePermissions,
-} from "../contracts/auth-contracts"
-import { authCopy } from "../copy/auth-copy"
+} from "../contracts"
+import { authCopy } from "../copy"
 import type {
   AuthPasswordResponse,
   AuthPasskeyRegistrationResult,
   AuthProfile,
   AuthRoleProfile,
   AuthSessionPayload,
-} from "../types/auth-types"
-import type { AuthLoginPayload, AuthRecoveryPayload } from "../validation/auth-validation"
+} from "../types"
+import type { AuthLoginPayload, AuthRecoveryPayload } from "../validation"
 
 type UnknownRecord = Record<PropertyKey, unknown>
+
+type SupabaseBrowserClient = NonNullable<ReturnType<typeof getSupabaseBrowserClient>>
 
 export class AuthApiError extends Error {
   constructor(message: string = authCopy.errors.unavailable) {
@@ -59,21 +61,18 @@ function isExternalAvatarUrl(value: string) {
 }
 
 async function resolveProfileAvatarUrl(
-  supabase: ReturnType<typeof getSupabaseOrThrow>,
+  supabase: SupabaseBrowserClient,
   avatarReference: string | null
 ) {
   if (!avatarReference || isExternalAvatarUrl(avatarReference)) {
     return avatarReference
   }
 
-  const signedUrlResponse = await supabase
-    .storage
+  const signedUrlResponse = await supabase.storage
     .from("avatars")
     .createSignedUrl(avatarReference, 60 * 60)
 
-  return signedUrlResponse.error
-    ? null
-    : signedUrlResponse.data.signedUrl
+  return signedUrlResponse.error ? null : signedUrlResponse.data.signedUrl
 }
 
 function mapPasskeyRegistrationResult(
@@ -170,7 +169,7 @@ async function readFunctionErrorMessage(error: unknown) {
 
   if (context instanceof Response) {
     try {
-      const payload = await context.clone().json() as { message?: unknown }
+      const payload = (await context.clone().json()) as { message?: unknown }
 
       if (typeof payload.message === "string" && payload.message.trim()) {
         return payload.message
@@ -234,6 +233,7 @@ export async function getCurrentAuthProfile() {
   if (!supabase) {
     return null
   }
+
   const userResponse = await supabase.auth.getUser()
   const user = userResponse.data.user
 

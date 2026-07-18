@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { isValidCpf } from "@/lib/cpf"
 
-import { authCopy } from "../copy/auth-copy"
+import { authCopy } from "../copy"
 
 const cpfRegex = /^\d{11}$|^\d{3}\.\d{3}\.\d{3}-\d{2}$/
 const phoneRegex = /^\+?[0-9\s().-]{10,20}$/
@@ -65,7 +65,9 @@ export const authCpfSchema = z
   .trim()
   .min(1, { error: authCopy.validation.cpfRequired })
   .regex(cpfRegex, { error: authCopy.validation.cpfInvalid })
-  .refine((value) => isValidCpf(normalizeCpf(value)), { error: authCopy.validation.cpfInvalid })
+  .refine((value) => isValidCpf(normalizeCpf(value)), {
+    error: authCopy.validation.cpfInvalid,
+  })
 
 export const authPasswordSchema = z
   .string({ error: authCopy.validation.passwordRequired })

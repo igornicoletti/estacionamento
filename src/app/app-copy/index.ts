@@ -6,7 +6,7 @@ export const appCopy = {
     homeLabel: "Dashboard",
   },
   routeGroups: {
-    workspace: "",
+    workspace: "Área de trabalho",
     records: "Cadastros",
     commercial: "Comercial",
     access: "Acesso",
@@ -96,6 +96,7 @@ export const appCopy = {
   },
   routeError: {
     action: "Voltar para o início",
+    retry: "Tentar novamente",
     unexpected: {
       title: "Erro inesperado",
       description:

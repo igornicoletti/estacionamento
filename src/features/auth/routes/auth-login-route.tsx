@@ -56,14 +56,15 @@ export function AuthLoginRoute() {
     setSubmitMode("register-passkey")
 
     try {
-      await notify.track(auth.actions.registerRequiredPasskey({
-        cpf: cpfValue,
-        flowId,
-      }),
+      await notify.track(
+        auth.actions.registerRequiredPasskey({
+          cpf: cpfValue,
+          flowId,
+        }),
         {
           loading: authCopy.passkeyRegistration.loading,
           success: authCopy.passkeyRegistration.success,
-          error: (caughtError) =>
+          error: (caughtError: unknown) =>
             caughtError instanceof Error
               ? caughtError.message
               : authCopy.errors.passkeyRegistrationFailed,
@@ -132,7 +133,6 @@ export function AuthLoginRoute() {
 
     try {
       await auth.actions.signInWithPasskey()
-      return
     } catch (caughtError) {
       notify.error(
         caughtError instanceof Error
@@ -199,7 +199,7 @@ export function AuthLoginRoute() {
     <main className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
       <AuthPageCard title={copy.title} description={copy.description}>
         <form
-          onSubmit={(event) => {
+          onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
             void handleLoginSubmit(event)
           }}
           noValidate
@@ -213,7 +213,7 @@ export function AuthLoginRoute() {
               <Input
                 id="auth-cpf"
                 value={cpf}
-                onChange={(event) => setCpf(formatCpfInput(event.target.value))}
+                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setCpf(formatCpfInput(event.target.value))}
                 placeholder={copy.cpfPlaceholder}
                 inputMode="numeric"
                 autoComplete="username"
@@ -227,11 +227,11 @@ export function AuthLoginRoute() {
               id="auth-password"
               label={copy.passwordLabel}
               value={password}
-              onChange={(event) => setPassword(event.target.value)}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setPassword(event.target.value)}
               placeholder={copy.passwordPlaceholder}
               error={loginErrors.password}
               labelAction={
-                <Button asChild variant="link" size="lg" className="p-0 h-0">
+                <Button asChild variant="link" size="lg" className="h-0 p-0">
                   <Link to={appRoutePaths.recovery}>{copy.recoveryAction}</Link>
                 </Button>
               }
@@ -264,7 +264,7 @@ export function AuthLoginRoute() {
 
       <AppDialog
         open={auth.passwordChange.required}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           if (!open) {
             auth.actions.clearRequiredPasswordChallenge()
           }
@@ -273,7 +273,7 @@ export function AuthLoginRoute() {
         description={requiredPasswordCopy.description}
       >
         <form
-          onSubmit={(event) => {
+          onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
             void handleRequiredPasswordSubmit(event)
           }}
           noValidate
@@ -283,7 +283,7 @@ export function AuthLoginRoute() {
               id="auth-new-password"
               label={requiredPasswordCopy.newPasswordLabel}
               value={newPassword}
-              onChange={(event) => setNewPassword(event.target.value)}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setNewPassword(event.target.value)}
               autoComplete="new-password"
               error={passwordErrors.newPassword}
             />
@@ -291,7 +291,7 @@ export function AuthLoginRoute() {
               id="auth-confirm-password"
               label={requiredPasswordCopy.confirmPasswordLabel}
               value={confirmPassword}
-              onChange={(event) => setConfirmPassword(event.target.value)}
+              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(event.target.value)}
               autoComplete="new-password"
               error={passwordErrors.confirmPassword}
             />
@@ -313,7 +313,6 @@ export function AuthLoginRoute() {
         description={authCopy.inactivity.expiredDescription}
         actionLabel={authCopy.inactivity.expiredAction}
       />
-
     </main>
   )
 }

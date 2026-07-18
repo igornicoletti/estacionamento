@@ -9,14 +9,15 @@ import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { authCopy, useAuth } from "@/features/auth"
 import { cn } from "@/lib"
 
+function shouldAllowNaturalPageScroll(pathname: string) {
+  return pathname === appRoutePaths.settings || pathname === appRoutePaths.profile
+}
+
 export function AuthenticatedLayout() {
   const auth = useAuth()
   const inactivity = auth.inactivity
   const copy = authCopy.inactivity
   const location = useLocation()
-  const isNaturalFlowPage =
-    location.pathname === appRoutePaths.settings ||
-    location.pathname === appRoutePaths.profile
 
   return (
     <>
@@ -28,7 +29,9 @@ export function AuthenticatedLayout() {
             key={location.pathname}
             className={cn(
               "animate-page-in flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-y-auto overflow-x-clip p-4 md:p-6",
-              isNaturalFlowPage ? "md:overflow-y-auto" : "md:overflow-hidden"
+              shouldAllowNaturalPageScroll(location.pathname)
+                ? "md:overflow-y-auto"
+                : "md:overflow-hidden"
             )}
           >
             <Outlet />

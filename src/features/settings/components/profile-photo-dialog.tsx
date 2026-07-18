@@ -1,4 +1,4 @@
-import { LinkIcon, UploadCloudIcon } from "lucide-react"
+import { ImageUpIcon, LinkIcon, UploadCloudIcon } from "lucide-react"
 import * as React from "react"
 
 import { AppDialog } from "@/components/shared/app-dialog"
@@ -229,19 +229,14 @@ export function ProfilePhotoDialog({
                 <img
                   src={previewUrl}
                   alt=""
-                  className="max-h-48 w-auto rounded-md object-contain"
+                  className="h-full w-auto rounded-full object-cover"
                 />
               </span>
             ) : (
               <AppEmptyState
-                media={<UploadCloudIcon aria-hidden="true" />}
+                media={<ImageUpIcon aria-hidden="true" />}
                 title={settingsCopy.photoDialog.dropTitle}
                 description={settingsCopy.photoDialog.dropDescription}
-                actions={
-                  <span className="text-sm font-medium text-primary">
-                    {settingsCopy.photoDialog.browse}
-                  </span>
-                }
               />
             )}
           </FieldLabel>
