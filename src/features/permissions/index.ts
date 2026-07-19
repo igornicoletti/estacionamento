@@ -1,29 +1,40 @@
-export { createPermissionsColumns } from "./columns/permissions-columns"
-export { usePermissions } from "./hooks/use-permissions"
-export { permissionsCopy } from "./permissions-copy"
-export { PermissionsRoute } from "./routes/permissions-route"
-export { listPermissionMatrix } from "./services/permissions-service"
+export { PermissionAccessIcon } from "./components"
 export {
+  permissionsCopy,
   permissionAccessFilterLabels,
-  permissionAccessFilterValues,
+  permissionActionLabels,
+  permissionGroupLabels,
+  permissionObjectLabels,
   permissionRoleLabels,
-  permissionRoleValues,
   permissionSourceLabels,
-  permissionSourceValues,
-  type PermissionAccessFilter,
-  type PermissionMatrixRow,
-  type PermissionRole,
-  type PermissionRoleAccess,
-  type PermissionSource,
-} from "./types/permissions-types"
-export { getPermissionDetailItems } from "./utils/permissions-details-model"
+  PERMISSIONS_DEFAULT_COLUMN_VISIBILITY,
+  PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY,
+} from "./constants"
+export { usePermissions, usePermissionsTableFilters } from "./hooks"
 export {
   createEmptyRoleAccess,
   createPermissionRoleAccess,
   formatPermissionRoles,
   formatPermissionRolesWithoutAccess,
+  formatTechnicalPermissionKey,
+  getPermissionDetailItems,
   isPermissionRole,
   isPermissionSource,
   normalizePermissionMatrixRow,
+  permissionAccessFilterValues,
+  permissionRoleValues,
+  permissionSourceValues,
   sortPermissionRoles,
-} from "./utils/permissions-model"
+  type PermissionAccessFilter,
+  type PermissionMatrixResponse,
+  type PermissionMatrixRow,
+  type PermissionRole,
+  type PermissionRoleAccess,
+  type PermissionSource,
+  type RawPermissionGroupRow,
+  type RawPermissionRow,
+  type RawRolePermissionRow,
+} from "./model"
+export { PermissionsRoute } from "./routes"
+export { listPermissionMatrix } from "./services"
+export { createPermissionsColumns } from "./table"

@@ -1,8 +1,18 @@
-export { appCopy } from "./app-copy"
-export { AppProviders } from "./app-providers"
-export { AuthenticatedLayout } from "./layouts"
+export { appCopy } from "./constants/app-copy"
+export { AuthenticatedLayout } from "./layouts/authenticated-layout"
+export { AppProviders } from "./providers/app-providers"
+export { AppRouter } from "./router/app-router"
 export {
-  AppRouter,
+  AuthenticatedHomeRoute,
+  PrivateRouteGate,
+  PublicRouteGate,
+  RouteAccessDenied,
+  RouteLoadingState,
+  RouteNotFound
+} from "./router/route-elements"
+export { RouteErrorBoundary } from "./router/route-error-boundary"
+export { routeLazyLoaders, type LazyRouteLoader } from "./router/route-lazy-loaders"
+export {
   appPermissionKeys,
   appRouteGroupIds,
   appRouteIds,
@@ -11,11 +21,10 @@ export {
   authenticatedRouteRegistry,
   navigationGroups,
   publicRouteRegistry,
-  routeLazyLoaders,
-  routes,
   type AppRouteGroupId,
   type AppRouteId,
   type AppRoutePath,
   type AppRouteRegistryItem,
-  type LazyRouteLoader,
-} from "./router"
+  type AppRouteScrollMode
+} from "./router/route-registry"
+export { routes } from "./router/routes"

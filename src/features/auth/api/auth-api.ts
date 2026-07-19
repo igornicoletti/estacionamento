@@ -7,7 +7,7 @@ import {
   normalizeAuthStatus,
   resolveAuthProfilePermissions,
 } from "../contracts"
-import { authCopy } from "../copy"
+import { authCopy } from "../constants"
 import type {
   AuthPasswordResponse,
   AuthPasskeyRegistrationResult,
@@ -72,7 +72,7 @@ async function resolveProfileAvatarUrl(
     .from("avatars")
     .createSignedUrl(avatarReference, 60 * 60)
 
-  return signedUrlResponse.error ? null : signedUrlResponse.data.signedUrl
+  return signedUrlResponse.error ? null : signedUrlResponse.data?.signedUrl ?? null
 }
 
 function mapPasskeyRegistrationResult(

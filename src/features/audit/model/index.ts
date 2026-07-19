@@ -1,5 +1,4 @@
 export {
-  auditEventLabels,
   getAuditEventLabel,
   humanizeAuditIdentifier,
 } from "./audit-event-labels"
@@ -18,10 +17,6 @@ export {
   resolveAuditSeverityVariant,
 } from "./audit-outcome"
 export {
-  auditScopeLabels,
-  auditScopeValues,
-  auditSeverityLabels,
-  auditSeverityValues,
   isAuditScope,
   isAuditSeverity,
   type AuditEvent,

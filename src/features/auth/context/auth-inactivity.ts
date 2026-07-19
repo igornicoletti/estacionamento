@@ -123,9 +123,12 @@ export function useAuthInactivity({
     [canTrackInactivity, isWarningOpen, resetState, secondsRemaining]
   )
 
-  return {
-    clearTracking,
-    resetForProfile,
-    state,
-  }
+  return React.useMemo(
+    () => ({
+      clearTracking,
+      resetForProfile,
+      state,
+    }),
+    [clearTracking, resetForProfile, state]
+  )
 }

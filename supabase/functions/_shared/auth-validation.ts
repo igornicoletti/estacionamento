@@ -31,10 +31,7 @@ function isValidCpfChecksum(value: string) {
   )
 }
 
-const cpfSchema = cpfFormatSchema.refine(
-  isValidCpfChecksum,
-  "CPF inválido."
-)
+const cpfSchema = cpfFormatSchema.refine(isValidCpfChecksum, "CPF inválido.")
 const passwordSchema = z.string().min(8).max(128)
 export const newPasswordSchema = z
   .string()
@@ -45,9 +42,7 @@ export const newPasswordSchema = z
   .regex(/\d/)
   .regex(/[^A-Za-z0-9]/)
 
-export const authStartSchema = z.object({
-  cpf: cpfSchema,
-})
+export const authStartSchema = z.object({ cpf: cpfSchema })
 
 export const authPasswordSchema = z.object({
   cpf: cpfSchema,
@@ -85,10 +80,7 @@ export const adminUpdateUserSchema = z.object({
   unitId: z.string().optional(),
 })
 
-export const flowCpfSchema = z.object({
-  cpf: cpfSchema,
-  flowId: z.string().uuid(),
-})
+export const flowCpfSchema = z.object({ cpf: cpfSchema, flowId: z.string().uuid() })
 
 export const profilePasswordSchema = z.object({
   currentPassword: passwordSchema,
@@ -96,6 +88,12 @@ export const profilePasswordSchema = z.object({
 })
 
 export const profileUpdateSchema = z.object({
+  avatarPath: z
+    .string()
+    .trim()
+    .max(512)
+    .nullable()
+    .optional(),
   avatarUrl: z
     .string()
     .trim()

@@ -74,6 +74,7 @@ export function DataTableRowActions<TData>({
           variant="ghost"
           size="icon-lg"
           aria-label={label}
+          aria-haspopup="menu"
           className="data-[state=open]:bg-muted"
           onClick={(event) => {
             event.stopPropagation()

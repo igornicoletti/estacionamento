@@ -3,7 +3,6 @@ import {
   BellIcon,
   Building2Icon,
   ClipboardListIcon,
-  KeyRoundIcon,
   LayoutDashboardIcon,
   ParkingCircleIcon,
   ScrollTextIcon,
@@ -59,17 +58,17 @@ export const sidebarBrand = {
 
 export const routeIconById = {
   [appRouteIds.home]: LayoutDashboardIcon,
+  [appRouteIds.yard]: ParkingCircleIcon,
   [appRouteIds.units]: Building2Icon,
   [appRouteIds.clients]: TruckIcon,
   [appRouteIds.prices]: BadgeDollarSignIcon,
   [appRouteIds.rules]: ClipboardListIcon,
   [appRouteIds.users]: UsersIcon,
-  [appRouteIds.accessRequests]: KeyRoundIcon,
   [appRouteIds.permissions]: ShieldCheckIcon,
   [appRouteIds.audit]: ScrollTextIcon,
   [appRouteIds.notifications]: BellIcon,
-  [appRouteIds.settings]: UserRoundIcon,
-  [appRouteIds.yard]: ParkingCircleIcon,
+  [appRouteIds.profile]: UserRoundIcon,
+  [appRouteIds.security]: ShieldCheckIcon,
 } as const satisfies Partial<Record<AppRouteId, LucideIcon>>
 
 interface SidebarNavigationItemWithGroup extends SidebarNavigationItem {
@@ -89,11 +88,8 @@ function isNavigableRoute(route: AppRouteRegistryItem): route is NavigableRoute 
   return Boolean(route.href && route.navigation)
 }
 
-const authenticatedRoutes: readonly AppRouteRegistryItem[] =
-  authenticatedRouteRegistry
-
 const navigationItems: readonly SidebarNavigationItemWithGroup[] =
-  authenticatedRoutes.flatMap((route) => {
+  authenticatedRouteRegistry.flatMap((route) => {
     if (!isNavigableRoute(route)) {
       return []
     }

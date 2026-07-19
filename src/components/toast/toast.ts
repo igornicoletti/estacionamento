@@ -73,7 +73,6 @@ export const notify = {
     options?: NotifyPromiseOptions<TData>
   ) {
     const {
-      loading,
       success,
       error,
       description,
@@ -83,7 +82,7 @@ export const notify = {
 
     return sonnerToast.promise<TData>(promise, {
       ...externalOptions,
-      loading: resolveToastMessage(loading, "common.loading"),
+      loading: undefined,
       success: (data) =>
         resolveToastMessage(
           typeof success === "function" ? success(data) : success,
@@ -107,7 +106,6 @@ export const notify = {
     const actualPromise =
       typeof promise === "function" ? promise() : promise
     const {
-      loading,
       success,
       error,
       description,
@@ -117,7 +115,7 @@ export const notify = {
 
     sonnerToast.promise<TData>(actualPromise, {
       ...externalOptions,
-      loading: resolveToastMessage(loading, "common.loading"),
+      loading: undefined,
       success: (data) =>
         resolveToastMessage(
           typeof success === "function" ? success(data) : success,

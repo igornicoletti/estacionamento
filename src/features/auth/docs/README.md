@@ -9,7 +9,7 @@ Feature de autenticação, sessão, recuperação de acesso, passkey, autorizaç
 - `components/`: composição visual específica de autenticação.
 - `context/`: provider, contexto, sessão, permissões efetivas e inatividade.
 - `contracts/`: constantes, enums de domínio, permissões, status e normalizadores.
-- `copy/`: textos centralizados da feature.
+- `constants/`: textos centralizados da feature.
 - `routes/`: páginas públicas de login e recuperação de acesso.
 - `types/`: contratos TypeScript compartilhados da feature.
 - `validation/`: schemas Zod, máscaras e helpers de erro de formulário.

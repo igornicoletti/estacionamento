@@ -14,25 +14,29 @@ import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { newPasswordSchema } from "@/features/auth/validation"
 
-import { accessRequestsCopy } from "../access-requests-copy"
-import { createRecoveryRequestsColumns } from "../columns/recovery-requests-columns"
-import { useAccessRequests } from "../hooks/use-access-requests"
-import {
-  type AccessRecoveryRequestRecord,
-  type AccessRequestDetailsTarget,
-  type AccessRequestReviewDecision,
-} from "../types/access-requests-types"
+import { AccessRequestDenySummary } from "../components"
+import { accessRequestsCopy, ACCESS_REQUESTS_RECOVERY_TABLE_STATE_KEY } from "../constants"
+import { useAccessRequests } from "../hooks"
+import type {
+  AccessRecoveryRequestRecord,
+  AccessRequestDetailsTarget,
+  AccessRequestReviewDecision,
+} from "../model"
 import {
   getAccessRequestDetailItems,
   getAccessRequestDetailsDescription,
   getAccessRequestDetailsTitle,
-} from "../utils/access-requests-details-model"
-
-const RECOVERY_TABLE_STATE_KEY = "rmc.table.access-requests.recovery.state.v2"
+} from "../model"
+import { createRecoveryRequestsColumns } from "../table"
 
 interface PendingRecoveryReview {
   decision: AccessRequestReviewDecision
   request: AccessRecoveryRequestRecord
+}
+
+interface AccessRequestsPanelProps {
+  canReview?: boolean
+  showHeader?: boolean
 }
 
 function getRecoveryDialogTitle(decision: AccessRequestReviewDecision) {
@@ -48,39 +52,22 @@ function getRecoveryDialogDescription(decision: AccessRequestReviewDecision) {
 }
 
 function getPasswordError(value: string) {
-  const result = newPasswordSchema.safeParse(value)
+  const result = newPasswordSchema.safeParse(value.trim())
 
   return result.success ? null : result.error.issues[0]?.message ?? null
 }
 
-interface AccessRequestsPanelProps {
-  canReview?: boolean
-  showHeader?: boolean
-}
-
-export function AccessRequestsPanel({
-  canReview = true,
-  showHeader = true,
-}: AccessRequestsPanelProps = {}) {
-  const {
-    data,
-    error,
-    isLoading,
-    isReviewing,
-    refetch,
-    reviewRecovery,
-  } = useAccessRequests()
+export function AccessRequestsPanel({ canReview = true, showHeader = true }: AccessRequestsPanelProps = {}) {
+  const { data, error, isLoading, isReviewing, refetch, reviewRecovery } = useAccessRequests()
   const [recoverySearch, setRecoverySearch] = React.useState("")
-  const [detailsTarget, setDetailsTarget] =
-    React.useState<AccessRequestDetailsTarget | null>(null)
-  const [pendingRecoveryReview, setPendingRecoveryReview] =
-    React.useState<PendingRecoveryReview | null>(null)
+  const [detailsTarget, setDetailsTarget] = React.useState<AccessRequestDetailsTarget | null>(null)
+  const [pendingRecoveryReview, setPendingRecoveryReview] = React.useState<PendingRecoveryReview | null>(null)
   const [temporaryPassword, setTemporaryPassword] = React.useState("")
   const [isPasswordTouched, setIsPasswordTouched] = React.useState(false)
-  const passwordError = getPasswordError(temporaryPassword)
+
+  const passwordError = React.useMemo(() => getPasswordError(temporaryPassword), [temporaryPassword])
   const showPasswordError =
-    Boolean(isPasswordTouched && passwordError) &&
-    pendingRecoveryReview?.decision === "approved"
+    Boolean(isPasswordTouched && passwordError) && pendingRecoveryReview?.decision === "approved"
   const isApprovalPasswordInvalid =
     pendingRecoveryReview?.decision === "approved" && Boolean(passwordError)
 
@@ -89,7 +76,7 @@ export function AccessRequestsPanel({
       createRecoveryRequestsColumns({
         canReview,
         onOpenDetails: (request) => {
-          setDetailsTarget({ type: "recovery", request })
+          setDetailsTarget({ request, type: "recovery" })
         },
         onReview: (request, decision) => {
           setPendingRecoveryReview({ decision, request })
@@ -100,7 +87,13 @@ export function AccessRequestsPanel({
     [canReview]
   )
 
-  async function handleConfirmRecoveryReview() {
+  const resetPendingReview = React.useCallback(() => {
+    setPendingRecoveryReview(null)
+    setTemporaryPassword("")
+    setIsPasswordTouched(false)
+  }, [])
+
+  const handleConfirmRecoveryReview = React.useCallback(async () => {
     if (!pendingRecoveryReview) {
       return
     }
@@ -128,18 +121,13 @@ export function AccessRequestsPanel({
       }
     )
 
-    setPendingRecoveryReview(null)
-    setTemporaryPassword("")
-    setIsPasswordTouched(false)
-  }
+    resetPendingReview()
+  }, [isApprovalPasswordInvalid, pendingRecoveryReview, resetPendingReview, reviewRecovery, temporaryPassword])
 
   return (
-    <PageSection>
+    <>
       {showHeader ? (
-        <PageHeader
-          title={accessRequestsCopy.page.title}
-          subtitle={accessRequestsCopy.page.subtitle}
-        />
+        <PageHeader title={accessRequestsCopy.page.title} subtitle={accessRequestsCopy.page.subtitle} />
       ) : null}
 
       <DataTable
@@ -152,26 +140,27 @@ export function AccessRequestsPanel({
         }}
         globalFilterValue={recoverySearch}
         onGlobalFilterChange={setRecoverySearch}
-        emptyState={(
+        emptyState={
           <AppEmptyState
             media={<DatabaseIcon />}
             title={accessRequestsCopy.tables.recovery.emptyTitle}
             description={accessRequestsCopy.tables.recovery.emptyDescription}
           />
-        )}
-        filteredEmptyState={(
+        }
+        filteredEmptyState={
           <AppEmptyState
             media={<DatabaseIcon />}
             title={accessRequestsCopy.tables.recovery.filteredEmptyTitle}
             description={accessRequestsCopy.tables.recovery.filteredEmptyDescription}
           />
-        )}
-        tableStateStorageKey={RECOVERY_TABLE_STATE_KEY}
+        }
+        tableStateStorageKey={ACCESS_REQUESTS_RECOVERY_TABLE_STATE_KEY}
         isLoading={isLoading}
         error={error}
         onRetry={() => {
           void refetch()
         }}
+        enablePagination
         enableViewOptions
       />
 
@@ -191,55 +180,38 @@ export function AccessRequestsPanel({
         open={pendingRecoveryReview?.decision === "approved"}
         onOpenChange={(open) => {
           if (!open) {
-            setPendingRecoveryReview(null)
-            setTemporaryPassword("")
-            setIsPasswordTouched(false)
+            resetPendingReview()
           }
         }}
         title={
-          pendingRecoveryReview
-            ? getRecoveryDialogTitle(pendingRecoveryReview.decision)
-            : undefined
+          pendingRecoveryReview ? getRecoveryDialogTitle(pendingRecoveryReview.decision) : undefined
         }
         description={
-          pendingRecoveryReview
-            ? getRecoveryDialogDescription(pendingRecoveryReview.decision)
-            : undefined
+          pendingRecoveryReview ? getRecoveryDialogDescription(pendingRecoveryReview.decision) : undefined
         }
-        footer={(
+        footer={
           <>
             <Button
               type="button"
               variant="outline"
               size="lg"
               disabled={isReviewing}
-              onClick={() => {
-                setPendingRecoveryReview(null)
-                setTemporaryPassword("")
-                setIsPasswordTouched(false)
-              }}
+              onClick={resetPendingReview}
             >
               {accessRequestsCopy.actions.cancel}
             </Button>
             <Button
               type="button"
               size="lg"
-              variant={
-                pendingRecoveryReview?.decision === "denied"
-                  ? "destructive"
-                  : "default"
-              }
               disabled={isReviewing || isApprovalPasswordInvalid}
               onClick={() => {
                 void handleConfirmRecoveryReview()
               }}
             >
-              {pendingRecoveryReview?.decision === "approved"
-                ? accessRequestsCopy.actions.confirmApprove
-                : accessRequestsCopy.actions.confirmDeny}
+              {accessRequestsCopy.actions.confirmApprove}
             </Button>
           </>
-        )}
+        }
       >
         <AppPasswordField
           id="access-request-temporary-password"
@@ -261,7 +233,7 @@ export function AccessRequestsPanel({
         open={pendingRecoveryReview?.decision === "denied"}
         onOpenChange={(open) => {
           if (!open) {
-            setPendingRecoveryReview(null)
+            resetPendingReview()
           }
         }}
         media={<ShieldAlertIcon />}
@@ -270,9 +242,7 @@ export function AccessRequestsPanel({
         cancelLabel={accessRequestsCopy.actions.cancel}
         actionLabel={accessRequestsCopy.actions.confirmDeny}
         actionVariant="destructive"
-        pendingLabel={
-          accessRequestsCopy.feedback.recovery.denied.loading
-        }
+        pendingLabel={accessRequestsCopy.feedback.recovery.denied.loading}
         onAction={async () => {
           try {
             await handleConfirmRecoveryReview()
@@ -281,18 +251,9 @@ export function AccessRequestsPanel({
           }
         }}
       >
-        {pendingRecoveryReview ? (
-          <div className="grid gap-1 px-4 text-sm">
-            <span className="font-medium text-foreground">
-              {accessRequestsCopy.reasonLabels[pendingRecoveryReview.request.reason]}
-            </span>
-            <span className="text-muted-foreground">
-              {pendingRecoveryReview.request.phoneMasked}
-            </span>
-          </div>
-        ) : null}
+        {pendingRecoveryReview ? <AccessRequestDenySummary request={pendingRecoveryReview.request} /> : null}
       </AppAlertDialog>
-    </PageSection>
+    </>
   )
 }
 
@@ -305,10 +266,7 @@ export function AccessRequestsRoute() {
 }
 
 export function AccessRequestsRedirectRoute() {
-  return (
-    <Navigate
-      to={`${appRoutePaths.users}?tab=solicitacoes`}
-      replace
-    />
-  )
+  return <Navigate to={`${appRoutePaths.users}?tab=solicitacoes`} replace />
 }
+
+export default AccessRequestsRoute

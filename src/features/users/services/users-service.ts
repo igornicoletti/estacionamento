@@ -10,21 +10,21 @@ import {
   resolveVisibleSensitiveValue,
 } from "@/lib"
 
-import {
-  isAppUserStatus,
-  isUserRole,
-  requiresSingleUnit,
-  type CreateUserInput,
-  type UpdateUserInput,
-  type UserRecord,
-} from "../types/users-types"
-import { usersCopy } from "../users-copy"
+import { usersCopy } from "../constants"
 import {
   createNextUserId,
+  isAppUserStatus,
+  isUserRole,
   normalizeUnitScope,
+  requiresSingleUnit,
+  type CreateUserInput,
   type UnitCatalogItem,
-} from "../utils/users-models"
+  type UpdateUserInput,
+  type UserRecord,
+} from "../model"
 import { getUsersGateway } from "./users-gateway"
+
+type SupabaseClient = NonNullable<ReturnType<typeof getSupabaseBrowserClient>>
 
 type RawAppUserUnitRow = {
   unit_id: string | null
@@ -56,7 +56,6 @@ type RawAuthFactorRow = {
   passkey_count: number
 }
 
-
 type AdminFunctionSuccessResponse = {
   ok?: true
   id?: string
@@ -79,7 +78,7 @@ type AdminUserCreateResponse = AdminFunctionResponse & {
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object"
+  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
 
 function getResponseMessage(value: unknown) {
@@ -161,16 +160,16 @@ async function listUnitsCatalogSafe(): Promise<UnitCatalogItem[]> {
   }
 }
 
+function isMemoryUsersEnabled() {
+  return import.meta.env.MODE === "test"
+}
+
 function isRemoteUsersEnabled() {
   if (isMemoryUsersEnabled()) {
     return false
   }
 
   return Boolean(getSupabaseBrowserClient()) && !shouldBypassAuthInDev()
-}
-
-function isMemoryUsersEnabled() {
-  return import.meta.env.MODE === "test"
 }
 
 function assertUsersBackendConfigured() {
@@ -199,6 +198,16 @@ function getPostgrestErrorCode(error: unknown) {
   const code = (error as { code?: unknown }).code
 
   return typeof code === "string" ? code : ""
+}
+
+function resolveMaskedCpf(value: string | null | undefined) {
+  const normalized = value?.trim()
+
+  if (!normalized || !normalized.includes("*")) {
+    return ""
+  }
+
+  return normalized
 }
 
 function isUndefinedColumnError(error: unknown) {
@@ -292,9 +301,7 @@ async function listAuthFactorsByAuthUserIdSafe() {
   }
 }
 
-async function listRawAppUsersFromSupabase(
-  supabase: NonNullable<ReturnType<typeof getSupabaseBrowserClient>>
-) {
+async function listRawAppUsersFromSupabase(supabase: SupabaseClient) {
   const withDisplayColumns = await supabase
     .from("app_users")
     .select(
@@ -342,11 +349,7 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
   }
 
   const data = await listRawAppUsersFromSupabase(supabase)
-  const [
-    unitsCatalog,
-    lastAccessByAuthUserId,
-    authFactorsByAuthUserId,
-  ] = await Promise.all([
+  const [unitsCatalog, lastAccessByAuthUserId, authFactorsByAuthUserId] = await Promise.all([
     listUnitsCatalogSafe(),
     listLastAccessByAuthUserIdSafe(),
     listAuthFactorsByAuthUserIdSafe(),
@@ -367,9 +370,7 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
         id: appUser.id,
         authUserId: appUser.auth_user_id,
         name: appUser.name,
-        cpf:
-          resolveVisibleSensitiveValue(appUser.cpf_display, appUser.cpf_masked) ??
-          "",
+        cpf: resolveMaskedCpf(appUser.cpf_masked),
         email: appUser.email,
         phoneMasked: resolveVisibleSensitiveValue(
           appUser.phone_display,
@@ -399,7 +400,6 @@ async function createUserInSupabase(input: CreateUserInput): Promise<UserRecord>
   const normalizedUnitScope = normalizeUnitScope(input, unitsCatalog)
   const normalizedEmail = input.email?.trim() || ""
   const normalizedPhoneDigits = onlyDigits(input.phone ?? "")
-
   const createResponse = await supabase.functions.invoke<AdminUserCreateResponse>(
     "admin-user-create",
     {
@@ -415,10 +415,7 @@ async function createUserInSupabase(input: CreateUserInput): Promise<UserRecord>
       },
     }
   )
-  const response = assertAdminFunctionResponse(
-    createResponse,
-    usersCopy.errors.create
-  )
+  const response = assertAdminFunctionResponse(createResponse, usersCopy.errors.create)
   const returnedId = getAdminReturnedId(response)
   const users = await listUsersFromSupabase()
   const createdUser = returnedId ? users.find((user) => user.id === returnedId) : null
@@ -462,10 +459,7 @@ async function updateUserInSupabase(input: UpdateUserInput): Promise<UserRecord>
       },
     }
   )
-  assertAdminFunctionResponse(
-    updateResponse,
-    usersCopy.errors.update
-  )
+  assertAdminFunctionResponse(updateResponse, usersCopy.errors.update)
 
   const refreshedUsers = await listUsersFromSupabase()
   const updatedUser = refreshedUsers.find((user) => user.id === input.id)
@@ -497,16 +491,9 @@ async function invokeAdminUserAction(
 
   const actionResponse = await supabase.functions.invoke<AdminFunctionResponse>(
     functionName,
-    {
-      body: {
-        targetUserId: targetUser.authUserId,
-      },
-    }
+    { body: { targetUserId: targetUser.authUserId } }
   )
-  assertAdminFunctionResponse(
-    actionResponse,
-    errorMessage
-  )
+  assertAdminFunctionResponse(actionResponse, errorMessage)
 
   const refreshedUsers = await listUsersFromSupabase()
   const updatedUser = refreshedUsers.find((user) => user.id === userId)
@@ -521,23 +508,23 @@ async function invokeAdminUserAction(
 async function createUserInMemory(input: CreateUserInput): Promise<UserRecord> {
   const usersGateway = getUsersGateway()
   const currentUsers = await usersGateway.list()
-  const unitsCatalog = await listUnitsCatalog()
+  const unitsCatalog = await listUnitsCatalogSafe()
   const normalizedUnitScope = normalizeUnitScope(input, unitsCatalog)
   const normalizedPhoneDigits = onlyDigits(input.phone ?? "")
 
   const nextUser: UserRecord = {
-    id: createNextUserId(currentUsers),
-    name: input.name.trim(),
     cpf: formatCpf(onlyDigits(input.cpf)),
     email: input.email?.trim() || null,
+    id: createNextUserId(currentUsers),
+    lastAccessAt: null,
+    lockedUntil: null,
+    name: input.name.trim(),
+    passkeyStatus: "inactive",
     phoneMasked: formatPhone(normalizedPhoneDigits),
     role: input.role,
     status: "active",
-    lockedUntil: null,
     unitId: normalizedUnitScope.unitId,
     unitName: normalizedUnitScope.unitName,
-    passkeyStatus: "inactive",
-    lastAccessAt: null,
   }
 
   await usersGateway.saveAll([nextUser, ...currentUsers])
@@ -548,17 +535,15 @@ async function createUserInMemory(input: CreateUserInput): Promise<UserRecord> {
 async function updateUserInMemory(input: UpdateUserInput): Promise<UserRecord> {
   const usersGateway = getUsersGateway()
   const currentUsers = await usersGateway.list()
-  const userIndex = currentUsers.findIndex((user) => user.id === input.id)
+  const currentUser = currentUsers.find((user) => user.id === input.id)
 
-  if (userIndex < 0) {
+  if (!currentUser) {
     throw new Error(usersCopy.errors.userNotFound)
   }
 
-  const currentUser = currentUsers[userIndex]
-  const unitsCatalog = await listUnitsCatalog()
+  const unitsCatalog = await listUnitsCatalogSafe()
   const normalizedUnitScope = normalizeUnitScope(input, unitsCatalog)
   const normalizedPhoneDigits = onlyDigits(input.phone ?? "")
-
   const updatedUser: UserRecord = {
     ...currentUser,
     cpf: formatCpf(onlyDigits(input.cpf)),
@@ -631,15 +616,15 @@ export async function listUsers(): Promise<UserRecord[]> {
 
 export async function createUser(input: CreateUserInput): Promise<UserRecord> {
   assertValidUserInput(input, { requireFirstAccessPassword: true })
-
   assertUsersBackendConfigured()
+
   return isRemoteUsersEnabled() ? createUserInSupabase(input) : createUserInMemory(input)
 }
 
 export async function updateUser(input: UpdateUserInput): Promise<UserRecord> {
   assertValidUserInput(input, { requireFirstAccessPassword: false })
-
   assertUsersBackendConfigured()
+
   return isRemoteUsersEnabled() ? updateUserInSupabase(input) : updateUserInMemory(input)
 }
 

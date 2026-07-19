@@ -6,8 +6,7 @@ import {
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
 import { shouldBypassAuthInDev } from "@/config"
-import { useAuth } from "@/features/auth"
-import type { AuthProfile } from "@/features/auth/api"
+import { useAuth, type AuthProfile } from "@/features/auth"
 
 import { sidebarCopy } from "./sidebar-copy"
 
@@ -26,11 +25,13 @@ export function SidebarProfile() {
   const label = resolveProfileRoleLabel(profile)
 
   return (
-    <SidebarMenu className="px-2 py-2">
+    <SidebarMenu className="px-2 py-3">
       <SidebarMenuItem>
         <SidebarMenuButton
-          type="button"
-          className="text-[0.6875rem] uppercase font-semibold tracking-wider text-sidebar-primary-foreground hover:text-sidebar-primary-foreground border border-sidebar-primary-foreground/20 bg-sidebar-primary-foreground/10 hover:bg-sidebar-primary-foreground/10 focus:bg-sidebar-primary-foreground/10"
+          variant="outline"
+          tooltip={label}
+          aria-label={label}
+          className="cursor-default border-sidebar-primary-foreground/20 bg-sidebar-primary-foreground/10 text-[0.6875rem] font-semibold uppercase tracking-wider text-sidebar-primary-foreground hover:bg-sidebar-primary-foreground/10 hover:text-sidebar-primary-foreground active:bg-sidebar-primary-foreground/10 active:text-sidebar-primary-foreground"
         >
           <ShieldIcon className="size-4" />
           <span>{label}</span>

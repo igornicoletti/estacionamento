@@ -13,7 +13,7 @@ import { Input } from "@/components/ui/input"
 import { Spinner } from "@/components/ui/spinner"
 import { AUTH_NEXT_ACTION, useAuth } from "@/features/auth"
 import { AuthPageCard } from "@/features/auth/components"
-import { authCopy } from "@/features/auth/copy"
+import { authCopy } from "@/features/auth/constants"
 import {
   authLoginSchema,
   formatCpfInput,

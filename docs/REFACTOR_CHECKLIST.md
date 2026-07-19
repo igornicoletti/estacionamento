@@ -140,6 +140,7 @@
 ## docs
 
 - [x] `P1` Checklist por diretório criado para acompanhamento da refatoração.
+- [x] `P1` Plano forense de refatoração de features documentado em `docs/FEATURES_FORENSIC_REFACTOR_PLAN_2026-07-19.md`.
 - [ ] `P1` Atualizar documentação de auditoria e validação quando a fase de BD iniciar.
 - [x] `P2` Revisar documentos antigos para remover divergências com o estado atual do código.
 

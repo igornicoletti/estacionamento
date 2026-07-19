@@ -1,86 +1,87 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  buildPriceDetails,
-  formatPriceCharge,
-  getPriceComputedStatus,
-  sanitizePriceTable,
-  sortPriceTablesByUpdatedAt,
-  type PriceTable,
+  formatCurrency,
+  formatIntegerUnit,
+  normalizePriceTableRecord,
+  normalizePriceTableRecords,
+  type RawPriceTableRecord,
 } from "@/features/prices"
 
-function createPriceTable(overrides: Partial<PriceTable> = {}): PriceTable {
-  return {
-    amount: 20,
-    computedStatus: "active",
-    cycleHours: 24,
-    endsAt: null,
-    graceMinutes: 0,
-    id: "price-network",
-    notes: null,
-    parentId: null,
-    scope: "network",
-    startsAt: "2026-07-01T12:00:00.000Z",
-    status: "active",
-    tiers: [],
-    toleranceMinutes: 0,
-    unitId: null,
-    unitName: null,
-    updatedAt: "2026-07-01T12:00:00.000Z",
-    version: 1,
-    ...overrides,
-  }
-}
+describe("prices model normalization", () => {
+  it("normalizes a raw price table into canonical shape", () => {
+    const raw: RawPriceTableRecord = {
+      amount: "25.5",
+      created_at: "2026-07-01T12:00:00.000Z",
+      cycle_hours: "24",
+      ends_at: null,
+      grace_minutes: "15",
+      id: "price-global",
+      name: "Tabela base",
+      notes: "Observacao",
+      scope: "global",
+      starts_at: "2026-07-01T12:00:00.000Z",
+      status: "active",
+      tolerance_minutes: "10",
+      unit_id: null,
+      unit_name: null,
+      updated_at: "2026-07-02T12:00:00.000Z",
+    }
 
-describe("prices models", () => {
-  it("normalizes price tables without mutating tiers", () => {
-    const source = createPriceTable({
-      amount: 25.5,
-      tiers: [{ amount: 12, id: "tier-1", limitHours: 1, notes: null, sequence: 1 }],
-    })
-    const sanitized = sanitizePriceTable(source)
+    const normalized = normalizePriceTableRecord(raw)
 
-    expect(sanitized?.amount).toBe(25.5)
-    expect(sanitized?.tiers).toEqual(source.tiers)
-    expect(sanitized?.tiers).not.toBe(source.tiers)
+    expect(normalized.id).toBe("price-global")
+    expect(normalized.scope).toBe("global")
+    expect(normalized.amount).toBe(25.5)
+    expect(normalized.cycleHours).toBe(24)
+    expect(normalized.status).toBe("active")
   })
 
-  it("derives validity status from configured status and date window", () => {
-    expect(getPriceComputedStatus(createPriceTable())).toBe("active")
-    expect(getPriceComputedStatus(createPriceTable({
-      startsAt: "2999-08-01T12:00:00.000Z",
-    }))).toBe("scheduled")
-    expect(getPriceComputedStatus(createPriceTable({
-      endsAt: "2000-07-01T13:00:00.000Z",
-    }))).toBe("expired")
-    expect(getPriceComputedStatus(createPriceTable({
-      status: "inactive",
-    }))).toBe("inactive")
+  it("sorts normalized records by startsAt descending", () => {
+    const rows: RawPriceTableRecord[] = [
+      {
+        amount: 20,
+        created_at: null,
+        cycle_hours: 24,
+        ends_at: null,
+        grace_minutes: 0,
+        id: "older",
+        name: "Tabela antiga",
+        notes: null,
+        scope: "global",
+        starts_at: "2026-07-01T12:00:00.000Z",
+        status: "active",
+        tolerance_minutes: 0,
+        unit_id: null,
+        unit_name: null,
+        updated_at: null,
+      },
+      {
+        amount: 22,
+        created_at: null,
+        cycle_hours: 24,
+        ends_at: null,
+        grace_minutes: 0,
+        id: "newer",
+        name: "Tabela nova",
+        notes: null,
+        scope: "global",
+        starts_at: "2026-07-03T12:00:00.000Z",
+        status: "active",
+        tolerance_minutes: 0,
+        unit_id: null,
+        unit_name: null,
+        updated_at: null,
+      },
+    ]
+
+    const normalized = normalizePriceTableRecords(rows)
+
+    expect(normalized.map((item) => item.id)).toEqual(["newer", "older"])
   })
 
-  it("sorts by update date and formats charges and tier details", () => {
-    const first = createPriceTable({
-      id: "price-old",
-      updatedAt: "2026-07-01T12:00:00.000Z",
-    })
-    const second = createPriceTable({
-      id: "price-new",
-      tiers: [
-        { amount: 12, id: "tier-1", limitHours: 1, notes: null, sequence: 1 },
-        { amount: 18, id: "tier-2", limitHours: 3, notes: null, sequence: 2 },
-      ],
-      updatedAt: "2026-07-03T12:00:00.000Z",
-    })
-
-    expect(sortPriceTablesByUpdatedAt([first, second]).map((price) => price.id)).toEqual([
-      "price-new",
-      "price-old",
-    ])
-    const detailsText = buildPriceDetails(second)
-      .map((item) => typeof item.value === "string" ? item.value : "")
-      .join(" ")
-
-    expect(formatPriceCharge(second)).toContain("20,00")
-    expect(detailsText).toContain("Até 1 hora")
+  it("formats money and integer units for UI", () => {
+    expect(formatCurrency(20)).toContain("20")
+    expect(formatIntegerUnit(24, "horas")).toContain("24")
   })
 })

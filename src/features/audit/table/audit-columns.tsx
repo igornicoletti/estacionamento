@@ -4,10 +4,12 @@ import { createActionsColumn, DataTableTextAction } from "@/components/data-tabl
 import { Badge } from "@/components/ui/badge"
 import { formatDateTime, getBadgeToneClassName } from "@/lib"
 
-import { auditCopy } from "../constants"
 import {
+  auditCopy,
   auditScopeLabels,
   auditSeverityLabels,
+} from "../constants"
+import {
   getAuditOutcomeLabel,
   resolveAuditOutcomeVariant,
   resolveAuditSeverityVariant,

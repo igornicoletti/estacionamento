@@ -2,7 +2,7 @@ import { z } from "zod"
 
 import { isValidCpf } from "@/lib/cpf"
 
-import { authCopy } from "../copy"
+import { authCopy } from "../constants"
 
 const cpfRegex = /^\d{11}$|^\d{3}\.\d{3}\.\d{3}-\d{2}$/
 const phoneRegex = /^\+?[0-9\s().-]{10,20}$/

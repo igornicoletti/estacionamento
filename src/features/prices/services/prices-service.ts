@@ -1,15 +1,17 @@
 import { getSupabaseBrowserClient } from "@/lib"
 
-import { pricesCopy } from "../prices-copy"
+import { PRICES_FETCH_LIMIT, pricesCopy } from "../constants"
 import {
-  type PriceTable,
-  type PriceRecordStatus,
-  type SavePriceTableInput,
-} from "../types/prices-types"
-import { parsePriceTable, parsePriceTables } from "../utils/prices-parsers"
+  normalizePriceTableRecords,
+  type PriceStatus,
+  type PriceTableRecord,
+  type RawPriceTableRecord,
+  type SavePriceTablePayload,
+} from "../model"
 
-const priceTableSelect = [
+const PRICE_TABLES_SELECT = [
   "id",
+  "name",
   "scope",
   "unit_id",
   "unit_name",
@@ -20,174 +22,83 @@ const priceTableSelect = [
   "starts_at",
   "ends_at",
   "status",
-  "version",
-  "parent_id",
   "notes",
+  "created_at",
   "updated_at",
-  "commercial_price_tiers(id,sequence,limit_hours,amount,notes)",
 ].join(",")
 
-function getSupabaseOrThrow() {
+export interface PriceTablesResult {
+  records: PriceTableRecord[]
+  isTruncated: boolean
+  limit: number
+}
+
+export async function listPriceTables(): Promise<PriceTablesResult> {
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {
     throw new Error(pricesCopy.feedback.loadError)
   }
 
-  return supabase
-}
-
-function getTodayStartTime() {
-  const date = new Date()
-  date.setHours(0, 0, 0, 0)
-  return date.getTime()
-}
-
-function validatePriceInput(input: SavePriceTableInput) {
-  if (input.scope === "unit") {
-    if (!input.unitId?.trim()) {
-      throw new Error(pricesCopy.form.validation.unitId)
-    }
-
-    if (!input.unitName?.trim()) {
-      throw new Error(pricesCopy.form.validation.unitName)
-    }
-  }
-
-  if (!Number.isFinite(input.amount) || input.amount < 0) {
-    throw new Error(pricesCopy.form.validation.amount)
-  }
-
-  if (!Number.isInteger(input.cycleHours) || input.cycleHours < 1 || input.cycleHours > 720) {
-    throw new Error(pricesCopy.form.validation.cycleHours)
-  }
-
-  if (!Number.isInteger(input.graceMinutes) || input.graceMinutes < 0 || input.graceMinutes > 1440) {
-    throw new Error(pricesCopy.form.validation.graceMinutes)
-  }
-
-  if (!Number.isInteger(input.toleranceMinutes) || input.toleranceMinutes < 0 || input.toleranceMinutes > 240) {
-    throw new Error(pricesCopy.form.validation.toleranceMinutes)
-  }
-
-  const startsAtTime = input.startsAt ? new Date(input.startsAt).getTime() : Number.NaN
-
-  if (!input.startsAt || !Number.isFinite(startsAtTime) || startsAtTime < getTodayStartTime()) {
-    throw new Error(pricesCopy.form.validation.startsAt)
-  }
-
-  const endsAtTime = input.endsAt ? new Date(input.endsAt).getTime() : null
-
-  if (
-    input.endsAt &&
-    (endsAtTime === null || !Number.isFinite(endsAtTime) || endsAtTime <= startsAtTime)
-  ) {
-    throw new Error(pricesCopy.form.validation.endsAt)
-  }
-
-}
-
-function createPricePayload(input: SavePriceTableInput) {
-  validatePriceInput(input)
-
-  return {
-    scope: input.scope,
-    unit_id: input.scope === "unit" ? input.unitId?.trim() ?? null : null,
-    unit_name: input.scope === "unit" ? input.unitName?.trim() ?? null : null,
-    grace_minutes: input.graceMinutes,
-    tolerance_minutes: input.toleranceMinutes,
-    cycle_hours: input.cycleHours,
-    amount: input.amount,
-    starts_at: input.startsAt,
-    ends_at: input.endsAt,
-    status: input.status,
-    version: 1,
-    notes: input.notes?.trim() ? input.notes.trim() : null,
-  }
-}
-
-async function getPriceTableById(id: string): Promise<PriceTable> {
-  const supabase = getSupabaseOrThrow()
   const { data, error } = await supabase
     .from("commercial_price_tables")
-    .select(priceTableSelect)
-    .eq("id", id)
-    .single()
-
-  if (error) {
-    throw new Error(pricesCopy.feedback.save.error, { cause: error })
-  }
-
-  const price = parsePriceTable(data)
-
-  if (!price) {
-    throw new Error(pricesCopy.feedback.save.error)
-  }
-
-  return price
-}
-
-export async function listPriceTables(): Promise<PriceTable[]> {
-  const supabase = getSupabaseOrThrow()
-  const { data, error } = await supabase
-    .from("commercial_price_tables")
-    .select(priceTableSelect)
-    .order("updated_at", { ascending: false })
+    .select(PRICE_TABLES_SELECT)
+    .order("starts_at", { ascending: false })
+    .limit(PRICES_FETCH_LIMIT + 1)
 
   if (error) {
     throw new Error(pricesCopy.feedback.loadError, { cause: error })
   }
 
-  return parsePriceTables(data ?? [])
+  const rows = (data ?? []) as unknown as RawPriceTableRecord[]
+
+  return {
+    records: normalizePriceTableRecords(rows.slice(0, PRICES_FETCH_LIMIT)),
+    isTruncated: rows.length > PRICES_FETCH_LIMIT,
+    limit: PRICES_FETCH_LIMIT,
+  }
 }
 
-export async function savePriceTable(input: SavePriceTableInput): Promise<PriceTable> {
-  const supabase = getSupabaseOrThrow()
-  const payload = createPricePayload(input)
-  const response = await supabase.rpc("create_commercial_price_table", {
-    p_amount: payload.amount,
-    p_cycle_hours: payload.cycle_hours,
-    p_ends_at: payload.ends_at,
-    p_grace_minutes: payload.grace_minutes,
-    p_notes: payload.notes,
-    p_scope: payload.scope,
-    p_starts_at: payload.starts_at,
-    p_status: payload.status,
-    p_tiers: [],
-    p_tolerance_minutes: payload.tolerance_minutes,
-    p_unit_id: payload.unit_id,
-    p_unit_name: payload.unit_name,
-  }) as { data: unknown; error: unknown }
-  const { data, error } = response
+export async function savePriceTable(payload: SavePriceTablePayload) {
+  const supabase = getSupabaseBrowserClient()
 
-  if (error || typeof data !== "string") {
-    throw new Error(pricesCopy.feedback.save.error, { cause: error })
+  if (!supabase) {
+    throw new Error(pricesCopy.feedback.saveError)
   }
 
-  return getPriceTableById(data)
+  const { error } = await supabase.rpc("create_commercial_price_table", {
+    p_scope: payload.scope,
+    p_unit_id: payload.unitId,
+    p_unit_name: payload.unitName,
+    p_grace_minutes: payload.graceMinutes,
+    p_tolerance_minutes: payload.toleranceMinutes,
+    p_cycle_hours: payload.cycleHours,
+    p_amount: payload.amount,
+    p_starts_at: payload.startsAt,
+    p_ends_at: payload.endsAt,
+    p_status: payload.status,
+    p_notes: payload.notes,
+    p_tiers: [],
+  })
+
+  if (error) {
+    throw new Error(pricesCopy.feedback.saveError, { cause: error })
+  }
 }
 
-export async function updatePriceTableStatus(
-  id: string,
-  status: PriceRecordStatus
-): Promise<PriceTable> {
-  const supabase = getSupabaseOrThrow()
-  const { data, error } = await supabase
+export async function updatePriceTableStatus(id: string, status: PriceStatus) {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    throw new Error(pricesCopy.feedback.saveError)
+  }
+
+  const { error } = await supabase
     .from("commercial_price_tables")
     .update({ status })
     .eq("id", id)
-    .select(priceTableSelect)
-    .single()
 
   if (error) {
-    throw new Error(pricesCopy.feedback.toggle.error, { cause: error })
+    throw new Error(pricesCopy.feedback.saveError, { cause: error })
   }
-
-  const price = parsePriceTable(data)
-
-  if (!price) {
-    throw new Error(pricesCopy.feedback.toggle.error)
-  }
-
-  return price
 }

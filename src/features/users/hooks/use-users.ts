@@ -1,7 +1,9 @@
 import * as React from "react"
 
+import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
 import { toError } from "@/lib"
 
+import { USERS_CACHE_KEY, USERS_DISABLED_CACHE_KEY, usersCopy } from "../constants"
 import {
   blockUser,
   clearUserLock,
@@ -11,200 +13,101 @@ import {
   resetUserPasskey,
   revokeUserSessions,
   updateUser,
-} from "../services/users-service"
-import {
-  type CreateUserInput,
-  type UpdateUserInput,
-  type UserRecord,
-} from "../types/users-types"
-import { usersCopy } from "../users-copy"
+} from "../services"
+import { type CreateUserInput, type UpdateUserInput, type UserRecord } from "../model"
 
 export function useUsers(options: { enabled?: boolean } = {}) {
   const enabled = options.enabled ?? true
-  const [data, setData] = React.useState<UserRecord[]>([])
-  const [isLoading, setIsLoading] = React.useState(enabled)
+  const snapshot = useAsyncSnapshot<UserRecord[]>({
+    cacheKey: enabled ? USERS_CACHE_KEY : USERS_DISABLED_CACHE_KEY,
+    errorMessage: usersCopy.errors.load,
+    initialData: [],
+    loadData: enabled ? listUsers : async () => [],
+  })
   const [isSaving, setIsSaving] = React.useState(false)
-  const [error, setError] = React.useState<Error | null>(null)
   const activeSaveRef = React.useRef<Promise<UserRecord> | null>(null)
 
-  const loadUsers = React.useCallback(async (
-    isCurrent: () => boolean,
-    options: { setLoading?: boolean } = {}
-  ) => {
-    if (!enabled) {
-      setData([])
-      setError(null)
-      setIsLoading(false)
-      return
+  const runMutation = React.useCallback(async (mutation: () => Promise<UserRecord>) => {
+    if (activeSaveRef.current) {
+      return activeSaveRef.current
     }
 
-    const shouldSetLoading = options.setLoading ?? true
+    setIsSaving(true)
+    activeSaveRef.current = mutation()
 
     try {
-      if (shouldSetLoading) {
-        setIsLoading(true)
-      }
-      setError(null)
-
-      const users = await listUsers()
-
-      if (isCurrent()) {
-        setData(users)
-      }
-    } catch (caughtError) {
-      if (isCurrent()) {
-        setError(toError(caughtError, usersCopy.errors.load))
-      }
+      const user = await activeSaveRef.current
+      await snapshot.refetch()
+      return user
     } finally {
-      if (isCurrent()) {
-        setIsLoading(false)
-      }
+      activeSaveRef.current = null
+      setIsSaving(false)
     }
-  }, [enabled])
-
-  const refetch = React.useCallback(() => {
-    if (!enabled) {
-      return Promise.resolve()
-    }
-
-    return loadUsers(() => true, { setLoading: true })
-  }, [enabled, loadUsers])
+  }, [snapshot])
 
   const addUser = React.useCallback(async (input: CreateUserInput) => {
-    if (activeSaveRef.current) {
-      return activeSaveRef.current
-    }
-
-    setIsSaving(true)
-    activeSaveRef.current = (async () => {
-      const createdUser = await createUser(input)
-      setData((current) => [createdUser, ...current])
-      return createdUser
-    })()
-
     try {
-      return await activeSaveRef.current
+      return await runMutation(() => createUser(input))
     } catch (caughtError) {
-      const nextError = toError(caughtError, usersCopy.errors.create)
-      throw nextError
-    } finally {
-      activeSaveRef.current = null
-      setIsSaving(false)
+      throw toError(caughtError, usersCopy.errors.create)
     }
-  }, [])
+  }, [runMutation])
 
   const editUser = React.useCallback(async (input: UpdateUserInput) => {
-    if (activeSaveRef.current) {
-      return activeSaveRef.current
-    }
-
-    setIsSaving(true)
-    activeSaveRef.current = (async () => {
-      const updatedUser = await updateUser(input)
-      setData((current) =>
-        current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
-      )
-      return updatedUser
-    })()
-
     try {
-      return await activeSaveRef.current
+      return await runMutation(() => updateUser(input))
     } catch (caughtError) {
-      const nextError = toError(caughtError, usersCopy.errors.update)
-      throw nextError
-    } finally {
-      activeSaveRef.current = null
-      setIsSaving(false)
+      throw toError(caughtError, usersCopy.errors.update)
     }
-  }, [])
+  }, [runMutation])
 
   const inactivateUser = React.useCallback(async (userId: string) => {
     try {
-      const updatedUser = await blockUser(userId)
-      setData((current) =>
-        current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
-      )
-      return updatedUser
+      return await runMutation(() => blockUser(userId))
     } catch (caughtError) {
       throw toError(caughtError, usersCopy.feedback.block.error)
     }
-  }, [])
+  }, [runMutation])
 
   const resetAccess = React.useCallback(async (userId: string) => {
     try {
-      const updatedUser = await resetUserAccess(userId)
-      setData((current) =>
-        current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
-      )
-      return updatedUser
+      return await runMutation(() => resetUserAccess(userId))
     } catch (caughtError) {
       throw toError(caughtError, usersCopy.feedback.reset.error)
     }
-  }, [])
+  }, [runMutation])
 
   const resetPasskey = React.useCallback(async (userId: string) => {
     try {
-      const updatedUser = await resetUserPasskey(userId)
-      setData((current) =>
-        current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
-      )
-      return updatedUser
+      return await runMutation(() => resetUserPasskey(userId))
     } catch (caughtError) {
       throw toError(caughtError, usersCopy.feedback.resetPasskey.error)
     }
-  }, [])
+  }, [runMutation])
 
   const clearLock = React.useCallback(async (userId: string) => {
     try {
-      const updatedUser = await clearUserLock(userId)
-      setData((current) =>
-        current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
-      )
-      return updatedUser
+      return await runMutation(() => clearUserLock(userId))
     } catch (caughtError) {
       throw toError(caughtError, usersCopy.feedback.clearLock.error)
     }
-  }, [])
+  }, [runMutation])
 
   const revokeSessions = React.useCallback(async (userId: string) => {
     try {
-      const updatedUser = await revokeUserSessions(userId)
-      setData((current) =>
-        current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
-      )
-      return updatedUser
+      return await runMutation(() => revokeUserSessions(userId))
     } catch (caughtError) {
       throw toError(caughtError, usersCopy.feedback.revokeSessions.error)
     }
-  }, [])
-
-  React.useEffect(() => {
-    if (!enabled) {
-      queueMicrotask(() => {
-        setData([])
-        setError(null)
-        setIsLoading(false)
-      })
-      return
-    }
-
-    let isMounted = true
-
-    void Promise.resolve().then(() => loadUsers(() => isMounted))
-
-    return () => {
-      isMounted = false
-    }
-  }, [enabled, loadUsers])
+  }, [runMutation])
 
   return {
-    data,
-    error,
-    isLoading,
+    ...snapshot,
+    isLoading: enabled ? snapshot.isLoading : false,
     isSaving,
     addUser,
     editUser,
-    refetch,
+    refetch: snapshot.refetch,
     inactivateUser,
     resetAccess,
     resetPasskey,

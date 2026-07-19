@@ -1,7 +1,9 @@
-import { appCopy } from "@/app/app-copy"
 import { AUTH_PERMISSION, type AuthPermission } from "@/features/auth"
+import { appCopy } from "../constants/app-copy"
 
 import { routeLazyLoaders, type LazyRouteLoader } from "./route-lazy-loaders"
+
+export type AppRouteScrollMode = "document" | "content"
 
 export const appRouteIds = {
   root: "root",
@@ -11,6 +13,7 @@ export const appRouteIds = {
   app: "app",
   home: "app.home",
   units: "app.units",
+  unitUsers: "app.unitUsers",
   clients: "app.clients",
   clientVehicles: "app.clientVehicles",
   prices: "app.prices",
@@ -20,9 +23,10 @@ export const appRouteIds = {
   permissions: "app.permissions",
   audit: "app.audit",
   notifications: "app.notifications",
-  settings: "app.settings",
-  settingsProfileAlias: "app.settings.profileAlias",
-  unitUsers: "app.unitUsers",
+  profile: "app.profile",
+  security: "app.security",
+  settingsLegacyRedirect: "app.settings.legacyRedirect",
+  profileLegacyRedirect: "app.profile.legacyRedirect",
   yard: "app.yard",
   notFound: "not-found",
 } as const
@@ -40,8 +44,10 @@ export const appRoutePaths = {
   permissions: "/perfis-permissoes",
   audit: "/auditoria",
   notifications: "/notificacoes",
-  settings: "/configuracoes",
-  profile: "/perfil",
+  profile: "/meu-perfil",
+  security: "/seguranca",
+  settingsLegacy: "/configuracoes",
+  profileLegacy: "/perfil",
   yard: "/patio-virtual",
 } as const satisfies Record<string, `/${string}`>
 
@@ -59,8 +65,10 @@ export const appRouteSegments = {
   permissions: "perfis-permissoes",
   audit: "auditoria",
   notifications: "notificacoes",
-  settings: "configuracoes",
-  profile: "perfil",
+  profile: "meu-perfil",
+  security: "seguranca",
+  settingsLegacy: "configuracoes",
+  profileLegacy: "perfil",
   yard: "patio-virtual",
 } as const
 
@@ -85,6 +93,7 @@ export interface AppRouteRegistryItem {
   path?: string
   href?: AppRoutePath
   index?: boolean
+  scrollMode?: AppRouteScrollMode
   label: string
   description: string
   requiredPermissions?: readonly AuthPermission[]
@@ -130,6 +139,7 @@ export const authenticatedRouteRegistry = [
     id: appRouteIds.yard,
     path: appRouteSegments.yard,
     href: appRoutePaths.yard,
+    scrollMode: "document",
     label: appCopy.routes.yard.label,
     description: appCopy.routes.yard.description,
     requiredPermissions: [appPermissionKeys.unitsRead],
@@ -143,6 +153,7 @@ export const authenticatedRouteRegistry = [
     id: appRouteIds.units,
     path: appRouteSegments.units,
     href: appRoutePaths.units,
+    scrollMode: "content",
     label: appCopy.routes.units.label,
     description: appCopy.routes.units.description,
     requiredPermissions: [appPermissionKeys.unitsRead],
@@ -156,6 +167,7 @@ export const authenticatedRouteRegistry = [
     id: appRouteIds.clients,
     path: appRouteSegments.clients,
     href: appRoutePaths.clients,
+    scrollMode: "content",
     label: appCopy.routes.clients.label,
     description: appCopy.routes.clients.description,
     requiredPermissions: [appPermissionKeys.clientsRead],
@@ -169,45 +181,49 @@ export const authenticatedRouteRegistry = [
     id: appRouteIds.prices,
     path: appRouteSegments.prices,
     href: appRoutePaths.prices,
+    scrollMode: "content",
     label: appCopy.routes.prices.label,
     description: appCopy.routes.prices.description,
     requiredPermissions: [appPermissionKeys.pricesRead],
     lazy: routeLazyLoaders.prices,
     navigation: {
-      group: appRouteGroupIds.commercial,
-      order: 10,
+      group: appRouteGroupIds.records,
+      order: 30,
     },
   },
   {
     id: appRouteIds.rules,
     path: appRouteSegments.rules,
     href: appRoutePaths.rules,
+    scrollMode: "content",
     label: appCopy.routes.rules.label,
     description: appCopy.routes.rules.description,
     requiredPermissions: [appPermissionKeys.rulesRead],
     lazy: routeLazyLoaders.rules,
     navigation: {
-      group: appRouteGroupIds.commercial,
-      order: 20,
+      group: appRouteGroupIds.records,
+      order: 40,
     },
   },
   {
     id: appRouteIds.users,
     path: appRouteSegments.users,
     href: appRoutePaths.users,
+    scrollMode: "content",
     label: appCopy.routes.users.label,
     description: appCopy.routes.users.description,
     requiredPermissions: [appPermissionKeys.usersRead],
     lazy: routeLazyLoaders.users,
     navigation: {
-      group: appRouteGroupIds.access,
-      order: 10,
+      group: appRouteGroupIds.utilities,
+      order: 30,
     },
   },
   {
     id: appRouteIds.accessRequests,
     path: appRouteSegments.accessRequests,
     href: appRoutePaths.accessRequests,
+    scrollMode: "content",
     label: appCopy.routes.accessRequests.label,
     description: appCopy.routes.accessRequests.description,
     requiredPermissions: [appPermissionKeys.accessRequestsRead],
@@ -217,19 +233,21 @@ export const authenticatedRouteRegistry = [
     id: appRouteIds.permissions,
     path: appRouteSegments.permissions,
     href: appRoutePaths.permissions,
+    scrollMode: "content",
     label: appCopy.routes.permissions.label,
     description: appCopy.routes.permissions.description,
     requiredPermissions: [appPermissionKeys.permissionsRead],
     lazy: routeLazyLoaders.permissions,
     navigation: {
-      group: appRouteGroupIds.access,
-      order: 30,
+      group: appRouteGroupIds.utilities,
+      order: 40,
     },
   },
   {
     id: appRouteIds.audit,
     path: appRouteSegments.audit,
     href: appRoutePaths.audit,
+    scrollMode: "content",
     label: appCopy.routes.audit.label,
     description: appCopy.routes.audit.description,
     requiredPermissions: [appPermissionKeys.auditRead],
@@ -243,6 +261,7 @@ export const authenticatedRouteRegistry = [
     id: appRouteIds.notifications,
     path: appRouteSegments.notifications,
     href: appRoutePaths.notifications,
+    scrollMode: "content",
     label: appCopy.routes.notifications.label,
     description: appCopy.routes.notifications.description,
     requiredPermissions: [appPermissionKeys.notificationsRead],
@@ -253,21 +272,55 @@ export const authenticatedRouteRegistry = [
     },
   },
   {
-    id: appRouteIds.settings,
-    path: appRouteSegments.settings,
-    href: appRoutePaths.settings,
-    label: appCopy.routes.settings.label,
-    description: appCopy.routes.settings.description,
+    id: appRouteIds.profile,
+    path: appRouteSegments.profile,
+    href: appRoutePaths.profile,
+    scrollMode: "document",
+    label: appCopy.routes.profile.label,
+    description: appCopy.routes.profile.description,
     requiredPermissions: [appPermissionKeys.settingsReadSelf],
-    lazy: routeLazyLoaders.settings,
+    lazy: routeLazyLoaders.profile,
     navigation: {
       group: appRouteGroupIds.utilities,
       order: 10,
     },
   },
   {
+    id: appRouteIds.security,
+    path: appRouteSegments.security,
+    href: appRoutePaths.security,
+    scrollMode: "document",
+    label: appCopy.routes.security.label,
+    description: appCopy.routes.security.description,
+    requiredPermissions: [appPermissionKeys.settingsReadSelf],
+    lazy: routeLazyLoaders.security,
+    navigation: {
+      group: appRouteGroupIds.utilities,
+      order: 20,
+    },
+  },
+  {
+    id: appRouteIds.settingsLegacyRedirect,
+    path: appRouteSegments.settingsLegacy,
+    scrollMode: "document",
+    label: appCopy.routes.settings.label,
+    description: appCopy.routes.settings.description,
+    requiredPermissions: [appPermissionKeys.settingsReadSelf],
+    lazy: routeLazyLoaders.settingsRedirect,
+  },
+  {
+    id: appRouteIds.profileLegacyRedirect,
+    path: appRouteSegments.profileLegacy,
+    scrollMode: "document",
+    label: appCopy.routes.profile.label,
+    description: appCopy.routes.profile.description,
+    requiredPermissions: [appPermissionKeys.settingsReadSelf],
+    lazy: routeLazyLoaders.settingsRedirect,
+  },
+  {
     id: appRouteIds.clientVehicles,
     path: appRouteSegments.clientVehicles,
+    scrollMode: "content",
     label: appCopy.routes.clientVehicles.label,
     description: appCopy.routes.clientVehicles.description,
     requiredPermissions: [appPermissionKeys.clientVehiclesRead],
@@ -276,19 +329,11 @@ export const authenticatedRouteRegistry = [
   {
     id: appRouteIds.unitUsers,
     path: appRouteSegments.unitUsers,
+    scrollMode: "content",
     label: appCopy.routes.users.label,
     description: appCopy.routes.users.description,
     requiredPermissions: [appPermissionKeys.unitsRead, appPermissionKeys.usersRead],
     lazy: routeLazyLoaders.unitUsers,
-  },
-  {
-    id: appRouteIds.settingsProfileAlias,
-    path: appRouteSegments.profile,
-    href: appRoutePaths.profile,
-    label: appCopy.routes.settings.label,
-    description: appCopy.routes.settings.description,
-    requiredPermissions: [appPermissionKeys.settingsReadSelf],
-    lazy: routeLazyLoaders.settings,
   },
 ] as const satisfies readonly AppRouteRegistryItem[]
 

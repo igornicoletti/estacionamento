@@ -30,6 +30,40 @@ function readString(value: unknown) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null
 }
 
+function normalizeAvatarPath(value: unknown, authUserId: string) {
+  if (value === null || value === undefined) {
+    return null
+  }
+
+  if (typeof value !== "string") {
+    throw new Error("invalid_avatar_path")
+  }
+
+  const normalized = value.trim()
+
+  if (!normalized) {
+    return null
+  }
+
+  if (/^(https?:|data:image\/)/i.test(normalized)) {
+    throw new Error("external_avatar_url_not_allowed")
+  }
+
+  if (normalized.startsWith("/") || normalized.includes("..") || normalized.includes("\\")) {
+    throw new Error("invalid_avatar_path")
+  }
+
+  if (!normalized.startsWith(`${authUserId}/`)) {
+    throw new Error("avatar_path_owner_mismatch")
+  }
+
+  if (!/\.(jpe?g|png|webp)$/i.test(normalized)) {
+    throw new Error("invalid_avatar_extension")
+  }
+
+  return normalized
+}
+
 Deno.serve(async (request) => {
   const cors = handleCors(request)
 
@@ -49,15 +83,17 @@ Deno.serve(async (request) => {
     }
 
     const input = profileUpdateSchema.parse(await request.json())
+
+    if (input.avatarUrl !== undefined && input.avatarUrl !== null) {
+      return authError("invalid_payload", 400, request)
+    }
+
     const supabase = createAdminClient()
     const normalizedEmail =
       typeof input.email === "string" && input.email.trim()
         ? input.email.trim()
         : null
-    const normalizedAvatarUrl =
-      typeof input.avatarUrl === "string" && input.avatarUrl.trim()
-        ? input.avatarUrl.trim()
-        : null
+    const normalizedAvatarPath = normalizeAvatarPath(input.avatarPath, actor.authUserId)
     const shouldUpdatePhone = typeof input.phone === "string"
     const normalizedPhone = shouldUpdatePhone ? normalizePhone(input.phone ?? "") : null
 
@@ -110,7 +146,7 @@ Deno.serve(async (request) => {
     }
 
     const updatePayload: Record<string, unknown> = {
-      avatar_url: normalizedAvatarUrl,
+      avatar_url: normalizedAvatarPath,
       email: normalizedEmail,
       name: input.name.trim(),
       updated_at: new Date().toISOString(),
@@ -198,10 +234,10 @@ Deno.serve(async (request) => {
       {
         ok: true,
         data: {
-          avatarUrl: normalizedAvatarUrl,
+          avatarPath: normalizedAvatarPath,
           email: normalizedEmail,
           name: input.name.trim(),
-          phoneMasked: formattedPhone,
+          phoneMasked: maskedPhone,
           requiresPasskeyRegistration: shouldResetPasskey,
         },
         message: shouldResetPasskey

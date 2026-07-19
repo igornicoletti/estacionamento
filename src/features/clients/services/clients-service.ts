@@ -1,11 +1,11 @@
-import { type Client, type ClientVehicle } from "../types/clients-types"
-import { sanitizeErpClientsPayload, sanitizeErpClientVehiclesPayload } from "../utils/clients-normalizers"
+import {
+  sanitizeErpClientsPayload,
+  sanitizeErpClientVehiclesPayload,
+  type Client,
+  type ClientsSnapshot,
+  type ClientVehicle,
+} from "../model"
 import { getClientsGateway } from "./clients-gateway"
-
-export interface ClientsSnapshot {
-  clients: Client[]
-  vehicles: ClientVehicle[]
-}
 
 export async function listClients(): Promise<Client[]> {
   const payload = await getClientsGateway().listClientsPayload()
@@ -18,7 +18,10 @@ export async function listClientVehicles(): Promise<ClientVehicle[]> {
 }
 
 export async function listClientsSnapshot(): Promise<ClientsSnapshot> {
-  const [clients, vehicles] = await Promise.all([listClients(), listClientVehicles()])
+  const [clients, vehicles] = await Promise.all([
+    listClients(),
+    listClientVehicles(),
+  ])
 
   return { clients, vehicles }
 }

@@ -2,7 +2,7 @@ import { DatabaseIcon, HistoryIcon, RefreshCcwIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate } from "react-router"
 
-import { createDataTableFilterOptions, DataTable } from "@/components/data-table"
+import { DataTable } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
@@ -10,19 +10,18 @@ import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { AUTH_PERMISSION, useAuth } from "@/features/auth"
 import { getClientVipStatus, useVipRules } from "@/features/rules"
-import { SyncBlockingDialog } from "@/features/sync"
+import { executeSyncWithRefresh, SyncBlockingDialog } from "@/features/sync"
 
-import { clientsCopy } from "../clients-copy"
-import { createClientsColumns } from "../columns/clients-columns"
-import { ClientsSyncHistoryDialog } from "../components/clients-sync-history-dialog"
-import { useClientSyncHistory } from "../hooks/use-client-sync-history"
-import { useClients } from "../hooks/use-clients"
-import { isClientSyncInProgressError, triggerClientsSync } from "../services/client-sync-service"
-import { type ClientTableRow } from "../types/clients-types"
-import { getClientDetailItems } from "../utils/clients-details-model"
-import { mapClientToTableRow } from "../utils/clients-table-mappers"
-
-const clientsTableColumnVisibilityKey = "rmc.table.clients.columns.v2"
+import { ClientsSyncHistoryDialog } from "../components"
+import { CLIENTS_TABLE_COLUMN_VISIBILITY_KEY, clientsCopy } from "../constants"
+import { useClients, useClientSyncHistory } from "../hooks"
+import { getClientDetailItems, mapClientToTableRow, type ClientTableRow } from "../model"
+import { isClientSyncInProgressError, triggerClientsSync } from "../services"
+import {
+  createClientsColumns,
+  createClientStatusFilterOptions,
+  createClientVipFilterOptions,
+} from "../table"
 
 function canManageOperationalData(auth: ReturnType<typeof useAuth>) {
   return auth.access.hasPermission(AUTH_PERMISSION.syncExecute)
@@ -45,35 +44,39 @@ export function ClientsRoute() {
 
   const canManageClients = canManageOperationalData(auth)
   const tableData = React.useMemo<ClientTableRow[]>(() => {
-    return clients.map((client) => mapClientToTableRow(client, { isVipEnabled: getClientVipStatus(client, vipRules) }))
+    return clients.map((client) => mapClientToTableRow(client, {
+      isVipEnabled: getClientVipStatus(client, vipRules),
+    }))
   }, [clients, vipRules])
 
   const columns = React.useMemo(
     () => createClientsColumns({
       onOpenDetails: setSelectedClient,
-      onSelectVehicles: (client) => { void navigate(`/clientes/${client.cod_pessoa}`) },
-      vipActionLabel: clientsCopy.actions.toggleClientVip,
+      onSelectVehicles: (client) => {
+        void navigate(`/clientes/${client.cod_pessoa}`)
+      },
       onToggleVip: canManageClients
         ? (client) => {
-            void notify.promise(
-              toggleClientVip({
-                clientId: client.cod_pessoa,
-                clientName: client.nom_pessoa,
-                enabled: client.vip !== "sim",
-              }),
-              clientsCopy.feedback.clientVip
-            )
-          }
+          void notify.promise(
+            toggleClientVip({
+              clientId: client.cod_pessoa,
+              clientName: client.nom_pessoa,
+              enabled: client.vip !== "sim",
+            }),
+            clientsCopy.feedback.clientVip
+          )
+        }
         : undefined,
+      vipActionLabel: clientsCopy.actions.toggleClientVip,
     }),
     [canManageClients, navigate, toggleClientVip]
   )
   const statusOptions = React.useMemo(
-    () => createDataTableFilterOptions(tableData, (client) => client.status, (client) => client.status === "ativo" ? clientsCopy.table.active : clientsCopy.table.inactive),
+    () => createClientStatusFilterOptions(tableData),
     [tableData]
   )
   const vipOptions = React.useMemo(
-    () => createDataTableFilterOptions(tableData, (client) => client.vip, (client) => client.vip === "sim" ? clientsCopy.table.yes : clientsCopy.table.no),
+    () => createClientVipFilterOptions(tableData),
     [tableData]
   )
 
@@ -89,29 +92,20 @@ export function ClientsRoute() {
     setIsSyncing(true)
 
     try {
-      const result = await triggerClientsSync("incremental")
-
-      await refreshOperationalSnapshots()
-
-      if (result.status === "failed") {
-        notify.error(clientsCopy.sync.feedback.error)
-        return
-      }
-
-      if (result.status === "warning") {
-        notify.warning(clientsCopy.sync.feedback.inProgress)
-        return
-      }
-
-      notify.success(clientsCopy.sync.feedback.success)
-    } catch (caughtError) {
-      await refreshOperationalSnapshots()
-
-      if (isClientSyncInProgressError(caughtError)) {
-        notify.warning(clientsCopy.sync.feedback.inProgress)
-      } else {
-        notify.error(clientsCopy.sync.feedback.error)
-      }
+      await executeSyncWithRefresh({
+        triggerSync: () => triggerClientsSync("incremental"),
+        refreshSnapshots: refreshOperationalSnapshots,
+        isInProgressError: isClientSyncInProgressError,
+        onSuccess: () => {
+          notify.success(clientsCopy.sync.feedback.success)
+        },
+        onWarning: () => {
+          notify.warning(clientsCopy.sync.feedback.inProgress)
+        },
+        onError: () => {
+          notify.error(clientsCopy.sync.feedback.error)
+        },
+      })
     } finally {
       setIsSyncing(false)
     }
@@ -124,12 +118,27 @@ export function ClientsRoute() {
         subtitle={clientsCopy.pages.clients.subtitle}
         actions={(
           <PageHeaderActions>
-            <Button type="button" variant="secondary" size="lg" onClick={() => setIsHistoryOpen(true)}>
+            <Button
+              type="button"
+              variant="secondary"
+              size="lg"
+              onClick={() => {
+                setIsHistoryOpen(true)
+              }}
+            >
               <HistoryIcon aria-hidden="true" />
               {clientsCopy.actions.history}
             </Button>
             {canManageClients ? (
-              <Button type="button" variant="secondary" size="lg" disabled={isLoading || isSyncing} onClick={() => { void handleStartSync() }}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                disabled={isLoading || isSyncing}
+                onClick={() => {
+                  void handleStartSync()
+                }}
+              >
                 <RefreshCcwIcon aria-hidden="true" />
                 {clientsCopy.actions.sync}
               </Button>
@@ -141,7 +150,7 @@ export function ClientsRoute() {
       <DataTable
         columns={columns}
         data={tableData}
-        columnVisibilityStorageKey={clientsTableColumnVisibilityKey}
+        columnVisibilityStorageKey={CLIENTS_TABLE_COLUMN_VISIBILITY_KEY}
         getRowId={(client) => String(client.cod_pessoa)}
         globalSearch={{
           columnIds: ["cod_pessoa", "nom_pessoa", "nom_fantasia", "num_cnpj_cpf", "nom_cidade", "qtd_veiculos"],
@@ -151,18 +160,36 @@ export function ClientsRoute() {
           { id: "status", title: clientsCopy.filters.status, options: statusOptions },
           { id: "vip", title: clientsCopy.filters.vip, options: vipOptions },
         ]}
-        emptyState={<AppEmptyState media={<DatabaseIcon />} title={clientsCopy.empty.clientsTitle} description={clientsCopy.empty.clientsDescription} />}
-        filteredEmptyState={<AppEmptyState media={<DatabaseIcon />} title={clientsCopy.filteredEmpty.clientsTitle} description={clientsCopy.filteredEmpty.clientsDescription} />}
+        emptyState={(
+          <AppEmptyState
+            media={<DatabaseIcon />}
+            title={clientsCopy.empty.clientsTitle}
+            description={clientsCopy.empty.clientsDescription}
+          />
+        )}
+        filteredEmptyState={(
+          <AppEmptyState
+            media={<DatabaseIcon />}
+            title={clientsCopy.filteredEmpty.clientsTitle}
+            description={clientsCopy.filteredEmpty.clientsDescription}
+          />
+        )}
         isLoading={isLoading}
         error={error}
-        onRetry={() => { void refetch() }}
+        onRetry={() => {
+          void refetch()
+        }}
         enablePagination
         enableViewOptions
       />
 
       <AppDetailsSheet
         open={Boolean(selectedClient)}
-        onOpenChange={(open) => { if (!open) setSelectedClient(null) }}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedClient(null)
+          }
+        }}
         title={selectedClient?.nom_pessoa}
         description={selectedClient?.num_cnpj_cpf}
         items={selectedClient ? getClientDetailItems(selectedClient) : []}
@@ -174,7 +201,9 @@ export function ClientsRoute() {
         entries={syncHistory}
         isLoading={isLoadingSyncHistory}
         error={syncHistoryError}
-        onRetry={() => { void refetchSyncHistory() }}
+        onRetry={() => {
+          void refetchSyncHistory()
+        }}
       />
 
       <SyncBlockingDialog

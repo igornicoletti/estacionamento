@@ -15,15 +15,14 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import {
+  formatNotificationsCounter,
+  getRecentUnreadNotifications,
+  isInternalNotificationHref,
   notificationTypeLabels,
   notificationsCopy,
   useNotifications,
 } from "@/features/notifications"
-import {
-  formatNotificationsCounter,
-  getRecentUnreadNotifications,
-  isInternalNotificationHref,
-} from "@/features/notifications/utils/notifications-rules"
+
 import { formatDateTime } from "@/lib"
 
 import { sidebarCopy } from "./sidebar-copy"

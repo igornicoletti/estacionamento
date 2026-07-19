@@ -12,7 +12,7 @@ Sidebar e header da área autenticada.
 - `sidebar-nav-group.tsx`: grupo colapsável de navegação.
 - `sidebar-navigation.tsx`: filtra grupos por permissões efetivas.
 - `sidebar-notifications-popover.tsx`: popover de notificações com `AppEmptyState`.
-- `sidebar-profile.tsx`: badge de perfil/role atual.
+- `sidebar-profile.tsx`: indicador estático do perfil/role atual.
 - `sidebar-user-menu.tsx`: menu do usuário e logout mobile/dropdown.
 - `index.ts`: superfície pública do diretório.
 
@@ -23,6 +23,7 @@ Sidebar e header da área autenticada.
 - O texto visual do toggle lateral é oculto com `sr-only`; o `aria-label` mantém acessibilidade.
 - Botão de sair destrutivo fica no header desktop e oculto no mobile.
 - Notificações usam `AppEmptyState`, não `Empty` direto.
+- O indicador de perfil é informativo e não executa ação; controles interativos reais ficam no menu do usuário e no header.
 
 ## Referências auditadas
 

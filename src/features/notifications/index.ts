@@ -1,10 +1,33 @@
-export { createNotificationsColumns } from "./columns/notifications-columns"
+export {
+  notificationStatusLabels,
+  notificationsCopy,
+  notificationTypeLabels,
+} from "./constants"
 export {
   NotificationsProvider,
   useNotifications,
   type NotificationsContextValue,
-} from "./context/notifications-provider"
-export { notificationsCopy } from "./notifications-copy"
+} from "./context"
+export { useNotificationsTableFilters } from "./hooks"
+export {
+  formatNotificationsCounter,
+  getNotificationDetailItems,
+  getRecentUnreadNotifications,
+  getUnreadNotifications,
+  getUnreadNotificationsCount,
+  isInternalNotificationHref,
+  isUnreadNotification,
+  notificationStatusValues,
+  notificationTypeValues,
+  resolveNotificationDetailsDescription,
+  resolveNotificationDetailsTitle,
+  type NotificationRecord,
+  type NotificationsGateway,
+  type NotificationStatus,
+  type NotificationType,
+  type SetNotificationsStatusBatchResult,
+} from "./model"
+export { NotificationsRoute } from "./routes"
 export {
   countUnreadNotifications,
   listNotifications,
@@ -14,28 +37,9 @@ export {
   setNotificationsGateway,
   setNotificationsStatus,
   subscribeNotifications,
-  type NotificationsGateway,
-  type SetNotificationsStatusBatchResult,
-} from "./services/notifications-service"
+} from "./services"
 export {
-  notificationStatusLabels,
-  notificationStatusValues,
-  notificationTypeLabels,
-  notificationTypeValues,
-  type NotificationRecord,
-  type NotificationStatus,
-  type NotificationType,
-} from "./types/notifications-types"
-export {
-  getNotificationDetailItems,
-  resolveNotificationDetailsDescription,
-  resolveNotificationDetailsTitle,
-} from "./utils/notifications-details-model"
-export {
-  formatNotificationsCounter,
-  getRecentUnreadNotifications,
-  getUnreadNotifications,
-  getUnreadNotificationsCount,
-  isInternalNotificationHref,
-  isUnreadNotification,
-} from "./utils/notifications-rules"
+  createNotificationsColumns,
+  createNotificationStatusOptions,
+  createNotificationTypeOptions,
+} from "./table"

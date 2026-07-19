@@ -33,7 +33,7 @@ const {
   toggleVehicleVipMock,
 } = vi.hoisted(() => ({
   listVipRulesMock: vi.fn<() => Promise<VipRule[]>>(),
-  saveVipRuleMock: vi.fn<(input: SaveVipRuleInput) => Promise<VipRule>>(),
+  saveVipRuleMock: vi.fn<(input: SaveVipRuleInput) => Promise<void>>(),
   toggleClientVipMock: vi.fn(),
   toggleVehicleVipMock: vi.fn(),
 }))
@@ -48,17 +48,15 @@ vi.mock("@/features/rules/services/vip-rules-service", () => ({
 const activeVipRule: VipRule = {
   active: true,
   appliesToAllUnits: true,
-  appliesToAllVehicles: true,
   benefitHours: null,
   clientId: 1001,
   clientName: "Auto Center Alfa",
+  createdAt: null,
   fuelMinLiters: null,
   id: "rule-vip-1001",
   notes: null,
-  ruleSummary: "Auto Center Alfa",
-  ruleType: "vip",
-  scopeLabel: "Todas as unidades",
   targetType: "client",
+  type: "vip",
   unitIds: [],
   updatedAt: "2026-07-02T12:00:00.000Z",
   vehicleId: null,
@@ -178,7 +176,7 @@ describe("RulesRoute", () => {
     toggleClientVipMock.mockReset()
     toggleVehicleVipMock.mockReset()
     listVipRulesMock.mockResolvedValue([activeVipRule])
-    saveVipRuleMock.mockResolvedValue(activeVipRule)
+    saveVipRuleMock.mockResolvedValue(undefined)
   })
 
   afterEach(() => {
@@ -220,10 +218,9 @@ describe("RulesRoute", () => {
         expect.objectContaining({
           active: true,
           appliesToAllUnits: true,
-          appliesToAllVehicles: true,
           clientId: 1001,
           clientName: "Auto Center Alfa",
-          ruleType: "vip",
+          type: "vip",
           targetType: "client",
         })
       )
@@ -279,7 +276,7 @@ describe("RulesRoute", () => {
         expect.objectContaining({
           active: false,
           clientId: 1001,
-          ruleType: "vip",
+          type: "vip",
         })
       )
     })

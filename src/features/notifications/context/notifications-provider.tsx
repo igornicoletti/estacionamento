@@ -1,30 +1,32 @@
 import * as React from "react"
 
-import { canAccessProtectedApp } from "@/features/auth"
-import { useAuth } from "@/features/auth"
+import { canAccessProtectedApp, useAuth } from "@/features/auth"
 
-import { notificationsCopy } from "../notifications-copy"
+import {
+  NOTIFICATIONS_REALTIME_REFRESH_DELAY_MS,
+  notificationsCopy,
+} from "../constants"
 import {
   countUnreadNotifications,
   listNotifications,
   markAllNotificationsAsRead,
   setNotificationStatus,
   subscribeNotifications,
-  type SetNotificationsStatusBatchResult,
-} from "../services/notifications-service"
+} from "../services"
 import {
   type NotificationRecord,
   type NotificationStatus,
-} from "../types/notifications-types"
+  type SetNotificationsStatusBatchResult,
+} from "../model"
 
 interface NotificationsState {
   data: NotificationRecord[]
+  error: Error | null
   isLoading: boolean
   isRefreshing: boolean
   isUpdatingBatch: boolean
-  updatingNotificationIds: ReadonlySet<string>
   unreadCount: number
-  error: Error | null
+  updatingNotificationIds: ReadonlySet<string>
 }
 
 type NotificationsLoadMode = "loading" | "refreshing"
@@ -40,18 +42,14 @@ type NotificationsAction =
   | { type: "status-update-finished"; id: string }
   | { type: "reset" }
 
-function assertNever(value: never): never {
-  throw new Error(`Ação de notificações não tratada: ${JSON.stringify(value)}`)
-}
-
 export interface NotificationsContextValue extends NotificationsState {
+  isNotificationUpdating: (notificationId: string) => boolean
+  markAllAsRead: () => Promise<SetNotificationsStatusBatchResult>
   refetch: () => Promise<void>
   updateStatus: (
     notificationId: string,
     status: NotificationStatus
   ) => Promise<NotificationRecord>
-  markAllAsRead: () => Promise<SetNotificationsStatusBatchResult>
-  isNotificationUpdating: (notificationId: string) => boolean
 }
 
 const initialState: NotificationsState = {
@@ -60,8 +58,8 @@ const initialState: NotificationsState = {
   isLoading: true,
   isRefreshing: false,
   isUpdatingBatch: false,
-  updatingNotificationIds: new Set<string>(),
   unreadCount: 0,
+  updatingNotificationIds: new Set<string>(),
 }
 
 const inactiveState: NotificationsState = {
@@ -70,11 +68,15 @@ const inactiveState: NotificationsState = {
   isLoading: false,
   isRefreshing: false,
   isUpdatingBatch: false,
-  updatingNotificationIds: new Set<string>(),
   unreadCount: 0,
+  updatingNotificationIds: new Set<string>(),
 }
 
 const NotificationsContext = React.createContext<NotificationsContextValue | null>(null)
+
+function assertNever(value: never): never {
+  throw new Error(`Ação de notificações não tratada: ${JSON.stringify(value)}`)
+}
 
 function toLoadError(error: unknown) {
   return error instanceof Error
@@ -124,11 +126,9 @@ function resolveUnreadCountAfterStatusChange(
     return currentUnreadCount
   }
 
-  if (nextStatus === "read") {
-    return Math.max(0, currentUnreadCount - 1)
-  }
-
-  return currentUnreadCount + 1
+  return nextStatus === "read"
+    ? Math.max(0, currentUnreadCount - 1)
+    : currentUnreadCount + 1
 }
 
 function notificationsReducer(
@@ -148,9 +148,9 @@ function notificationsReducer(
         ...state,
         data: action.data,
         error: null,
-        unreadCount: action.unreadCount,
         isLoading: false,
         isRefreshing: false,
+        unreadCount: action.unreadCount,
       }
     case "failed":
       return {
@@ -219,7 +219,10 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
   const [state, dispatch] = React.useReducer(notificationsReducer, initialState)
 
   const loadNotifications = React.useCallback(
-    async (mode: NotificationsLoadMode, shouldApplyResult: () => boolean = () => true) => {
+    async (
+      mode: NotificationsLoadMode,
+      shouldApplyResult: () => boolean = () => true
+    ) => {
       dispatch({ type: "load-started", mode })
 
       try {
@@ -285,7 +288,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       realtimeRefreshTimeoutRef.current = window.setTimeout(() => {
         realtimeRefreshTimeoutRef.current = null
         void loadNotifications("refreshing", () => isCurrent)
-      }, 150)
+      }, NOTIFICATIONS_REALTIME_REFRESH_DELAY_MS)
     }
 
     const unsubscribe = subscribeNotifications(scheduleRealtimeRefresh, {
@@ -354,13 +357,7 @@ export function NotificationsProvider({ children }: { children: React.ReactNode 
       refetch,
       updateStatus,
     }),
-    [
-      isNotificationUpdating,
-      markAllAsRead,
-      refetch,
-      state,
-      updateStatus,
-    ]
+    [isNotificationUpdating, markAllAsRead, refetch, state, updateStatus]
   )
 
   return (

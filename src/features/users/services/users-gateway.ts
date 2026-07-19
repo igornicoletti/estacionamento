@@ -1,4 +1,4 @@
-import { type UserRecord } from "../types/users-types"
+import { type UserRecord } from "../model"
 
 const initialUsers: UserRecord[] = []
 

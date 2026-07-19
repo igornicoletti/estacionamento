@@ -14,7 +14,6 @@ export const sidebarCopy = {
   menu: {
     changePhoto: "Alterar foto",
     myProfile: "Meu perfil",
-    settings: "Configurações",
     notifications: "Notificações",
     signOut: "Sair",
     openUserMenu: (name: string) => `${name} - abrir menu de usuário`,

@@ -1,5 +1,4 @@
-import { PageHeader } from "@/components/page/page-header"
-import { PageSection } from "@/components/page/page-section"
+import { PageHeader, PageSection } from "@/components/page"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { ParkingCircleIcon } from "lucide-react"
 

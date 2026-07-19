@@ -1,11 +1,12 @@
 import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
-import { listClients } from "../services/clients-service"
-import { type Client } from "../types/clients-types"
-import { clientsCopy } from "../clients-copy"
+
+import { CLIENTS_LIST_CACHE_KEY, clientsCopy } from "../constants"
+import { type Client } from "../model"
+import { listClients } from "../services"
 
 export function useClients() {
   return useAsyncSnapshot<Client[]>({
-    cacheKey: "clients:list:v2",
+    cacheKey: CLIENTS_LIST_CACHE_KEY,
     errorMessage: clientsCopy.errors.clientsLoad,
     initialData: [],
     loadData: listClients,

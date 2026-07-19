@@ -8,13 +8,17 @@ export function createDataTableFilterOptions<
   TData,
   TValue extends string | number | null | undefined,
 >(
-  data: readonly TData[],
+  data: readonly TData[] | undefined,
   getValue: (row: TData) => TValue,
   getLabel: (row: TData) => string,
   config: CreateDataTableFilterOptionsConfig = {}
 ): DataTableFilterOption[] {
   const options = new Map<string, DataTableFilterOption>()
   const counts = new Map<string, number>()
+
+  if (!data || data.length === 0) {
+    return []
+  }
 
   data.forEach((row) => {
     const rawValue = getValue(row)

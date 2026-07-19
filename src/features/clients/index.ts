@@ -1,41 +1,53 @@
-export { clientsCopy } from "./clients-copy"
-export { createClientVehiclesColumns } from "./columns/client-vehicles-columns"
-export { createClientsColumns } from "./columns/clients-columns"
-export { ClientsSyncHistoryDialog } from "./components/clients-sync-history-dialog"
-export { useClientSyncHistory } from "./hooks/use-client-sync-history"
-export { useClientVehicles } from "./hooks/use-client-vehicles"
-export { useClients } from "./hooks/use-clients"
-export { ClientVehiclesRoute } from "./routes/client-vehicles-route"
-export { ClientsRoute } from "./routes/clients-route"
-export { listClientSyncHistory } from "./services/client-sync-history-service"
-export { triggerClientsSync, type ClientSyncMode } from "./services/client-sync-service"
+export { ClientsSyncHistoryDialog } from "./components"
+export { clientsCopy } from "./constants"
+export { useClients, useClientSyncHistory, useClientVehicles } from "./hooks"
 export {
-  configureClientsGateway,
-  getClientsGateway,
-  resetClientsGateway,
-  type ClientsGateway,
-} from "./services/clients-gateway"
-export { listClients, listClientsSnapshot, listClientVehicles } from "./services/clients-service"
-export type { ClientSyncCounters, ClientSyncHistoryEntry } from "./types/clients-sync-history-types"
-export type {
-  Client,
-  ClientTableRow,
-  ClientVehicle,
-  ClientVehicleTableRow,
-  ErpClientPayload,
-  ErpClientVehiclePayload,
-  VipFlag,
-} from "./types/clients-types"
-export { getClientDetailItems, getClientVehicleDetailItems } from "./utils/clients-details-model"
-export {
+  getClientDetailItems,
+  getClientVehicleDetailItems,
+  mapClientToTableRow,
+  mapClientVehicleToTableRow,
+  normalizeDisplayName,
+  parseClientRouteId,
+  resolveClientStatus,
+  resolveVipFlag,
   sanitizeErpClientPayload,
   sanitizeErpClientsPayload,
   sanitizeErpClientVehiclePayload,
   sanitizeErpClientVehiclesPayload,
-} from "./utils/clients-normalizers"
+  type Client,
+  type ClientStatus,
+  type ClientSyncCounters,
+  type ClientSyncHistoryEntry,
+  type ClientSyncMode,
+  type ClientsSnapshot,
+  type ClientSyncStatus,
+  type ClientSyncTrigger,
+  type ClientTableRow,
+  type ClientVehicle,
+  type ClientVehicleTableRow,
+  type ErpClientPayload,
+  type ErpClientVehiclePayload,
+  type TriggerClientsSyncResult,
+  type VipFlag,
+} from "./model"
+export { ClientVehiclesRoute, ClientsRoute } from "./routes"
 export {
-  mapClientToTableRow,
-  mapClientVehicleToTableRow,
-  resolveClientStatus,
-  resolveVipFlag,
-} from "./utils/clients-table-mappers"
+  configureClientsGateway,
+  getClientsGateway,
+  isClientSyncInProgressError,
+  listClients,
+  listClientsSnapshot,
+  listClientSyncHistory,
+  listClientVehicles,
+  resetClientsGateway,
+  triggerClientsSync,
+  type ClientsGateway,
+} from "./services"
+export {
+  createClientStatusFilterOptions,
+  createClientsColumns,
+  createClientVehiclesColumns,
+  createClientVipFilterOptions,
+  createVehiclePlateFilterOptions,
+  createVehicleVipFilterOptions,
+} from "./table"

@@ -17,7 +17,7 @@ import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { requestAccessRecovery } from "@/features/auth/api"
 import { AuthPageCard } from "@/features/auth/components"
-import { authCopy } from "@/features/auth/copy"
+import { authCopy } from "@/features/auth/constants"
 import {
   authRecoverySchema,
   formatCpfInput,

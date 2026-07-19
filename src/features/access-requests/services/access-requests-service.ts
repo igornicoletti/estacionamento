@@ -1,11 +1,12 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
-import { accessRequestsCopy } from "../access-requests-copy"
-import {
-  type AccessRecoveryRequestRecord,
-  type AccessRequestReviewDecision,
-} from "../types/access-requests-types"
-import { parseRecoveryRequests } from "../utils/access-requests-parsers"
+import { accessRequestsCopy } from "../constants"
+import type { AccessRecoveryRequestRecord, AccessRequestReviewDecision } from "../model"
+import { normalizeRecoveryRequests } from "../model"
+
+interface FunctionInvokeResponse {
+  error: unknown
+}
 
 function getSupabaseOrThrow(errorMessage: string) {
   const supabase = getSupabaseBrowserClient()
@@ -21,9 +22,7 @@ function getReviewErrorMessage(decision: AccessRequestReviewDecision) {
   return accessRequestsCopy.feedback.recovery[decision].error
 }
 
-export async function listPendingRecoveryRequests(): Promise<
-  AccessRecoveryRequestRecord[]
-> {
+export async function listPendingRecoveryRequests(): Promise<AccessRecoveryRequestRecord[]> {
   const supabase = getSupabaseOrThrow(accessRequestsCopy.feedback.loadError)
   const { data, error } = await supabase
     .from("access_recovery_requests")
@@ -35,7 +34,7 @@ export async function listPendingRecoveryRequests(): Promise<
     throw new Error(accessRequestsCopy.feedback.loadError)
   }
 
-  return parseRecoveryRequests(data ?? [])
+  return normalizeRecoveryRequests(data ?? [])
 }
 
 export async function reviewRecoveryRequest(
@@ -45,16 +44,13 @@ export async function reviewRecoveryRequest(
 ) {
   const errorMessage = getReviewErrorMessage(decision)
   const supabase = getSupabaseOrThrow(errorMessage)
-  const response: { error: unknown } = await supabase.functions.invoke(
-    "admin-recovery-review",
-    {
-      body: {
-        decision,
-        requestId,
-        ...(decision === "approved" ? { temporaryPassword } : {}),
-      },
-    }
-  )
+  const response: FunctionInvokeResponse = await supabase.functions.invoke("admin-recovery-review", {
+    body: {
+      decision,
+      requestId,
+      ...(decision === "approved" ? { temporaryPassword } : {}),
+    },
+  })
 
   if (response.error) {
     throw new Error(errorMessage)

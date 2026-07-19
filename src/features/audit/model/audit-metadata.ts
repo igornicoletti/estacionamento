@@ -1,10 +1,12 @@
 import { formatDateTime } from "@/lib"
 
-import { auditCopy } from "../constants"
-import { getAuditOutcomeLabel } from "./audit-outcome"
 import {
+  auditCopy,
   auditScopeLabels,
   auditSeverityLabels,
+} from "../constants"
+import { getAuditOutcomeLabel } from "./audit-outcome"
+import {
   type AuditEvent,
   type AuditEventDetailItem,
 } from "./audit-types"

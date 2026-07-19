@@ -1,0 +1,6 @@
+export const USERS_CACHE_KEY = "users:list:v2"
+export const USERS_DISABLED_CACHE_KEY = "users:list:disabled"
+export const USERS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.users.columns.v2"
+export const USERS_DIALOG_FORM_ID = "users-dialog-form"
+export const USERS_TAB_VALUE = "usuarios"
+export const ACCESS_REQUESTS_TAB_VALUE = "solicitacoes"

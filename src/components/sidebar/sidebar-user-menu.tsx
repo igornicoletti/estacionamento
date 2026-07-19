@@ -15,17 +15,16 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuth } from "@/features/auth"
-import type { AuthProfile } from "@/features/auth/api"
+import { useAuth, type AuthProfile } from "@/features/auth"
 import {
   getProfileInitials,
   ProfilePhotoDialog,
-} from "@/features/settings/components/profile-photo-dialog"
+} from "@/features/my-profile/components/profile-photo-dialog"
+import { myProfileCopy } from "@/features/my-profile/my-profile-copy"
 import {
   updateCurrentProfile,
   uploadProfileAvatarFile,
-} from "@/features/settings/services/settings-profile-service"
-import { settingsCopy } from "@/features/settings/settings-copy"
+} from "@/features/my-profile/services/profile-service"
 
 import { sidebarCopy } from "./sidebar-copy"
 
@@ -57,28 +56,26 @@ export function UserMenu() {
   const displayMeta = getDisplayMeta(auth.profile)
   const fallback = getProfileInitials(displayName) || getFallback(displayName)
 
-  async function saveAvatar(avatarUrl: string | null, previewUrl?: string) {
+  async function saveAvatar(avatarPath: string | null, previewUrl: string) {
     if (!auth.profile) {
       return
     }
 
     await updateCurrentProfile({
-      avatarUrl,
+      avatarPath,
+      avatarPreviewUrl: previewUrl,
       email: auth.profile.email,
       name: auth.profile.name,
     })
     auth.actions.applyProfilePatch({
-      avatarPath:
-        avatarUrl && !/^(https?:|data:image\/)/i.test(avatarUrl)
-          ? avatarUrl
-          : null,
-      avatarUrl: previewUrl ?? avatarUrl,
+      avatarPath,
+      avatarUrl: previewUrl,
     })
     setIsPhotoDialogOpen(false)
-    void auth.actions.refreshProfile()
+    await auth.actions.refreshProfile()
   }
 
-  async function handleSaveFile(file: File, previewUrl: string) {
+  async function handleSaveFile(payload: { file?: File; imageUrl?: string; previewUrl: string }) {
     const profile = auth.profile
 
     if (!profile) {
@@ -89,19 +86,11 @@ export function UserMenu() {
 
     try {
       await notify.track((async () => {
-        const avatarUrl = await uploadProfileAvatarFile(file, profile.authUserId)
-        await saveAvatar(avatarUrl, previewUrl)
-      })(), settingsCopy.feedback.profile)
-    } finally {
-      setIsSavingPhoto(false)
-    }
-  }
-
-  async function handleSaveUrl(avatarUrl: string | null) {
-    setIsSavingPhoto(true)
-
-    try {
-      await notify.track(saveAvatar(avatarUrl), settingsCopy.feedback.profile)
+        const avatarPath = payload.file
+          ? await uploadProfileAvatarFile(payload.file, profile.authUserId)
+          : null
+        await saveAvatar(avatarPath, payload.imageUrl ?? payload.previewUrl)
+      })(), myProfileCopy.feedback.profile)
     } finally {
       setIsSavingPhoto(false)
     }
@@ -188,7 +177,6 @@ export function UserMenu() {
           isSaving={isSavingPhoto}
           onOpenChange={setIsPhotoDialogOpen}
           onSaveFile={handleSaveFile}
-          onSaveUrl={handleSaveUrl}
           open={isPhotoDialogOpen}
         />
       ) : null}

@@ -1,15 +1,9 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
-export type UnitSyncMode = "full" | "incremental"
-
-interface TriggerUnitsSyncResult {
-  runId: string | null
-  status: "success" | "warning" | "failed"
-  message: string
-}
+import { unitsCopy } from "../constants"
+import { type TriggerUnitsSyncResult, type UnitSyncRunMode } from "../model"
 
 const syncInProgressErrorCode = "sync_in_progress"
-const syncGenericErrorMessage = "Não foi possível sincronizar as unidades."
 let activeUnitSyncPromise: Promise<TriggerUnitsSyncResult> | null = null
 
 function asRecord(value: unknown): Record<string, unknown> | null {
@@ -36,9 +30,12 @@ async function readInvokeErrorMessage(error: unknown) {
 
   if (context instanceof Response) {
     try {
-      const payload = await context.clone().json() as { message?: unknown }
-      if (typeof payload.message === "string" && payload.message.trim()) {
-        return payload.message
+      const payload: unknown = await context.clone().json()
+      const payloadRecord = asRecord(payload)
+      const message = payloadRecord?.message
+
+      if (typeof message === "string" && message.trim()) {
+        return message
       }
     } catch {
       return readErrorMessage(error)
@@ -48,37 +45,34 @@ async function readInvokeErrorMessage(error: unknown) {
   return readErrorMessage(error)
 }
 
-function parseSyncResponse(
-  value: unknown,
-  fallbackMessage: string
-): TriggerUnitsSyncResult {
+function parseSyncResponse(value: unknown): TriggerUnitsSyncResult {
   const response = asRecord(value)
 
   if (!response) {
-    throw new Error(fallbackMessage)
+    throw new Error(unitsCopy.sync.feedback.error)
   }
 
   const payload = asRecord(response.data) ?? {}
-  const status =
-    payload.status === "success" || payload.status === "warning" || payload.status === "failed"
-      ? payload.status
-      : "failed"
+  const status = payload.status === "success" || payload.status === "warning" || payload.status === "failed"
+    ? payload.status
+    : "failed"
 
   return {
     runId: typeof payload.runId === "string" ? payload.runId : null,
     status,
     message: typeof payload.message === "string" && payload.message.trim()
       ? payload.message
-      : fallbackMessage,
+      : unitsCopy.sync.feedback.success,
   }
 }
-
 
 export function isUnitSyncInProgressError(error: unknown) {
   return error instanceof Error && error.message === syncInProgressErrorCode
 }
 
-export async function triggerUnitsSync(mode: UnitSyncMode = "incremental"): Promise<TriggerUnitsSyncResult> {
+export async function triggerUnitsSync(
+  mode: UnitSyncRunMode = "incremental"
+): Promise<TriggerUnitsSyncResult> {
   if (activeUnitSyncPromise) {
     throw new Error(syncInProgressErrorCode)
   }
@@ -93,11 +87,11 @@ export async function triggerUnitsSync(mode: UnitSyncMode = "incremental"): Prom
   }
 }
 
-async function executeUnitSync(mode: UnitSyncMode): Promise<TriggerUnitsSyncResult> {
+async function executeUnitSync(mode: UnitSyncRunMode): Promise<TriggerUnitsSyncResult> {
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {
-    throw new Error(syncGenericErrorMessage)
+    throw new Error(unitsCopy.sync.feedback.error)
   }
 
   const response = await supabase.functions.invoke("units-sync", {
@@ -105,8 +99,8 @@ async function executeUnitSync(mode: UnitSyncMode): Promise<TriggerUnitsSyncResu
   }) as { data: unknown; error: unknown }
 
   if (response.error) {
-    throw new Error((await readInvokeErrorMessage(response.error)) ?? syncGenericErrorMessage)
+    throw new Error((await readInvokeErrorMessage(response.error)) ?? unitsCopy.sync.feedback.error)
   }
 
-  return parseSyncResponse({ data: response.data }, "Sincronização concluída.")
+  return parseSyncResponse({ data: response.data })
 }

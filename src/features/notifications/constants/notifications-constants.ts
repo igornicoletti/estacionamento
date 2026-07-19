@@ -1,0 +1,4 @@
+export const NOTIFICATIONS_FETCH_LIMIT = 100
+export const NOTIFICATIONS_REALTIME_REFRESH_DELAY_MS = 150
+export const NOTIFICATIONS_TABLE_COLUMN_VISIBILITY_KEY =
+  "rmc.table.notifications.columns.v3"

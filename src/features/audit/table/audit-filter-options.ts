@@ -5,9 +5,8 @@ import {
   type DataTableFilterField,
 } from "@/components/data-table"
 
-import { auditCopy } from "../constants"
+import { auditCopy, auditScopeLabels } from "../constants"
 import {
-  auditScopeLabels,
   filterAuditEvents,
   removeAuditColumnFilter,
   type AuditEvent,

@@ -1,3 +1,14 @@
+import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppSheet } from "@/components/shared/app-sheet"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+import { Skeleton } from "@/components/ui/skeleton"
+import { cn } from "@/lib/utils"
 import {
   AlertTriangleIcon,
   CheckCircle2Icon,
@@ -5,35 +16,20 @@ import {
   RefreshCcwIcon,
   XCircleIcon,
 } from "lucide-react"
-import * as React from "react"
 
-import { AppEmptyState } from "@/components/shared/app-empty-state"
-import { Button } from "@/components/ui/button"
+import { syncCopy } from "../constants"
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import {
-  Sheet,
-  SheetContent,
-  SheetDescription,
-  SheetHeader,
-  SheetTitle,
-} from "@/components/ui/sheet"
-import { Skeleton } from "@/components/ui/skeleton"
-import { cn } from "@/lib/utils"
-
-import {
+  formatSyncDateTime,
+  formatSyncDuration,
+  getSyncRunModeLabel,
+  getSyncRunStatusLabel,
+  getSyncRunTriggerLabel,
   type SyncHistoryCounter,
-  type SyncHistoryEntry,
-  type SyncRunMode,
+  type SyncHistoryEntryLike,
   type SyncRunStatus,
-  type SyncRunTrigger,
-} from "../types/sync-history-types"
-import { syncCopy } from "../sync-copy"
+} from "../model"
 
-interface SyncHistoryDialogProps<TEntry extends SyncHistoryEntry> {
+interface SyncHistoryDialogProps<TEntry extends SyncHistoryEntryLike> {
   open: boolean
   onOpenChange: (open: boolean) => void
   entries: readonly TEntry[]
@@ -43,96 +39,94 @@ interface SyncHistoryDialogProps<TEntry extends SyncHistoryEntry> {
   retryLabel?: string
   title: string
   description: string
-  emptyTitle: string
-  emptyDescription: string
+  emptyTitle?: string
+  emptyDescription?: string
   getCounters: (entry: TEntry) => readonly SyncHistoryCounter[]
 }
 
-const statusIconByType: Record<SyncRunStatus, React.ComponentType<{ className?: string }>> = {
-  failed: XCircleIcon,
-  success: CheckCircle2Icon,
-  warning: AlertTriangleIcon,
+interface SyncDetailRow {
+  label: string
+  value: string
 }
 
 const statusBadgeClassNameByType: Record<SyncRunStatus, string> = {
-  failed: "bg-destructive/10 text-destructive",
-  success: "bg-success/10 text-success",
-  warning: "bg-warning/10 text-warning",
+  failed: "border-destructive/20 bg-destructive/10 text-destructive",
+  success: "border-success/20 bg-success/10 text-success",
+  warning: "border-warning/20 bg-warning/10 text-warning",
 }
 
-const statusLabelByType: Record<SyncRunStatus, string> = {
-  failed: syncCopy.history.status.failed,
-  success: syncCopy.history.status.success,
-  warning: syncCopy.history.status.warning,
-}
-
-const modeLabelByType: Record<SyncRunMode, string> = {
-  full: syncCopy.history.mode.full,
-  incremental: syncCopy.history.mode.incremental,
-}
-
-const triggerLabelByType: Record<SyncRunTrigger, string> = {
-  automatic: syncCopy.history.trigger.automatic,
-  manual: syncCopy.history.trigger.manual,
-}
-
-function formatDateTime(value: string) {
-  const date = new Date(value)
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-  }).format(date)
-}
-
-function formatDuration(durationSeconds: number | null) {
-  if (durationSeconds === null || durationSeconds < 0) {
-    return syncCopy.history.details.emptyValue
+function resolveErrorMessage(error: Error | string | null | undefined) {
+  if (!error) {
+    return null
   }
 
-  const minutes = Math.floor(durationSeconds / 60)
-  const seconds = durationSeconds % 60
+  return error instanceof Error ? error.message : error
+}
 
-  if (minutes === 0) {
-    return `${seconds}s`
+function renderStatusIcon(status: SyncRunStatus) {
+  if (status === "success") {
+    return <CheckCircle2Icon className="size-3" aria-hidden />
   }
 
-  return `${minutes}min ${seconds}s`
+  if (status === "warning") {
+    return <AlertTriangleIcon className="size-3" aria-hidden />
+  }
+
+  return <XCircleIcon className="size-3" aria-hidden />
 }
 
 function buildDetailRows(
-  entry: SyncHistoryEntry,
+  entry: SyncHistoryEntryLike,
   counters: readonly SyncHistoryCounter[]
-) {
+): SyncDetailRow[] {
   return [
     {
-      key: syncCopy.history.details.duration,
-      value: formatDuration(entry.durationSeconds),
+      label: syncCopy.history.details.duration,
+      value: formatSyncDuration(entry.durationSeconds),
     },
     ...counters.map((counter) => ({
-      key: counter.label,
+      label: counter.label,
       value: String(counter.value),
     })),
     {
-      key: syncCopy.history.details.start,
-      value: formatDateTime(entry.startedAt),
+      label: syncCopy.history.details.start,
+      value: formatSyncDateTime(entry.startedAt),
     },
     {
-      key: syncCopy.history.details.end,
-      value: entry.finishedAt ? formatDateTime(entry.finishedAt) : syncCopy.history.details.emptyValue,
+      label: syncCopy.history.details.end,
+      value: formatSyncDateTime(entry.finishedAt),
     },
     {
-      key: syncCopy.history.details.mode,
-      value: modeLabelByType[entry.mode],
+      label: syncCopy.history.details.mode,
+      value: getSyncRunModeLabel(entry.mode),
     },
     {
-      key: syncCopy.history.details.trigger,
-      value: triggerLabelByType[entry.trigger],
+      label: syncCopy.history.details.trigger,
+      value: getSyncRunTriggerLabel(entry.trigger),
     },
   ]
 }
 
-export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
+function SyncHistorySkeleton() {
+  return (
+    <div className="space-y-3" aria-hidden="true">
+      {[0, 1, 2].map((index) => (
+        <div key={index} className="rounded-lg bg-muted/40 p-3">
+          <div className="flex items-center justify-between gap-2">
+            <Skeleton className="h-4 w-28 bg-muted/60" />
+            <Skeleton className="h-5 w-20 rounded-full bg-muted/60" />
+          </div>
+          <div className="mt-2.5 flex gap-2">
+            <Skeleton className="h-4 w-16 rounded-full bg-muted/60" />
+            <Skeleton className="h-4 w-16 rounded-full bg-muted/60" />
+          </div>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function SyncHistoryDialog<TEntry extends SyncHistoryEntryLike>({
   open,
   onOpenChange,
   entries,
@@ -142,150 +136,136 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntry>({
   retryLabel = syncCopy.history.retryLabel,
   title,
   description,
-  emptyTitle,
-  emptyDescription,
+  emptyTitle = syncCopy.history.empty.title,
+  emptyDescription = syncCopy.history.empty.description,
   getCounters,
 }: SyncHistoryDialogProps<TEntry>) {
-  const errorMessage = error instanceof Error ? error.message : error
+  const errorMessage = resolveErrorMessage(error)
 
   return (
-    <Sheet open={open} onOpenChange={onOpenChange}>
-      <SheetContent>
-        <SheetHeader>
-          <SheetTitle>{title}</SheetTitle>
-          <SheetDescription>{description}</SheetDescription>
-        </SheetHeader>
+    <AppSheet
+      open={open}
+      onOpenChange={onOpenChange}
+      title={title}
+      description={description}
+      side="right"
+      className="gap-0 sm:max-w-md"
+    >
+      <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+        {isLoading ? <SyncHistorySkeleton /> : null}
 
-        <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4">
-          {isLoading ? (
-            <div className="space-y-3" aria-hidden="true">
-              {[0, 1, 2].map((index) => (
-                <div
-                  key={index}
-                  className="rounded-lg bg-muted/40 p-3"
-                  style={{ opacity: Math.max(0.4, 1 - index * 0.25) }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <Skeleton className="h-4 w-28 bg-muted/60" />
-                    <Skeleton className="h-5 w-20 rounded-full bg-muted/60" />
-                  </div>
-                  <div className="mt-2.5 flex gap-2">
-                    <Skeleton className="h-4 w-16 rounded-full bg-muted/60" />
-                    <Skeleton className="h-4 w-16 rounded-full bg-muted/60" />
-                  </div>
-                </div>
-              ))}
-            </div>
-          ) : null}
+        {!isLoading && errorMessage ? (
+          <AppEmptyState
+            className="min-h-32 rounded-md border border-solid p-4"
+            media={<AlertTriangleIcon />}
+            title={syncCopy.history.loadErrorTitle}
+            description={errorMessage}
+            actions={onRetry ? (
+              <Button type="button" variant="outline" size="lg" onClick={onRetry}>
+                <RefreshCcwIcon aria-hidden="true" />
+                {retryLabel}
+              </Button>
+            ) : null}
+          />
+        ) : null}
 
-          {!isLoading && errorMessage ? (
-            <AppEmptyState
-              className="min-h-32 rounded-md border border-solid p-4"
-              media={<AlertTriangleIcon />}
-              title={syncCopy.history.loadErrorTitle}
-              description={errorMessage}
-              actions={onRetry ? (
-                <Button type="button" variant="outline" size="lg" onClick={onRetry}>
-                  <RefreshCcwIcon aria-hidden="true" />
-                  {retryLabel}
-                </Button>
-              ) : null}
-            />
-          ) : null}
+        {!isLoading && !errorMessage && entries.length === 0 ? (
+          <AppEmptyState
+            className="min-h-32 rounded-md border border-solid p-4"
+            media={<RefreshCcwIcon />}
+            title={emptyTitle}
+            description={emptyDescription}
+          />
+        ) : null}
 
-          {!isLoading && !errorMessage && entries.length === 0 ? (
-            <AppEmptyState
-              className="min-h-32 rounded-md border border-solid p-4"
-              media={<RefreshCcwIcon />}
-              title={emptyTitle}
-              description={emptyDescription}
-            />
-          ) : null}
+        {!isLoading && !errorMessage && entries.length > 0 ? (
+          <ol className="relative ml-2 space-y-3 border-l-2 border-border/60 pl-4">
+            {entries.map((entry) => {
+              const counters = getCounters(entry)
+              const details = buildDetailRows(entry, counters)
 
-          {!isLoading && !errorMessage && entries.length > 0 ? (
-            <ol className="relative ml-2 border-l-2 border-border/60 pl-4 space-y-3">
-              {entries.map((entry) => {
-                const StatusIcon = statusIconByType[entry.status]
-                const counters = getCounters(entry)
-                const details = buildDetailRows(entry, counters)
-
-                return (
-                  <li key={entry.id} className="relative">
-                    <span
-                      aria-hidden="true"
-                      className={cn(
-                        "absolute left-[-1.4rem] top-3 size-2.5 rounded-full ring-2 ring-background",
-                        entry.status === "success" ? "bg-success" :
-                          entry.status === "warning" ? "bg-warning" : "bg-destructive"
-                      )}
-                    />
-                    <Collapsible defaultOpen={false} className="group/timeline-item">
-                      <div className="rounded-lg bg-muted/30 p-3">
-                        <CollapsibleTrigger asChild>
-                          <button
-                            type="button"
-                            className="flex w-full items-center justify-between gap-3 text-left"
-                          >
-                            <div className="flex min-w-0 items-center gap-2">
-                              <p className="truncate text-xs font-medium text-foreground">
-                                {formatDateTime(entry.startedAt)}
-                              </p>
-                              <span
-                                className={cn(
-                                  "inline-flex shrink-0 items-center gap-1 rounded-full px-1.5 py-0.5 text-[0.625rem] font-medium",
-                                  statusBadgeClassNameByType[entry.status]
-                                )}
-                              >
-                                <StatusIcon className="size-3" />
-                                {statusLabelByType[entry.status]}
-                              </span>
-                            </div>
-
-                            <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/timeline-item:rotate-180" />
-                          </button>
-                        </CollapsibleTrigger>
-
-                        <CollapsibleContent className="mt-2 overflow-hidden rounded-md bg-background/60 p-2.5">
-                          <dl className="grid gap-y-1.5 text-xs">
-                            {details.map((detail) => (
-                              <div
-                                key={`${entry.id}-${detail.key}-${detail.value}`}
-                                className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4"
-                              >
-                                <dt className="min-w-0 truncate text-muted-foreground">{detail.key}</dt>
-                                <dd className="shrink-0 text-right font-medium tabular-nums text-foreground">
-                                  {detail.value}
-                                </dd>
-                              </div>
-                            ))}
-                          </dl>
-
-                          {entry.message ? (
-                            <p className="mt-2 rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
-                              {entry.message}
+              return (
+                <li key={entry.id} className="relative">
+                  <span
+                    aria-hidden="true"
+                    className={cn(
+                      "absolute left-[-1.4rem] top-3 size-2.5 rounded-full ring-2 ring-background",
+                      entry.status === "success"
+                        ? "bg-success"
+                        : entry.status === "warning"
+                          ? "bg-warning"
+                          : "bg-destructive"
+                    )}
+                  />
+                  <Collapsible defaultOpen={false} className="group/sync-history-item">
+                    <div className="rounded-lg bg-muted/30 p-3">
+                      <CollapsibleTrigger asChild>
+                        <button
+                          type="button"
+                          className="flex w-full items-center justify-between gap-3 text-left"
+                        >
+                          <div className="flex min-w-0 items-center gap-2">
+                            <p className="truncate text-xs font-medium text-foreground">
+                              {formatSyncDateTime(entry.startedAt)}
                             </p>
-                          ) : null}
+                            <Badge
+                              variant="outline"
+                              className={cn(
+                                "inline-flex shrink-0 items-center gap-1 text-[0.625rem]",
+                                statusBadgeClassNameByType[entry.status]
+                              )}
+                            >
+                              {renderStatusIcon(entry.status)}
+                              {getSyncRunStatusLabel(entry.status)}
+                            </Badge>
+                          </div>
 
-                          {entry.errorDetails.length > 0 ? (
-                            <div className="mt-2 flex items-start gap-2 rounded-md bg-destructive/5 p-2 text-xs text-destructive">
-                              <AlertTriangleIcon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
-                              <div className="space-y-0.5">
-                                {entry.errorDetails.map((detail) => (
-                                  <p key={`${entry.id}-${detail}`}>{detail}</p>
-                                ))}
-                              </div>
+                          <ChevronDownIcon className="size-3.5 shrink-0 text-muted-foreground transition-transform duration-200 group-data-[state=open]/sync-history-item:rotate-180" />
+                        </button>
+                      </CollapsibleTrigger>
+
+                      <CollapsibleContent className="mt-2 overflow-hidden rounded-md bg-background/60 p-2.5">
+                        <dl className="grid gap-y-1.5 text-xs">
+                          {details.map((detail) => (
+                            <div
+                              key={`${entry.id}-${detail.label}-${detail.value}`}
+                              className="grid grid-cols-[minmax(0,1fr)_auto] items-baseline gap-4"
+                            >
+                              <dt className="min-w-0 truncate text-muted-foreground">
+                                {detail.label}
+                              </dt>
+                              <dd className="shrink-0 text-right font-medium tabular-nums text-foreground">
+                                {detail.value}
+                              </dd>
                             </div>
-                          ) : null}
-                        </CollapsibleContent>
-                      </div>
-                    </Collapsible>
-                  </li>
-                )
-              })}
-            </ol>
-          ) : null}
-        </div>
-      </SheetContent>
-    </Sheet>
+                          ))}
+                        </dl>
+
+                        {entry.message ? (
+                          <p className="mt-2 rounded-md bg-muted/50 p-2 text-xs text-muted-foreground">
+                            {entry.message}
+                          </p>
+                        ) : null}
+
+                        {entry.errorDetails.length > 0 ? (
+                          <div className="mt-2 flex items-start gap-2 rounded-md bg-destructive/5 p-2 text-xs text-destructive">
+                            <AlertTriangleIcon aria-hidden="true" className="mt-0.5 size-3.5 shrink-0" />
+                            <div className="space-y-0.5">
+                              {entry.errorDetails.map((detail: string) => (
+                                <p key={`${entry.id}-${detail}`}>{detail}</p>
+                              ))}
+                            </div>
+                          </div>
+                        ) : null}
+                      </CollapsibleContent>
+                    </div>
+                  </Collapsible>
+                </li>
+              )
+            })}
+          </ol>
+        ) : null}
+      </div>
+    </AppSheet>
   )
 }

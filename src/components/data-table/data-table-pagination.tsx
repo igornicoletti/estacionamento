@@ -39,6 +39,10 @@ function normalizePageSizeOptions(
   return Array.from(options).sort((a, b) => a - b)
 }
 
+function getPageSizeLabel(pageSize: number) {
+  return `${pageSize}`
+}
+
 export function DataTablePagination<TData>({
   table,
   pageSizeOptions = DATA_TABLE_PAGE_SIZE_OPTIONS,
@@ -94,13 +98,13 @@ export function DataTablePagination<TData>({
               }))
             }}
           >
-            <SelectTrigger className="w-20">
-              <SelectValue placeholder={`${pagination.pageSize}`} />
+            <SelectTrigger className="h-9 w-20">
+              <SelectValue placeholder={getPageSizeLabel(pagination.pageSize)} />
             </SelectTrigger>
             <SelectContent side="top" position="popper">
               {resolvedPageSizeOptions.map((pageSize) => (
                 <SelectItem key={pageSize} value={`${pageSize}`}>
-                  {pageSize}
+                  {getPageSizeLabel(pageSize)}
                 </SelectItem>
               ))}
             </SelectContent>

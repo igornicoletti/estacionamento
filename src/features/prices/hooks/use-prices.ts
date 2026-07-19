@@ -1,80 +1,71 @@
-import * as React from "react"
-
 import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
 
-import { pricesCopy } from "../prices-copy"
-import {
-  listPriceTables,
-  savePriceTable,
-  updatePriceTableStatus,
-} from "../services/prices-service"
-import {
-  type PriceRecordStatus,
-  type PriceTable,
-  type SavePriceTableInput,
-} from "../types/prices-types"
+import { pricesCopy } from "../constants"
+import { listPriceTables, type PriceTablesResult } from "../services"
 
-export function usePrices() {
-  const snapshot = useAsyncSnapshot<PriceTable[]>({
-    cacheKey: "prices:list:v3",
-    errorMessage: pricesCopy.feedback.loadError,
-    initialData: [],
-    loadData: listPriceTables,
-  })
-  const [isSaving, setIsSaving] = React.useState(false)
-  const activeSaveRef = React.useRef<Promise<PriceTable> | null>(null)
-  const activeStatusRef = React.useRef<Promise<PriceTable> | null>(null)
+const initialPriceTablesResult: PriceTablesResult = {
+  records: [],
+  isTruncated: false,
+  limit: 500,
+}
 
-  const savePrice = React.useCallback(
-    async (input: SavePriceTableInput) => {
-      if (activeSaveRef.current) {
-        return activeSaveRef.current
-      }
-
-      setIsSaving(true)
-      activeSaveRef.current = (async () => {
-        const price = await savePriceTable(input)
-        await snapshot.refetch()
-        return price
-      })()
-
-      try {
-        return await activeSaveRef.current
-      } finally {
-        activeSaveRef.current = null
-        setIsSaving(false)
-      }
-    },
-    [snapshot]
-  )
-
-  const updateStatus = React.useCallback(
-    async (id: string, status: PriceRecordStatus) => {
-      if (activeStatusRef.current) {
-        return activeStatusRef.current
-      }
-
-      setIsSaving(true)
-      activeStatusRef.current = (async () => {
-        const price = await updatePriceTableStatus(id, status)
-        await snapshot.refetch()
-        return price
-      })()
-
-      try {
-        return await activeStatusRef.current
-      } finally {
-        activeStatusRef.current = null
-        setIsSaving(false)
-      }
-    },
-    [snapshot]
-  )
+function normalizeLegacyPriceRecord(record: PriceTablesResult["records"][number] & {
+  computedStatus?: string
+  parentId?: string | null
+  tiers?: unknown[]
+  version?: number
+  scope?: string
+}): PriceTablesResult["records"][number] {
+  const rawScope = record.scope as string | undefined
 
   return {
-    ...snapshot,
-    isSaving,
-    savePrice,
-    updateStatus,
+    id: record.id,
+    name: record.name ?? "Tabela sem nome",
+    scope: (rawScope === "network" ? "global" : rawScope) as
+      PriceTablesResult["records"][number]["scope"],
+    unitId: record.unitId ?? null,
+    unitName: record.unitName ?? null,
+    graceMinutes: record.graceMinutes ?? 0,
+    toleranceMinutes: record.toleranceMinutes ?? 0,
+    cycleHours: record.cycleHours ?? 1,
+    amount: record.amount ?? 0,
+    startsAt: record.startsAt,
+    endsAt: record.endsAt ?? null,
+    status: record.status,
+    notes: record.notes ?? null,
+    createdAt: record.createdAt ?? null,
+    updatedAt: record.updatedAt ?? null,
+  }
+}
+
+async function loadPriceTablesResult(): Promise<PriceTablesResult> {
+  const result = await listPriceTables()
+
+  if (Array.isArray(result)) {
+    return {
+      records: result.map((record) => normalizeLegacyPriceRecord(record as PriceTablesResult["records"][number])),
+      isTruncated: false,
+      limit: result.length,
+    }
+  }
+
+  return result
+}
+
+export function usePriceTables() {
+  const { data, error, isLoading, refetch } = useAsyncSnapshot<PriceTablesResult>({
+    cacheKey: "prices:list",
+    initialData: initialPriceTablesResult,
+    loadData: loadPriceTablesResult,
+    errorMessage: pricesCopy.feedback.loadError,
+  })
+
+  return {
+    data: data.records,
+    error,
+    isLoading,
+    isTruncated: data.isTruncated,
+    limit: data.limit,
+    refetch,
   }
 }

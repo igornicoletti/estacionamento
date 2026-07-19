@@ -29,17 +29,18 @@ export interface AuditEventsResult {
   limit: number
 }
 
-export async function listAuditEvents(): Promise<AuditEventsResult> {
+function getSupabaseOrThrow() {
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {
-    return {
-      events: [],
-      isTruncated: false,
-      limit: AUDIT_EVENTS_FETCH_LIMIT,
-    }
+    throw new Error(auditCopy.feedback.loadError)
   }
 
+  return supabase
+}
+
+export async function listAuditEvents(): Promise<AuditEventsResult> {
+  const supabase = getSupabaseOrThrow()
   const { data, error } = await supabase
     .from("audit_events")
     .select(AUDIT_EVENTS_SELECT)

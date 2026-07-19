@@ -19,9 +19,9 @@ const {
   updatePriceTableStatusMock,
 } = vi.hoisted(() => ({
   listPriceTablesMock: vi.fn<() => Promise<PriceTable[]>>(),
-  savePriceTableMock: vi.fn<(input: SavePriceTableInput) => Promise<PriceTable>>(),
+  savePriceTableMock: vi.fn<(input: SavePriceTableInput) => Promise<void>>(),
   updatePriceTableStatusMock:
-    vi.fn<(id: string, status: PriceTable["status"]) => Promise<PriceTable>>(),
+    vi.fn<(id: string, status: PriceTable["status"]) => Promise<void>>(),
 }))
 
 vi.mock("@/features/prices/services/prices-service", () => ({
@@ -33,22 +33,19 @@ vi.mock("@/features/prices/services/prices-service", () => ({
 describe("PricesRoute", () => {
   const activePrice: PriceTable = {
     amount: 25,
-    computedStatus: "active",
     cycleHours: 24,
+    createdAt: null,
     endsAt: null,
     graceMinutes: 15,
-    id: "price-network",
+    id: "price-global",
     notes: "Tabela operacional vigente.",
-    parentId: null,
-    scope: "network",
+    scope: "global",
     startsAt: "2026-07-01T12:00:00.000Z",
     status: "active",
-    tiers: [],
     toleranceMinutes: 10,
     unitId: null,
     unitName: null,
     updatedAt: "2026-07-02T12:00:00.000Z",
-    version: 1,
   }
 
   beforeEach(() => {
@@ -56,12 +53,8 @@ describe("PricesRoute", () => {
     savePriceTableMock.mockReset()
     updatePriceTableStatusMock.mockReset()
     listPriceTablesMock.mockResolvedValue([activePrice])
-    savePriceTableMock.mockResolvedValue(activePrice)
-    updatePriceTableStatusMock.mockResolvedValue({
-      ...activePrice,
-      computedStatus: "expired",
-      status: "inactive",
-    })
+    savePriceTableMock.mockResolvedValue(undefined)
+    updatePriceTableStatusMock.mockResolvedValue(undefined)
   })
 
   it("renders price tables with reusable data table controls", async () => {
@@ -97,7 +90,7 @@ describe("PricesRoute", () => {
     expect(savePriceTableMock).not.toHaveBeenCalled()
   })
 
-  it("creates a network price table and closes the form on success", async () => {
+  it("creates a global price table and closes the form on success", async () => {
     render(<PricesRoute />)
 
     await waitFor(() => {
@@ -114,7 +107,7 @@ describe("PricesRoute", () => {
       expect(savePriceTableMock).toHaveBeenCalledWith(
         expect.objectContaining({
           amount: 30.5,
-          scope: "network",
+          scope: "global",
           status: "active",
         })
       )
@@ -164,7 +157,7 @@ describe("PricesRoute", () => {
     fireEvent.click(screen.getByRole("button", { name: "Inativar tabela" }))
 
     await waitFor(() => {
-      expect(updatePriceTableStatusMock).toHaveBeenCalledWith("price-network", "inactive")
+      expect(updatePriceTableStatusMock).toHaveBeenCalledWith("price-global", "inactive")
     })
   })
 })

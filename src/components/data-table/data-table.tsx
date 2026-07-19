@@ -32,6 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table"
 
+import { cn } from "@/lib/utils"
 import { DataTableColumnHeader } from "./data-table-column-header"
 import {
   DATA_TABLE_INITIAL_PAGE_SIZE,
@@ -62,7 +63,6 @@ import {
   useControllableDataTableState,
 } from "./data-table-state"
 import { DataTableToolbar } from "./data-table-toolbar"
-import { cn } from "@/lib/utils"
 import {
   type DataTableColumnId,
   type DataTableFilterField,
@@ -719,7 +719,7 @@ export function DataTable<TData extends RowData, TValue>({
 
       <div className="flex min-h-0 min-w-0 shrink flex-col overflow-hidden rounded-md border">
         {shouldRenderInitialSkeleton || visibleRows.length > 0 ? (
-          <DataTableScrollContainer className="min-h-0 max-h-full">
+          <DataTableScrollContainer className="min-h-0 w-full max-h-full max-w-full">
             <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
               <caption className="sr-only">
                 {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}

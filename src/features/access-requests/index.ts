@@ -1,24 +1,19 @@
-export { accessRequestsCopy } from "./access-requests-copy"
-export { createRecoveryRequestsColumns } from "./columns/recovery-requests-columns"
-export { useAccessRequests } from "./hooks/use-access-requests"
+export { AccessRequestDenySummary } from "./components"
+export { accessRequestsCopy } from "./constants"
+export { useAccessRequests } from "./hooks"
 export {
-  AccessRequestsPanel,
-  AccessRequestsRedirectRoute,
-  AccessRequestsRoute,
-} from "./routes/access-requests-route"
-export {
-  listPendingRecoveryRequests,
-  reviewRecoveryRequest,
-} from "./services/access-requests-service"
-export type {
-  AccessRecoveryRequestRecord,
-  AccessRequestDetailsTarget,
-  AccessRequestReviewDecision,
-  AccessRequestsSnapshot,
-} from "./types/access-requests-types"
-export {
+  accessRequestReviewDecisionValues,
   getAccessRequestDetailItems,
   getAccessRequestDetailsDescription,
   getAccessRequestDetailsTitle,
   getRecoveryRequestDetailItems,
-} from "./utils/access-requests-details-model"
+  normalizeRecoveryRequest,
+  normalizeRecoveryRequests,
+  type AccessRecoveryRequestRecord,
+  type AccessRequestDetailsTarget,
+  type AccessRequestReviewDecision,
+  type AccessRequestsSnapshot,
+} from "./model"
+export { AccessRequestsPanel, AccessRequestsRedirectRoute, AccessRequestsRoute } from "./routes"
+export { listPendingRecoveryRequests, reviewRecoveryRequest } from "./services"
+export { createRecoveryRequestsColumns } from "./table"

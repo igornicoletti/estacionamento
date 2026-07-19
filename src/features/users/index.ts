@@ -1,22 +1,52 @@
-export { createUsersColumns } from "./columns/users-columns"
-export { useUsers } from "./hooks/use-users"
-export { UsersRoute } from "./routes/users-route"
+export { UserDetailsSheet, UserFormDialog, type UserFormUnitOption } from "./components"
+export { usersCopy } from "./constants"
+export { useUsers } from "./hooks"
 export {
-  getUsersGateway,
-  resetUsersGateway,
-  resetUsersInMemoryState,
-  setUsersGateway,
-  type UsersGateway,
-} from "./services/users-gateway"
+  appUserStatusLabels,
+  createNextUserId,
+  getUserDetailItems,
+  getUsersFormFieldErrors,
+  interpolateUserCopy,
+  isAppUserStatus,
+  isGlobalRole,
+  isUserRole,
+  normalizeUnitScope,
+  requiresSingleUnit,
+  resolveEmailLabel,
+  resolveLastAccessLabel,
+  resolvePasskeyLabel,
+  resolveUnitLabel,
+  userRoleLabels,
+  userRoleValues,
+  usersFormSchema,
+  type AppUserStatus,
+  type CreateUserInput,
+  type UnitCatalogItem,
+  type UpdateUserInput,
+  type UserRecord,
+  type UserRole,
+  type UsersFormFieldName,
+  type UsersFormValues,
+} from "./model"
+export { UsersRoute } from "./routes"
 export {
   blockUser,
   clearUserLock,
   createUser,
+  getUsersGateway,
   listUsers,
   resetUserAccess,
   resetUserPasskey,
+  resetUsersGateway,
+  resetUsersInMemoryState,
   revokeUserSessions,
+  setUsersGateway,
+  type UsersGateway,
   updateUser,
-} from "./services/users-service"
-export type { CreateUserInput, UpdateUserInput, UserRecord } from "./types/users-types"
-export { usersCopy } from "./users-copy"
+} from "./services"
+export {
+  createUserRoleFilterOptions,
+  createUsersColumns,
+  createUserStatusFilterOptions,
+  createUserUnitFilterOptions,
+} from "./table"

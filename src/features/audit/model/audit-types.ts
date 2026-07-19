@@ -1,21 +1,11 @@
-export const auditScopeValues = ["login", "system"] as const
+import {
+  auditScopeValues,
+  auditSeverityValues,
+  type AuditScope,
+  type AuditSeverity,
+} from "../constants"
 
-export type AuditScope = (typeof auditScopeValues)[number]
-
-export const auditScopeLabels: Record<AuditScope, string> = {
-  login: "Login",
-  system: "Sistema",
-}
-
-export const auditSeverityValues = ["info", "warning", "critical"] as const
-
-export type AuditSeverity = (typeof auditSeverityValues)[number]
-
-export const auditSeverityLabels: Record<AuditSeverity, string> = {
-  info: "Informativo",
-  warning: "Atenção",
-  critical: "Crítico",
-}
+export type { AuditScope, AuditSeverity }
 
 export interface RawAuditEventPayload {
   id: unknown

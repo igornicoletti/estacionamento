@@ -2,45 +2,42 @@ import { DatabaseIcon, HistoryIcon, RefreshCcwIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate } from "react-router"
 
-import { createDataTableFilterOptions, DataTable } from "@/components/data-table"
+import { DataTable } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
-import { AppDialog } from "@/components/shared/app-dialog"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { AUTH_PERMISSION, useAuth } from "@/features/auth"
-import { SyncBlockingDialog } from "@/features/sync"
+import { SyncBlockingDialog, executeSyncWithRefresh } from "@/features/sync"
 import { useUsers } from "@/features/users"
-import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
 
-import { createUnitsColumns } from "../columns/units-columns"
-import { UnitsSyncHistoryDialog } from "../components/units-sync-history-dialog"
-import { useUnitSyncHistory } from "../hooks/use-unit-sync-history"
-import { useUnitYardConfigs } from "../hooks/use-unit-yard-configs"
-import { useUnits } from "../hooks/use-units"
-import { isUnitSyncInProgressError, triggerUnitsSync } from "../services/unit-sync-service"
-import { type Unit } from "../types/units-types"
-import { unitsCopy } from "../units-copy"
+import {
+  UnitYardConfigDialog,
+  UnitsSyncHistoryDialog,
+} from "../components"
+import {
+  DEFAULT_UNITS_COLUMN_VISIBILITY,
+  UNITS_TABLE_COLUMN_VISIBILITY_KEY,
+  unitsCopy,
+} from "../constants"
+import {
+  useUnitSyncHistory,
+  useUnitYardConfigs,
+  useUnits,
+  useUnitsTableFilters,
+} from "../hooks"
 import {
   buildUnitUserStats,
   buildUnitYardConfigMap,
+  getUnitDetailItems,
   parseYardSpotsInput,
   resolveUnitYardConfig,
-} from "../utils/units-models"
-import { getUnitDetailItems } from "../utils/units-details-model"
-
-const unitsTableColumnVisibilityKey = "rmc.units.table-column-visibility.v3"
-
-const defaultUnitsColumnVisibility = {
-  des_coordenada_empresa: false,
-  ip_rede: false,
-  nom_razao_social: false,
-  sgl_estado: false,
-}
+  type Unit,
+  type YardStatusFormValue,
+} from "../model"
+import { isUnitSyncInProgressError, triggerUnitsSync } from "../services"
+import { createUnitsColumns } from "../table"
 
 function canManageOperationalData(auth: ReturnType<typeof useAuth>) {
   return auth.access.hasPermission(AUTH_PERMISSION.syncExecute)
@@ -62,16 +59,15 @@ export function UnitsRoute() {
   const { data: unitYardConfigs, isSaving: isSavingYard, saveConfig } = useUnitYardConfigs()
   const [selectedUnit, setSelectedUnit] = React.useState<Unit | null>(null)
   const [configuringUnit, setConfiguringUnit] = React.useState<Unit | null>(null)
-  const [yardStatus, setYardStatus] = React.useState<"active" | "inactive">("inactive")
+  const [yardStatus, setYardStatus] = React.useState<YardStatusFormValue>("inactive")
   const [yardSpots, setYardSpots] = React.useState("0")
   const [yardError, setYardError] = React.useState<string | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
   const [isSyncing, setIsSyncing] = React.useState(false)
-
+  const filterFields = useUnitsTableFilters(units)
   const canSyncUnits = canManageOperationalData(auth)
   const yardConfigByUnitId = React.useMemo(() => buildUnitYardConfigMap(unitYardConfigs), [unitYardConfigs])
   const userStatsByUnitId = React.useMemo(() => buildUnitUserStats(users), [users])
-
   const selectedUnitYardConfig = selectedUnit
     ? resolveUnitYardConfig(String(selectedUnit.cod_empresa), yardConfigByUnitId)
     : null
@@ -89,24 +85,15 @@ export function UnitsRoute() {
       getYardConfig: (unit) => resolveUnitYardConfig(String(unit.cod_empresa), yardConfigByUnitId),
       onConfigureYard: canSyncUnits
         ? (unit) => {
-            const currentConfig = resolveUnitYardConfig(String(unit.cod_empresa), yardConfigByUnitId)
-            setConfiguringUnit(unit)
-            setYardStatus(currentConfig.patioActive ? "active" : "inactive")
-            setYardSpots(String(currentConfig.parkingSpots))
-            setYardError(null)
-          }
+          const currentConfig = resolveUnitYardConfig(String(unit.cod_empresa), yardConfigByUnitId)
+          setConfiguringUnit(unit)
+          setYardStatus(currentConfig.patioActive ? "active" : "inactive")
+          setYardSpots(String(currentConfig.parkingSpots))
+          setYardError(null)
+        }
         : undefined,
     }),
     [canSyncUnits, navigate, userStatsByUnitId, yardConfigByUnitId]
-  )
-
-  const brandOptions = React.useMemo(
-    () => createDataTableFilterOptions(units, (unit) => unit.des_bandeira, (unit) => unit.des_bandeira),
-    [units]
-  )
-  const stateOptions = React.useMemo(
-    () => createDataTableFilterOptions(units, (unit) => unit.sgl_estado, (unit) => unit.sgl_estado),
-    [units]
   )
 
   async function handleSaveYardSettings() {
@@ -129,11 +116,7 @@ export function UnitsRoute() {
           patioActive: yardStatus === "active",
           parkingSpots: parsedSpots.value,
         }),
-        {
-          loading: unitsCopy.yard.feedback.loading,
-          success: unitsCopy.yard.feedback.success,
-          error: unitsCopy.yard.feedback.error,
-        }
+        unitsCopy.yard.feedback
       )
       setConfiguringUnit(null)
       setYardError(null)
@@ -154,29 +137,20 @@ export function UnitsRoute() {
     setIsSyncing(true)
 
     try {
-      const result = await triggerUnitsSync("incremental")
-
-      await refreshOperationalSnapshots()
-
-      if (result.status === "failed") {
-        notify.error(unitsCopy.sync.feedback.error)
-        return
-      }
-
-      if (result.status === "warning") {
-        notify.warning(unitsCopy.sync.feedback.inProgress)
-        return
-      }
-
-      notify.success(unitsCopy.sync.feedback.success)
-    } catch (caughtError) {
-      await refreshOperationalSnapshots()
-
-      if (isUnitSyncInProgressError(caughtError)) {
-        notify.warning(unitsCopy.sync.feedback.inProgress)
-      } else {
-        notify.error(unitsCopy.sync.feedback.error)
-      }
+      await executeSyncWithRefresh({
+        triggerSync: () => triggerUnitsSync("incremental"),
+        refreshSnapshots: refreshOperationalSnapshots,
+        isInProgressError: isUnitSyncInProgressError,
+        onSuccess: () => {
+          notify.success(unitsCopy.sync.feedback.success)
+        },
+        onWarning: () => {
+          notify.warning(unitsCopy.sync.feedback.inProgress)
+        },
+        onError: () => {
+          notify.error(unitsCopy.sync.feedback.error)
+        },
+      })
     } finally {
       setIsSyncing(false)
     }
@@ -206,17 +180,14 @@ export function UnitsRoute() {
       <DataTable
         columns={columns}
         data={units}
-        defaultColumnVisibility={defaultUnitsColumnVisibility}
-        columnVisibilityStorageKey={unitsTableColumnVisibilityKey}
-        getRowId={(unit) => String(unit.cod_empresa)}
+        defaultColumnVisibility={DEFAULT_UNITS_COLUMN_VISIBILITY}
+        columnVisibilityStorageKey={UNITS_TABLE_COLUMN_VISIBILITY_KEY}
+        getRowId={(unit: Unit) => String(unit.cod_empresa)}
         globalSearch={{
           columnIds: ["cod_empresa", "nom_razao_social", "nom_fantasia", "num_cnpj", "des_bandeira", "nom_cidade", "sgl_estado", "ip_rede"],
           placeholder: unitsCopy.pages.units.searchPlaceholder,
         }}
-        filterFields={[
-          { id: "des_bandeira", title: unitsCopy.filters.brands, options: brandOptions },
-          { id: "sgl_estado", title: unitsCopy.filters.states, options: stateOptions },
-        ]}
+        filterFields={filterFields}
         emptyState={<AppEmptyState media={<DatabaseIcon />} title={unitsCopy.empty.unitsTitle} description={unitsCopy.empty.unitsDescription} />}
         filteredEmptyState={<AppEmptyState media={<DatabaseIcon />} title={unitsCopy.filteredEmpty.unitsTitle} description={unitsCopy.filteredEmpty.unitsDescription} />}
         isLoading={isLoading}
@@ -228,13 +199,13 @@ export function UnitsRoute() {
 
       <AppDetailsSheet
         open={Boolean(selectedUnit)}
-        onOpenChange={(open) => { if (!open) setSelectedUnit(null) }}
+        onOpenChange={(open: boolean) => { if (!open) setSelectedUnit(null) }}
         title={selectedUnit?.nom_fantasia}
         description={selectedUnit?.nom_razao_social}
         items={selectedUnit && selectedUnitYardConfig ? getUnitDetailItems(selectedUnit, selectedUnitYardConfig, selectedUnitUserStats) : []}
       />
 
-      <AppDialog
+      <UnitYardConfigDialog
         open={Boolean(configuringUnit)}
         onOpenChange={(open) => {
           if (!open) {
@@ -242,53 +213,18 @@ export function UnitsRoute() {
             setYardError(null)
           }
         }}
-        title={unitsCopy.yard.dialogTitle}
-        description={configuringUnit?.nom_fantasia || ""}
-        contentProps={{ onInteractOutside: preventDialogCloseOnFloatingLayerInteraction }}
-        footer={(
-          <div className="grid w-full grid-cols-2 gap-2">
-            <Button type="button" variant="outline" size="lg" onClick={() => setConfiguringUnit(null)}>
-              {unitsCopy.yard.cancelButton}
-            </Button>
-            <Button type="button" size="lg" disabled={isSavingYard} onClick={() => { void handleSaveYardSettings() }}>
-              {unitsCopy.yard.saveButton}
-            </Button>
-          </div>
-        )}
-      >
-        <FieldGroup>
-          <Field>
-            <FieldLabel>{unitsCopy.yard.statusLabel}</FieldLabel>
-            <Select value={yardStatus} onValueChange={(value) => setYardStatus(value === "active" ? "active" : "inactive")} disabled={isSavingYard}>
-              <SelectTrigger className="w-full data-[size=default]:h-9">
-                <SelectValue placeholder={unitsCopy.yard.statusPlaceholder} />
-              </SelectTrigger>
-              <SelectContent position="popper">
-                <SelectItem value="active">{unitsCopy.yard.statusActive}</SelectItem>
-                <SelectItem value="inactive">{unitsCopy.yard.statusInactive}</SelectItem>
-              </SelectContent>
-            </Select>
-          </Field>
-          <Field data-invalid={Boolean(yardError)}>
-            <FieldLabel htmlFor="unit-yard-spots">{unitsCopy.yard.spotsLabel}</FieldLabel>
-            <Input
-              id="unit-yard-spots"
-              className="h-9"
-              type="number"
-              min={0}
-              step={1}
-              value={yardSpots}
-              onChange={(event) => {
-                setYardSpots(event.target.value)
-                setYardError(null)
-              }}
-              disabled={isSavingYard}
-              aria-invalid={Boolean(yardError)}
-            />
-            {yardError ? <FieldError>{yardError}</FieldError> : null}
-          </Field>
-        </FieldGroup>
-      </AppDialog>
+        unitName={configuringUnit?.nom_fantasia}
+        status={yardStatus}
+        spots={yardSpots}
+        error={yardError}
+        isSaving={isSavingYard}
+        onStatusChange={setYardStatus}
+        onSpotsChange={(value) => {
+          setYardSpots(value)
+          setYardError(null)
+        }}
+        onSave={() => { void handleSaveYardSettings() }}
+      />
 
       <UnitsSyncHistoryDialog
         open={isHistoryOpen}

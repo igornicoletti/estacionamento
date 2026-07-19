@@ -69,7 +69,7 @@ export function DataTableColumnHeader<TData, TValue>({
         onClick={handleSortClick}
       >
         <span>{title}</span>
-        <SortIcon aria-hidden="true" className="size-3 text-muted-foreground " />
+        <SortIcon aria-hidden="true" className="size-4 text-muted-foreground " />
       </Button>
     </div>
   )

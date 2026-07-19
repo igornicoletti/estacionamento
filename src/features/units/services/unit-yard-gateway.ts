@@ -1,7 +1,12 @@
-import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 import { isErpCatalogMockEnabled } from "@/features/erp-mock"
-import { unitsCopy } from "../units-copy"
-import { type UnitYardConfig, type UpsertUnitYardConfigInput } from "../types/units-types"
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
+
+import { UNIT_YARD_MOCK_STORAGE_KEY, unitsCopy } from "../constants"
+import {
+  normalizeUnitYardConfig,
+  type UnitYardConfig,
+  type UpsertUnitYardConfigInput,
+} from "../model"
 
 type RawUnitYardConfigRow = {
   unit_id: string
@@ -15,27 +20,15 @@ export interface UnitYardGateway {
   upsertConfig: (input: UpsertUnitYardConfigInput) => Promise<UnitYardConfig>
 }
 
-const mockYardStorageKey = "rmc.units.mock-yard-configs.v1"
 const mockYardConfigMemoryStore = new Map<string, UnitYardConfig>()
 
 function mapUnitYardConfig(row: RawUnitYardConfigRow): UnitYardConfig {
-  return {
+  return normalizeUnitYardConfig({
     unitId: row.unit_id,
     patioActive: row.patio_active,
     parkingSpots: row.parking_spots,
     updatedAt: row.updated_at,
-  }
-}
-
-function normalizeConfig(config: UnitYardConfig): UnitYardConfig {
-  return {
-    unitId: String(config.unitId),
-    patioActive: Boolean(config.patioActive),
-    parkingSpots: Number.isFinite(config.parkingSpots)
-      ? Math.max(0, Math.trunc(config.parkingSpots))
-      : 0,
-    updatedAt: config.updatedAt || new Date().toISOString(),
-  }
+  })
 }
 
 function isRecord(value: unknown): value is Record<string, unknown> {
@@ -44,11 +37,11 @@ function isRecord(value: unknown): value is Record<string, unknown> {
 
 function readStoredMockConfigs(): UnitYardConfig[] {
   if (typeof window === "undefined") {
-    return Array.from(mockYardConfigMemoryStore.values()).map(normalizeConfig)
+    return Array.from(mockYardConfigMemoryStore.values()).map(normalizeUnitYardConfig)
   }
 
   try {
-    const parsed: unknown = JSON.parse(window.localStorage.getItem(mockYardStorageKey) ?? "[]")
+    const parsed: unknown = JSON.parse(window.localStorage.getItem(UNIT_YARD_MOCK_STORAGE_KEY) ?? "[]")
 
     if (!Array.isArray(parsed)) {
       return []
@@ -62,7 +55,7 @@ function readStoredMockConfigs(): UnitYardConfig[] {
         typeof item.parkingSpots === "number" &&
         typeof item.updatedAt === "string"
       ) {
-        configs.push(normalizeConfig({
+        configs.push(normalizeUnitYardConfig({
           unitId: item.unitId,
           patioActive: item.patioActive,
           parkingSpots: item.parkingSpots,
@@ -78,7 +71,7 @@ function readStoredMockConfigs(): UnitYardConfig[] {
 }
 
 function writeStoredMockConfigs(configs: readonly UnitYardConfig[]) {
-  const normalizedConfigs = configs.map(normalizeConfig)
+  const normalizedConfigs = configs.map(normalizeUnitYardConfig)
 
   mockYardConfigMemoryStore.clear()
   for (const config of normalizedConfigs) {
@@ -90,9 +83,12 @@ function writeStoredMockConfigs(configs: readonly UnitYardConfig[]) {
   }
 
   try {
-    window.localStorage.setItem(mockYardStorageKey, JSON.stringify(normalizedConfigs))
+    window.localStorage.setItem(UNIT_YARD_MOCK_STORAGE_KEY, JSON.stringify(normalizedConfigs))
   } catch {
-    // The in-memory store above still keeps mock edits working for this session.
+    mockYardConfigMemoryStore.clear()
+    for (const config of normalizedConfigs) {
+      mockYardConfigMemoryStore.set(config.unitId, config)
+    }
   }
 }
 
@@ -106,8 +102,7 @@ function createMockUnitYardGateway(): UnitYardGateway {
     },
     async upsertConfig(input) {
       await Promise.resolve()
-
-      const config = normalizeConfig({
+      const config = normalizeUnitYardConfig({
         unitId: input.unitId,
         patioActive: input.patioActive,
         parkingSpots: input.parkingSpots,
@@ -131,16 +126,17 @@ function createSupabaseUnitYardGateway(): UnitYardGateway {
       const supabase = getSupabaseBrowserClient()
 
       if (!supabase) {
-        return []
+        throw new Error(unitsCopy.errors.unitYardLoad)
       }
 
-      const { data, error } = await supabase
+      const listResponse = await supabase
         .from("unit_yard_configs")
         .select("unit_id, patio_active, parking_spots, updated_at")
-        .order("unit_id", { ascending: true })
+        .order("unit_id", { ascending: true }) as unknown as { data: unknown; error: unknown }
+      const { data, error } = listResponse
 
       if (error) {
-        throw new Error(unitsCopy.errors.unitYardLoad)
+        throw new Error(unitsCopy.errors.unitYardLoad, { cause: error })
       }
 
       return ((data ?? []) as RawUnitYardConfigRow[]).map(mapUnitYardConfig)
@@ -152,7 +148,7 @@ function createSupabaseUnitYardGateway(): UnitYardGateway {
         throw new Error(unitsCopy.errors.unitYardSave)
       }
 
-      const { data, error } = await supabase
+      const upsertResponse = await supabase
         .from("unit_yard_configs")
         .upsert({
           unit_id: input.unitId,
@@ -161,13 +157,14 @@ function createSupabaseUnitYardGateway(): UnitYardGateway {
           updated_at: new Date().toISOString(),
         }, { onConflict: "unit_id" })
         .select("unit_id, patio_active, parking_spots, updated_at")
-        .single()
+        .single() as unknown as { data: unknown; error: unknown }
+      const { data: upsertData, error: upsertError } = upsertResponse
 
-      if (error || !data) {
-        throw new Error(unitsCopy.errors.unitYardSave)
+      if (upsertError || !upsertData) {
+        throw new Error(unitsCopy.errors.unitYardSave, { cause: upsertError })
       }
 
-      return mapUnitYardConfig(data)
+      return mapUnitYardConfig(upsertData as RawUnitYardConfigRow)
     },
   }
 }

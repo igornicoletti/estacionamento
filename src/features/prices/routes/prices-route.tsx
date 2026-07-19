@@ -1,114 +1,75 @@
-import { BadgeDollarSignIcon, PlusIcon, SearchXIcon, ShieldAlertIcon } from "lucide-react"
+import type { ColumnFiltersState, SortingState } from "@tanstack/react-table"
+import { BadgeDollarSignIcon, PlusIcon } from "lucide-react"
 import * as React from "react"
 
-import {
-  createDataTableFilterOptions,
-  DataTable,
-} from "@/components/data-table"
-import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
+import { DataTable } from "@/components/data-table"
+import { PageHeader, PageSection } from "@/components/page"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
-import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
-import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
-import { AUTH_PERMISSION, useAuth } from "@/features/auth"
 
-import { createPricesColumns } from "../columns/prices-columns"
-import { PriceTableFormDialog } from "../components/price-table-form-dialog"
-import { usePrices } from "../hooks/use-prices"
-import { pricesCopy } from "../prices-copy"
+import { updatePriceTableStatus } from "@/features/prices/services/prices-service"
+import { PriceTableFormDialog } from "../components"
 import {
-  type PriceTable,
-  type SavePriceTableInput,
-} from "../types/prices-types"
+  PRICES_TABLE_COLUMN_VISIBILITY_KEY,
+  PRICES_TABLE_STATE_KEY,
+  pricesCopy,
+} from "../constants"
+import { usePriceTables } from "../hooks"
+import { type PriceTableRecord } from "../model"
 import {
-  buildPriceDetails,
-  getPriceScopeLabel,
-  getPriceStatusLabel,
-  getPriceUnitLabel,
-} from "../utils/prices-models"
-
-const PRICES_TABLE_STATE_KEY = "rmc.table.prices.state.v3"
+  createPriceScopeOptions,
+  createPriceStatusOptions,
+  createPriceUnitOptions,
+  createPricesColumns,
+} from "../table"
 
 export function PricesRoute() {
-  const auth = useAuth()
-  const canManage = auth.access.hasPermission(AUTH_PERMISSION.pricesManage)
-  const {
-    data: prices,
-    error,
-    isLoading,
-    isSaving,
-    refetch,
-    savePrice,
-    updateStatus,
-  } = usePrices()
-  const [selectedPrice, setSelectedPrice] = React.useState<PriceTable | null>(null)
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = React.useState(false)
-  const [pendingDeactivationPrice, setPendingDeactivationPrice] =
-    React.useState<PriceTable | null>(null)
+  const { data, error, isLoading, refetch } = usePriceTables()
+  const [selectedRecord, setSelectedRecord] = React.useState<PriceTableRecord | null>(null)
+  const [isFormOpen, setIsFormOpen] = React.useState(false)
+  const [globalFilter, setGlobalFilter] = React.useState("")
+  const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
+  const [sorting, setSorting] = React.useState<SortingState>([
+    { id: "startsAt", desc: true },
+  ])
+  const [recordToDeactivate, setRecordToDeactivate] = React.useState<PriceTableRecord | null>(null)
 
-  const handleTogglePriceStatus = React.useCallback(
-    (price: PriceTable) => {
-      if (price.status === "active") {
-        setPendingDeactivationPrice(price)
-        return
-      }
-
-      void notify.track(
-        updateStatus(price.id, "active"),
-        pricesCopy.feedback.toggle
-      )
-    },
-    [updateStatus]
-  )
-
-  const handleConfirmPriceDeactivation = React.useCallback(async () => {
-    if (!pendingDeactivationPrice) {
+  async function handleDeactivatePriceTable() {
+    if (!recordToDeactivate) {
       return
     }
 
-    await notify.track(
-      updateStatus(pendingDeactivationPrice.id, "inactive"),
-      pricesCopy.feedback.toggle
-    )
-    setPendingDeactivationPrice(null)
-  }, [pendingDeactivationPrice, updateStatus])
+    await updatePriceTableStatus(recordToDeactivate.id, "inactive")
+    setRecordToDeactivate(null)
+    await refetch()
+  }
 
   const columns = React.useMemo(
-    () =>
-      createPricesColumns({
-        canManage,
-        onOpenDetails: setSelectedPrice,
-        onTogglePriceStatus: handleTogglePriceStatus,
-      }),
-    [canManage, handleTogglePriceStatus]
-  )
-
-  const scopeOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        prices,
-        (price) => price.scope,
-        (price) => getPriceScopeLabel(price)
-      ),
-    [prices]
+    () => createPricesColumns({
+      onEdit(record) {
+        setSelectedRecord(record)
+        setIsFormOpen(true)
+      },
+      onDetails: setSelectedRecord,
+      onDeactivate(record) {
+        setRecordToDeactivate(record)
+      },
+    }),
+    []
   )
 
   const statusOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        prices,
-        (price) => price.computedStatus,
-        (price) => getPriceStatusLabel(price.computedStatus)
-      ),
-    [prices]
+    () => createPriceStatusOptions(data),
+    [data]
   )
-
-  const handleCreatePrice = React.useCallback(
-    async (input: SavePriceTableInput) => {
-      await notify.track(savePrice(input), pricesCopy.feedback.save)
-    },
-    [savePrice]
+  const scopeOptions = React.useMemo(
+    () => createPriceScopeOptions(data),
+    [data]
+  )
+  const unitOptions = React.useMemo(
+    () => createPriceUnitOptions(data),
+    [data]
   )
 
   return (
@@ -116,114 +77,68 @@ export function PricesRoute() {
       <PageHeader
         title={pricesCopy.page.title}
         subtitle={pricesCopy.page.subtitle}
-        actions={canManage ? (
-          <PageHeaderActions>
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              onClick={() => setIsCreateDialogOpen(true)}
-            >
-              <PlusIcon aria-hidden="true" />
-              {pricesCopy.actions.add}
-            </Button>
-          </PageHeaderActions>
-        ) : null}
+        actions={
+          <Button type="button" size="lg" onClick={() => { setSelectedRecord(null); setIsFormOpen(true) }}>
+            <PlusIcon />
+            {pricesCopy.actions.add}
+          </Button>
+        }
       />
 
       <DataTable
         columns={columns}
-        data={prices}
+        data={data}
+        sourceRowCount={data.length}
+        columnVisibilityStorageKey={PRICES_TABLE_COLUMN_VISIBILITY_KEY}
         tableStateStorageKey={PRICES_TABLE_STATE_KEY}
-        getRowId={(price) => price.id}
+        getRowId={(record: PriceTableRecord) => record.id}
         globalSearch={{
-          columnIds: ["id", "unitId", "unitName", "notes"],
-          placeholder: pricesCopy.filters.searchPlaceholder,
+          columnIds: ["name", "unitName", "notes"],
+          placeholder: pricesCopy.page.searchPlaceholder,
         }}
-        searchFields={[
-          {
-            id: "unitName",
-            placeholder: pricesCopy.filters.unitSearchPlaceholder,
-          },
-        ]}
+        globalFilterValue={globalFilter}
+        onGlobalFilterChange={setGlobalFilter}
+        columnFilters={columnFilters}
+        onColumnFiltersChange={setColumnFilters}
+        sorting={sorting}
+        onSortingChange={setSorting}
         filterFields={[
-          {
-            id: "scope",
-            title: pricesCopy.filters.scope,
-            options: scopeOptions,
-          },
-          {
-            id: "computedStatus",
-            title: pricesCopy.filters.status,
-            options: statusOptions,
-          },
+          { id: "status", title: pricesCopy.filters.status, options: statusOptions, showCounts: true },
+          { id: "scope", title: pricesCopy.filters.scope, options: scopeOptions, showCounts: true },
+          { id: "unitId", title: pricesCopy.filters.unit, options: unitOptions, showCounts: true },
         ]}
-        emptyState={(
-          <AppEmptyState
-            media={<BadgeDollarSignIcon />}
-            title={pricesCopy.empty.title}
-            description={pricesCopy.empty.description}
-          />
-        )}
-        filteredEmptyState={(
-          <AppEmptyState
-            media={<SearchXIcon />}
-            title={pricesCopy.filteredEmpty.title}
-            description={pricesCopy.filteredEmpty.description}
-          />
-        )}
-        isLoading={isLoading || isSaving}
+        emptyState={<AppEmptyState media={<BadgeDollarSignIcon />} title={pricesCopy.empty.title} description={pricesCopy.empty.description} actions={<Button type="button" variant="secondary" size="lg" onClick={() => { setSelectedRecord(null); setIsFormOpen(true) }}>{pricesCopy.actions.add}</Button>} />}
+        filteredEmptyState={<AppEmptyState media={<BadgeDollarSignIcon />} title={pricesCopy.filteredEmpty.title} description={pricesCopy.filteredEmpty.description} />}
+        isLoading={isLoading}
         error={error}
-        onRetry={() => {
-          void refetch()
-        }}
+        onRetry={() => void refetch()}
         enablePagination
         enableViewOptions
       />
 
-      <AppDetailsSheet
-        open={Boolean(selectedPrice)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedPrice(null)
-          }
-        }}
-        title={selectedPrice ? getPriceUnitLabel(selectedPrice) : undefined}
-        description={selectedPrice ? getPriceScopeLabel(selectedPrice) : undefined}
-        items={selectedPrice ? buildPriceDetails(selectedPrice) : []}
+      <PriceTableFormDialog
+        open={isFormOpen}
+        record={selectedRecord}
+        onOpenChange={setIsFormOpen}
+        onSaved={() => void refetch()}
       />
 
-      {canManage ? (
-        <PriceTableFormDialog
-          open={isCreateDialogOpen}
-          onOpenChange={setIsCreateDialogOpen}
-          isSaving={isSaving}
-          onSubmit={handleCreatePrice}
-        />
-      ) : null}
-
       <AppAlertDialog
-        open={Boolean(pendingDeactivationPrice)}
+        open={recordToDeactivate !== null}
         onOpenChange={(open) => {
           if (!open) {
-            setPendingDeactivationPrice(null)
+            setRecordToDeactivate(null)
           }
         }}
-        media={<ShieldAlertIcon />}
         title={pricesCopy.dialogs.deactivateTitle}
         description={pricesCopy.dialogs.deactivateDescription}
-        cancelLabel={pricesCopy.actions.cancel}
-        actionLabel={pricesCopy.dialogs.deactivateConfirm}
         actionVariant="destructive"
-        pendingLabel={pricesCopy.feedback.toggle.loading}
-        onAction={handleConfirmPriceDeactivation}
-      >
-        {pendingDeactivationPrice ? (
-          <p className="px-4 text-sm font-medium text-foreground">
-            {getPriceUnitLabel(pendingDeactivationPrice)}
-          </p>
-        ) : null}
-      </AppAlertDialog>
+        actionLabel={pricesCopy.actions.confirmDeactivate}
+        pendingLabel={pricesCopy.actions.confirmDeactivate}
+        onAction={handleDeactivatePriceTable}
+      />
     </PageSection>
   )
 }
+
+export default PricesRoute

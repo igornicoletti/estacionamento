@@ -1,46 +1,42 @@
-import { BellIcon, CheckCheckIcon } from "lucide-react"
+import { CheckCheckIcon } from "lucide-react"
 import * as React from "react"
 
-import {
-  createDataTableFilterOptions,
-  DataTable,
-} from "@/components/data-table"
+import { DataTable } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
-import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 
-import { createNotificationsColumns } from "../columns/notifications-columns"
-import { useNotifications } from "../context/notifications-provider"
-import { notificationsCopy } from "../notifications-copy"
+import { NotificationsEmptyState } from "../components"
 import {
-  notificationStatusLabels,
-  notificationTypeLabels,
-  type NotificationRecord,
-} from "../types/notifications-types"
+  NOTIFICATIONS_TABLE_COLUMN_VISIBILITY_KEY,
+  notificationsCopy,
+} from "../constants"
+import { useNotifications } from "../context"
+import { useNotificationsTableFilters } from "../hooks"
 import {
   getNotificationDetailItems,
   resolveNotificationDetailsDescription,
   resolveNotificationDetailsTitle,
-} from "../utils/notifications-details-model"
-
-const NOTIFICATIONS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.notifications.columns.v3"
+  type NotificationRecord,
+} from "../model"
+import { createNotificationsColumns } from "../table"
 
 export function NotificationsRoute() {
   const {
     data,
-    unreadCount,
     error,
     isLoading,
-    isUpdatingBatch,
     isNotificationUpdating,
-    refetch,
-    updateStatus,
+    isUpdatingBatch,
     markAllAsRead,
+    refetch,
+    unreadCount,
+    updateStatus,
   } = useNotifications()
   const [selectedNotification, setSelectedNotification] =
     React.useState<NotificationRecord | null>(null)
+  const filterFields = useNotificationsTableFilters(data)
 
   const handleMarkAllAsRead = React.useCallback(async () => {
     try {
@@ -58,7 +54,6 @@ export function NotificationsRoute() {
     () =>
       createNotificationsColumns({
         isNotificationUpdating,
-        onOpenDetails: setSelectedNotification,
         onMarkAsRead: (notification) => {
           void updateStatus(notification.id, "read").catch(() => {
             notify.error(notificationsCopy.feedback.markAsReadError)
@@ -69,28 +64,9 @@ export function NotificationsRoute() {
             notify.error(notificationsCopy.feedback.markAsUnreadError)
           })
         },
+        onOpenDetails: setSelectedNotification,
       }),
     [isNotificationUpdating, updateStatus]
-  )
-
-  const typeOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        data,
-        (notification) => notification.type,
-        (notification) => notificationTypeLabels[notification.type]
-      ),
-    [data]
-  )
-
-  const statusOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        data,
-        (notification) => notification.status,
-        (notification) => notificationStatusLabels[notification.status]
-      ),
-    [data]
   )
 
   return (
@@ -109,7 +85,7 @@ export function NotificationsRoute() {
                 void handleMarkAllAsRead()
               }}
             >
-              <CheckCheckIcon />
+              <CheckCheckIcon aria-hidden="true" />
               {isUpdatingBatch
                 ? notificationsCopy.actions.updatingAll
                 : notificationsCopy.actions.markAllAsRead}
@@ -135,30 +111,14 @@ export function NotificationsRoute() {
           ],
           placeholder: notificationsCopy.filters.searchPlaceholder,
         }}
-        filterFields={[
-          {
-            id: "type",
-            title: notificationsCopy.filters.type,
-            options: typeOptions,
-          },
-          {
-            id: "status",
-            title: notificationsCopy.filters.status,
-            options: statusOptions,
-          },
-        ]}
+        filterFields={filterFields}
         isLoading={isLoading}
         error={error}
         onRetry={() => {
           void refetch()
         }}
-        emptyState={(
-          <AppEmptyState
-            media={<BellIcon />}
-            title={notificationsCopy.empty.allTitle}
-            description={notificationsCopy.empty.allDescription}
-          />
-        )}
+        emptyState={<NotificationsEmptyState />}
+        filteredEmptyState={<NotificationsEmptyState variant="filtered" />}
         enablePagination
         enableViewOptions
       />

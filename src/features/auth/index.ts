@@ -46,7 +46,7 @@ export {
   type AuthRoleKey,
   type AuthStatus,
 } from "./contracts"
-export { authCopy } from "./copy"
+export { authCopy } from "./constants"
 export {
   AuthContext,
   AuthProvider,

@@ -13,17 +13,15 @@ import {
 const clientRule: VipRule = {
   active: true,
   appliesToAllUnits: true,
-  appliesToAllVehicles: true,
   clientId: 1001,
   clientName: "Cliente VIP",
   benefitHours: null,
+  createdAt: null,
   fuelMinLiters: null,
   id: "vip-client:1001",
   notes: null,
-  ruleSummary: "Cliente VIP",
-  ruleType: "vip",
-  scopeLabel: "Todas as unidades",
   targetType: "client",
+  type: "vip",
   unitIds: [],
   updatedAt: "2026-07-01T12:00:00.000Z",
   vehicleId: null,
@@ -35,7 +33,6 @@ const clientRule: VipRule = {
 
 const vehicleRule: VipRule = {
   ...clientRule,
-  appliesToAllVehicles: false,
   id: "vip-vehicle:1001:2002",
   targetType: "vehicle",
   vehicleId: 2002,

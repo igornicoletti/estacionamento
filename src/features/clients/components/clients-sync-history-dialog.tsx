@@ -1,14 +1,15 @@
 import { SyncHistoryDialog } from "@/features/sync"
-import { type ClientSyncHistoryEntry } from "../types/clients-sync-history-types"
-import { clientsCopy } from "../clients-copy"
+
+import { clientsCopy } from "../constants"
+import { type ClientSyncHistoryEntry } from "../model"
 
 interface ClientsSyncHistoryDialogProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
   entries: readonly ClientSyncHistoryEntry[]
-  isLoading: boolean
   error?: Error | string | null
+  isLoading: boolean
+  onOpenChange: (open: boolean) => void
   onRetry?: () => void
+  open: boolean
 }
 
 function getCounters(entry: ClientSyncHistoryEntry) {
@@ -27,12 +28,12 @@ function getCounters(entry: ClientSyncHistoryEntry) {
 }
 
 export function ClientsSyncHistoryDialog({
-  open,
-  onOpenChange,
   entries,
-  isLoading,
   error,
+  isLoading,
+  onOpenChange,
   onRetry,
+  open,
 }: ClientsSyncHistoryDialogProps) {
   return (
     <SyncHistoryDialog

@@ -1,18 +1,48 @@
 import * as React from "react"
+
 import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
-import { listUnitYardConfigs, upsertUnitYardConfig } from "../services/unit-yard-service"
-import { type UnitYardConfig, type UpsertUnitYardConfigInput } from "../types/units-types"
-import { unitsCopy } from "../units-copy"
+
+import { UNIT_YARD_CONFIGS_CACHE_KEY, unitsCopy } from "../constants"
+import { normalizeUnitYardConfig, type UnitYardConfig, type UpsertUnitYardConfigInput } from "../model"
+import { listUnitYardConfigs, upsertUnitYardConfig } from "../services"
+
+function mergeConfigs(
+  snapshotConfigs: readonly UnitYardConfig[],
+  optimisticConfigs: ReadonlyMap<string, UnitYardConfig>
+) {
+  if (optimisticConfigs.size === 0) {
+    return [...snapshotConfigs]
+  }
+
+  const merged = new Map<string, UnitYardConfig>()
+
+  for (const config of snapshotConfigs) {
+    merged.set(config.unitId, normalizeUnitYardConfig(config))
+  }
+
+  for (const [unitId, config] of optimisticConfigs) {
+    merged.set(unitId, normalizeUnitYardConfig(config))
+  }
+
+  return Array.from(merged.values()).sort((left, right) =>
+    left.unitId.localeCompare(right.unitId, "pt-BR", { numeric: true })
+  )
+}
 
 export function useUnitYardConfigs() {
   const snapshot = useAsyncSnapshot<UnitYardConfig[]>({
-    cacheKey: "units:yard-configs:v2",
+    cacheKey: UNIT_YARD_CONFIGS_CACHE_KEY,
     errorMessage: unitsCopy.errors.unitYardLoad,
     initialData: [],
     loadData: listUnitYardConfigs,
   })
   const [isSaving, setIsSaving] = React.useState(false)
+  const [optimisticConfigs, setOptimisticConfigs] = React.useState<ReadonlyMap<string, UnitYardConfig>>(() => new Map())
   const activeSaveRef = React.useRef<Promise<UnitYardConfig> | null>(null)
+  const data = React.useMemo(
+    () => mergeConfigs(snapshot.data, optimisticConfigs),
+    [optimisticConfigs, snapshot.data]
+  )
 
   const saveConfig = React.useCallback(async (input: UpsertUnitYardConfigInput) => {
     if (activeSaveRef.current) {
@@ -21,7 +51,13 @@ export function useUnitYardConfigs() {
 
     setIsSaving(true)
     activeSaveRef.current = (async () => {
-      const config = await upsertUnitYardConfig(input)
+      const config = normalizeUnitYardConfig(await upsertUnitYardConfig(input))
+
+      setOptimisticConfigs((current) => {
+        const next = new Map(current)
+        next.set(config.unitId, config)
+        return next
+      })
       await snapshot.refetch()
       return config
     })()
@@ -34,5 +70,5 @@ export function useUnitYardConfigs() {
     }
   }, [snapshot])
 
-  return { ...snapshot, isSaving, saveConfig }
+  return { ...snapshot, data, isSaving, saveConfig }
 }

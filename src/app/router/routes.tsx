@@ -1,6 +1,5 @@
 import { Outlet, type RouteObject } from "react-router"
 
-import { AuthenticatedLayout } from "@/app/layouts/authenticated-layout"
 import {
   AuthenticatedHomeRoute,
   PrivateRouteGate,
@@ -10,11 +9,12 @@ import {
 } from "@/app/router/route-elements"
 import { RouteErrorBoundary } from "@/app/router/route-error-boundary"
 import {
-  authenticatedRouteRegistry,
   appRouteIds,
+  authenticatedRouteRegistry,
   publicRouteRegistry,
   type AppRouteRegistryItem,
 } from "@/app/router/route-registry"
+import { AuthenticatedLayout } from "../layouts/authenticated-layout"
 
 const routeHydrateFallbackElement = <RouteLoadingState />
 
@@ -23,6 +23,7 @@ function createPublicRoute(route: AppRouteRegistryItem): RouteObject {
     id: route.id,
     path: route.path,
     lazy: route.lazy,
+    handle: route.scrollMode ? { scrollMode: route.scrollMode } : undefined,
     errorElement: <RouteErrorBoundary />,
     hydrateFallbackElement: routeHydrateFallbackElement,
   }
@@ -34,6 +35,7 @@ function createAuthenticatedRouteLeaf(route: AppRouteRegistryItem): RouteObject 
       id: route.id,
       index: true,
       Component: AuthenticatedHomeRoute,
+      handle: route.scrollMode ? { scrollMode: route.scrollMode } : undefined,
       errorElement: <RouteErrorBoundary />,
       hydrateFallbackElement: routeHydrateFallbackElement,
     }
@@ -43,6 +45,7 @@ function createAuthenticatedRouteLeaf(route: AppRouteRegistryItem): RouteObject 
     id: route.id,
     path: route.path,
     lazy: route.lazy,
+    handle: route.scrollMode ? { scrollMode: route.scrollMode } : undefined,
     errorElement: <RouteErrorBoundary />,
     hydrateFallbackElement: routeHydrateFallbackElement,
   }

@@ -1,75 +1,57 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
+
 import {
-  isErpCatalogMockEnabled,
-  mockErpClientVehiclesPayload,
-  mockErpClientsPayload,
-} from "@/features/erp-mock"
-import { clientsCopy } from "../clients-copy"
-import { type ErpClientPayload, type ErpClientVehiclePayload } from "../types/clients-types"
+  CLIENTS_BATCH_SIZE,
+  CLIENTS_MAX_BATCHES,
+  clientsCopy,
+} from "../constants"
+import {
+  clientPayloadKeys,
+  clientVehiclePayloadKeys,
+  parseRows,
+  type ErpClientPayload,
+  type ErpClientVehiclePayload,
+} from "../model"
 
 export interface ClientsGateway {
-  listClientsPayload: () => Promise<readonly ErpClientPayload[]>
   listClientVehiclesPayload: () => Promise<readonly ErpClientVehiclePayload[]>
+  listClientsPayload: () => Promise<readonly ErpClientPayload[]>
 }
 
-const defaultBatchSize = 500
-const maxBatches = 20
-const clientPayloadKeys = [
-  "cod_pessoa",
-  "nom_pessoa",
-  "nom_fantasia",
-  "num_cnpj_cpf",
-  "des_email_1",
-  "num_telefone_1",
-  "nom_cidade",
-  "sgl_estado",
-  "dta_cadastro",
-  "ind_pessoa_ativa",
-  "bloqueio_financeiro",
-  "qtd_veiculos",
-  "dta_ultima_compra",
-] as const
-const clientVehiclePayloadKeys = [
-  "cod_veiculo",
-  "cod_pessoa",
-  "nom_pessoa",
-  "nom_fantasia",
-  "num_cnpj_cpf",
-  "num_placa",
-  "des_veiculo",
-  "nom_motorista",
-] as const
-
-async function fetchAllBatches<TRow>(loader: (from: number, to: number) => Promise<readonly TRow[]>) {
+async function fetchAllBatches<TRow>(
+  loader: (from: number, to: number) => Promise<readonly TRow[]>
+) {
   const rows: TRow[] = []
 
-  for (let batch = 0; batch < maxBatches; batch += 1) {
-    const from = batch * defaultBatchSize
-    const to = from + defaultBatchSize - 1
+  for (let batch = 0; batch < CLIENTS_MAX_BATCHES; batch += 1) {
+    const from = batch * CLIENTS_BATCH_SIZE
+    const to = from + CLIENTS_BATCH_SIZE - 1
     const chunk = await loader(from, to)
 
     rows.push(...chunk)
 
-    if (chunk.length < defaultBatchSize) {
+    if (chunk.length < CLIENTS_BATCH_SIZE) {
       return rows
     }
   }
 
-  throw new Error("A busca de clientes excedeu o limite seguro de páginas.")
+  throw new Error(clientsCopy.errors.syncLimitExceeded)
+}
+
+function getSupabaseOrThrow(errorMessage: string) {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    throw new Error(errorMessage)
+  }
+
+  return supabase
 }
 
 function createSupabaseClientsGateway(): ClientsGateway {
   return {
     async listClientsPayload() {
-      if (isErpCatalogMockEnabled()) {
-        return mockErpClientsPayload
-      }
-
-      const supabase = getSupabaseBrowserClient()
-
-      if (!supabase) {
-        return []
-      }
+      const supabase = getSupabaseOrThrow(clientsCopy.errors.clientsLoad)
 
       return fetchAllBatches<ErpClientPayload>(async (from, to) => {
         const { data, error } = await supabase
@@ -98,19 +80,15 @@ function createSupabaseClientsGateway(): ClientsGateway {
           throw new Error(clientsCopy.errors.clientsLoad, { cause: error })
         }
 
-        return normalizeErpRows<ErpClientPayload>(data, clientPayloadKeys)
+        return parseRows<ErpClientPayload>(
+          data,
+          clientPayloadKeys,
+          clientsCopy.errors.invalidClientsResponse
+        )
       })
     },
     async listClientVehiclesPayload() {
-      if (isErpCatalogMockEnabled()) {
-        return mockErpClientVehiclesPayload
-      }
-
-      const supabase = getSupabaseBrowserClient()
-
-      if (!supabase) {
-        return []
-      }
+      const supabase = getSupabaseOrThrow(clientsCopy.errors.vehiclesLoad)
 
       return fetchAllBatches<ErpClientVehiclePayload>(async (from, to) => {
         const { data, error } = await supabase
@@ -133,51 +111,24 @@ function createSupabaseClientsGateway(): ClientsGateway {
           throw new Error(clientsCopy.errors.vehiclesLoad, { cause: error })
         }
 
-        return normalizeErpRows<ErpClientVehiclePayload>(
+        return parseRows<ErpClientVehiclePayload>(
           data,
-          clientVehiclePayloadKeys
+          clientVehiclePayloadKeys,
+          clientsCopy.errors.invalidClientsResponse
         )
       })
     },
   }
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
-}
-
-function hasKeys(
-  value: Record<string, unknown>,
-  keys: readonly string[]
-): boolean {
-  return keys.every((key) => key in value)
-}
-
-function normalizeErpRows<TPayload>(
-  value: unknown,
-  keys: readonly string[]
-): readonly TPayload[] {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value.reduce<TPayload[]>((rows, row) => {
-    if (isRecord(row) && hasKeys(row, keys)) {
-      rows.push(row as TPayload)
-    }
-
-    return rows
-  }, [])
-}
-
 let clientsGateway: ClientsGateway = createSupabaseClientsGateway()
-
-export function getClientsGateway() {
-  return clientsGateway
-}
 
 export function configureClientsGateway(gateway: ClientsGateway) {
   clientsGateway = gateway
+}
+
+export function getClientsGateway() {
+  return clientsGateway
 }
 
 export function resetClientsGateway() {

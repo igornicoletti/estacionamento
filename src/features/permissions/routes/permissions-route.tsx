@@ -1,25 +1,19 @@
 import { DatabaseIcon } from "lucide-react"
 import * as React from "react"
 
-import {
-  createDataTableFilterOptions,
-  DataTable,
-} from "@/components/data-table"
+import { DataTable } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 
-import { createPermissionsColumns } from "../columns/permissions-columns"
-import { permissionsCopy } from "../permissions-copy"
-import { usePermissions } from "../hooks/use-permissions"
 import {
-  permissionSourceLabels,
-  permissionSourceValues,
-  type PermissionMatrixRow,
-} from "../types/permissions-types"
-import { getPermissionDetailItems } from "../utils/permissions-details-model"
-
-const PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY = "rmc.table.permissions.columns.v2"
+  PERMISSIONS_DEFAULT_COLUMN_VISIBILITY,
+  PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY,
+  permissionsCopy,
+} from "../constants"
+import { usePermissions, usePermissionsTableFilters } from "../hooks"
+import { getPermissionDetailItems, type PermissionMatrixRow } from "../model"
+import { createPermissionsColumns } from "../table"
 
 export function PermissionsRoute() {
   const permissionsSnapshot = usePermissions()
@@ -27,35 +21,12 @@ export function PermissionsRoute() {
   const error = permissionsSnapshot.error
   const isLoading = permissionsSnapshot.isLoading
   const refetch = permissionsSnapshot.refetch
-  const [selectedPermission, setSelectedPermission] = React.useState<PermissionMatrixRow | null>(null)
+  const { groupOptions, sourceOptions } = usePermissionsTableFilters(permissions)
+  const [selectedPermission, setSelectedPermission] =
+    React.useState<PermissionMatrixRow | null>(null)
   const columns = React.useMemo(
     () => createPermissionsColumns({ onOpenDetails: setSelectedPermission }),
     []
-  )
-
-  const groupOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        permissions,
-        (permission) => permission.groupLabel,
-        (permission) => permission.groupLabel
-      ),
-    [permissions]
-  )
-  const sourceOptions = React.useMemo(
-    () =>
-      permissionSourceValues.map((source) => {
-        const count = permissions.filter((permission) =>
-          permission.source === source
-        ).length
-
-        return {
-          count,
-          label: permissionSourceLabels[source],
-          value: source,
-        }
-      }),
-    [permissions]
   )
 
   return (
@@ -69,10 +40,7 @@ export function PermissionsRoute() {
         columns={columns}
         data={permissions}
         columnVisibilityStorageKey={PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY}
-        defaultColumnVisibility={{
-          groupLabel: false,
-          roleCount: false,
-        }}
+        defaultColumnVisibility={PERMISSIONS_DEFAULT_COLUMN_VISIBILITY}
         getRowId={(permission) => permission.id}
         globalSearch={{
           columnIds: ["label", "key", "groupLabel"],

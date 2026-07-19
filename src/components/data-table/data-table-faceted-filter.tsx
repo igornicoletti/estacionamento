@@ -3,7 +3,6 @@ import * as React from "react"
 
 import {
   Combobox,
-  ComboboxChip,
   ComboboxChips,
   ComboboxChipsInput,
   ComboboxCollection,
@@ -93,11 +92,21 @@ export function DataTableFacetedFilter<TData, TValue>({
     () => resolveSelectedOptions(uniqueOptions, selectedValues),
     [selectedValues, uniqueOptions]
   )
-  const visibleSelectedOptions = selectedOptions.slice(0, maxVisibleChips)
-  const hiddenSelectedCount = Math.max(
-    selectedOptions.length - visibleSelectedOptions.length,
-    0
-  )
+  const selectedSummary = React.useMemo(() => {
+    if (selectedOptions.length === 0) {
+      return ""
+    }
+
+    const visibleLabels = selectedOptions
+      .slice(0, maxVisibleChips)
+      .map((option) => option.label)
+      .join(", ")
+    const hiddenCount = selectedOptions.length - Math.min(selectedOptions.length, maxVisibleChips)
+
+    return hiddenCount > 0
+      ? `${visibleLabels} +${hiddenCount}`
+      : visibleLabels
+  }, [maxVisibleChips, selectedOptions])
   const anchorRef = useComboboxAnchor()
 
   if (!uniqueOptions.length) {
@@ -118,30 +127,18 @@ export function DataTableFacetedFilter<TData, TValue>({
         ref={anchorRef}
         data-no-drag-scroll="true"
         aria-label={title}
-        className="min-h-9 w-full min-w-44 overflow-hidden lg:w-64"
+        className="h-9 min-h-9 w-full min-w-44 flex-nowrap overflow-hidden lg:w-72"
       >
         {selectedOptions.length > 0 ? (
           <ComboboxValue>
-            <span className="flex min-w-0 flex-1 items-center gap-1 overflow-hidden">
-              {visibleSelectedOptions.map((option) => (
-                <ComboboxChip
-                  key={option.value}
-                  className="min-w-0 max-w-32 shrink-0"
-                >
-                  <span className="truncate">{option.label}</span>
-                </ComboboxChip>
-              ))}
-              {hiddenSelectedCount > 0 ? (
-                <ComboboxChip showRemove={false} className="shrink-0">
-                  +{hiddenSelectedCount} {dataTableCopy.facetedFilter.selectedSuffix}
-                </ComboboxChip>
-              ) : null}
+            <span className="block min-w-0 flex-1 truncate text-left whitespace-nowrap text-sm">
+              {selectedSummary}
             </span>
           </ComboboxValue>
         ) : null}
         <ComboboxChipsInput
           aria-label={title}
-          className="min-w-0 flex-1 text-left"
+          className="min-w-0 flex-1 truncate text-left whitespace-nowrap"
           placeholder={selectedOptions.length > 0 ? "" : title}
         />
       </ComboboxChips>

@@ -1,5 +1,4 @@
-import { type Unit } from "../types/units-types"
-import { sanitizeErpUnitsPayload } from "../utils/units-normalizers"
+import { sanitizeErpUnitsPayload, type Unit } from "../model"
 import { getUnitsGateway } from "./units-gateway"
 
 export async function listUnits(): Promise<Unit[]> {

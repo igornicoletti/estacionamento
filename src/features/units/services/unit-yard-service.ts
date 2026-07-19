@@ -1,10 +1,14 @@
-import { unitsCopy } from "../units-copy"
-import { type UnitYardConfig, type UpsertUnitYardConfigInput } from "../types/units-types"
-import { sanitizeParkingSpots } from "../utils/units-models"
+import {
+  normalizeUnitYardConfigs,
+  validateUpsertUnitYardConfigInput,
+  type UnitYardConfig,
+  type UpsertUnitYardConfigInput,
+} from "../model"
 import { getUnitYardGateway } from "./unit-yard-gateway"
 
 export async function listUnitYardConfigs(): Promise<UnitYardConfig[]> {
-  return [...await getUnitYardGateway().listConfigs()]
+  const configs = await getUnitYardGateway().listConfigs()
+  return normalizeUnitYardConfigs(configs)
 }
 
 export async function getUnitYardConfig(unitId: string) {
@@ -13,12 +17,6 @@ export async function getUnitYardConfig(unitId: string) {
 }
 
 export async function upsertUnitYardConfig(input: UpsertUnitYardConfigInput) {
-  if (!input.unitId.trim()) {
-    throw new Error(unitsCopy.errors.unitYardInvalidUnit)
-  }
-
-  return getUnitYardGateway().upsertConfig({
-    ...input,
-    parkingSpots: sanitizeParkingSpots(input.parkingSpots),
-  })
+  const payload = validateUpsertUnitYardConfigInput(input)
+  return getUnitYardGateway().upsertConfig(payload)
 }

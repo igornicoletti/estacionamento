@@ -8,8 +8,8 @@ import {
   ServerCrashIcon,
   ShieldAlertIcon,
 } from "lucide-react"
-import * as React from "react"
 import type { ReactNode } from "react"
+import * as React from "react"
 import {
   Link,
   isRouteErrorResponse,
@@ -17,10 +17,10 @@ import {
   useRouteError,
 } from "react-router"
 
-import { appCopy } from "@/app/app-copy"
 import { appRoutePaths } from "@/app/router/route-registry"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { Button } from "@/components/ui/button"
+import { appCopy } from "../constants/app-copy"
 
 type RouteErrorContent = {
   media: ReactNode
@@ -29,11 +29,11 @@ type RouteErrorContent = {
 }
 
 const routeErrorMediaByStatus: Record<number, ReactNode> = {
-  400: <AlertCircleIcon />,
-  401: <LockKeyholeIcon />,
-  403: <ShieldAlertIcon />,
-  404: <FileQuestionIcon />,
-  500: <ServerCrashIcon />,
+  400: <AlertCircleIcon aria-hidden="true" />,
+  401: <LockKeyholeIcon aria-hidden="true" />,
+  403: <ShieldAlertIcon aria-hidden="true" />,
+  404: <FileQuestionIcon aria-hidden="true" />,
+  500: <ServerCrashIcon aria-hidden="true" />,
 }
 
 function getRouteErrorContent(error: unknown): RouteErrorContent {
@@ -43,14 +43,16 @@ function getRouteErrorContent(error: unknown): RouteErrorContent {
     ]
 
     return {
-      media: routeErrorMediaByStatus[error.status] ?? <AlertTriangleIcon />,
+      media: routeErrorMediaByStatus[error.status] ?? (
+        <AlertTriangleIcon aria-hidden="true" />
+      ),
       title: copy?.title ?? `${error.status} — ${error.statusText || "Erro de rota"}`,
       description: copy?.description ?? appCopy.routeError.unexpected.description,
     }
   }
 
   return {
-    media: <AlertTriangleIcon />,
+    media: <AlertTriangleIcon aria-hidden="true" />,
     title: appCopy.routeError.unexpected.title,
     description: appCopy.routeError.unexpected.description,
   }
@@ -105,12 +107,12 @@ export function RouteErrorBoundary() {
                 void revalidator.revalidate()
               }}
             >
-              <RotateCcwIcon />
+              <RotateCcwIcon aria-hidden="true" />
               {appCopy.routeError.retry}
             </Button>
             <Button asChild variant="link" size="lg">
               <Link to={appRoutePaths.home} replace>
-                {appCopy.routeError.action} <ArrowUpRightIcon />
+                {appCopy.routeError.action} <ArrowUpRightIcon aria-hidden="true" />
               </Link>
             </Button>
           </div>

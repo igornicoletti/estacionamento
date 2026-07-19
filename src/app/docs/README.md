@@ -1,26 +1,34 @@
 # src/app
 
-Camada de composição da aplicação: providers globais, layout autenticado, metadados de rotas e criação do router.
+Camada de aplicação responsável por providers globais, layout autenticado, registro de rotas, lazy loaders, fallbacks e cópia institucional da navegação.
 
 ## Estrutura
 
-- `app-copy/`: textos globais usados por rotas, fallbacks e estados de carregamento.
-- `app-providers/`: composição dos providers globais da SPA.
-- `layouts/`: layout autenticado com Sidebar shadcn/ui, header e `Outlet`.
-- `router/`: criação do data router, gates, fallbacks, lazy loaders, registry e árvore de rotas.
-- `index.ts`: barrel público do módulo `app`.
+```text
+src/app/
+├── constants/
+├── docs/
+├── layouts/
+├── providers/
+├── router/
+└── index.ts
+```
 
-## Decisões arquiteturais
+## Decisões aplicadas
 
-- A raiz mantém somente `index.ts` para reduzir acoplamento estrutural e evitar imports diretos de arquivos soltos.
-- `app-copy` e `app-providers` viraram diretórios com `index`, preservando compatibilidade com `@/app/app-copy` e `@/app/app-providers`.
-- `route-registry` mantém metadados estáveis de rota; `route-lazy-loaders` concentra carregamento dinâmico.
-- Gates de rota não duplicam regra de autenticação; consomem o estado consolidado de `features/auth`.
-- Fallbacks usam `AppEmptyState` e `Spinner`, mantendo consistência visual com os componentes compartilhados.
+- `constants/` centraliza textos e metadados estáveis da aplicação.
+- `providers/` mantém composição global explícita e sem estado próprio.
+- `layouts/` mantém apenas layout autenticado e diálogo de inatividade integrado ao contexto de autenticação.
+- `router/` separa registro declarativo, lazy loaders, route gates e error boundary.
+- `route-lazy-loaders.ts` usa imports diretos dos arquivos de rota para não depender de barrels incompletos das features.
+- `route-registry.ts` é a fonte única de URLs, permissões, agrupamento da sidebar e modo de scroll por rota.
+- Rotas com `scrollMode: "content"` rodam com scroll interno no painel autenticado; rotas de formulário/visão geral usam o fluxo normal do documento.
+- `route-elements.tsx` concentra estados de carregamento, acesso negado, not found e o gate de autenticação/proteção.
+- A raiz de `src/app` contém somente `index.ts`.
 
-## Referências
+## Contratos externos esperados
 
-- React: composição por componentes.
-- React Router: `createBrowserRouter`, `RouterProvider`, `lazy`, `errorElement` e `hydrateFallbackElement`.
-- shadcn/ui Sidebar: `SidebarProvider`, `Sidebar`, `SidebarInset` e composição do layout.
-- TypeScript: `strict`, aliases e fronteiras tipadas de módulo.
+- `@/features/auth` deve exportar `AuthProvider`, `useAuth`, `authCopy`, `AUTH_PERMISSION`, `AuthPermission` e `canAccessProtectedApp`.
+- `@/features/notifications` deve exportar `NotificationsProvider`.
+- As features roteadas devem manter os arquivos de rota declarados em `router/route-lazy-loaders.ts`.
+- A sidebar deriva grupos, ícones, labels e permissões diretamente do registry; a navegação não deve duplicar paths ou permissões manualmente.

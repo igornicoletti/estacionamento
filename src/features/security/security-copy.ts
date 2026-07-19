@@ -1,0 +1,65 @@
+export const securityCopy = {
+  page: {
+    title: "Segurança",
+    subtitle: "Acompanhe passkeys, sessão ativa e permissões efetivas.",
+  },
+  empty: {
+    title: "Dados de segurança indisponíveis",
+    description: "Não foi possível carregar os dados de segurança desta conta.",
+    action: "Recarregar",
+  },
+  error: {
+    title: "Falha ao carregar segurança",
+    action: "Tentar novamente",
+    noticeTitle: "Não foi possível concluir a ação",
+  },
+  section: {
+    title: "Resumo de segurança",
+    description: "Informações objetivas sobre autenticação e permissões da conta.",
+  },
+  passkey: {
+    title: "Passkey",
+    active: "Ativa",
+    inactive: "Inativa",
+    activate: "Gerar nova passkey",
+    activating: "Gerando passkey...",
+    activeDescription: "Existe ao menos uma passkey associada à sua conta.",
+    inactiveDescription: "Nenhuma passkey ativa foi identificada para esta conta.",
+    dialogTitle: "Passkey gerada",
+    dialogDescription: "A passkey foi salva no gerenciador de credenciais do dispositivo.",
+    dialogClose: "Entendi",
+    name: "Nome da credencial",
+    createdAt: "Criada em",
+  },
+  editDialog: {
+    title: "Editar segurança",
+    description: "Revise os dados atuais e aplique ações de segurança.",
+    rotatePasskeyLabel: "Gerar nova passkey para esta conta",
+    rotatePasskeyDescription: "Use quando precisar reemitir a credencial de autenticação.",
+    save: "Salvar",
+    saving: "Salvando...",
+    cancel: "Cancelar",
+  },
+  session: {
+    title: "Sessão ativa",
+    browser: "Navegador",
+    operatingSystem: "Sistema operacional",
+    ip: "IP",
+    authenticatedAt: "Última autenticação",
+    unavailable: "Não informado",
+    anonymous: "Sessão não autenticada",
+  },
+  permissions: {
+    title: "Permissões efetivas",
+    wildcard: "Acesso total",
+    none: "Nenhuma permissão explícita vinculada à sessão.",
+    count: (count: number) => (count === 1 ? "1 permissão ativa" : `${count} permissões ativas`),
+  },
+  feedback: {
+    passkey: {
+      loading: "Aguardando validação da passkey...",
+      success: "Passkey ativada.",
+      error: "Não foi possível ativar a passkey.",
+    },
+  },
+} as const

@@ -1,14 +1,19 @@
-import { ArrowUpRightIcon, FileQuestionIcon, ShieldAlertIcon, ShieldIcon } from "lucide-react"
+import {
+  ArrowUpRightIcon,
+  FileQuestionIcon,
+  ShieldAlertIcon,
+  ShieldIcon,
+} from "lucide-react"
 import type { ReactNode } from "react"
 import { Link, Navigate, Outlet, useLocation } from "react-router"
 
-import { appCopy } from "@/app/app-copy"
 import { appRoutePaths } from "@/app/router/route-registry"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { shouldBypassAuthInDev } from "@/config"
 import { canAccessProtectedApp, useAuth, type AuthPermission } from "@/features/auth"
+import { appCopy } from "../constants/app-copy"
 
 interface PrivateRouteGateProps {
   children?: ReactNode
@@ -107,7 +112,7 @@ export function RouteAccessDenied() {
         actions={
           <Button asChild variant="link" size="lg">
             <Link to={appRoutePaths.home} replace>
-              {copy.action} <ArrowUpRightIcon />
+              {copy.action} <ArrowUpRightIcon aria-hidden="true" />
             </Link>
           </Button>
         }
@@ -123,13 +128,13 @@ export function RouteNotFound() {
     <section className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
       <AppEmptyState
         className="mx-auto max-w-xl"
-        media={<FileQuestionIcon />}
+        media={<FileQuestionIcon aria-hidden="true" />}
         title={copy.title}
         description={copy.description}
         actions={
           <Button asChild variant="link" size="lg">
             <Link to={appRoutePaths.home} replace>
-              {copy.action} <ArrowUpRightIcon />
+              {copy.action} <ArrowUpRightIcon aria-hidden="true" />
             </Link>
           </Button>
         }
