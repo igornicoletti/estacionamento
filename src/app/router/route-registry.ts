@@ -235,7 +235,7 @@ export const authenticatedRouteRegistry = [
     lazy: routeLazyLoaders.users,
     navigation: {
       group: appRouteGroupIds.utilities,
-      order: 30,
+      order: 20,
     },
   },
   {
@@ -315,7 +315,7 @@ export const authenticatedRouteRegistry = [
     lazy: routeLazyLoaders.security,
     navigation: {
       group: appRouteGroupIds.utilities,
-      order: 20,
+      order: 30,
     },
   },
   {

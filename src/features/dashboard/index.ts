@@ -1,6 +1,6 @@
 export { DashboardChartsBlock, DashboardIndicatorsGrid, DashboardTablesBlock } from "./components"
 export { dashboardCopy } from "./constants/dashboard-copy"
 export { useDashboardSnapshot } from "./hooks/use-dashboard-snapshot"
-export { getAlertDetailItems, getBillingDetailItems, getVehicleMovementDetailItems } from "./model/dashboard-details"
+export { getAlertDetailItems, getVehicleMovementDetailItems } from "./model/dashboard-details"
 export { DashboardRoute } from "./routes/dashboard-route"
-export { createDashboardAlertsColumns, createDashboardBillingColumns, createDashboardMovementsColumns } from "./table"
+export { createDashboardAlertsColumns, createDashboardMovementsColumns } from "./table"

@@ -5,7 +5,7 @@ Referência rápida da camada frontend.
 ## Diretórios desta entrega
 
 | Diretório | Responsabilidade |
-|---|---|
+| --- | --- |
 | `app/` | Bootstrap, providers, layout autenticado e roteamento declarativo. |
 | `components/sidebar/` | Sidebar autenticada derivada do registry de rotas e permissões efetivas. |
 | `features/auth/` | Autenticação, sessão, validação, copy e rotas públicas de auth. |

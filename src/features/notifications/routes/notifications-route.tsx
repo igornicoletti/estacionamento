@@ -75,22 +75,24 @@ export function NotificationsRoute() {
         title={notificationsCopy.page.title}
         subtitle={`${notificationsCopy.page.subtitle} ${notificationsCopy.page.unreadCounter(unreadCount)}.`}
         actions={(
-          <PageHeaderActions>
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              disabled={isLoading || isUpdatingBatch || unreadCount === 0}
-              onClick={() => {
-                void handleMarkAllAsRead()
-              }}
-            >
-              <CheckCheckIcon aria-hidden="true" />
-              {isUpdatingBatch
-                ? notificationsCopy.actions.updatingAll
-                : notificationsCopy.actions.markAllAsRead}
-            </Button>
-          </PageHeaderActions>
+          unreadCount > 0 ? (
+            <PageHeaderActions>
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                disabled={isLoading || isUpdatingBatch}
+                onClick={() => {
+                  void handleMarkAllAsRead()
+                }}
+              >
+                <CheckCheckIcon aria-hidden="true" />
+                {isUpdatingBatch
+                  ? notificationsCopy.actions.updatingAll
+                  : notificationsCopy.actions.markAllAsRead}
+              </Button>
+            </PageHeaderActions>
+          ) : null
         )}
       />
 

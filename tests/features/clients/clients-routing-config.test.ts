@@ -50,8 +50,8 @@ describe("clients route and sidebar integration", () => {
     ])
     expect(navigationGroups[3]?.items.map((item) => item.id)).toEqual([
       appRouteIds.profile,
-      appRouteIds.security,
       appRouteIds.users,
+      appRouteIds.security,
       appRouteIds.permissions,
     ])
     expect(routeIconById[appRouteIds.home]).toBe(LayoutDashboardIcon)

@@ -1,6 +1,6 @@
 export const appCopy = {
   loading: {
-    route: "Carregando aplicação",
+    route: "Carregando...",
   },
   navigation: {
     homeLabel: "Dashboard",
@@ -27,7 +27,7 @@ export const appCopy = {
       description: "Acompanhar clientes sincronizados do ERP.",
     },
     clientVehicles: {
-      label: "Veículos do cliente",
+      label: "Veículos do Cliente",
       description: "Acompanhar veículos vinculados ao cliente.",
     },
     prices: {
@@ -43,11 +43,11 @@ export const appCopy = {
       description: "Gerenciar usuários e acessos ao sistema.",
     },
     accessRequests: {
-      label: "Solicitações de acesso",
+      label: "Solicitações de Acesso",
       description: "Analisar solicitações administrativas de recuperação e acesso.",
     },
     permissions: {
-      label: "Perfis e permissões",
+      label: "Perfis e Permissões",
       description: "Consultar políticas, permissões e perfis disponíveis.",
     },
     audit: {
@@ -59,7 +59,7 @@ export const appCopy = {
       description: "Acompanhar notificações e alertas recentes.",
     },
     profile: {
-      label: "Meu perfil",
+      label: "Meu Perfil",
       description: "Gerenciar dados pessoais, contato e foto da conta.",
     },
     security: {
@@ -67,15 +67,15 @@ export const appCopy = {
       description: "Gerenciar credenciais, sessão e permissões efetivas.",
     },
     settings: {
-      label: "Meu perfil",
-      description: "Rota legada redirecionada para Meu perfil.",
+      label: "Meu Perfil",
+      description: "Rota legada redirecionada para Meu Perfil.",
     },
     login: {
       label: "Entrar",
       description: "Autenticação por CPF e senha.",
     },
     recovery: {
-      label: "Recuperar acesso",
+      label: "Recuperar Acesso",
       description: "Solicitação de recuperação de acesso.",
     },
     yard: {

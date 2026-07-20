@@ -1,9 +1,7 @@
 import * as React from "react"
 
 import { DataTable } from "@/components/data-table"
-import { AppEmptyState } from "@/components/shared/app-empty-state"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
+import { AppEmptyState, AppTabs } from "@/components/shared"
 import { DatabaseIcon } from "lucide-react"
 
 import { type ReportsSnapshot } from "../model/reports-types"
@@ -14,90 +12,96 @@ import {
 } from "../table"
 
 type ReportsTabsContentProps = {
-  data: ReportsSnapshot
+  data: ReportsSnapshot | null
+  isLoading: boolean
+  error: string | null
+  onRetry: () => void
 }
 
-export function ReportsTabsContent({ data }: ReportsTabsContentProps) {
+export function ReportsTabsContent({
+  data,
+  error,
+  isLoading,
+  onRetry,
+}: ReportsTabsContentProps) {
   const vehicleColumns = React.useMemo(() => createReportsVehicleColumns(), [])
   const billingColumns = React.useMemo(() => createReportsBillingColumns(), [])
   const occupancyColumns = React.useMemo(() => createReportsOccupancyColumns(), [])
 
+  const vehicleRows = data?.vehicleMovements ?? []
+  const billingRows = data?.billingRows ?? []
+  const occupancyRows = data?.occupancyAlerts ?? []
+
+  const tabs = [
+    {
+      value: "vehicle_movement",
+      label: "Movimentação de veículos",
+      content: (
+        <DataTable
+          columns={vehicleColumns}
+          data={vehicleRows}
+          getRowId={(row) => row.id}
+          globalSearch={{
+            columnIds: ["plate", "cameraType", "cameraName", "status"],
+            placeholder: "Buscar movimentações...",
+          }}
+          emptyState={<AppEmptyState media={<DatabaseIcon />} title="Sem movimentações" description="Nenhum registro disponível para o período atual." />}
+          filteredEmptyState={<AppEmptyState media={<DatabaseIcon />} title="Sem resultado" description="Ajuste os filtros para encontrar movimentações." />}
+          isLoading={isLoading}
+          error={error}
+          onRetry={onRetry}
+          enablePagination
+          enableViewOptions
+        />
+      ),
+    },
+    {
+      value: "billing",
+      label: "Faturamento",
+      content: (
+        <DataTable
+          columns={billingColumns}
+          data={billingRows}
+          getRowId={(row) => row.id}
+          globalSearch={{
+            columnIds: ["referenceDate", "rulesVersionLabel", "pricesVersionLabel"],
+            placeholder: "Buscar faturamento...",
+          }}
+          emptyState={<AppEmptyState media={<DatabaseIcon />} title="Sem faturamento" description="Nenhum lançamento disponível para o período atual." />}
+          filteredEmptyState={<AppEmptyState media={<DatabaseIcon />} title="Sem resultado" description="Ajuste os filtros para encontrar lançamentos." />}
+          isLoading={isLoading}
+          error={error}
+          onRetry={onRetry}
+          enablePagination
+          enableViewOptions
+        />
+      ),
+    },
+    {
+      value: "occupancy_alerts",
+      label: "Ocupação e alertas",
+      content: (
+        <DataTable
+          columns={occupancyColumns}
+          data={occupancyRows}
+          getRowId={(row) => row.id}
+          globalSearch={{
+            columnIds: ["severity", "description"],
+            placeholder: "Buscar alertas operacionais...",
+          }}
+          emptyState={<AppEmptyState media={<DatabaseIcon />} title="Sem alertas" description="A unidade não possui alertas no período filtrado." />}
+          filteredEmptyState={<AppEmptyState media={<DatabaseIcon />} title="Sem resultado" description="Ajuste os filtros para encontrar alertas." />}
+          isLoading={isLoading}
+          error={error}
+          onRetry={onRetry}
+          enablePagination
+          enableViewOptions
+        />
+      ),
+    },
+  ] as const
+
   return (
-    <Tabs defaultValue="vehicle_movement" className="gap-4">
-      <TabsList className="h-auto w-fit gap-1 rounded-lg border bg-muted/60 p-1">
-        <TabsTrigger value="vehicle_movement" className="px-4">Movimentação de veículos</TabsTrigger>
-        <TabsTrigger value="billing" className="px-4">Faturamento</TabsTrigger>
-        <TabsTrigger value="occupancy_alerts" className="px-4">Ocupação e alertas</TabsTrigger>
-      </TabsList>
-
-      <TabsContent value="vehicle_movement" className="mt-0">
-        <Card>
-          <CardHeader>
-            <CardTitle>Relatório de capturas e movimentações</CardTitle>
-            <CardDescription>Eventos de entrada e saída capturados por câmera com status operacional.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataTable
-              columns={vehicleColumns}
-              data={data.vehicleMovements}
-              getRowId={(row) => row.id}
-              globalSearch={{
-                columnIds: ["plate", "cameraType", "cameraName", "status"],
-                placeholder: "Buscar movimentações...",
-              }}
-              emptyState={<AppEmptyState media={<DatabaseIcon />} title="Sem movimentações" description="Nenhum registro disponível para o período atual." />}
-              enablePagination
-              enableViewOptions
-            />
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="billing" className="mt-0">
-        <Card>
-          <CardHeader>
-            <CardTitle>Relatório de faturamento por período</CardTitle>
-            <CardDescription>Consolidação de receita com vínculo às versões de regras e preços aplicadas.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataTable
-              columns={billingColumns}
-              data={data.billingRows}
-              getRowId={(row) => row.id}
-              globalSearch={{
-                columnIds: ["referenceDate", "rulesVersionLabel", "pricesVersionLabel"],
-                placeholder: "Buscar faturamento...",
-              }}
-              emptyState={<AppEmptyState media={<DatabaseIcon />} title="Sem faturamento" description="Nenhum lançamento disponível para o período atual." />}
-              enablePagination
-              enableViewOptions
-            />
-          </CardContent>
-        </Card>
-      </TabsContent>
-
-      <TabsContent value="occupancy_alerts" className="mt-0">
-        <Card>
-          <CardHeader>
-            <CardTitle>Ocupação e alertas operacionais</CardTitle>
-            <CardDescription>Monitoramento da pressão de ocupação para prevenir superlotação da unidade.</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <DataTable
-              columns={occupancyColumns}
-              data={data.occupancyAlerts}
-              getRowId={(row) => row.id}
-              globalSearch={{
-                columnIds: ["severity", "description"],
-                placeholder: "Buscar alertas operacionais...",
-              }}
-              emptyState={<AppEmptyState media={<DatabaseIcon />} title="Sem alertas" description="A unidade não possui alertas no período filtrado." />}
-              enablePagination
-              enableViewOptions
-            />
-          </CardContent>
-        </Card>
-      </TabsContent>
-    </Tabs>
+    <AppTabs items={tabs} defaultValue="vehicle_movement" />
   )
 }

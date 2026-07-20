@@ -31,7 +31,7 @@ export function SidebarProfile() {
           variant="outline"
           tooltip={label}
           aria-label={label}
-          className="cursor-default border-sidebar-primary-foreground/20 bg-sidebar-primary-foreground/10 text-[0.6875rem] font-semibold uppercase tracking-wider text-sidebar-primary-foreground hover:bg-sidebar-primary-foreground/10 hover:text-sidebar-primary-foreground active:bg-sidebar-primary-foreground/10 active:text-sidebar-primary-foreground"
+          className="cursor-default border border-sidebar-primary-foreground/60 bg-sidebar-primary-foreground/10 text-[0.6875rem] font-semibold uppercase tracking-wider text-sidebar-primary-foreground hover:bg-sidebar-primary-foreground/10 hover:text-sidebar-primary-foreground active:bg-sidebar-primary-foreground/10 active:text-sidebar-primary-foreground"
         >
           <ShieldIcon className="size-4" />
           <span>{label}</span>

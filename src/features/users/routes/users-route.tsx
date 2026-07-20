@@ -1,14 +1,13 @@
 import { DatabaseIcon, PlusIcon, ShieldAlertIcon } from "lucide-react"
 import * as React from "react"
-import { useSearchParams } from "react-router"
 
 import { DataTable, type DataTableStateAction } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
+import { AppTabs } from "@/components/shared"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { shouldBypassAuthInDev } from "@/config"
 import { AccessRequestsPanel, accessRequestsCopy } from "@/features/access-requests"
 import { AUTH_PERMISSION, AUTH_ROLE_KEY, useAuth } from "@/features/auth"
@@ -42,7 +41,6 @@ import {
 
 export function UsersRoute() {
   const auth = useAuth()
-  const [searchParams, setSearchParams] = useSearchParams()
   const remoteMode = Boolean(getSupabaseBrowserClient()) && !shouldBypassAuthInDev()
   const canReadUsers = auth.access.hasPermission(AUTH_PERMISSION.usersRead)
   const canManageUsers = auth.access.hasPermission(AUTH_PERMISSION.usersManage)
@@ -61,11 +59,6 @@ export function UsersRoute() {
     type: "block" | "reset" | "resetPasskey" | "clearLock" | "revokeSessions"
     user: UserRecord
   } | null>(null)
-  const selectedTab =
-    canReadAccessRequests && searchParams.get("tab") === ACCESS_REQUESTS_TAB_VALUE
-      ? ACCESS_REQUESTS_TAB_VALUE
-      : USERS_TAB_VALUE
-
   const assignableRoleValues = React.useMemo(
     () =>
       canAssignOwnerRole
@@ -78,6 +71,8 @@ export function UsersRoute() {
     () => usersSnapshot.data.filter((user) => canAssignOwnerRole || user.role !== AUTH_ROLE_KEY.owner),
     [canAssignOwnerRole, usersSnapshot.data]
   )
+
+  const defaultUsersTab = USERS_TAB_VALUE
 
   const unitOptions = React.useMemo<UserFormUnitOption[]>(() => {
     return unitsSnapshot.data.map((unit) => ({
@@ -97,21 +92,6 @@ export function UsersRoute() {
   const unitFilterOptions = React.useMemo(
     () => createUserUnitFilterOptions(visibleUsers),
     [visibleUsers]
-  )
-
-  const handleUsersTabChange = React.useCallback(
-    (value: string) => {
-      const nextSearchParams = new URLSearchParams(searchParams)
-
-      if (value === ACCESS_REQUESTS_TAB_VALUE && canReadAccessRequests) {
-        nextSearchParams.set("tab", ACCESS_REQUESTS_TAB_VALUE)
-      } else {
-        nextSearchParams.delete("tab")
-      }
-
-      setSearchParams(nextSearchParams, { replace: true })
-    },
-    [canReadAccessRequests, searchParams, setSearchParams]
   )
 
   const handleOpenCreateDialog = React.useCallback(() => {
@@ -328,7 +308,7 @@ export function UsersRoute() {
         title={usersCopy.page.title}
         subtitle={usersCopy.page.subtitle}
         actions={
-          canManageUsers && selectedTab === USERS_TAB_VALUE ? (
+          canManageUsers ? (
             <PageHeaderActions>
               <Button type="button" variant="secondary" size="lg" onClick={handleOpenCreateDialog}>
                 <PlusIcon aria-hidden="true" />
@@ -356,18 +336,22 @@ export function UsersRoute() {
       />
 
       {canReadAccessRequests ? (
-        <Tabs value={selectedTab} onValueChange={handleUsersTabChange} className="grid min-h-0 min-w-0 w-full gap-4">
-          <TabsList variant="line" className="w-fit">
-            <TabsTrigger value={USERS_TAB_VALUE}>{usersCopy.page.title}</TabsTrigger>
-            <TabsTrigger value={ACCESS_REQUESTS_TAB_VALUE}>{accessRequestsCopy.page.title}</TabsTrigger>
-          </TabsList>
-          <TabsContent value={USERS_TAB_VALUE} className="min-w-0 w-full overflow-x-auto">
-            {usersTable}
-          </TabsContent>
-          <TabsContent value={ACCESS_REQUESTS_TAB_VALUE} className="min-w-0 w-full overflow-x-hidden">
-            <AccessRequestsPanel canReview={canReviewAccessRequests} showHeader={false} />
-          </TabsContent>
-        </Tabs>
+        <AppTabs
+          className="min-h-0 min-w-0 w-full"
+          defaultValue={defaultUsersTab}
+          items={[
+            {
+              value: USERS_TAB_VALUE,
+              label: usersCopy.page.title,
+              content: usersTable,
+            },
+            {
+              value: ACCESS_REQUESTS_TAB_VALUE,
+              label: accessRequestsCopy.page.title,
+              content: <AccessRequestsPanel canReview={canReviewAccessRequests} showHeader={false} />,
+            },
+          ]}
+        />
       ) : (
         usersTable
       )}

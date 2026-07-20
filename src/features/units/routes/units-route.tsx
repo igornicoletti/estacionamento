@@ -118,6 +118,7 @@ export function UnitsRoute() {
         }),
         unitsCopy.yard.feedback
       )
+      await Promise.allSettled([refetch(), refetchSyncHistory()])
       setConfiguringUnit(null)
       setYardError(null)
     } catch {

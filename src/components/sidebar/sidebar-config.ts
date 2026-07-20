@@ -3,10 +3,12 @@ import {
   BellIcon,
   Building2Icon,
   ClipboardListIcon,
+  FileClockIcon,
   LayoutDashboardIcon,
   ParkingCircleIcon,
   ScrollTextIcon,
-  ShieldCheckIcon,
+  ShieldEllipsisIcon,
+  ShieldQuestionIcon,
   TruckIcon,
   UserRoundIcon,
   UsersIcon,
@@ -65,11 +67,11 @@ export const routeIconById = {
   [appRouteIds.prices]: BadgeDollarSignIcon,
   [appRouteIds.rules]: ClipboardListIcon,
   [appRouteIds.users]: UsersIcon,
-  [appRouteIds.permissions]: ShieldCheckIcon,
-  [appRouteIds.audit]: ScrollTextIcon,
+  [appRouteIds.permissions]: ShieldEllipsisIcon,
+  [appRouteIds.audit]: FileClockIcon,
   [appRouteIds.notifications]: BellIcon,
   [appRouteIds.profile]: UserRoundIcon,
-  [appRouteIds.security]: ShieldCheckIcon,
+  [appRouteIds.security]: ShieldQuestionIcon,
 } as const satisfies Partial<Record<AppRouteId, LucideIcon>>
 
 interface SidebarNavigationItemWithGroup extends SidebarNavigationItem {

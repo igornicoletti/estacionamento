@@ -15,11 +15,11 @@ import {
   resetUnitYardGateway,
   resetUnitsGateway,
 } from "@/features/units"
-import { setUsersGateway, type UserRecord } from "@/features/users"
 import type {
   UnitYardConfig,
   UpsertUnitYardConfigInput,
 } from "@/features/units/types/units-types"
+import { setUsersGateway, type UserRecord } from "@/features/users"
 
 function configureMemoryYardGateway(seed: UnitYardConfig[] = []) {
   const store = seed.map((item) => ({ ...item }))
@@ -131,7 +131,10 @@ describe("UnitsRoute", () => {
       ).not.toBeInTheDocument()
     })
 
-    expect(screen.getByText("42")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: "Monte Carlo Centro" })).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Monte Carlo Centro" }))
+    expect(screen.getByRole("heading", { name: "Monte Carlo Centro" })).toBeInTheDocument()
+    expect(screen.getAllByText("42").length).toBeGreaterThan(0)
   }, 15_000)
 
   it("shows an inert dash when the unit has no employees", async () => {
