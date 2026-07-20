@@ -1,7 +1,7 @@
 export const reportsCopy = {
   page: {
     title: "Relatórios",
-    subtitle: "Analise dados operacionais e exportações da unidade selecionada.",
+    subtitle: "Analise movimentações, faturamento e ocupação da unidade selecionada em abas especializadas.",
   },
   empty: {
     title: "Relatórios em preparação",

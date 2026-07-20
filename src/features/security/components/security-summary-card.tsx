@@ -11,7 +11,7 @@ import { Separator } from "@/components/ui/separator"
 import { Spinner } from "@/components/ui/spinner"
 import { formatDateTime, getBadgeToneClassName } from "@/lib"
 
-import { securityCopy } from "../security-copy"
+import { securityCopy } from "../constants/security-copy"
 import type { SecuritySnapshot, SecuritySummary } from "../types/security-types"
 
 interface SecuritySummaryCardProps {

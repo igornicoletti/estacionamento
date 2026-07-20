@@ -9,8 +9,8 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 
 import { SecuritySummaryCard } from "../components/security-summary-card"
+import { securityCopy } from "../constants/security-copy"
 import { useSecurity } from "../hooks/use-security"
-import { securityCopy } from "../security-copy"
 
 function CenteredState({ children }: { children: React.ReactNode }) {
   return (

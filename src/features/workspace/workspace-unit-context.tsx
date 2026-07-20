@@ -75,24 +75,43 @@ export function WorkspaceUnitProvider({ children }: { children: React.ReactNode 
   const { data: units, isLoading } = useUnits()
   const profileUnitId = auth.profile?.unitId ?? null
   const canSelectUnit = canSelectByRole(auth.profile?.roleKey)
-  const [selectedUnitId, setSelectedUnitIdState] = React.useState<string | null>(null)
+  const [selectedUnitIdState, setSelectedUnitIdState] = React.useState<string | null>(() =>
+    resolveInitialUnitId({
+      units: [],
+      canSelectUnit,
+      profileUnitId,
+    })
+  )
 
-  React.useEffect(() => {
+  const resolvedSelectedUnitId = React.useMemo(() => {
     if (isLoading) {
-      return
+      return selectedUnitIdState
     }
 
-    const nextUnitId = resolveInitialUnitId({
+    const availableUnitIds = new Set(units.map((unit) => String(unit.cod_empresa)))
+
+    if (!canSelectUnit) {
+      return profileUnitId
+    }
+
+    if (selectedUnitIdState && availableUnitIds.has(selectedUnitIdState)) {
+      return selectedUnitIdState
+    }
+
+    return resolveInitialUnitId({
       units,
       canSelectUnit,
       profileUnitId,
     })
+  }, [canSelectUnit, isLoading, profileUnitId, selectedUnitIdState, units])
 
-    setSelectedUnitIdState(nextUnitId)
-    if (canSelectUnit) {
-      setStoredUnitId(nextUnitId)
+  React.useEffect(() => {
+    if (!canSelectUnit) {
+      return
     }
-  }, [canSelectUnit, isLoading, profileUnitId, units])
+
+    setStoredUnitId(resolvedSelectedUnitId)
+  }, [canSelectUnit, resolvedSelectedUnitId])
 
   const setSelectedUnitId = React.useCallback((unitId: string) => {
     setSelectedUnitIdState(unitId)
@@ -104,17 +123,17 @@ export function WorkspaceUnitProvider({ children }: { children: React.ReactNode 
       return resolveUnitNameById(units, profileUnitId)
     }
 
-    return resolveUnitNameById(units, selectedUnitId)
-  }, [canSelectUnit, profileUnitId, selectedUnitId, units])
+    return resolveUnitNameById(units, resolvedSelectedUnitId)
+  }, [canSelectUnit, profileUnitId, resolvedSelectedUnitId, units])
 
   const value = React.useMemo<WorkspaceUnitContextValue>(() => ({
     isLoading,
-    selectedUnitId: canSelectUnit ? selectedUnitId : profileUnitId,
+    selectedUnitId: canSelectUnit ? resolvedSelectedUnitId : profileUnitId,
     selectedUnitName,
     visibleUnits: units,
     canSelectUnit,
     setSelectedUnitId,
-  }), [canSelectUnit, isLoading, profileUnitId, selectedUnitId, selectedUnitName, setSelectedUnitId, units])
+  }), [canSelectUnit, isLoading, profileUnitId, resolvedSelectedUnitId, selectedUnitName, setSelectedUnitId, units])
 
   return <WorkspaceUnitContext.Provider value={value}>{children}</WorkspaceUnitContext.Provider>
 }

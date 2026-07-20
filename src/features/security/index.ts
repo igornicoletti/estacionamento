@@ -1,7 +1,7 @@
 export { SecuritySummaryCard } from "./components/security-summary-card"
+export { securityCopy } from "./constants/security-copy"
 export { useSecurity } from "./hooks/use-security"
 export { SecurityRoute } from "./routes/security-route"
-export { securityCopy } from "./security-copy"
 export {
   getCurrentSecuritySession,
   getLocalSecuritySessionSummary
