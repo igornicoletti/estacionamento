@@ -59,6 +59,7 @@ export const sidebarBrand = {
 export const routeIconById = {
   [appRouteIds.home]: LayoutDashboardIcon,
   [appRouteIds.yard]: ParkingCircleIcon,
+  [appRouteIds.reports]: ScrollTextIcon,
   [appRouteIds.units]: Building2Icon,
   [appRouteIds.clients]: TruckIcon,
   [appRouteIds.prices]: BadgeDollarSignIcon,

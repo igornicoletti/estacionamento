@@ -31,6 +31,17 @@ function createPublicRoute(route: AppRouteRegistryItem): RouteObject {
 
 function createAuthenticatedRouteLeaf(route: AppRouteRegistryItem): RouteObject {
   if (route.index) {
+    if (route.lazy) {
+      return {
+        id: route.id,
+        index: true,
+        lazy: route.lazy,
+        handle: route.scrollMode ? { scrollMode: route.scrollMode } : undefined,
+        errorElement: <RouteErrorBoundary />,
+        hydrateFallbackElement: routeHydrateFallbackElement,
+      }
+    }
+
     return {
       id: route.id,
       index: true,

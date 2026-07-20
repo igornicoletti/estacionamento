@@ -15,6 +15,8 @@ type SyncStatus = "success" | "warning" | "failed"
 
 const unitsSyncLockResource = "units-sync"
 const unitsSyncLockTtlSeconds = 300
+const syncUpsertChunkSize = 1000
+const maxHashDiffIds = 5000
 const erpDefaultTimeoutMs = 30_000
 const erpMinTimeoutMs = 5_000
 const erpMaxTimeoutMs = 180_000
@@ -403,6 +405,28 @@ async function saveSyncState(mode: SyncMode, status: SyncStatus, startedAt: stri
   return nextConsecutiveFailures
 }
 
+async function upsertRowsInChunks<T extends Record<string, unknown>>(
+  supabase: ReturnType<typeof createAdminClient>,
+  table: string,
+  rows: readonly T[],
+  onConflict: string
+) {
+  if (rows.length === 0) {
+    return
+  }
+
+  for (let start = 0; start < rows.length; start += syncUpsertChunkSize) {
+    const chunk = rows.slice(start, start + syncUpsertChunkSize)
+    const { error } = await supabase
+      .from(table)
+      .upsert(chunk, { onConflict })
+
+    if (error) {
+      throw error
+    }
+  }
+}
+
 async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string | null) {
   const supabase = createAdminClient()
   const startedAt = new Date().toISOString()
@@ -428,7 +452,8 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
   }
 
   const unitIds = normalized.map((item) => item.cod_empresa)
-  const { data: existingRows } = unitIds.length
+  const shouldSkipHashDiff = unitIds.length > maxHashDiffIds
+  const { data: existingRows } = !shouldSkipHashDiff && unitIds.length
     ? await supabase
       .from("erp_units")
       .select("cod_empresa, source_hash")
@@ -443,27 +468,29 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
   let updated = 0
   let unchanged = 0
 
-  for (const item of normalized) {
-    const previousHash = existingHashById.get(item.cod_empresa)
+  if (shouldSkipHashDiff) {
+    created = normalized.length
+  } else {
+    for (const item of normalized) {
+      const previousHash = existingHashById.get(item.cod_empresa)
 
-    if (!previousHash) {
-      created += 1
-      continue
-    }
+      if (!previousHash) {
+        created += 1
+        continue
+      }
 
-    if (previousHash === item.source_hash) {
-      unchanged += 1
-    } else {
-      updated += 1
+      if (previousHash === item.source_hash) {
+        unchanged += 1
+      } else {
+        updated += 1
+      }
     }
   }
 
   if (normalized.length > 0) {
-    const { error: upsertError } = await supabase
-      .from("erp_units")
-      .upsert(normalized, { onConflict: "cod_empresa" })
-
-    if (upsertError) {
+    try {
+      await upsertRowsInChunks(supabase, "erp_units", normalized, "cod_empresa")
+    } catch (upsertError) {
       throw new Error("units_upsert_failed", { cause: upsertError })
     }
   }

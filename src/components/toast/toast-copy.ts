@@ -34,6 +34,13 @@ export const toastCopy = {
     unauthorized: "Acesso não autorizado.",
     forbidden: "Você não tem permissão para executar esta ação.",
     "not found": "Registro não encontrado.",
+    "request failed": "Não foi possível concluir a solicitação.",
+    "internal server error": "Não foi possível concluir a operação no momento.",
+    "service unavailable": "Serviço temporariamente indisponível.",
+    timeout: "A operação demorou mais do que o esperado. Tente novamente.",
+    "failed to fetch": "Não foi possível se comunicar com o serviço.",
+    "unknown error": "Não foi possível concluir a operação.",
+    "unexpected error": "Ocorreu um erro inesperado. Tente novamente.",
   },
 } as const
 

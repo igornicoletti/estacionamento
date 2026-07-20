@@ -28,6 +28,7 @@ export const appRouteIds = {
   settingsLegacyRedirect: "app.settings.legacyRedirect",
   profileLegacyRedirect: "app.profile.legacyRedirect",
   yard: "app.yard",
+  reports: "app.reports",
   notFound: "not-found",
 } as const
 
@@ -49,6 +50,7 @@ export const appRoutePaths = {
   settingsLegacy: "/configuracoes",
   profileLegacy: "/perfil",
   yard: "/patio-virtual",
+  reports: "/relatorios",
 } as const satisfies Record<string, `/${string}`>
 
 export const appRouteSegments = {
@@ -70,6 +72,7 @@ export const appRouteSegments = {
   settingsLegacy: "configuracoes",
   profileLegacy: "perfil",
   yard: "patio-virtual",
+  reports: "relatorios",
 } as const
 
 export const appRouteGroupIds = {
@@ -128,8 +131,10 @@ export const authenticatedRouteRegistry = [
     id: appRouteIds.home,
     index: true,
     href: appRoutePaths.home,
+    scrollMode: "document",
     label: appCopy.routes.home.label,
     description: appCopy.routes.home.description,
+    lazy: routeLazyLoaders.home,
     navigation: {
       group: appRouteGroupIds.workspace,
       order: 0,
@@ -147,6 +152,20 @@ export const authenticatedRouteRegistry = [
     navigation: {
       group: appRouteGroupIds.workspace,
       order: 1,
+    },
+  },
+  {
+    id: appRouteIds.reports,
+    path: appRouteSegments.reports,
+    href: appRoutePaths.reports,
+    scrollMode: "content",
+    label: appCopy.routes.reports.label,
+    description: appCopy.routes.reports.description,
+    requiredPermissions: [appPermissionKeys.unitsRead],
+    lazy: routeLazyLoaders.reports,
+    navigation: {
+      group: appRouteGroupIds.workspace,
+      order: 2,
     },
   },
   {

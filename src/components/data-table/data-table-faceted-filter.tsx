@@ -127,11 +127,11 @@ export function DataTableFacetedFilter<TData, TValue>({
         ref={anchorRef}
         data-no-drag-scroll="true"
         aria-label={title}
-        className="h-9 min-h-9 w-full min-w-44 flex-nowrap overflow-hidden lg:w-72"
+        className="relative h-9 min-h-9 w-full min-w-44 flex-nowrap overflow-hidden lg:w-72"
       >
         {selectedOptions.length > 0 ? (
           <ComboboxValue>
-            <span className="block min-w-0 flex-1 truncate text-left whitespace-nowrap text-sm">
+            <span className="pointer-events-none absolute inset-x-2.5 top-1/2 -translate-y-1/2 truncate text-left whitespace-nowrap text-sm">
               {selectedSummary}
             </span>
           </ComboboxValue>
@@ -139,6 +139,7 @@ export function DataTableFacetedFilter<TData, TValue>({
         <ComboboxChipsInput
           aria-label={title}
           className="min-w-0 flex-1 truncate text-left whitespace-nowrap"
+          style={selectedOptions.length > 0 ? { color: "transparent", caretColor: "currentColor" } : undefined}
           placeholder={selectedOptions.length > 0 ? "" : title}
         />
       </ComboboxChips>

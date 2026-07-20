@@ -1,23 +1,25 @@
+import { LayoutDashboardIcon } from "lucide-react"
+
 import { PageSection } from "@/components/page"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { WorkspacePageHeader } from "@/features/workspace"
-import { ParkingCircleIcon } from "lucide-react"
 
-import { yardCopy } from "../yard-copy"
+import { dashboardCopy } from "../dashboard-copy"
 
-export function YardRoute() {
+export function DashboardRoute() {
   return (
     <PageSection>
       <WorkspacePageHeader
-        pageName={yardCopy.page.title}
-        subtitle={yardCopy.page.subtitle}
+        pageName={dashboardCopy.page.title}
+        subtitle={dashboardCopy.page.subtitle}
       />
+
       <div className="flex flex-1 items-center justify-center">
         <AppEmptyState
           className="mx-auto max-w-md"
-          media={<ParkingCircleIcon />}
-          title={yardCopy.empty.title}
-          description={yardCopy.empty.description}
+          media={<LayoutDashboardIcon />}
+          title={dashboardCopy.empty.title}
+          description={dashboardCopy.empty.description}
         />
       </div>
     </PageSection>

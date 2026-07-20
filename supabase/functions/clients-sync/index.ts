@@ -15,6 +15,8 @@ type SyncStatus = "success" | "warning" | "failed"
 
 const clientsSyncLockResource = "clients-sync"
 const clientsSyncLockTtlSeconds = 300
+const syncUpsertChunkSize = 1000
+const maxHashDiffIds = 5000
 const erpDefaultTimeoutMs = 30_000
 const erpMinTimeoutMs = 5_000
 const erpMaxTimeoutMs = 180_000
@@ -575,6 +577,28 @@ function computeUpsertCounters<T extends { source_hash: string }>(
   }
 }
 
+async function upsertRowsInChunks<T extends Record<string, unknown>>(
+  supabase: ReturnType<typeof createAdminClient>,
+  table: string,
+  rows: readonly T[],
+  onConflict: string
+) {
+  if (rows.length === 0) {
+    return
+  }
+
+  for (let start = 0; start < rows.length; start += syncUpsertChunkSize) {
+    const chunk = rows.slice(start, start + syncUpsertChunkSize)
+    const { error } = await supabase
+      .from(table)
+      .upsert(chunk, { onConflict })
+
+    if (error) {
+      throw error
+    }
+  }
+}
+
 async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string | null) {
   const supabase = createAdminClient()
   const startedAt = new Date().toISOString()
@@ -612,7 +636,8 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
   }
 
   const clientIds = normalizedClients.map((row) => row.cod_pessoa)
-  const { data: existingClients } = clientIds.length
+  const shouldSkipClientHashDiff = clientIds.length > maxHashDiffIds
+  const { data: existingClients } = !shouldSkipClientHashDiff && clientIds.length
     ? await supabase
       .from("erp_clients")
       .select("cod_pessoa, source_hash")
@@ -623,18 +648,22 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
     (existingClients ?? []).map((row) => [Number(row.cod_pessoa), String(row.source_hash)])
   )
 
-  const clientCounters = computeUpsertCounters(
-    normalizedClients,
-    existingClientHashById,
-    (row) => row.cod_pessoa
-  )
+  const clientCounters = shouldSkipClientHashDiff
+    ? {
+      created: normalizedClients.length,
+      updated: 0,
+      unchanged: 0,
+    }
+    : computeUpsertCounters(
+      normalizedClients,
+      existingClientHashById,
+      (row) => row.cod_pessoa
+    )
 
   if (normalizedClients.length > 0) {
-    const { error: clientsUpsertError } = await supabase
-      .from("erp_clients")
-      .upsert(normalizedClients, { onConflict: "cod_pessoa" })
-
-    if (clientsUpsertError) {
+    try {
+      await upsertRowsInChunks(supabase, "erp_clients", normalizedClients, "cod_pessoa")
+    } catch (clientsUpsertError) {
       throw new Error("clients_upsert_failed", { cause: clientsUpsertError })
     }
   }
@@ -670,7 +699,8 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
   }
 
   const vehicleIds = normalizedVehicles.map((row) => row.cod_veiculo)
-  const { data: existingVehicles } = vehicleIds.length
+  const shouldSkipVehicleHashDiff = vehicleIds.length > maxHashDiffIds
+  const { data: existingVehicles } = !shouldSkipVehicleHashDiff && vehicleIds.length
     ? await supabase
       .from("erp_client_vehicles")
       .select("cod_veiculo, source_hash")
@@ -681,18 +711,22 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
     (existingVehicles ?? []).map((row) => [Number(row.cod_veiculo), String(row.source_hash)])
   )
 
-  const vehicleCounters = computeUpsertCounters(
-    normalizedVehicles,
-    existingVehicleHashById,
-    (row) => row.cod_veiculo
-  )
+  const vehicleCounters = shouldSkipVehicleHashDiff
+    ? {
+      created: normalizedVehicles.length,
+      updated: 0,
+      unchanged: 0,
+    }
+    : computeUpsertCounters(
+      normalizedVehicles,
+      existingVehicleHashById,
+      (row) => row.cod_veiculo
+    )
 
   if (normalizedVehicles.length > 0) {
-    const { error: vehiclesUpsertError } = await supabase
-      .from("erp_client_vehicles")
-      .upsert(normalizedVehicles, { onConflict: "cod_veiculo" })
-
-    if (vehiclesUpsertError) {
+    try {
+      await upsertRowsInChunks(supabase, "erp_client_vehicles", normalizedVehicles, "cod_veiculo")
+    } catch (vehiclesUpsertError) {
       throw new Error("client_vehicles_upsert_failed", { cause: vehiclesUpsertError })
     }
   }

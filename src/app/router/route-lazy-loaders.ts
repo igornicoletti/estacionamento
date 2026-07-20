@@ -7,6 +7,10 @@ type LazyRouteModule = {
 export type LazyRouteLoader = () => Promise<LazyRouteModule>
 
 export const routeLazyLoaders = {
+  home: () =>
+    import("@/features/dashboard/routes/dashboard-route").then((module) => ({
+      Component: module.DashboardRoute,
+    })),
   login: () =>
     import("@/features/auth/routes/auth-login-route").then((module) => ({
       Component: module.AuthLoginRoute,
@@ -74,5 +78,9 @@ export const routeLazyLoaders = {
   yard: () =>
     import("@/features/yard/routes/yard-route").then((module) => ({
       Component: module.YardRoute,
+    })),
+  reports: () =>
+    import("@/features/reports/routes/reports-route").then((module) => ({
+      Component: module.ReportsRoute,
     })),
 } as const satisfies Record<string, LazyRouteLoader>

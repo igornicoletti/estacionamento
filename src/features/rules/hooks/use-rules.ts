@@ -155,5 +155,5 @@ export function getVipRuleVehicleScopeLabel(rule: VipRule) {
     return rule.vehiclePlate ?? (rule.vehicleId ? String(rule.vehicleId) : "—")
   }
 
-  return "Todos os veiculos"
+  return "Todos os veículos"
 }

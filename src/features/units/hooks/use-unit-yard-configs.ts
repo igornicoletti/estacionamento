@@ -51,6 +51,19 @@ export function useUnitYardConfigs() {
 
     setIsSaving(true)
     activeSaveRef.current = (async () => {
+      const optimisticConfig = normalizeUnitYardConfig({
+        unitId: input.unitId,
+        patioActive: input.patioActive,
+        parkingSpots: input.parkingSpots,
+        updatedAt: new Date().toISOString(),
+      })
+
+      setOptimisticConfigs((current) => {
+        const next = new Map(current)
+        next.set(optimisticConfig.unitId, optimisticConfig)
+        return next
+      })
+
       const config = normalizeUnitYardConfig(await upsertUnitYardConfig(input))
 
       setOptimisticConfigs((current) => {

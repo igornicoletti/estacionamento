@@ -15,7 +15,7 @@ export function withTimeout<T>(
       },
       (error) => {
         clearTimeout(timer)
-        reject(error instanceof Error ? error : new Error("Unexpected promise rejection"))
+        reject(error instanceof Error ? error : new Error("Não foi possível concluir a operação."))
       }
     )
   })

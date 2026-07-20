@@ -82,6 +82,10 @@ export const appCopy = {
       label: "Pátio Virtual",
       description: "Visualizar ocupação e movimentação do pátio em tempo real.",
     },
+    reports: {
+      label: "Relatórios",
+      description: "Consultar relatórios operacionais e indicadores por unidade.",
+    },
   },
   fallback: {
     accessDenied: {

@@ -1,4 +1,4 @@
-import { LayoutDashboardIcon, ParkingCircleIcon, TruckIcon, UserRoundIcon } from "lucide-react"
+import { LayoutDashboardIcon, ParkingCircleIcon, ShieldCheckIcon, TruckIcon, UserRoundIcon } from "lucide-react"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -34,25 +34,30 @@ describe("clients route and sidebar integration", () => {
     expect(navigationGroups.map((group) => group.label)).toEqual([
       "",
       "Cadastros",
-      "Comercial",
-      "Acesso",
       "Monitoramento",
       "Configurações",
     ])
     expect(navigationGroups[0]?.items.map((item) => item.id)).toEqual([
       appRouteIds.home,
       appRouteIds.yard,
+      appRouteIds.reports,
     ])
     expect(navigationGroups[1]?.items.map((item) => item.id)).toEqual([
       appRouteIds.units,
       appRouteIds.clients,
+      appRouteIds.prices,
+      appRouteIds.rules,
     ])
-    expect(navigationGroups[5]?.items.map((item) => item.id)).toEqual([
-      appRouteIds.settings,
+    expect(navigationGroups[3]?.items.map((item) => item.id)).toEqual([
+      appRouteIds.profile,
+      appRouteIds.security,
+      appRouteIds.users,
+      appRouteIds.permissions,
     ])
     expect(routeIconById[appRouteIds.home]).toBe(LayoutDashboardIcon)
     expect(routeIconById[appRouteIds.yard]).toBe(ParkingCircleIcon)
     expect(routeIconById[appRouteIds.clients]).toBe(TruckIcon)
-    expect(routeIconById[appRouteIds.settings]).toBe(UserRoundIcon)
+    expect(routeIconById[appRouteIds.profile]).toBe(UserRoundIcon)
+    expect(routeIconById[appRouteIds.security]).toBe(ShieldCheckIcon)
   })
 })
