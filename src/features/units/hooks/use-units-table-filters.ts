@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { createDataTableFilterOptions, type DataTableFilterField } from "@/components/data-table"
 
-import { unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
 import { type Unit } from "../model"
 
 type UnitsTableFilterSource = Pick<Unit, "des_bandeira" | "sgl_estado">

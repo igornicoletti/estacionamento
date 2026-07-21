@@ -7,7 +7,7 @@ import {
   userRoleLabels,
 } from "@/features/users"
 
-import { unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
 import {
   createUnitMapHref,
   formatUnitCityState,

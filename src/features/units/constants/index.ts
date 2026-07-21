@@ -9,7 +9,7 @@ export {
   UNIT_YARD_CONFIGS_CACHE_KEY,
   UNIT_YARD_MOCK_STORAGE_KEY,
   UNITS_CACHE_KEY,
-  UNITS_TABLE_COLUMN_VISIBILITY_KEY
+  UNITS_TABLE_COLUMN_VISIBILITY_KEY,
 } from "./units-persistence"
 export { unitsRoutePaths } from "./units-routes"
 export {
@@ -24,6 +24,6 @@ export {
   UNIT_SYNC_RUN_MODES,
   UNIT_SYNC_STATUSES,
   UNIT_SYNC_SUCCESS_STATUS,
-  UNIT_SYNC_TRIGGERS
+  UNIT_SYNC_TRIGGERS,
 } from "./units-sync"
 export { UNIT_SUCCESS_BADGE_TONE } from "./units-ui"

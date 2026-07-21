@@ -1,6 +1,7 @@
 import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
 
-import { UNIT_SYNC_HISTORY_CACHE_KEY, unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
+import { UNIT_SYNC_HISTORY_CACHE_KEY } from "../constants/units-persistence"
 import { type UnitSyncHistoryEntry } from "../model"
 import { listUnitSyncHistory } from "../services"
 

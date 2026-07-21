@@ -1,4 +1,4 @@
-import { unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
 import {
   normalizeUnitYardConfig,
   sanitizeParkingSpots,

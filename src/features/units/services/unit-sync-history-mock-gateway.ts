@@ -1,11 +1,11 @@
 import { mockErpUnitsPayload } from "@/features/erp-mock"
 
+import { UNIT_SYNC_HISTORY_CACHE_KEY } from "../constants/units-persistence"
 import {
   UNIT_SYNC_FAILED_STATUS,
-  UNIT_SYNC_HISTORY_CACHE_KEY,
   UNIT_SYNC_HISTORY_MOCK_STORAGE_SUFFIX,
   UNIT_SYNC_MOCK_RUN_ID_PREFIX,
-} from "../constants"
+} from "../constants/units-sync"
 import { type UnitSyncHistoryEntry } from "../model"
 import {
   limitUnitSyncHistoryEntries,

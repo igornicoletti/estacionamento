@@ -2,7 +2,8 @@ import * as React from "react"
 
 import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
 
-import { UNIT_YARD_CONFIGS_CACHE_KEY, unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
+import { UNIT_YARD_CONFIGS_CACHE_KEY } from "../constants/units-persistence"
 import { normalizeUnitYardConfig, type UnitYardConfig, type UpsertUnitYardConfigInput } from "../model"
 import { listUnitYardConfigs, upsertUnitYardConfig } from "../services"
 

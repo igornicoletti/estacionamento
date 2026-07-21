@@ -3,7 +3,7 @@ import * as React from "react"
 import { createDataTableFilterOptions, type DataTableFilterField } from "@/components/data-table"
 import { appUserStatusLabels, type UserRecord, userRoleLabels } from "@/features/users"
 
-import { unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
 
 export function useUnitUsersTableFilters(users: readonly UserRecord[]) {
   const roleOptions = React.useMemo(

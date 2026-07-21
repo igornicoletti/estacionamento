@@ -1,18 +1,25 @@
 import { z } from "zod"
 
+import { unitsCopy } from "../constants/units-copy"
+import { UNIT_SYNC_HISTORY_LIMIT } from "../constants/units-persistence"
 import {
-  UNIT_SYNC_HISTORY_LIMIT,
   UNIT_SYNC_RUN_MODES,
   UNIT_SYNC_STATUSES,
   UNIT_SYNC_SUCCESS_STATUS,
   UNIT_SYNC_TRIGGERS,
-  unitsCopy,
-} from "../constants"
+} from "../constants/units-sync"
 import { type UnitSyncHistoryEntry, type UnitSyncRunStatus } from "../model"
 
 const syncModeSchema = z.enum(UNIT_SYNC_RUN_MODES)
 const syncTriggerSchema = z.enum(UNIT_SYNC_TRIGGERS)
 const syncStatusSchema = z.enum(UNIT_SYNC_STATUSES)
+const unitSyncCountersSchema = z.object({
+  received: z.number(),
+  created: z.number(),
+  updated: z.number(),
+  unchanged: z.number(),
+  failed: z.number(),
+})
 
 const rawUnitSyncRunRowSchema = z.object({
   id: z.string().trim().min(1),
@@ -41,13 +48,7 @@ const unitSyncHistoryEntrySchema = z.object({
   finishedAt: z.string().nullable(),
   durationSeconds: z.number().nullable(),
   message: z.string(),
-  counters: z.object({
-    received: z.number(),
-    created: z.number(),
-    updated: z.number(),
-    unchanged: z.number(),
-    failed: z.number(),
-  }).catchall(z.number()),
+  counters: unitSyncCountersSchema,
   consecutiveFailures: z.number(),
   errorDetails: z.array(z.string()),
 })

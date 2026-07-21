@@ -34,3 +34,10 @@ configuração operacional de pátio e histórico de sincronização.
 - Tokens técnicos de UI específicos da feature ficam centralizados em `constants/units-ui.ts`.
 - O histórico de sincronização separa normalização, gateway mock, gateway Supabase e
   service para manter responsabilidades claras entre persistência, validação e API de domínio.
+
+- Estatísticas de funcionários por unidade usam service próprio (`unit-user-stats-service`),
+  evitando carregar o cadastro completo de usuários e evitando chamadas administrativas de autenticação
+  no carregamento da página de unidades.
+- Barrels existem apenas como ponto de entrada externo; arquivos internos usam imports diretos
+  para reduzir ciclos e manter inferência estável no ESLint TypeScript.
+- Contadores de sincronização usam contrato fechado, sem chaves dinâmicas arbitrárias.

@@ -3,7 +3,7 @@ import { z } from "zod"
 import { isErpCatalogMockEnabled, mockErpUnitsPayload } from "@/features/erp-mock"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
-import { unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
 import { type ErpUnitPayload } from "../model"
 
 export interface UnitsGateway {

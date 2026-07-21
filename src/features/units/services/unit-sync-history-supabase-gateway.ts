@@ -1,6 +1,7 @@
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
-import { UNIT_SYNC_HISTORY_LIMIT, unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
+import { UNIT_SYNC_HISTORY_LIMIT } from "../constants/units-persistence"
 import {
   parseSupabaseUnitSyncHistoryResponse,
   parseUnitSyncHistoryRows,

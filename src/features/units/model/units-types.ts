@@ -54,7 +54,6 @@ export interface UnitSyncCounters {
   updated: number
   unchanged: number
   failed: number
-  [key: string]: number
 }
 
 export type UnitSyncRunMode = "full" | "incremental"

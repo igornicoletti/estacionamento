@@ -1,6 +1,6 @@
 import { SyncHistoryDialog } from "@/features/sync"
 
-import { unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
 import { type UnitSyncHistoryEntry } from "../model"
 
 interface UnitsSyncHistoryDialogProps {

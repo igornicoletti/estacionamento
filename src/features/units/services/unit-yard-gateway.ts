@@ -3,7 +3,8 @@ import { z } from "zod"
 import { isErpCatalogMockEnabled } from "@/features/erp-mock"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
-import { UNIT_YARD_MOCK_STORAGE_KEY, unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
+import { UNIT_YARD_MOCK_STORAGE_KEY } from "../constants/units-persistence"
 import {
   normalizeUnitYardConfig,
   type UnitYardConfig,

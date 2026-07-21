@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Spinner } from "@/components/ui/spinner"
 import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
 
-import { unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
 import { type YardStatusFormValue } from "../model"
 
 interface UnitYardConfigDialogProps {

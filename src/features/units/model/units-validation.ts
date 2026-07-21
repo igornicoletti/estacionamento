@@ -1,6 +1,6 @@
 import { z } from "zod"
 
-import { unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
 import { type UpsertUnitYardConfigInput } from "./units-types"
 
 export const unitYardConfigSchema = z.object({
