@@ -1,9 +1,11 @@
 import * as React from "react"
+
 import { AppDialog } from "@/components/shared/app-dialog"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Spinner } from "@/components/ui/spinner"
 import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
 
 import { unitsCopy } from "../constants"
@@ -34,19 +36,37 @@ export function UnitYardConfigDialog({
   onSpotsChange,
   onSave,
 }: UnitYardConfigDialogProps) {
+  const handleOpenChange = React.useCallback(
+    (nextOpen: boolean) => {
+      if (isSaving) {
+        return
+      }
+
+      onOpenChange(nextOpen)
+    },
+    [isSaving, onOpenChange]
+  )
+
   return (
     <AppDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       title={unitsCopy.yard.dialogTitle}
       description={unitName ?? ""}
       contentProps={{ onInteractOutside: preventDialogCloseOnFloatingLayerInteraction }}
       footer={(
         <div className="grid w-full grid-cols-2 gap-2">
-          <Button type="button" variant="outline" size="lg" onClick={() => onOpenChange(false)}>
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            disabled={isSaving}
+            onClick={() => onOpenChange(false)}
+          >
             {unitsCopy.actions.cancel}
           </Button>
-          <Button type="button" size="lg" disabled={isSaving} onClick={onSave}>
+          <Button type="button" size="lg" disabled={isSaving} aria-busy={isSaving} onClick={onSave}>
+            {isSaving ? <Spinner data-icon="inline-start" /> : null}
             {unitsCopy.actions.save}
           </Button>
         </div>

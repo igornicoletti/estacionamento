@@ -13,31 +13,28 @@ import { unitsCopy } from "../constants"
 import {
   createUnitMapHref,
   formatUnitCityState,
-  resolveDefaultUnitYardConfig,
   resolveYardStatusLabel,
   type Unit,
   type UnitUserStats,
   type UnitYardConfig,
 } from "../model"
 
+export type UnitTableRow = Unit & {
+  userStats: UnitUserStats
+  yardConfig: UnitYardConfig
+}
+
 interface CreateUnitsColumnsOptions {
   onOpenDetails: (unit: Unit) => void
   onSelectUsers?: (unit: Unit) => void
   onConfigureYard?: (unit: Unit) => void
-  getUserStats?: (unit: Unit) => UnitUserStats
-  getYardConfig?: (unit: Unit) => UnitYardConfig
 }
 
-function getTotalUsers(unit: Unit, getUserStats?: (unit: Unit) => UnitUserStats) {
-  const stats = getUserStats?.(unit)
-  return stats ? stats.managers + stats.operators : 0
+function getTotalUsers(unit: UnitTableRow) {
+  return unit.userStats.managers + unit.userStats.operators
 }
 
-function getFallbackYardConfig(unit: Unit) {
-  return resolveDefaultUnitYardConfig(String(unit.cod_empresa))
-}
-
-export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDef<Unit>[] {
+export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDef<UnitTableRow>[] {
   return [
     {
       accessorKey: "cod_empresa",
@@ -118,12 +115,12 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
     },
     {
       id: "unitUsers",
-      accessorFn: (unit) => getTotalUsers(unit, options.getUserStats),
+      accessorFn: (unit) => getTotalUsers(unit),
       meta: { label: unitsCopy.table.users },
       header: unitsCopy.table.users,
       size: 120,
       cell: ({ row }) => {
-        const totalUsers = getTotalUsers(row.original, options.getUserStats)
+        const totalUsers = getTotalUsers(row.original)
 
         if (!options.onSelectUsers || totalUsers === 0) {
           return totalUsers === 0 ? unitsCopy.details.emptyValue : totalUsers
@@ -138,32 +135,32 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
     },
     {
       id: "yardStatus",
-      accessorFn: (unit) => resolveYardStatusLabel((options.getYardConfig?.(unit) ?? getFallbackYardConfig(unit)).patioActive),
+      accessorFn: (unit) => resolveYardStatusLabel(unit.yardConfig.patioActive),
       meta: { label: unitsCopy.table.yard },
       header: () => <div className="text-center">{unitsCopy.table.yard}</div>,
       size: 110,
       enableSorting: false,
-      cell: ({ row }) => {
-        const config = options.getYardConfig?.(row.original) ?? getFallbackYardConfig(row.original)
-
-        return (
-          <div className="flex justify-center">
-            <Badge variant="secondary" className={getBadgeToneClassName(config.patioActive ? "success" : undefined)}>
-              {resolveYardStatusLabel(config.patioActive)}
-            </Badge>
-          </div>
-        )
-      },
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <Badge
+            variant="secondary"
+            className={getBadgeToneClassName(row.original.yardConfig.patioActive ? "success" : undefined)}
+          >
+            {resolveYardStatusLabel(row.original.yardConfig.patioActive)}
+          </Badge>
+        </div>
+      ),
     },
     {
       id: "yardSpots",
-      accessorFn: (unit) => (options.getYardConfig?.(unit) ?? getFallbackYardConfig(unit)).parkingSpots,
+      accessorFn: (unit) => unit.yardConfig.parkingSpots,
       meta: { label: unitsCopy.table.spots },
       header: unitsCopy.table.spots,
       size: 90,
+      cell: ({ row }) => row.original.yardConfig.parkingSpots,
     },
-    createActionsColumn<Unit>((row) => {
-      const totalUsers = getTotalUsers(row.original, options.getUserStats)
+    createActionsColumn<UnitTableRow>((row) => {
+      const totalUsers = getTotalUsers(row.original)
 
       return [
         {
@@ -172,10 +169,22 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
           onSelect: () => options.onOpenDetails(row.original),
         },
         ...(options.onConfigureYard
-          ? [{ id: "yard-settings" as const, label: unitsCopy.actions.configureYard, onSelect: () => options.onConfigureYard?.(row.original) }]
+          ? [
+            {
+              id: "yard-settings" as const,
+              label: unitsCopy.actions.configureYard,
+              onSelect: () => options.onConfigureYard?.(row.original),
+            },
+          ]
           : []),
         ...(options.onSelectUsers && totalUsers > 0
-          ? [{ id: "users" as const, label: unitsCopy.actions.users, onSelect: () => options.onSelectUsers?.(row.original) }]
+          ? [
+            {
+              id: "users" as const,
+              label: unitsCopy.actions.users,
+              onSelect: () => options.onSelectUsers?.(row.original),
+            },
+          ]
           : []),
       ]
     }),

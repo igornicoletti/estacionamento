@@ -34,10 +34,16 @@ import {
   parseYardSpotsInput,
   resolveUnitYardConfig,
   type Unit,
+  type UnitUserStats,
   type YardStatusFormValue,
 } from "../model"
 import { isUnitSyncInProgressError, triggerUnitsSync } from "../services"
-import { createUnitsColumns } from "../table"
+import { createUnitsColumns, type UnitTableRow } from "../table"
+
+const EMPTY_UNIT_USER_STATS = {
+  managers: 0,
+  operators: 0,
+} satisfies UnitUserStats
 
 function canManageOperationalData(auth: ReturnType<typeof useAuth>) {
   return auth.access.hasPermission(AUTH_PERMISSION.syncExecute)
@@ -64,25 +70,36 @@ export function UnitsRoute() {
   const [yardError, setYardError] = React.useState<string | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
   const [isSyncing, setIsSyncing] = React.useState(false)
-  const filterFields = useUnitsTableFilters(units)
   const canSyncUnits = canManageOperationalData(auth)
   const yardConfigByUnitId = React.useMemo(() => buildUnitYardConfigMap(unitYardConfigs), [unitYardConfigs])
   const userStatsByUnitId = React.useMemo(() => buildUnitUserStats(users), [users])
+  const unitsTableData = React.useMemo<UnitTableRow[]>(
+    () =>
+      units.map((unit) => {
+        const unitId = String(unit.cod_empresa)
+
+        return {
+          ...unit,
+          userStats: userStatsByUnitId.get(unitId) ?? EMPTY_UNIT_USER_STATS,
+          yardConfig: resolveUnitYardConfig(unitId, yardConfigByUnitId),
+        }
+      }),
+    [units, userStatsByUnitId, yardConfigByUnitId]
+  )
+  const filterFields = useUnitsTableFilters(unitsTableData)
   const selectedUnitYardConfig = selectedUnit
     ? resolveUnitYardConfig(String(selectedUnit.cod_empresa), yardConfigByUnitId)
     : null
   const selectedUnitUserStats = selectedUnit
-    ? userStatsByUnitId.get(String(selectedUnit.cod_empresa)) ?? { managers: 0, operators: 0 }
-    : { managers: 0, operators: 0 }
+    ? userStatsByUnitId.get(String(selectedUnit.cod_empresa)) ?? EMPTY_UNIT_USER_STATS
+    : EMPTY_UNIT_USER_STATS
 
   const columns = React.useMemo(
     () => createUnitsColumns({
       onOpenDetails: setSelectedUnit,
-      getUserStats: (unit) => userStatsByUnitId.get(String(unit.cod_empresa)) ?? { managers: 0, operators: 0 },
       onSelectUsers: (unit) => {
         void navigate(`/unidades/${unit.cod_empresa}/usuarios`)
       },
-      getYardConfig: (unit) => resolveUnitYardConfig(String(unit.cod_empresa), yardConfigByUnitId),
       onConfigureYard: canSyncUnits
         ? (unit) => {
           const currentConfig = resolveUnitYardConfig(String(unit.cod_empresa), yardConfigByUnitId)
@@ -93,7 +110,7 @@ export function UnitsRoute() {
         }
         : undefined,
     }),
-    [canSyncUnits, navigate, userStatsByUnitId, yardConfigByUnitId]
+    [canSyncUnits, navigate, yardConfigByUnitId]
   )
 
   async function handleSaveYardSettings() {
@@ -109,20 +126,19 @@ export function UnitsRoute() {
     }
 
     try {
-      await notify.track(
-        saveConfig({
-          unitId: String(configuringUnit.cod_empresa),
-          unitName: configuringUnit.nom_fantasia,
-          patioActive: yardStatus === "active",
-          parkingSpots: parsedSpots.value,
-        }),
-        unitsCopy.yard.feedback
-      )
+      await saveConfig({
+        unitId: String(configuringUnit.cod_empresa),
+        unitName: configuringUnit.nom_fantasia,
+        patioActive: yardStatus === "active",
+        parkingSpots: parsedSpots.value,
+      })
       await Promise.allSettled([refetch(), refetchSyncHistory()])
       setConfiguringUnit(null)
       setYardError(null)
+      notify.success(unitsCopy.yard.feedback.success)
     } catch {
       setYardError(unitsCopy.yard.feedback.error)
+      notify.error(unitsCopy.yard.feedback.error)
     }
   }
 
@@ -180,10 +196,10 @@ export function UnitsRoute() {
 
       <DataTable
         columns={columns}
-        data={units}
+        data={unitsTableData}
         defaultColumnVisibility={DEFAULT_UNITS_COLUMN_VISIBILITY}
         columnVisibilityStorageKey={UNITS_TABLE_COLUMN_VISIBILITY_KEY}
-        getRowId={(unit: Unit) => String(unit.cod_empresa)}
+        getRowId={(unit: UnitTableRow) => String(unit.cod_empresa)}
         globalSearch={{
           columnIds: ["cod_empresa", "nom_razao_social", "nom_fantasia", "num_cnpj", "des_bandeira", "nom_cidade", "sgl_estado", "ip_rede"],
           placeholder: unitsCopy.pages.units.searchPlaceholder,
