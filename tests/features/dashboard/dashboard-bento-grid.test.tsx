@@ -8,22 +8,26 @@ import {
 } from "@/features/dashboard/model/dashboard-analytics"
 import { dashboardMockByUnitId } from "@/features/dashboard/model/dashboard-mock-data"
 
-const snapshot = dashboardMockByUnitId["1"]
+const snapshot = dashboardMockByUnitId["7"]
 
 describe("DashboardBentoGrid", () => {
   it("renders the supported bento blocks from the dashboard snapshot", () => {
     render(<DashboardBentoGrid snapshot={snapshot} />)
 
     expect(screen.getByText("Vagas da unidade")).toBeInTheDocument()
-    expect(screen.getByText("142 de 180")).toBeInTheDocument()
+    expect(screen.getByText("49 de 82")).toBeInTheDocument()
     expect(screen.getByText("Entradas e saídas")).toBeInTheDocument()
     expect(screen.getByText("Indicadores operacionais")).toBeInTheDocument()
     expect(screen.getByText("Status das movimentações")).toBeInTheDocument()
     expect(screen.getByText("Resultado monitorado")).toBeInTheDocument()
     expect(screen.getByText("Balanço de fluxo")).toBeInTheDocument()
-    expect(screen.getByText("Movimentações recentes de veículos")).toBeInTheDocument()
+    expect(
+      screen.getByText("Movimentações recentes de veículos"),
+    ).toBeInTheDocument()
     expect(screen.getByText("Alertas operacionais")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /Filtros e ações/ })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("button", { name: /Filtros e ações/ }),
+    ).not.toBeInTheDocument()
   })
 
   it("opens row details from movement and alert actions", () => {
@@ -35,13 +39,17 @@ describe("DashboardBentoGrid", () => {
         snapshot={snapshot}
         onOpenMovementDetails={onOpenMovementDetails}
         onOpenAlertDetails={onOpenAlertDetails}
-      />
+      />,
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "ABC1D23" }))
-    fireEvent.click(screen.getByRole("button", { name: /Ocupação acima de 80%/ }))
+    fireEvent.click(screen.getByRole("button", { name: "SCV1994" }))
+    fireEvent.click(
+      screen.getByRole("button", { name: /Leituras com baixa confiança/ }),
+    )
 
-    expect(onOpenMovementDetails).toHaveBeenCalledWith(snapshot.vehicleMovements[0])
+    expect(onOpenMovementDetails).toHaveBeenCalledWith(
+      snapshot.vehicleMovements[0],
+    )
     expect(onOpenAlertDetails).toHaveBeenCalledWith(snapshot.alerts[0])
   })
 
@@ -56,17 +64,21 @@ describe("DashboardBentoGrid", () => {
     fireEvent.click(await screen.findByRole("option", { name: "Receita" }))
 
     expect(screen.getByText("Receita por dia")).toBeInTheDocument()
-    expect(screen.getByText("Faturamento monitorado por dia da semana.")).toBeInTheDocument()
+    expect(
+      screen.getByText("Faturamento monitorado por dia da semana."),
+    ).toBeInTheDocument()
   })
 
   it("derives capacity and movement status without synthetic dashboard data", () => {
     expect(getDashboardCapacitySummary(snapshot)).toEqual({
-      available: 38,
-      capacity: 180,
-      occupied: 142,
-      occupancyPercent: 79,
+      available: 33,
+      capacity: 82,
+      occupied: 49,
+      occupancyPercent: 60,
     })
-    expect(getDashboardMovementStatusSummary(snapshot.vehicleMovements)).toEqual([
+    expect(
+      getDashboardMovementStatusSummary(snapshot.vehicleMovements),
+    ).toEqual([
       {
         key: "fora_do_patio",
         label: "Saída confirmada",

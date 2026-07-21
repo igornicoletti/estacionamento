@@ -12,9 +12,13 @@ const recoveryRequestsRows = [
     created_at: "2026-07-05T09:30:00Z",
     description: "Troquei de aparelho e perdi o acesso ao autenticador.",
     email: "pessoa@empresa.com",
+    email_matches_account: false,
     id: "11111111-1111-1111-1111-111111111111",
+    phone_matches_account: false,
     phone_masked: "(11) 98765-4321",
     reason: "lost_phone",
+    target_account_found: true,
+    target_user_name: "Fulano Cadastrado",
   },
   {
     created_at: "2026-07-04T09:30:00Z",
@@ -24,6 +28,7 @@ const recoveryRequestsRows = [
     phone_display: "Daniel",
     phone_masked: "Dado indisponível",
     reason: "other",
+    target_account_found: null,
   },
 ]
 
@@ -180,7 +185,9 @@ describe("UsersRoute", () => {
       expect(screen.getByText("(11) *****-4321")).toBeInTheDocument()
     })
     expect(screen.getByText("Solicitante")).toBeInTheDocument()
+    expect(screen.getByText("Fulano Cadastrado")).toBeInTheDocument()
     expect(screen.getByText("Erro no aplicativo autenticador")).toBeInTheDocument()
+    expect(screen.getByText("Contato divergente")).toBeInTheDocument()
     expect(screen.queryByText("Da***el")).not.toBeInTheDocument()
   })
 })

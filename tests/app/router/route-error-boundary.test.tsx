@@ -20,7 +20,6 @@ vi.mock("react-router", async () => {
 
   return {
     ...actual,
-    useRevalidator: () => ({ revalidate: vi.fn() }),
     useRouteError: vi.fn(),
   }
 })
@@ -32,7 +31,7 @@ describe("RouteErrorBoundary", () => {
     mockedUseRouteError.mockReset()
   })
 
-  it("renders unexpected error using Empty layout with a link action", () => {
+  it("renders unexpected error using Empty layout with hard navigation actions", () => {
     mockedUseRouteError.mockReturnValue(new Error("boom"))
 
     const { container } = render(
@@ -51,5 +50,6 @@ describe("RouteErrorBoundary", () => {
 
     const backLink = screen.getByRole("link", { name: "Voltar para o início" })
     expect(backLink).toHaveAttribute("href", "/")
+    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument()
   })
 })

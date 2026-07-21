@@ -26,6 +26,8 @@ Centralizar os relatórios de validação executados por fluxo, com rastreabilid
    - Auditoria e refatoração de formulários, tabelas, filtros e dialogs de confirmação.
 9. `docs/reports/2026-07-21__flow-dashboard-bento-grid.md`
    - Refatoração do dashboard em bento grid com charts e dados suportados pelo snapshot atual.
+10. `docs/reports/2026-07-21__flow-reports-dashboard-tab-captura-discovery.md`
+    - Levantamento forense para relatórios, tabs e dashboard a partir do schema e exemplos reais da `tab_captura`.
 
 ## Observação
 

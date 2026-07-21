@@ -47,19 +47,19 @@ export function AuthenticatedLayout() {
             isContainedScroll ? "min-h-0 overflow-hidden" : "min-h-dvh overflow-visible"
           )}
         >
-          <AppHeader />
-          <main
-            className={cn(
-              "animate-page-in flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4 pb-6 md:p-6",
-              isContainedScroll
-                ? "overflow-y-auto overscroll-contain"
-                : "overflow-visible"
-            )}
-          >
-            <SelectedUnitProvider>
+          <SelectedUnitProvider>
+            <AppHeader />
+            <main
+              className={cn(
+                "animate-page-in flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4 pb-6 md:p-6",
+                isContainedScroll
+                  ? "overflow-y-auto overscroll-contain"
+                  : "overflow-visible"
+              )}
+            >
               <Outlet />
-            </SelectedUnitProvider>
-          </main>
+            </main>
+          </SelectedUnitProvider>
         </SidebarInset>
       </SidebarProvider>
 

@@ -206,7 +206,7 @@ export function VipRuleFormDialog({
               <RequiredMark />
             </FieldLabel>
             <Select
-              value={values.type || undefined}
+              value={values.type}
               onValueChange={(value: string) => setValues((current) => ({ ...current, type: value as VipRuleFormValues["type"] }))}
               disabled={isSaving}
             >
@@ -228,7 +228,7 @@ export function VipRuleFormDialog({
               <RequiredMark />
             </FieldLabel>
             <Select
-              value={values.targetType || undefined}
+              value={values.targetType}
               onValueChange={(value: string) => setValues((current) => ({ ...current, targetType: value as VipRuleFormValues["targetType"] }))}
               disabled={isSaving}
             >

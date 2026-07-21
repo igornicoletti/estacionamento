@@ -26,7 +26,7 @@ export async function listPendingRecoveryRequests(): Promise<AccessRecoveryReque
   const supabase = getSupabaseOrThrow(accessRequestsCopy.feedback.loadError)
   const { data, error } = await supabase
     .from("access_recovery_requests")
-    .select("id, phone_display, phone_masked, email, reason, description, created_at")
+    .select("id, phone_display, phone_masked, email, reason, description, target_account_found, target_user_name, phone_matches_account, email_matches_account, created_at")
     .eq("status", "pending")
     .order("created_at", { ascending: false })
 

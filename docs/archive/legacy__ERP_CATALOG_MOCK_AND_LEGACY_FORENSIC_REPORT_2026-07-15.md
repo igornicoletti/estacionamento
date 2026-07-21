@@ -1,8 +1,8 @@
 # Relatório Forense - Catálogo ERP, Legado e Mock
 
-Data: 2026-07-15  
-Projeto atual: `igornicoletti/estacionamento`  
-Projeto legado analisado: `projetosmc/estacionamento`  
+Data: 2026-07-15
+Projeto atual: `igornicoletti/estacionamento`
+Projeto legado analisado: `projetosmc/estacionamento`
 Projeto Supabase atual confirmado: `zgzzfytlzsntzhzqxqvc`
 
 ## Resumo executivo
@@ -387,16 +387,16 @@ Checklist:
 
 ## Referências oficiais
 
-- Supabase Row Level Security: https://supabase.com/docs/guides/database/postgres/row-level-security
-- Supabase Securing your API: https://supabase.com/docs/guides/api/securing-your-api
-- Supabase Database Linter: https://supabase.com/docs/guides/database/database-linter
-- Supabase Edge Functions secrets: https://supabase.com/docs/guides/functions/secrets
-- Supabase JavaScript `select`: https://supabase.com/docs/reference/javascript/select
-- Supabase JavaScript `rpc`: https://supabase.com/docs/reference/javascript/rpc
-- Supabase TypeScript types: https://supabase.com/docs/guides/api/rest/generating-types
-- TanStack Query React overview: https://tanstack.com/query/latest/docs/framework/react/overview
-- TanStack Table data guide: https://tanstack.com/table/v8/docs/guide/data
-- React Router routing: https://reactrouter.com/start/data/routing
+- Supabase Row Level Security: <https://supabase.com/docs/guides/database/postgres/row-level-security>
+- Supabase Securing your API: <https://supabase.com/docs/guides/api/securing-your-api>
+- Supabase Database Linter: <https://supabase.com/docs/guides/database/database-linter>
+- Supabase Edge Functions secrets: <https://supabase.com/docs/guides/functions/secrets>
+- Supabase JavaScript `select`: <https://supabase.com/docs/reference/javascript/select>
+- Supabase JavaScript `rpc`: <https://supabase.com/docs/reference/javascript/rpc>
+- Supabase TypeScript types: <https://supabase.com/docs/guides/api/rest/generating-types>
+- TanStack Query React overview: <https://tanstack.com/query/latest/docs/framework/react/overview>
+- TanStack Table data guide: <https://tanstack.com/table/v8/docs/guide/data>
+- React Router routing: <https://reactrouter.com/start/data/routing>
 
 ## Decisão final
 

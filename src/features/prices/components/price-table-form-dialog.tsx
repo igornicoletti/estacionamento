@@ -173,7 +173,7 @@ export function PriceTableFormDialog({
               <RequiredMark />
             </FieldLabel>
             <Select
-              value={values.scope || undefined}
+              value={values.scope}
               onValueChange={(value: string) => setValues((current) => ({ ...current, scope: value as PriceTableFormValues["scope"] }))}
               disabled={isSaving}
             >
@@ -263,7 +263,7 @@ export function PriceTableFormDialog({
               <RequiredMark />
             </FieldLabel>
             <Select
-              value={values.status || undefined}
+              value={values.status}
               onValueChange={(value: string) => setValues((current) => ({ ...current, status: value as PriceTableFormValues["status"] }))}
               disabled={isSaving}
             >

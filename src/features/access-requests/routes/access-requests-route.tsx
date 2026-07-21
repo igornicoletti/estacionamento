@@ -149,7 +149,7 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
         data={data.recoveryRequests}
         getRowId={(request) => request.id}
         globalSearch={{
-          columnIds: ["requesterLabel", "reasonLabel", "phoneMasked", "email"],
+          columnIds: ["requesterLabel", "targetAccountLabel", "reasonLabel", "phoneMasked", "email"],
           placeholder: accessRequestsCopy.tables.recovery.searchPlaceholder,
         }}
         filterFields={[

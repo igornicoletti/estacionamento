@@ -1,7 +1,8 @@
 import type { ColumnDef } from "@tanstack/react-table"
 
 import { createActionsColumn, DataTableSensitiveValue, DataTableTextAction } from "@/components/data-table"
-import { formatDateTime } from "@/lib"
+import { Badge } from "@/components/ui/badge"
+import { formatDateTime, getBadgeToneClassName, type BadgeTone } from "@/lib"
 
 import { accessRequestsCopy } from "../constants"
 import {
@@ -14,6 +15,15 @@ interface CreateRecoveryRequestsColumnsOptions {
   canReview?: boolean
   onOpenDetails: (request: AccessRecoveryRequestRecord) => void
   onReview: (request: AccessRecoveryRequestRecord, decision: AccessRequestReviewDecision) => void
+}
+
+const verificationToneByStatus: Record<
+  AccessRecoveryRequestRecord["verificationStatus"],
+  BadgeTone | null
+> = {
+  matched: "success",
+  mismatch: "warning",
+  unverified: "info",
 }
 
 export function createRecoveryRequestsColumns({
@@ -42,6 +52,20 @@ export function createRecoveryRequestsColumns({
       ),
       header: accessRequestsCopy.tables.recovery.columns.requester,
       meta: { label: accessRequestsCopy.tables.recovery.columns.requester },
+    },
+    {
+      accessorKey: "targetAccountLabel",
+      cell: ({ row }) => (
+        <DataTableTextAction
+          onClick={() => {
+            onOpenDetails(row.original)
+          }}
+        >
+          {row.original.targetAccountLabel}
+        </DataTableTextAction>
+      ),
+      header: accessRequestsCopy.tables.recovery.columns.targetAccount,
+      meta: { label: accessRequestsCopy.tables.recovery.columns.targetAccount },
     },
     {
       accessorKey: "reason",
@@ -74,6 +98,28 @@ export function createRecoveryRequestsColumns({
       cell: ({ row }) => row.original.email || accessRequestsCopy.shared.emptyValue,
       header: accessRequestsCopy.tables.recovery.columns.email,
       meta: { label: accessRequestsCopy.tables.recovery.columns.email },
+    },
+    {
+      accessorKey: "verificationLabel",
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <Badge
+            variant="secondary"
+            className={getBadgeToneClassName(
+              verificationToneByStatus[row.original.verificationStatus]
+            )}
+          >
+            {row.original.verificationLabel}
+          </Badge>
+        </div>
+      ),
+      enableSorting: false,
+      header: () => (
+        <div className="text-center font-medium">
+          {accessRequestsCopy.tables.recovery.columns.verification}
+        </div>
+      ),
+      meta: { label: accessRequestsCopy.tables.recovery.columns.verification },
     },
     createActionsColumn<AccessRecoveryRequestRecord>([
       {

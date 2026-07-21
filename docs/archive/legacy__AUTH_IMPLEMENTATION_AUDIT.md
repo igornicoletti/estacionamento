@@ -15,9 +15,9 @@ Esta implementação introduz autenticação baseada em CPF, sessão técnica Su
 
 ## Referências
 
-- Supabase Passkeys: https://supabase.com/docs/guides/auth/passkeys
-- Supabase RLS: https://supabase.com/docs/guides/database/postgres/row-level-security
-- Supabase Securing API: https://supabase.com/docs/guides/api/securing-your-api
-- shadcn Field: https://ui.shadcn.com/docs/components/field
-- shadcn React Hook Form: https://ui.shadcn.com/docs/forms/react-hook-form
-- OWASP Authentication Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
+- Supabase Passkeys: <https://supabase.com/docs/guides/auth/passkeys>
+- Supabase RLS: <https://supabase.com/docs/guides/database/postgres/row-level-security>
+- Supabase Securing API: <https://supabase.com/docs/guides/api/securing-your-api>
+- shadcn Field: <https://ui.shadcn.com/docs/components/field>
+- shadcn React Hook Form: <https://ui.shadcn.com/docs/forms/react-hook-form>
+- OWASP Authentication Cheat Sheet:<https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html>

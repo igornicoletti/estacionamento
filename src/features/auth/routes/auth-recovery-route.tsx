@@ -1,5 +1,5 @@
 import * as React from "react"
-import { Link } from "react-router"
+import { Link, useNavigate } from "react-router"
 
 import { appRoutePaths } from "@/app/router/route-registry"
 import { notify } from "@/components/toast"
@@ -52,6 +52,7 @@ function getInitialValues(): AuthRecoveryFormValues {
 
 export function AuthRecoveryRoute() {
   const copy = authCopy.recovery
+  const navigate = useNavigate()
   const [isSubmitting, setIsSubmitting] = React.useState(false)
   const [values, setValues] = React.useState<AuthRecoveryFormValues>(getInitialValues)
   const [errors, setErrors] = React.useState<FieldErrors<AuthRecoveryFormValues>>({})
@@ -102,6 +103,7 @@ export function AuthRecoveryRoute() {
       await requestAccessRecovery(parsed.data)
       notify.success(copy.success)
       setValues(getInitialValues())
+      void navigate(appRoutePaths.login, { replace: true })
     } catch (caughtError) {
       notify.error(
         caughtError instanceof Error
@@ -178,7 +180,7 @@ export function AuthRecoveryRoute() {
                 <RequiredMark />
               </FieldLabel>
               <Select
-                value={values.reason || undefined}
+                value={values.reason}
                 onValueChange={(value: string) => updateReasonValue(value as RecoveryReason)}
               >
                 <SelectTrigger

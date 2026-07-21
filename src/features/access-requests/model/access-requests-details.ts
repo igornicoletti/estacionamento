@@ -3,7 +3,10 @@ import { formatDateTime } from "@/lib"
 
 import { accessRequestsCopy } from "../constants"
 import type { AccessRecoveryRequestRecord, AccessRequestDetailsTarget } from "./access-requests-types"
-import { formatAccessRequestReason } from "./access-requests-formatters"
+import {
+  formatAccessRequestReason,
+  formatBooleanVerification,
+} from "./access-requests-formatters"
 
 function renderValue(value: string | null | undefined) {
   return value ?? accessRequestsCopy.shared.emptyValue
@@ -32,6 +35,27 @@ export function getRecoveryRequestDetailItems(
     {
       label: accessRequestsCopy.details.labels.email,
       value: renderValue(request.email),
+    },
+    {
+      label: accessRequestsCopy.details.labels.targetAccount,
+      value: request.targetAccountLabel,
+    },
+    {
+      label: accessRequestsCopy.details.labels.contactVerification,
+      value: [
+        formatBooleanVerification(request.phoneMatchesAccount, {
+          matched: accessRequestsCopy.verification.phoneMatched,
+          mismatch: accessRequestsCopy.verification.phoneMismatch,
+          unverified: accessRequestsCopy.verification.unverified,
+        }),
+        request.email
+          ? formatBooleanVerification(request.emailMatchesAccount, {
+              matched: accessRequestsCopy.verification.emailMatched,
+              mismatch: accessRequestsCopy.verification.emailMismatch,
+              unverified: accessRequestsCopy.verification.unverified,
+            })
+          : accessRequestsCopy.verification.emailNotProvided,
+      ].join(" / "),
     },
   ]
 }

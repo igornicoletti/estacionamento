@@ -1,26 +1,38 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
-import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
+import {
+  createActionsColumn,
+  DataTableTextAction,
+} from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
+import {
+  formatParkingCameraType,
+  formatParkingMovementStatus,
+} from "@/features/operations/model/parking-movement-formatters"
 
 import { type DashboardVehicleMovementRow } from "../model/dashboard-types"
 
-export function createDashboardMovementsColumns(options: {
-  onOpenDetails?: (row: DashboardVehicleMovementRow) => void
-} = {}): ColumnDef<DashboardVehicleMovementRow>[] {
+export function createDashboardMovementsColumns(
+  options: {
+    onOpenDetails?: (row: DashboardVehicleMovementRow) => void
+  } = {},
+): ColumnDef<DashboardVehicleMovementRow>[] {
   return [
     {
       accessorKey: "capturedAt",
       header: "Data/hora",
       meta: { label: "Data/hora" },
-      cell: ({ row }) => new Date(row.original.capturedAt).toLocaleString("pt-BR"),
+      cell: ({ row }) =>
+        new Date(row.original.capturedAt).toLocaleString("pt-BR"),
     },
     {
       accessorKey: "plate",
       header: "Placa",
       meta: { label: "Placa" },
       cell: ({ row }) => (
-        <DataTableTextAction onClick={() => options.onOpenDetails?.(row.original)}>
+        <DataTableTextAction
+          onClick={() => options.onOpenDetails?.(row.original)}
+        >
           {row.original.plate}
         </DataTableTextAction>
       ),
@@ -28,7 +40,11 @@ export function createDashboardMovementsColumns(options: {
     {
       accessorKey: "cameraType",
       header: "Tipo",
-      meta: { label: "Tipo" },
+      meta: {
+        label: "Tipo",
+        exportValue: (_value, row) => formatParkingCameraType(row.cameraType),
+      },
+      cell: ({ row }) => formatParkingCameraType(row.original.cameraType),
     },
     {
       accessorKey: "cameraName",
@@ -45,21 +61,21 @@ export function createDashboardMovementsColumns(options: {
       accessorKey: "stayMinutes",
       header: "Permanência",
       meta: { label: "Permanência" },
-      cell: ({ row }) => (row.original.stayMinutes ? `${row.original.stayMinutes} min` : "—"),
+      cell: ({ row }) =>
+        row.original.stayMinutes ? `${row.original.stayMinutes} min` : "—",
     },
     {
       accessorKey: "status",
       enableSorting: false,
       header: () => <div className="text-center">Status</div>,
-      meta: { label: "Status" },
+      meta: {
+        label: "Status",
+        exportValue: (_value, row) => formatParkingMovementStatus(row.status),
+      },
       cell: ({ row }) => (
         <div className="flex justify-center">
           <Badge variant="outline">
-            {row.original.status === "no_patio"
-              ? "No pátio"
-              : row.original.status === "fora_do_patio"
-                ? "Saída confirmada"
-                : "No pátio (alerta)"}
+            {formatParkingMovementStatus(row.original.status)}
           </Badge>
         </div>
       ),

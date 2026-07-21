@@ -7,6 +7,7 @@ import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDialog } from "@/components/shared/app-dialog"
 import { AppPasswordField } from "@/components/shared/app-password-field"
 import { notify } from "@/components/toast"
+import { AlertDialogAction } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
@@ -311,7 +312,11 @@ export function AuthLoginRoute() {
         media={<LogOutIcon />}
         title={authCopy.inactivity.expiredTitle}
         description={authCopy.inactivity.expiredDescription}
-        actionLabel={authCopy.inactivity.expiredAction}
+        footer={(
+          <AlertDialogAction size="lg">
+            {authCopy.inactivity.expiredAction}
+          </AlertDialogAction>
+        )}
       />
     </main>
   )

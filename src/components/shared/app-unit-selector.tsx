@@ -1,9 +1,18 @@
+import { Building2Icon } from "lucide-react"
 import * as React from "react"
 
 import { AUTH_ROLE_KEY, useAuth } from "@/features/auth"
-import { useUnits, type Unit } from "@/features/units"
+import { useUnitYardConfigs, useUnits, type Unit } from "@/features/units"
 
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import {
+  Combobox,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
+import { InputGroupAddon } from "@/components/ui/input-group"
 import { Spinner } from "@/components/ui/spinner"
 
 type SelectedUnitContextValue = {
@@ -17,7 +26,14 @@ type SelectedUnitContextValue = {
 
 const SELECTED_UNIT_STORAGE_KEY = "rmc.selected-unit-id"
 
-const SelectedUnitContext = React.createContext<SelectedUnitContextValue | null>(null)
+const SelectedUnitContext =
+  React.createContext<SelectedUnitContextValue | null>(null)
+
+type UnitSelectorOption = {
+  label: string
+  unit: Unit
+  value: string
+}
 
 function getStoredUnitId() {
   if (typeof window === "undefined") {
@@ -46,11 +62,47 @@ function resolveUnitNameById(units: readonly Unit[], unitId: string | null) {
     return "Todas as unidades"
   }
 
-  return units.find((unit) => String(unit.cod_empresa) === unitId)?.nom_fantasia ?? "Unidade indisponível"
+  return (
+    units.find((unit) => String(unit.cod_empresa) === unitId)?.nom_fantasia ??
+    "Unidade indisponível"
+  )
+}
+
+export function formatUnitSelectorOption(
+  unit: Pick<Unit, "cod_empresa" | "nom_fantasia">,
+) {
+  return `${unit.cod_empresa} — ${unit.nom_fantasia}`
+}
+
+function createUnitSelectorOptions(
+  units: readonly Unit[],
+): UnitSelectorOption[] {
+  return units.map((unit) => ({
+    label: formatUnitSelectorOption(unit),
+    unit,
+    value: String(unit.cod_empresa),
+  }))
 }
 
 function canSelectByRole(roleKey: string | null | undefined) {
-  return roleKey === AUTH_ROLE_KEY.owner || roleKey === AUTH_ROLE_KEY.admin || roleKey === AUTH_ROLE_KEY.auditor
+  return (
+    roleKey === AUTH_ROLE_KEY.owner ||
+    roleKey === AUTH_ROLE_KEY.admin ||
+    roleKey === AUTH_ROLE_KEY.auditor
+  )
+}
+
+function filterUnitsWithActiveYard(
+  units: readonly Unit[],
+  yardConfigs: readonly { patioActive: boolean; unitId: string }[],
+) {
+  const activeYardUnitIds = new Set(
+    yardConfigs
+      .filter((config) => config.patioActive)
+      .map((config) => config.unitId),
+  )
+
+  return units.filter((unit) => activeYardUnitIds.has(String(unit.cod_empresa)))
 }
 
 function resolveInitialUnitId(input: {
@@ -66,24 +118,40 @@ function resolveInitialUnitId(input: {
 
   const storedUnitId = getStoredUnitId()
 
-  if (storedUnitId && units.some((unit) => String(unit.cod_empresa) === storedUnitId)) {
+  if (
+    storedUnitId &&
+    units.some((unit) => String(unit.cod_empresa) === storedUnitId)
+  ) {
     return storedUnitId
   }
 
   return units.length > 0 ? String(units[0].cod_empresa) : null
 }
 
-export function SelectedUnitProvider({ children }: { children: React.ReactNode }) {
+export function SelectedUnitProvider({
+  children,
+}: {
+  children: React.ReactNode
+}) {
   const auth = useAuth()
-  const { data: units, isLoading } = useUnits()
+  const { data: units, isLoading: isLoadingUnits } = useUnits()
+  const { data: yardConfigs, isLoading: isLoadingYardConfigs } =
+    useUnitYardConfigs()
   const profileUnitId = auth.profile?.unitId ?? null
   const canSelectUnit = canSelectByRole(auth.profile?.roleKey)
-  const [selectedUnitIdState, setSelectedUnitIdState] = React.useState<string | null>(() =>
+  const isLoading = isLoadingUnits || isLoadingYardConfigs
+  const selectableUnits = React.useMemo(
+    () => filterUnitsWithActiveYard(units, yardConfigs),
+    [units, yardConfigs],
+  )
+  const [selectedUnitIdState, setSelectedUnitIdState] = React.useState<
+    string | null
+  >(() =>
     resolveInitialUnitId({
       units: [],
       canSelectUnit,
       profileUnitId,
-    })
+    }),
   )
 
   const resolvedSelectedUnitId = React.useMemo(() => {
@@ -91,7 +159,9 @@ export function SelectedUnitProvider({ children }: { children: React.ReactNode }
       return selectedUnitIdState
     }
 
-    const availableUnitIds = new Set(units.map((unit) => String(unit.cod_empresa)))
+    const availableUnitIds = new Set(
+      selectableUnits.map((unit) => String(unit.cod_empresa)),
+    )
 
     if (!canSelectUnit) {
       return profileUnitId
@@ -102,11 +172,17 @@ export function SelectedUnitProvider({ children }: { children: React.ReactNode }
     }
 
     return resolveInitialUnitId({
-      units,
+      units: selectableUnits,
       canSelectUnit,
       profileUnitId,
     })
-  }, [canSelectUnit, isLoading, profileUnitId, selectedUnitIdState, units])
+  }, [
+    canSelectUnit,
+    isLoading,
+    profileUnitId,
+    selectableUnits,
+    selectedUnitIdState,
+  ])
 
   React.useEffect(() => {
     if (!canSelectUnit) {
@@ -126,26 +202,55 @@ export function SelectedUnitProvider({ children }: { children: React.ReactNode }
       return resolveUnitNameById(units, profileUnitId)
     }
 
-    return resolveUnitNameById(units, resolvedSelectedUnitId)
-  }, [canSelectUnit, profileUnitId, resolvedSelectedUnitId, units])
+    if (!isLoading && selectableUnits.length === 0) {
+      return "Nenhuma unidade com pátio ativo"
+    }
 
-  const value = React.useMemo<SelectedUnitContextValue>(() => ({
-    isLoading,
-    selectedUnitId: canSelectUnit ? resolvedSelectedUnitId : profileUnitId,
-    selectedUnitName,
-    visibleUnits: units,
+    return resolveUnitNameById(selectableUnits, resolvedSelectedUnitId)
+  }, [
     canSelectUnit,
-    setSelectedUnitId,
-  }), [canSelectUnit, isLoading, profileUnitId, resolvedSelectedUnitId, selectedUnitName, setSelectedUnitId, units])
+    isLoading,
+    profileUnitId,
+    resolvedSelectedUnitId,
+    selectableUnits,
+    units,
+  ])
 
-  return <SelectedUnitContext.Provider value={value}>{children}</SelectedUnitContext.Provider>
+  const value = React.useMemo<SelectedUnitContextValue>(
+    () => ({
+      isLoading,
+      selectedUnitId: canSelectUnit ? resolvedSelectedUnitId : profileUnitId,
+      selectedUnitName,
+      visibleUnits: canSelectUnit ? selectableUnits : units,
+      canSelectUnit,
+      setSelectedUnitId,
+    }),
+    [
+      canSelectUnit,
+      isLoading,
+      profileUnitId,
+      resolvedSelectedUnitId,
+      selectableUnits,
+      selectedUnitName,
+      setSelectedUnitId,
+      units,
+    ],
+  )
+
+  return (
+    <SelectedUnitContext.Provider value={value}>
+      {children}
+    </SelectedUnitContext.Provider>
+  )
 }
 
 export function useSelectedUnit() {
   const context = React.useContext(SelectedUnitContext)
 
   if (!context) {
-    throw new Error("useSelectedUnit deve ser utilizado dentro de SelectedUnitProvider.")
+    throw new Error(
+      "useSelectedUnit deve ser utilizado dentro de SelectedUnitProvider.",
+    )
   }
 
   return context
@@ -159,6 +264,14 @@ export function AppUnitSelector() {
     setSelectedUnitId,
     visibleUnits,
   } = useSelectedUnit()
+  const options = React.useMemo(
+    () => createUnitSelectorOptions(visibleUnits),
+    [visibleUnits],
+  )
+  const selectedUnit = React.useMemo(
+    () => options.find((unit) => unit.value === selectedUnitId) ?? null,
+    [options, selectedUnitId],
+  )
 
   if (!canSelectUnit) {
     return null
@@ -173,22 +286,48 @@ export function AppUnitSelector() {
   }
 
   return (
-    <div className="w-full lg:w-[320px]">
-      <Select
-        value={selectedUnitId ?? undefined}
-        onValueChange={setSelectedUnitId}
+    <div className="w-full min-w-0 lg:w-[320px]">
+      <Combobox<UnitSelectorOption>
+        items={options}
+        value={selectedUnit}
+        onValueChange={(value: UnitSelectorOption | null) => {
+          if (value) {
+            setSelectedUnitId(value.value)
+          }
+        }}
+        isItemEqualToValue={(a, b) => a.value === b.value}
+        itemToStringLabel={(unit: UnitSelectorOption) => unit.label}
+        itemToStringValue={(unit: UnitSelectorOption) => unit.label}
       >
-        <SelectTrigger className="w-full" aria-label="Selecionar unidade">
-          <SelectValue placeholder="Selecione uma unidade" />
-        </SelectTrigger>
-        <SelectContent position="popper" align="end">
-          {visibleUnits.map((unit) => (
-            <SelectItem key={unit.cod_empresa} value={String(unit.cod_empresa)}>
-              {unit.nom_fantasia}
-            </SelectItem>
-          ))}
-        </SelectContent>
-      </Select>
+        <ComboboxInput
+          aria-label="Selecionar unidade"
+          className="h-9 w-full"
+          placeholder="Selecione uma unidade"
+        >
+          <InputGroupAddon>
+            <Building2Icon aria-hidden="true" />
+          </InputGroupAddon>
+        </ComboboxInput>
+        <ComboboxContent
+          align="end"
+          className="w-(--anchor-width) min-w-(--anchor-width)"
+        >
+          <ComboboxEmpty>Nenhum pátio ativo encontrado.</ComboboxEmpty>
+          <ComboboxList>
+            {(unit: UnitSelectorOption) => (
+              <ComboboxItem key={unit.value} value={unit} className="min-w-0">
+                <span className="min-w-0 truncate whitespace-nowrap">
+                  <span>{unit.unit.cod_empresa}</span>
+                  <span className="font-medium">
+                    {" — "}
+                    {unit.unit.nom_fantasia}
+                  </span>
+                </span>
+              </ComboboxItem>
+            )}
+          </ComboboxList>
+        </ComboboxContent>
+      </Combobox>
     </div>
   )
 }

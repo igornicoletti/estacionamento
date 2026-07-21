@@ -52,6 +52,56 @@ function requireContent(filePath, needle, label) {
   }
 }
 
+function parseDurationMs(value) {
+  const match = /^(\d+)(ms|s|m|h)$/.exec(value.trim())
+
+  if (!match) {
+    return null
+  }
+
+  const amount = Number(match[1])
+  const unit = match[2]
+  const multiplierByUnit = {
+    h: 60 * 60 * 1000,
+    m: 60 * 1000,
+    ms: 1,
+    s: 1000,
+  }
+
+  return amount * multiplierByUnit[unit]
+}
+
+function requireAuthInactivityTimeoutAlignment() {
+  const authContracts = read("src/features/auth/contracts/auth-contracts.ts")
+  const supabaseConfig = read("supabase/config.toml")
+  const frontendMatch = authContracts.match(/timeoutMs:\s*(\d+)\s*\*\s*60\s*\*\s*1000/)
+  const configMatch = supabaseConfig.match(/inactivity_timeout\s*=\s*"([^"]+)"/)
+
+  if (!frontendMatch) {
+    errors.push("AUTH_INACTIVITY.timeoutMs must be declared as minutes * 60 * 1000")
+    return
+  }
+
+  if (!configMatch) {
+    errors.push("Missing auth.sessions.inactivity_timeout in supabase/config.toml")
+    return
+  }
+
+  const frontendMs = Number(frontendMatch[1]) * 60 * 1000
+  const configMs = parseDurationMs(configMatch[1])
+
+  if (configMs === null) {
+    errors.push(`Unsupported auth.sessions.inactivity_timeout duration: ${configMatch[1]}`)
+    return
+  }
+
+  if (frontendMs !== configMs) {
+    errors.push(
+      `AUTH_INACTIVITY.timeoutMs (${frontendMs}ms) must match supabase auth.sessions.inactivity_timeout (${configMs}ms)`
+    )
+  }
+}
+
 function resolveCandidate(base) {
   const candidates = [
     base,
@@ -194,11 +244,7 @@ if (frontendSecretLeaks.length > 0) {
   errors.push(`Potential Supabase secret leakage in frontend files: ${frontendSecretLeaks.join(", ")}`)
 }
 
-requireContent(
-  "src/features/auth/contracts/auth-contracts.ts",
-  "timeoutMs: 15 * 60 * 1000",
-  "15 minute inactivity timeout"
-)
+requireAuthInactivityTimeoutAlignment()
 requireContent(
   "src/features/auth/context/auth-provider.tsx",
   "markAuthInactivitySessionExpired",

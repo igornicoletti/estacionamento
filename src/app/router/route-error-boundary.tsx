@@ -11,9 +11,7 @@ import {
 import type { ReactNode } from "react"
 import * as React from "react"
 import {
-  Link,
   isRouteErrorResponse,
-  useRevalidator,
   useRouteError,
 } from "react-router"
 
@@ -72,7 +70,6 @@ function getRouteErrorStatus(error: unknown) {
 
 export function RouteErrorBoundary() {
   const error = useRouteError()
-  const revalidator = useRevalidator()
   const errorId = React.useMemo(() => createRouteErrorId(), [])
   const { media, title, description } = getRouteErrorContent(error)
 
@@ -104,16 +101,16 @@ export function RouteErrorBoundary() {
               variant="secondary"
               size="lg"
               onClick={() => {
-                void revalidator.revalidate()
+                window.location.reload()
               }}
             >
               <RotateCcwIcon aria-hidden="true" />
               {appCopy.routeError.retry}
             </Button>
             <Button asChild variant="link" size="lg">
-              <Link to={appRoutePaths.home} replace>
+              <a href={appRoutePaths.home}>
                 {appCopy.routeError.action} <ArrowUpRightIcon aria-hidden="true" />
-              </Link>
+              </a>
             </Button>
           </div>
         }

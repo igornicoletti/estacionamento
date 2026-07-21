@@ -28,7 +28,13 @@ import {
 import { DataTable } from "@/components/data-table"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { Badge } from "@/components/ui/badge"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card"
 import {
   ChartContainer,
   ChartLegend,
@@ -55,6 +61,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { cn } from "@/lib/utils"
+import { formatParkingAlertSeverity } from "@/features/operations/model/parking-movement-formatters"
 
 import {
   formatDashboardIndicatorValue,
@@ -116,12 +123,6 @@ const capacityChartConfig = {
   },
 } satisfies ChartConfig
 
-const severityLabels: Record<DashboardAlertRow["severity"], string> = {
-  critical: "Crítico",
-  info: "Info",
-  warning: "Alerta",
-}
-
 function formatCurrency(value: number) {
   return value.toLocaleString("pt-BR", {
     currency: "BRL",
@@ -171,10 +172,7 @@ function DashboardBentoCard({
   className,
 }: React.ComponentProps<typeof Card>) {
   return (
-    <Card
-      size="sm"
-      className={cn("min-w-0 overflow-hidden", className)}
-    >
+    <Card size="sm" className={cn("min-w-0 overflow-hidden", className)}>
       {children}
     </Card>
   )
@@ -186,9 +184,11 @@ function DashboardCapacityCard({
   snapshot: DashboardDataSnapshot
 }) {
   const capacity = getDashboardCapacitySummary(snapshot)
-  const radialData = [{
-    occupancyPercent: capacity.occupancyPercent,
-  }]
+  const radialData = [
+    {
+      occupancyPercent: capacity.occupancyPercent,
+    },
+  ]
 
   return (
     <DashboardBentoCard className="md:col-span-1 xl:col-span-2 xl:row-span-2">
@@ -212,22 +212,14 @@ function DashboardCapacityCard({
             outerRadius="94%"
             startAngle={90}
           >
-            <PolarAngleAxis
-              type="number"
-              domain={[0, 100]}
-              tick={false}
-            />
+            <PolarAngleAxis type="number" domain={[0, 100]} tick={false} />
             <RadialBar
               background
               cornerRadius={12}
               dataKey="occupancyPercent"
               fill="var(--color-occupancyPercent)"
             />
-            <PolarRadiusAxis
-              axisLine={false}
-              tick={false}
-              tickLine={false}
-            >
+            <PolarRadiusAxis axisLine={false} tick={false} tickLine={false}>
               <Label
                 content={({ viewBox }) => {
                   if (!viewBox || !("cx" in viewBox) || !("cy" in viewBox)) {
@@ -267,7 +259,8 @@ function DashboardCapacityCard({
           <div className="flex items-center justify-between gap-3">
             <span className="text-sm text-muted-foreground">Ocupadas</span>
             <span className="font-medium tabular-nums">
-              {formatInteger(capacity.occupied)} de {formatInteger(capacity.capacity)}
+              {formatInteger(capacity.occupied)} de{" "}
+              {formatInteger(capacity.capacity)}
             </span>
           </div>
           <div className="flex items-center justify-between gap-3">
@@ -362,11 +355,7 @@ function DashboardBarChartCard({
               content={<ChartTooltipContent indicator="dot" />}
             />
             {barMode === "revenue" ? (
-              <Bar
-                dataKey="revenue"
-                fill="var(--color-revenue)"
-                radius={5}
-              />
+              <Bar dataKey="revenue" fill="var(--color-revenue)" radius={5} />
             ) : (
               <>
                 <Bar
@@ -445,7 +434,7 @@ function DashboardMovementStatusCard({
         ...item,
         fill: getStatusFill(item.key),
       })),
-    [movements]
+    [movements],
   )
   const total = statusData.reduce((sum, item) => sum + item.value, 0)
 
@@ -518,9 +507,7 @@ function DashboardMovementStatusCard({
                   }}
                 />
               </Pie>
-              <ChartLegend
-                content={<ChartLegendContent nameKey="key" />}
-              />
+              <ChartLegend content={<ChartLegendContent nameKey="key" />} />
             </PieChart>
           </ChartContainer>
         )}
@@ -554,9 +541,7 @@ function DashboardRevenueCard({
         </div>
         <div className="grid gap-3 border-t pt-4">
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground">
-              Ticket médio
-            </span>
+            <span className="text-sm text-muted-foreground">Ticket médio</span>
             <span className="font-medium tabular-nums">
               {formatCurrency(revenue.averageTicket)}
             </span>
@@ -578,9 +563,7 @@ function DashboardRevenueCard({
             </span>
           </div>
           <div className="flex items-center justify-between gap-3">
-            <span className="text-sm text-muted-foreground">
-              Maior receita
-            </span>
+            <span className="text-sm text-muted-foreground">Maior receita</span>
             <span className="font-medium tabular-nums">
               {revenue.peakDayLabel}, {formatCurrency(revenue.peakDayRevenue)}
             </span>
@@ -600,11 +583,11 @@ function DashboardMovementsCard({
 }) {
   const movementColumns = React.useMemo(
     () => createDashboardMovementsColumns({ onOpenDetails }),
-    [onOpenDetails]
+    [onOpenDetails],
   )
   const limitedMovements = React.useMemo(
     () => movements.slice(0, DASHBOARD_MOVEMENTS_LIMIT),
-    [movements]
+    [movements],
   )
 
   return (
@@ -619,13 +602,13 @@ function DashboardMovementsCard({
         <DataTable
           columns={movementColumns}
           data={limitedMovements}
-          emptyState={(
+          emptyState={
             <AppEmptyState
               media={<CarFrontIcon />}
               title="Nenhuma movimentação encontrada"
               description="A unidade não possui registros recentes."
             />
-          )}
+          }
           enableExport={false}
           enablePagination={false}
           enableViewOptions={false}
@@ -646,7 +629,7 @@ function DashboardAlertsCard({
 }) {
   const limitedAlerts = React.useMemo(
     () => alerts.slice(0, DASHBOARD_ALERTS_LIMIT),
-    [alerts]
+    [alerts],
   )
 
   return (
@@ -676,9 +659,13 @@ function DashboardAlertsCard({
                   >
                     <ItemMedia>
                       <Badge
-                        variant={alert.severity === "critical" ? "destructive" : "outline"}
+                        variant={
+                          alert.severity === "critical"
+                            ? "destructive"
+                            : "outline"
+                        }
                       >
-                        {severityLabels[alert.severity]}
+                        {formatParkingAlertSeverity(alert.severity)}
                       </Badge>
                     </ItemMedia>
                     <ItemContent>

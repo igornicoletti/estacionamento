@@ -39,23 +39,23 @@
 
 ## Fontes oficiais consultadas
 
-- Supabase CLI config: https://supabase.com/docs/guides/local-development/cli/config
-- Supabase Edge Functions deploy: https://supabase.com/docs/guides/functions/deploy
-- Supabase Edge Functions secrets: https://supabase.com/docs/guides/functions/secrets
-- Supabase Edge Functions configuration: https://supabase.com/docs/guides/functions/function-configuration
-- Supabase Auth sessions: https://supabase.com/docs/guides/auth/sessions
-- Supabase Auth passkeys: https://supabase.com/docs/guides/auth/passkeys
-- Supabase Scheduling Edge Functions: https://supabase.com/docs/guides/functions/schedule-functions
-- Supabase RLS/securing APIs: https://supabase.com/docs/guides/api/securing-your-api
-- OWASP Authentication Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html
-- OWASP Session Management Cheat Sheet: https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html
-- MDN Web Authentication API: https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API
-- W3C WebAuthn Level 3: https://www.w3.org/TR/webauthn-3/
-- TanStack Table filtering APIs: https://tanstack.com/table/v8/docs/api/features/column-filtering
-- TanStack Table core APIs: https://tanstack.com/table/v8/docs/api/core/table
-- shadcn/ui Button: https://ui.shadcn.com/docs/components/base/button
-- shadcn/ui Combobox: https://ui.shadcn.com/docs/components/radix/combobox
-- MDN `overflow-x`: https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow-x
+- Supabase CLI config: <https://supabase.com/docs/guides/local-development/cli/config>
+- Supabase Edge Functions deploy: <https://supabase.com/docs/guides/functions/deploy>
+- Supabase Edge Functions secrets: <https://supabase.com/docs/guides/functions/secrets>
+- Supabase Edge Functions configuration: <https://supabase.com/docs/guides/functions/function-configuration>
+- Supabase Auth sessions: <https://supabase.com/docs/guides/auth/sessions>
+- Supabase Auth passkeys: <https://supabase.com/docs/guides/auth/passkeys>
+- Supabase Scheduling Edge Functions: <https://supabase.com/docs/guides/functions/schedule-functions>
+- Supabase RLS/securing APIs: <https://supabase.com/docs/guides/api/securing-your-api>
+- OWASP Authentication Cheat Sheet: <https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html>
+- OWASP Session Management Cheat Sheet: <https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html>
+- MDN Web Authentication API: <https://developer.mozilla.org/en-US/docs/Web/API/Web_Authentication_API>
+- W3C WebAuthn Level 3: <https://www.w3.org/TR/webauthn-3/>
+- TanStack Table filtering APIs: <https://tanstack.com/table/v8/docs/api/features/column-filtering>
+- TanStack Table core APIs: <https://tanstack.com/table/v8/docs/api/core/table>
+- shadcn/ui Button: <https://ui.shadcn.com/docs/components/base/button>
+- shadcn/ui Combobox: <https://ui.shadcn.com/docs/components/radix/combobox>
+- MDN `overflow-x`: <https://developer.mozilla.org/en-US/docs/Web/CSS/Reference/Properties/overflow-x>
 
 ## Validacao executada
 

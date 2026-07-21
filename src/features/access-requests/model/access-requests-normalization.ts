@@ -4,8 +4,11 @@ import { formatPhone, isValidPhone, onlyDigits } from "@/lib"
 import { accessRequestsCopy } from "../constants"
 import type { AccessRecoveryRequestRecord } from "./access-requests-types"
 import {
+  formatAccessRecoveryTargetAccount,
+  formatAccessRecoveryVerificationLabel,
   formatAccessRequestReason,
   formatAccessRequestRequester,
+  resolveAccessRecoveryVerificationStatus,
 } from "./access-requests-formatters"
 
 type UnknownRecord = Record<PropertyKey, unknown>
@@ -16,6 +19,10 @@ function isRecord(value: unknown): value is UnknownRecord {
 
 function readString(value: unknown) {
   return typeof value === "string" && value.trim().length > 0 ? value.trim() : null
+}
+
+function readBoolean(value: unknown) {
+  return typeof value === "boolean" ? value : null
 }
 
 function isRecoveryReason(value: unknown): value is RecoveryReason {
@@ -61,20 +68,31 @@ export function normalizeRecoveryRequest(value: unknown): AccessRecoveryRequestR
 
   const description = readString(value.description)
   const email = readString(value.email)
+  const emailMatchesAccount = readBoolean(value.email_matches_account)
+  const phoneMatchesAccount = readBoolean(value.phone_matches_account)
   const reasonLabel = formatAccessRequestReason(reason, description)
+  const targetAccountFound = readBoolean(value.target_account_found)
+  const targetUserName = readString(value.target_user_name)
   const baseRecord = {
     createdAt,
     description,
     email,
+    emailMatchesAccount,
     id,
+    phoneMatchesAccount,
     phoneMasked,
     reason,
     reasonLabel,
+    targetAccountFound,
+    targetUserName,
   }
 
   return {
     ...baseRecord,
     requesterLabel: formatAccessRequestRequester(baseRecord),
+    targetAccountLabel: formatAccessRecoveryTargetAccount(baseRecord),
+    verificationLabel: formatAccessRecoveryVerificationLabel(baseRecord),
+    verificationStatus: resolveAccessRecoveryVerificationStatus(baseRecord),
   }
 }
 
