@@ -47,6 +47,24 @@ const erpUnitPayloadSchema = z.object({
 })
 
 const erpUnitsPayloadSchema = z.array(erpUnitPayloadSchema)
+const supabaseResponseSchema = z.object({
+  data: z.unknown().nullable(),
+  error: z.unknown().nullable(),
+}).passthrough()
+
+function parseSupabaseResponse(value: unknown) {
+  const result = supabaseResponseSchema.safeParse(value)
+
+  if (!result.success) {
+    throw new Error(unitsCopy.errors.unitsLoad, { cause: result.error })
+  }
+
+  if (result.data.error) {
+    throw new Error(unitsCopy.errors.unitsLoad, { cause: result.data.error })
+  }
+
+  return result.data.data
+}
 
 function parseErpRows(value: unknown): readonly ErpUnitPayload[] {
   const result = erpUnitsPayloadSchema.safeParse(value ?? [])
@@ -85,14 +103,11 @@ function createSupabaseUnitsGateway(): UnitsGateway {
         throw new Error(unitsCopy.errors.unitsUnavailable)
       }
 
-      const { data, error } = await supabase
+      const response: unknown = await supabase
         .from("erp_units")
         .select(unitPayloadColumns.join(","))
         .order("cod_empresa", { ascending: true })
-
-      if (error) {
-        throw new Error(unitsCopy.errors.unitsLoad, { cause: error })
-      }
+      const data = parseSupabaseResponse(response)
 
       return parseErpRows(data)
     },

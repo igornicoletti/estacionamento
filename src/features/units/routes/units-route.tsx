@@ -20,6 +20,7 @@ import {
   DEFAULT_UNITS_COLUMN_VISIBILITY,
   UNITS_TABLE_COLUMN_VISIBILITY_KEY,
   unitsCopy,
+  unitsRoutePaths,
 } from "../constants"
 import {
   useUnitSyncHistory,
@@ -101,7 +102,7 @@ export function UnitsRoute() {
 
   const handleSelectUsers = React.useCallback(
     (unit: UnitTableRow) => {
-      void navigate(`/unidades/${unit.cod_empresa}/usuarios`)
+      void navigate(unitsRoutePaths.users(unit.cod_empresa))
     },
     [navigate]
   )
@@ -171,7 +172,7 @@ export function UnitsRoute() {
 
     try {
       await executeSyncWithRefresh({
-        triggerSync: () => triggerUnitsSync("incremental"),
+        triggerSync: triggerUnitsSync,
         refreshSnapshots: refreshOperationalSnapshots,
         isInProgressError: isUnitSyncInProgressError,
         onSuccess: () => {

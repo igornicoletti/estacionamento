@@ -1,8 +1,8 @@
 import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
 
 import { UNITS_CACHE_KEY, unitsCopy } from "../constants"
-import { listUnits } from "../services"
 import { type Unit } from "../model"
+import { listUnits } from "../services"
 
 export function useUnits() {
   return useAsyncSnapshot<Unit[]>({

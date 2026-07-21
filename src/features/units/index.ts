@@ -1,18 +1,36 @@
 export { UnitsSyncHistoryDialog, UnitYardConfigDialog } from "./components"
 export {
-  DEFAULT_UNITS_COLUMN_VISIBILITY, UNIT_SYNC_HISTORY_CACHE_KEY,
+  DEFAULT_UNITS_COLUMN_VISIBILITY,
+  UNIT_SYNC_DEFAULT_MODE,
+  UNIT_SYNC_FAILED_STATUS,
+  UNIT_SYNC_FETCH_ERROR_MESSAGE,
+  UNIT_SYNC_FUNCTION_NAME,
+  UNIT_SYNC_HISTORY_CACHE_KEY,
+  UNIT_SYNC_HISTORY_MOCK_STORAGE_SUFFIX,
   UNIT_SYNC_HISTORY_LIMIT,
+  UNIT_SYNC_IN_PROGRESS_ERROR_CODE,
+  UNIT_SYNC_MANUAL_TRIGGER,
+  UNIT_SYNC_MOCK_RUN_ID_PREFIX,
+  UNIT_SYNC_RUN_MODES,
+  UNIT_SYNC_STATUSES,
+  UNIT_SYNC_SUCCESS_STATUS,
+  UNIT_SYNC_TRIGGERS,
+  UNIT_SUCCESS_BADGE_TONE,
   UNIT_USERS_TABLE_COLUMN_VISIBILITY_KEY,
   UNIT_YARD_CONFIGS_CACHE_KEY,
-  UNIT_YARD_MOCK_STORAGE_KEY, UNITS_CACHE_KEY,
-  UNITS_TABLE_COLUMN_VISIBILITY_KEY, unitsCopy
+  UNIT_YARD_MOCK_STORAGE_KEY,
+  UNITS_CACHE_KEY,
+  UNITS_TABLE_COLUMN_VISIBILITY_KEY,
+  unitsCopy,
+  unitsRoutePaths,
 } from "./constants"
 export {
-  useUnits,
-  useUnitsTableFilters, useUnitSyncHistory,
+  useUnitSyncHistory,
   useUnitUsers,
   useUnitUsersTableFilters,
-  useUnitYardConfigs
+  useUnitYardConfigs,
+  useUnits,
+  useUnitsTableFilters,
 } from "./hooks"
 export {
   buildUnitUserStats,
@@ -47,12 +65,30 @@ export {
   type UnitYardConfig,
   type UnitYardConfigFormValues,
   type UpsertUnitYardConfigInput,
-  type YardStatusFormValue
+  type YardStatusFormValue,
 } from "./model"
-export { UnitsRoute, UnitUsersRoute } from "./routes"
+export { UnitUsersRoute, UnitsRoute } from "./routes"
 export {
-  configureUnitsGateway, configureUnitYardGateway, getUnitsGateway, getUnitYardConfig,
-  getUnitYardGateway, isUnitSyncInProgressError, listUnits, listUnitSyncHistory, listUnitYardConfigs, resetUnitsGateway, resetUnitYardGateway, triggerUnitsSync,
-  upsertUnitYardConfig, type UnitsGateway, type UnitYardGateway
+  configureUnitSyncHistoryGateway,
+  configureUnitYardGateway,
+  configureUnitsGateway,
+  getUnitSyncHistoryGateway,
+  getUnitYardConfig,
+  getUnitYardGateway,
+  getUnitsGateway,
+  isUnitSyncInProgressError,
+  listUnitSyncHistory,
+  listUnitYardConfigs,
+  listUnits,
+  recordMockUnitSyncHistoryRun,
+  resetUnitSyncHistoryGateway,
+  resetUnitYardGateway,
+  resetUnitsGateway,
+  triggerUnitsSync,
+  upsertUnitYardConfig,
+  type RecordMockUnitSyncHistoryRunInput,
+  type UnitSyncHistoryGateway,
+  type UnitYardGateway,
+  type UnitsGateway,
 } from "./services"
-export { createUnitsColumns, createUnitUsersColumns } from "./table"
+export { createUnitUsersColumns, createUnitsColumns, type UnitTableRow } from "./table"

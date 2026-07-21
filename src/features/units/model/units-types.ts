@@ -1,3 +1,9 @@
+import {
+  type UNIT_SYNC_RUN_MODES,
+  type UNIT_SYNC_STATUSES,
+  type UNIT_SYNC_TRIGGERS,
+} from "../constants"
+
 export interface ErpUnitPayload {
   cod_empresa: unknown
   nom_razao_social: unknown
@@ -57,9 +63,9 @@ export interface UnitSyncCounters {
   [key: string]: number
 }
 
-export type UnitSyncRunMode = "full" | "incremental"
-export type UnitSyncTrigger = "automatic" | "manual"
-export type UnitSyncRunStatus = "success" | "warning" | "failed"
+export type UnitSyncRunMode = (typeof UNIT_SYNC_RUN_MODES)[number]
+export type UnitSyncTrigger = (typeof UNIT_SYNC_TRIGGERS)[number]
+export type UnitSyncRunStatus = (typeof UNIT_SYNC_STATUSES)[number]
 
 export interface UnitSyncHistoryEntry {
   id: string

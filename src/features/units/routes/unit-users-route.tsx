@@ -9,7 +9,7 @@ import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { Button } from "@/components/ui/button"
 import { type UserRecord } from "@/features/users"
 
-import { UNIT_USERS_TABLE_COLUMN_VISIBILITY_KEY, unitsCopy } from "../constants"
+import { UNIT_USERS_TABLE_COLUMN_VISIBILITY_KEY, unitsCopy, unitsRoutePaths } from "../constants"
 import {
   useUnitUsers,
   useUnitUsersTableFilters,
@@ -26,25 +26,34 @@ export function UnitUsersRoute() {
   const params = useParams<{ cod_empresa: string }>()
   const parsedUnitId = React.useMemo(() => parseUnitRouteId(params.cod_empresa), [params.cod_empresa])
   const unitId = parsedUnitId ? String(parsedUnitId) : ""
-  const { data: units, isLoading: isLoadingUnits } = useUnits()
   const {
-    data: users,
-    error,
-    isLoading: isLoadingUsers,
-    refetch,
-  } = useUnitUsers(unitId, { enabled: Boolean(unitId) })
-  const [selectedUser, setSelectedUser] = React.useState<UserRecord | null>(null)
-  const filterFields = useUnitUsersTableFilters(users)
+    data: units,
+    error: unitsError,
+    isLoading: isLoadingUnits,
+    refetch: refetchUnits,
+  } = useUnits()
   const unit = React.useMemo(
     () => units.find((item) => String(item.cod_empresa) === unitId) ?? null,
     [unitId, units]
   )
+  const shouldLoadUsers = Boolean(unit)
+  const {
+    data: users,
+    error: usersError,
+    isLoading: isLoadingUsers,
+    refetch: refetchUsers,
+  } = useUnitUsers(unitId, { enabled: shouldLoadUsers })
+  const [selectedUser, setSelectedUser] = React.useState<UserRecord | null>(null)
+  const filterFields = useUnitUsersTableFilters(users)
   const columns = React.useMemo(() => createUnitUsersColumns({ onOpenDetails: setSelectedUser }), [])
   const isResolvingUnit = Boolean(unitId) && isLoadingUnits && !unit
+  const isUnitUnavailable = !isResolvingUnit && !unit
   const pageTitle = unit?.nom_fantasia
     ?? (isResolvingUnit ? unitsCopy.pages.units.title : unitsCopy.pages.unitUsers.fallbackTitle)
   const pageSubtitle = unit?.nom_razao_social
     ?? (isResolvingUnit ? unitsCopy.pages.units.subtitle : unitsCopy.pages.unitUsers.fallbackDescription)
+  const tableError = unitsError ?? usersError
+  const tableUsers = unit ? users : []
 
   return (
     <PageSection>
@@ -58,7 +67,7 @@ export function UnitUsersRoute() {
               variant="secondary"
               size="lg"
               onClick={() => {
-                void navigate("/unidades")
+                void navigate(unitsRoutePaths.list)
               }}
             >
               <ArrowLeftIcon aria-hidden="true" />
@@ -70,7 +79,7 @@ export function UnitUsersRoute() {
 
       <DataTable
         columns={columns}
-        data={users}
+        data={tableUsers}
         columnVisibilityStorageKey={UNIT_USERS_TABLE_COLUMN_VISIBILITY_KEY}
         getRowId={(user: UserRecord) => user.id}
         globalSearch={{
@@ -81,8 +90,12 @@ export function UnitUsersRoute() {
         emptyState={(
           <AppEmptyState
             media={<UsersIcon />}
-            title={unitsCopy.empty.unitUsersTitle}
-            description={unitsCopy.empty.unitUsersDescription}
+            title={isUnitUnavailable ? unitsCopy.pages.unitUsers.fallbackTitle : unitsCopy.empty.unitUsersTitle}
+            description={
+              isUnitUnavailable
+                ? unitsCopy.pages.unitUsers.fallbackDescription
+                : unitsCopy.empty.unitUsersDescription
+            }
           />
         )}
         filteredEmptyState={(
@@ -92,10 +105,10 @@ export function UnitUsersRoute() {
             description={unitsCopy.filteredEmpty.unitUsersDescription}
           />
         )}
-        isLoading={isLoadingUnits || isLoadingUsers}
-        error={error}
+        isLoading={isLoadingUnits || (shouldLoadUsers && isLoadingUsers)}
+        error={tableError}
         onRetry={() => {
-          void refetch()
+          void Promise.allSettled([refetchUnits(), refetchUsers()])
         }}
         enablePagination
         enableViewOptions

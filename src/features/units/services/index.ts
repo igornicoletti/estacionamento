@@ -3,27 +3,29 @@ export {
   getUnitSyncHistoryGateway,
   listUnitSyncHistory,
   recordMockUnitSyncHistoryRun,
-  resetUnitSyncHistoryGateway
+  resetUnitSyncHistoryGateway,
+  type RecordMockUnitSyncHistoryRunInput,
+  type UnitSyncHistoryGateway,
 } from "./unit-sync-history-service"
 export {
   isUnitSyncInProgressError,
-  triggerUnitsSync
+  triggerUnitsSync,
 } from "./unit-sync-service"
 export {
   configureUnitYardGateway,
   getUnitYardGateway,
   resetUnitYardGateway,
-  type UnitYardGateway
+  type UnitYardGateway,
 } from "./unit-yard-gateway"
 export {
   getUnitYardConfig,
   listUnitYardConfigs,
-  upsertUnitYardConfig
+  upsertUnitYardConfig,
 } from "./unit-yard-service"
 export {
   configureUnitsGateway,
   getUnitsGateway,
   resetUnitsGateway,
-  type UnitsGateway
+  type UnitsGateway,
 } from "./units-gateway"
 export { listUnits } from "./units-service"

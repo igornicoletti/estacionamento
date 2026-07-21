@@ -18,7 +18,7 @@ export function SidebarBrand({ homeHref }: SidebarBrandProps) {
   return (
     <SidebarMenu>
       <SidebarMenuItem>
-        <SidebarMenuButton asChild size="lg" tooltip={sidebarCopy.brand.name} className="group hover:bg-transparent">
+        <SidebarMenuButton asChild size="lg" tooltip={sidebarCopy.brand.name} className="group hover:bg-transparent active:bg-transparent">
           <Link to={homeHref} aria-label={sidebarCopy.brand.name}>
             <img
               src={sidebarBrand.sidebarLogoUrl}

@@ -11,7 +11,7 @@ import {
 } from "@/features/users"
 import { getBadgeToneClassName } from "@/lib"
 
-import { unitsCopy } from "../constants"
+import { UNIT_SUCCESS_BADGE_TONE, unitsCopy } from "../constants"
 
 interface CreateUnitUsersColumnsOptions {
   onOpenDetails: (user: UserRecord) => void
@@ -91,7 +91,7 @@ export function createUnitUsersColumns(
 
         return (
           <div className="flex justify-center">
-            <Badge variant="secondary" className={getBadgeToneClassName(isActive ? "success" : undefined)}>
+            <Badge variant="secondary" className={getBadgeToneClassName(isActive ? UNIT_SUCCESS_BADGE_TONE : undefined)}>
               {appUserStatusLabels[row.original.status]}
             </Badge>
           </div>
@@ -110,7 +110,7 @@ export function createUnitUsersColumns(
 
         return (
           <div className="flex justify-center">
-            <Badge variant="secondary" className={getBadgeToneClassName(isActive ? "success" : undefined)}>
+            <Badge variant="secondary" className={getBadgeToneClassName(isActive ? UNIT_SUCCESS_BADGE_TONE : undefined)}>
               {resolvePasskeyLabel(row.original.passkeyStatus)}
             </Badge>
           </div>

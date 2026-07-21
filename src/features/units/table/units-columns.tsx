@@ -9,7 +9,7 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
-import { unitsCopy } from "../constants"
+import { UNIT_SUCCESS_BADGE_TONE, unitsCopy } from "../constants"
 import {
   createUnitMapHref,
   formatUnitCityState,
@@ -162,7 +162,7 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
         <div className="flex justify-center">
           <Badge
             variant="secondary"
-            className={getBadgeToneClassName(row.original.yardConfig.patioActive ? "success" : undefined)}
+            className={getBadgeToneClassName(row.original.yardConfig.patioActive ? UNIT_SUCCESS_BADGE_TONE : undefined)}
           >
             {resolveYardStatusLabel(row.original.yardConfig.patioActive)}
           </Badge>

@@ -10,6 +10,9 @@ type UserWithUnitRole = {
   unitId: string | null
 }
 
+const positiveIntegerRouteParamPattern = /^\d+$/
+const epochIsoDate = new Date(0).toISOString()
+
 export function formatUnitCityState(unit: Unit) {
   return [unit.nom_cidade, unit.sgl_estado].filter(Boolean).join("/") || unitsCopy.details.emptyValue
 }
@@ -29,8 +32,15 @@ export function createUnitMapHref(coordinates: string) {
 }
 
 export function parseUnitRouteId(value: string | undefined) {
-  const unitId = Number(value)
-  return Number.isFinite(unitId) && unitId > 0 ? Math.trunc(unitId) : null
+  const normalizedValue = value?.trim() ?? ""
+
+  if (!positiveIntegerRouteParamPattern.test(normalizedValue)) {
+    return null
+  }
+
+  const unitId = Number(normalizedValue)
+
+  return Number.isSafeInteger(unitId) && unitId > 0 ? unitId : null
 }
 
 export function resolveYardStatusLabel(value: boolean) {
@@ -38,9 +48,10 @@ export function resolveYardStatusLabel(value: boolean) {
 }
 
 export function parseYardSpotsInput(value: string) {
-  const parsed = Number(value)
+  const normalizedValue = value.trim()
+  const parsed = Number(normalizedValue)
 
-  if (!Number.isFinite(parsed) || parsed < 0) {
+  if (!normalizedValue || !Number.isSafeInteger(parsed) || parsed < 0) {
     return {
       isValid: false as const,
       error: unitsCopy.yard.validationInvalidSpots,
@@ -58,7 +69,7 @@ export function resolveDefaultUnitYardConfig(unitId: string): UnitYardConfig {
     unitId,
     patioActive: false,
     parkingSpots: 0,
-    updatedAt: new Date(0).toISOString(),
+    updatedAt: epochIsoDate,
   }
 }
 
@@ -96,8 +107,6 @@ export function buildUnitUserStats(users: readonly UserWithUnitRole[]) {
 
   return stats
 }
-
-export const buildActiveUnitUserStats = buildUnitUserStats
 
 export function resolveUnitUsersSnapshot<TUser extends { unitId: string | null }>(
   users: readonly TUser[],

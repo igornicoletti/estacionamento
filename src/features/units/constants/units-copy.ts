@@ -42,7 +42,8 @@ export const unitsCopy = {
       success: "Sincronização concluída.",
       error: "Não foi possível sincronizar as unidades.",
       inProgress: "Já existe uma sincronização de unidades em andamento.",
-      connectionError: "Não foi possível conectar ao serviço de sincronização. Verifique sua conexão e tente novamente.",
+      connectionError:
+        "Não foi possível conectar ao serviço de sincronização. Verifique sua conexão e tente novamente.",
     },
   },
   filters: {
