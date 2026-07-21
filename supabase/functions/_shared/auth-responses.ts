@@ -59,3 +59,20 @@ export function authError(
     req
   )
 }
+
+export function authErrorFromCaught(
+  error: unknown,
+  req: Request,
+  logCode = "edge_function_request_failed"
+) {
+  if (error instanceof Error && error.message === "Unauthorized") {
+    return authError("unauthorized", 401, req)
+  }
+
+  if (error instanceof Error && error.message === "Forbidden") {
+    return authError("forbidden", 403, req)
+  }
+
+  console.error(logCode, error)
+  return authError("request_failed", 400, req)
+}

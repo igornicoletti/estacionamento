@@ -54,7 +54,7 @@ describe("users service", () => {
     const createdUser = await createUser({
       cpf: "12345678909",
       email: "novo.usuario@rmc.local",
-      firstAccessPassword: "Senha@123",
+      firstAccessPassword: "SenhaForte123!",
       name: "Novo Operador",
       phone: "11987654321",
       role: "operator",
@@ -71,5 +71,19 @@ describe("users service", () => {
     expect(persistedUser).toBeDefined()
     expect(persistedUser?.unitId).toBe("2")
     expect(persistedUser?.unitName).toBe("Monte Carlo Norte")
+  })
+
+  it("blocks weak first-access passwords before calling the backend", async () => {
+    await expect(
+      createUser({
+        cpf: "12345678909",
+        email: "novo.usuario@rmc.local",
+        firstAccessPassword: "Senha@123",
+        name: "Novo Operador",
+        phone: "11987654321",
+        role: "operator",
+        unitId: "2",
+      })
+    ).rejects.toThrow("A nova senha deve ter pelo menos 12 caracteres.")
   })
 })

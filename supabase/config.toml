@@ -391,7 +391,31 @@ verify_jwt = false
 [functions.auth-recovery-request]
 verify_jwt = false
 
+[functions.admin-recovery-review]
+verify_jwt = true
+
 [functions.admin-user-auth-factors]
+verify_jwt = true
+
+[functions.admin-user-block]
+verify_jwt = true
+
+[functions.admin-user-clear-lock]
+verify_jwt = true
+
+[functions.admin-user-create]
+verify_jwt = true
+
+[functions.admin-user-reset-passkey]
+verify_jwt = true
+
+[functions.admin-user-reset-password]
+verify_jwt = true
+
+[functions.admin-user-revoke-sessions]
+verify_jwt = true
+
+[functions.admin-user-update]
 verify_jwt = true
 
 [functions.auth-register-passkey]
@@ -401,6 +425,9 @@ verify_jwt = true
 verify_jwt = false
 
 [functions.auth-complete-passkey]
+verify_jwt = true
+
+[functions.list-permission-matrix]
 verify_jwt = true
 
 [functions.profile-change-password]

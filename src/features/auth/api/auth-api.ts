@@ -1,4 +1,8 @@
-import { getSupabaseBrowserClient, resolveVisibleSensitiveValue } from "@/lib"
+import {
+  getSupabaseBrowserClient,
+  getValidatedSupabaseAccessToken,
+  resolveVisibleSensitiveValue,
+} from "@/lib"
 
 import {
   AUTH_FUNCTIONS,
@@ -369,7 +373,20 @@ export async function signInWithPasskey() {
     throw new AuthApiError(authCopy.errors.passkeyLoginFailed)
   }
 
-  void supabase.functions.invoke(AUTH_FUNCTIONS.passkeyLogin, { body: {} })
+  const accessToken =
+    response.data.session?.access_token ??
+    await getValidatedSupabaseAccessToken(supabase)
+
+  if (!accessToken) {
+    return
+  }
+
+  await supabase.functions.invoke(AUTH_FUNCTIONS.passkeyLogin, {
+    body: {},
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
 }
 
 export async function registerAuthenticatedPasskey() {

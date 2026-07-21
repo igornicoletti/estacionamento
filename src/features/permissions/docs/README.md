@@ -16,6 +16,6 @@ Feature responsável por exibir a matriz efetiva de permissões por perfil.
 
 - A raiz da feature mantém somente `index.ts`.
 - A rota não contém regras de parsing nem montagem de matriz.
-- O service tenta a RPC `list-permission-matrix` e, se ela falhar, faz fallback direto para `app_permissions` e `app_role_permissions`.
+- O service só chama `list-permission-matrix` quando existe JWT de sessão validado; sem sessão validada, usa fallback direto para `app_permissions` e `app_role_permissions` para evitar chamadas protegidas que retornam 401 no browser.
 - Dados desconhecidos entram como `unknown` e são normalizados antes de chegar à UI.
 - Não há schema Zod local porque esta feature não possui formulário nem payload de escrita pelo frontend.

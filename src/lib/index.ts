@@ -18,5 +18,6 @@ export {
 } from "./phone"
 export { withTimeout } from "./promise"
 export { resolveVisibleSensitiveValue } from "./sensitive-display"
+export { getValidatedSupabaseAccessToken } from "./supabase-auth-session"
 export { getSupabaseBrowserClient } from "./supabase-browser"
 export { cn } from "./utils"

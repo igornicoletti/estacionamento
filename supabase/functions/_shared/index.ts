@@ -21,6 +21,7 @@ export {
 export { clearRateLimitByKeyHash, registerRateLimitAttempt } from "./auth-rate-limit.ts"
 export {
   authError,
+  authErrorFromCaught,
   genericAuthError,
   genericAuthMessage,
   jsonResponse,

@@ -1,5 +1,6 @@
 import {
   adminCreateUserSchema,
+  authErrorFromCaught,
   formatCpf,
   formatPhone,
   genericAuthError,
@@ -143,7 +144,7 @@ Deno.serve(async (request) => {
     }).catch((e) => console.error("[audit-fail]", e))
 
     return jsonResponse({ ok: true, id: appUserId, appUserId, authUserId, message: "Usuário criado." }, 200, request)
-  } catch {
-    return genericAuthError(400, request)
+  } catch (error) {
+    return authErrorFromCaught(error, request, "admin_user_create_failed")
   }
 })

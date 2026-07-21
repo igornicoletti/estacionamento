@@ -31,6 +31,8 @@ export async function readResponseErrorMessage(error: unknown) {
     } catch {
       return null
     }
+
+    return null
   }
 
   return error instanceof Error && error.message.trim() ? error.message : null

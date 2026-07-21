@@ -95,37 +95,37 @@ export const usersCopy = {
   },
   feedback: {
     create: {
-      loading: "Cadastrando usuário...",
+      loading: "Cadastrando...",
       success: "Usuário cadastrado.",
       error: "Não foi possível salvar o usuário.",
     },
     update: {
-      loading: "Atualizando usuário...",
+      loading: "Atualizando...",
       success: "Usuário atualizado.",
       error: "Não foi possível salvar o usuário.",
     },
     block: {
-      loading: "Bloqueando usuário...",
+      loading: "Bloqueando...",
       success: "Usuário bloqueado.",
       error: "Não foi possível bloquear o usuário.",
     },
     reset: {
-      loading: "Redefinindo autenticação...",
+      loading: "Redefinindo...",
       success: "Autenticação redefinida.",
       error: "Não foi possível redefinir a autenticação.",
     },
     resetPasskey: {
-      loading: "Resetando passkey...",
+      loading: "Resetando...",
       success: "Passkey resetada. O usuário deverá cadastrar uma nova.",
       error: "Não foi possível resetar a passkey.",
     },
     clearLock: {
-      loading: "Removendo bloqueio...",
+      loading: "Removendo...",
       success: "Bloqueio removido.",
       error: "Não foi possível remover o bloqueio.",
     },
     revokeSessions: {
-      loading: "Revogando sessões...",
+      loading: "Revogando...",
       success: "Sessões revogadas.",
       error: "Não foi possível revogar as sessões.",
     },

@@ -70,12 +70,12 @@ export const myProfileCopy = {
   },
   feedback: {
     profile: {
-      loading: "Salvando perfil...",
+      loading: "Salvando...",
       success: "Perfil atualizado.",
       error: "Não foi possível atualizar o perfil.",
     },
     changePassword: {
-      loading: "Alterando senha...",
+      loading: "Alterando...",
       success: "Senha alterada. Faça login novamente com a nova senha.",
       error: "Não foi possível alterar a senha. Verifique a senha atual.",
     },

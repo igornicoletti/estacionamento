@@ -63,7 +63,7 @@ export const authCopy = {
     action: "Entendi",
   },
   passkeyRegistration: {
-    loading: "Aguardando validação da passkey...",
+    loading: "Aguardando...",
     success: "Passkey cadastrada. Acesso liberado.",
   },
   recovery: {

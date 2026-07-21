@@ -63,12 +63,12 @@ export const accessRequestsCopy = {
     recovery: {
       approved: {
         error: "Não foi possível aprovar a solicitação.",
-        loading: "Aprovando solicitação de recuperação...",
+        loading: "Aprovando...",
         success: "Solicitação aprovada. O usuário deverá trocar a senha no próximo acesso.",
       },
       denied: {
         error: "Não foi possível negar a solicitação.",
-        loading: "Negando solicitação de recuperação...",
+        loading: "Negando...",
         success: "Solicitação negada. O acesso permanece bloqueado.",
       },
     },

@@ -6,27 +6,49 @@ const defaultAllowedHeaders = [
   "x-sync-secret",
 ].join(", ")
 
+function normalizeOrigin(value: string) {
+  try {
+    const url = new URL(value)
+
+    if (url.pathname !== "/" || url.search || url.hash) {
+      return null
+    }
+
+    return url.origin
+  } catch {
+    return null
+  }
+}
+
 function parseAllowedOrigins() {
-  return (Deno.env.get("APP_ALLOWED_ORIGINS") ?? "")
+  return new Set((Deno.env.get("APP_ALLOWED_ORIGINS") ?? "")
     .split(",")
     .map((origin) => origin.trim())
+    .map(normalizeOrigin)
     .filter(Boolean)
+  )
 }
 
 function resolveAllowedOrigin(req: Request) {
-  const origin = req.headers.get("Origin") ?? req.headers.get("origin") ?? ""
+  const rawOrigin = req.headers.get("Origin") ?? req.headers.get("origin") ?? ""
+  const origin = rawOrigin ? normalizeOrigin(rawOrigin) : null
   const allowedOrigins = parseAllowedOrigins()
 
-  if (!origin) {
+  if (!rawOrigin) {
     return { allowed: true, origin: null }
   }
 
-  if (allowedOrigins.length === 0) {
+  if (!origin) {
+    console.error("cors_origin_invalid", { origin: rawOrigin })
+    return { allowed: false, origin: null }
+  }
+
+  if (allowedOrigins.size === 0) {
     console.error("cors_allowed_origins_missing")
     return { allowed: false, origin: null }
   }
 
-  if (!allowedOrigins.includes(origin)) {
+  if (!allowedOrigins.has(origin)) {
     console.error("cors_origin_forbidden", { origin })
     return { allowed: false, origin: null }
   }
@@ -39,6 +61,7 @@ export function getCorsHeaders(req: Request) {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": defaultAllowedHeaders,
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    "Access-Control-Max-Age": "86400",
     "Vary": "Origin",
   }
 

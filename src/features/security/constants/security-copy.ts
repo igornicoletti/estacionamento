@@ -71,7 +71,7 @@ export const securityCopy = {
     title: "Eventos recentes de segurança",
     description: "Notificações de segurança entregues ao seu usuário.",
     viewAll: "Ver todas",
-    loading: "Carregando eventos de segurança...",
+    loading: "Carregando...",
     emptyTitle: "Sem eventos recentes",
     emptyDescription: "Quando houver uma atualização de segurança, ela aparecerá aqui.",
     error: "Não foi possível carregar os eventos recentes.",
@@ -107,12 +107,12 @@ export const securityCopy = {
   },
   feedback: {
     passkey: {
-      loading: "Aguardando validação da passkey...",
+      loading: "Aguardando...",
       success: "Passkey ativada.",
       error: "Não foi possível ativar a passkey.",
     },
     password: {
-      loading: "Alterando senha...",
+      loading: "Alterando...",
       success: "Senha alterada. Faça login novamente com a nova senha.",
       error: "Não foi possível alterar a senha. Verifique a senha atual.",
     },

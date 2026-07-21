@@ -1,5 +1,6 @@
 import {
   adminUpdateUserSchema,
+  authErrorFromCaught,
   formatCpf,
   formatPhone,
   genericAuthError,
@@ -123,7 +124,7 @@ Deno.serve(async (request) => {
     }).catch((e) => console.error("[audit-fail]", e))
 
     return jsonResponse({ ok: true, id: targetUser.id, appUserId: targetUser.id, authUserId: input.targetUserId, message: "Usuário atualizado." }, 200, request)
-  } catch {
-    return genericAuthError(400, request)
+  } catch (error) {
+    return authErrorFromCaught(error, request, "admin_user_update_failed")
   }
 })

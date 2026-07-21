@@ -1,4 +1,7 @@
-import { getSupabaseBrowserClient } from "@/lib"
+import {
+  getSupabaseBrowserClient,
+  getValidatedSupabaseAccessToken,
+} from "@/lib"
 
 import { permissionsCopy } from "../constants"
 import {
@@ -59,9 +62,18 @@ export async function listPermissionMatrix(): Promise<PermissionMatrixRow[]> {
     throw new Error(permissionsCopy.error.unavailable)
   }
 
+  const accessToken = await getValidatedSupabaseAccessToken(supabase)
+
+  if (!accessToken) {
+    return listPermissionMatrixDirect(supabase)
+  }
+
   try {
     const matrixResponse = await supabase.functions.invoke("list-permission-matrix", {
       body: {},
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
     })
 
     if (matrixResponse.error) {

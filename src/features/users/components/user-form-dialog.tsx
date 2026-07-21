@@ -102,6 +102,7 @@ export function UserFormDialog({
     editingUser ? mapUserToFormValues(editingUser) : createDefaultFormValues()
   )
   const [errors, setErrors] = React.useState<Partial<Record<UsersFormFieldName, string>>>({})
+  const [submitError, setSubmitError] = React.useState<string | null>(null)
   const isSubmittingRef = React.useRef(false)
   const isEditMode = editingUser !== null
   const isGlobalScopeRole = isGlobalRole(values.role)
@@ -112,6 +113,7 @@ export function UserFormDialog({
   function setValue<Key extends keyof UsersFormValues>(key: Key, value: UsersFormValues[Key]) {
     setValues((current) => ({ ...current, [key]: value }))
     setErrors((current) => ({ ...current, [key]: undefined }))
+    setSubmitError(null)
   }
 
   function handleOpenChange(nextOpen: boolean) {
@@ -124,6 +126,7 @@ export function UserFormDialog({
     if (!nextOpen) {
       setValues(createDefaultFormValues())
       setErrors({})
+      setSubmitError(null)
     }
   }
 
@@ -133,6 +136,8 @@ export function UserFormDialog({
     if (isSaving || isSubmittingRef.current) {
       return
     }
+
+    setSubmitError(null)
 
     const result = usersFormSchema.safeParse(values)
 
@@ -148,6 +153,10 @@ export function UserFormDialog({
       onOpenChange(false)
       setValues(createDefaultFormValues())
       setErrors({})
+    } catch {
+      setSubmitError(
+        isEditMode ? usersCopy.feedback.update.error : usersCopy.feedback.create.error
+      )
     } finally {
       isSubmittingRef.current = false
     }
@@ -345,6 +354,12 @@ export function UserFormDialog({
             description={usersCopy.form.passwordDescription}
             required={!isEditMode}
           />
+
+          {submitError ? (
+            <p role="alert" className="text-sm text-destructive">
+              {submitError}
+            </p>
+          ) : null}
         </FieldGroup>
       </form>
     </AppDialog>

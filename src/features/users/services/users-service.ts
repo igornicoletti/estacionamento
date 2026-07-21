@@ -1,12 +1,14 @@
 import { shouldBypassAuthInDev } from "@/config"
-import { authCpfSchema } from "@/features/auth/validation"
+import { authCpfSchema, newPasswordSchema } from "@/features/auth/validation"
 import { listUnits } from "@/features/units"
 import {
   formatCpf,
   formatPhone,
   getSupabaseBrowserClient,
+  getValidatedSupabaseAccessToken,
   isValidPhone,
   onlyDigits,
+  readResponseErrorMessage,
 } from "@/lib"
 
 import { usersCopy } from "../constants"
@@ -76,6 +78,10 @@ type AdminUserCreateResponse = AdminFunctionResponse & {
   appUserId?: string
 }
 
+type AdminFunctionInvokeOptions = {
+  body?: Record<string, unknown>
+}
+
 function isRecord(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === "object" && !Array.isArray(value)
 }
@@ -90,12 +96,12 @@ function getResponseMessage(value: unknown) {
   return typeof message === "string" && message.trim() ? message : null
 }
 
-function assertAdminFunctionResponse(
+async function assertAdminFunctionResponse(
   response: { data: unknown; error: unknown },
   fallbackMessage: string
-): AdminFunctionResponse {
+): Promise<AdminFunctionResponse> {
   if (response.error) {
-    throw new Error(getResponseMessage(response.error) ?? fallbackMessage)
+    throw new Error((await readResponseErrorMessage(response.error)) ?? fallbackMessage)
   }
 
   if (!isRecord(response.data)) {
@@ -140,6 +146,30 @@ function assertActionUserId(userId: string) {
   if (!userId.trim()) {
     throw new Error(usersCopy.errors.userNotFound)
   }
+}
+
+async function getCurrentSessionAccessToken(supabase: SupabaseClient) {
+  return getValidatedSupabaseAccessToken(supabase)
+}
+
+async function invokeAdminFunction<ResponseBody>(
+  supabase: SupabaseClient,
+  functionName: string,
+  fallbackMessage: string,
+  options: AdminFunctionInvokeOptions = {}
+) {
+  const accessToken = await getCurrentSessionAccessToken(supabase)
+
+  if (!accessToken) {
+    throw new Error(fallbackMessage)
+  }
+
+  return supabase.functions.invoke<ResponseBody>(functionName, {
+    ...options,
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
+  })
 }
 
 async function listUnitsCatalog(): Promise<UnitCatalogItem[]> {
@@ -236,6 +266,18 @@ function assertValidUserInput(
   if (options.requireFirstAccessPassword && !input.firstAccessPassword?.trim()) {
     throw new Error(usersCopy.errors.requiredFirstAccessPassword)
   }
+
+  const firstAccessPassword = input.firstAccessPassword?.trim()
+
+  if (firstAccessPassword) {
+    const passwordResult = newPasswordSchema.safeParse(firstAccessPassword)
+
+    if (!passwordResult.success) {
+      throw new Error(
+        passwordResult.error.issues[0]?.message ?? usersCopy.errors.invalidPassword
+      )
+    }
+  }
 }
 
 async function listLastAccessByAuthUserId() {
@@ -272,8 +314,19 @@ async function listAuthFactorsByAuthUserId() {
     return new Map<string, RawAuthFactorRow>()
   }
 
+  const accessToken = await getCurrentSessionAccessToken(supabase)
+
+  if (!accessToken) {
+    return new Map<string, RawAuthFactorRow>()
+  }
+
   const response = await supabase.functions.invoke<{ factors?: RawAuthFactorRow[] }>(
-    "admin-user-auth-factors"
+    "admin-user-auth-factors",
+    {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
   ) as {
     data: { factors?: RawAuthFactorRow[] } | null
     error: unknown
@@ -370,8 +423,10 @@ async function createUserInSupabase(input: CreateUserInput): Promise<UserRecord>
   const normalizedUnitScope = normalizeUnitScope(input, unitsCatalog)
   const normalizedEmail = input.email?.trim() || ""
   const normalizedPhoneDigits = onlyDigits(input.phone ?? "")
-  const createResponse = await supabase.functions.invoke<AdminUserCreateResponse>(
+  const createResponse = await invokeAdminFunction<AdminUserCreateResponse>(
+    supabase,
     "admin-user-create",
+    usersCopy.errors.create,
     {
       body: {
         cpf: onlyDigits(input.cpf),
@@ -385,7 +440,7 @@ async function createUserInSupabase(input: CreateUserInput): Promise<UserRecord>
       },
     }
   )
-  const response = assertAdminFunctionResponse(createResponse, usersCopy.errors.create)
+  const response = await assertAdminFunctionResponse(createResponse, usersCopy.errors.create)
   const returnedId = getAdminReturnedId(response)
   const users = await listUsersFromSupabase()
   const createdUser = returnedId ? users.find((user) => user.id === returnedId) : null
@@ -415,8 +470,10 @@ async function updateUserInSupabase(input: UpdateUserInput): Promise<UserRecord>
     throw new Error(usersCopy.errors.userNotFound)
   }
 
-  const updateResponse = await supabase.functions.invoke<AdminFunctionResponse>(
+  const updateResponse = await invokeAdminFunction<AdminFunctionResponse>(
+    supabase,
     "admin-user-update",
+    usersCopy.errors.update,
     {
       body: {
         cpf: onlyDigits(input.cpf),
@@ -429,7 +486,7 @@ async function updateUserInSupabase(input: UpdateUserInput): Promise<UserRecord>
       },
     }
   )
-  assertAdminFunctionResponse(updateResponse, usersCopy.errors.update)
+  await assertAdminFunctionResponse(updateResponse, usersCopy.errors.update)
 
   const refreshedUsers = await listUsersFromSupabase()
   const updatedUser = refreshedUsers.find((user) => user.id === input.id)
@@ -459,11 +516,13 @@ async function invokeAdminUserAction(
     throw new Error(usersCopy.errors.userNotFound)
   }
 
-  const actionResponse = await supabase.functions.invoke<AdminFunctionResponse>(
+  const actionResponse = await invokeAdminFunction<AdminFunctionResponse>(
+    supabase,
     functionName,
+    errorMessage,
     { body: { targetUserId: targetUser.authUserId } }
   )
-  assertAdminFunctionResponse(actionResponse, errorMessage)
+  await assertAdminFunctionResponse(actionResponse, errorMessage)
 
   const refreshedUsers = await listUsersFromSupabase()
   const updatedUser = refreshedUsers.find((user) => user.id === userId)
