@@ -40,6 +40,15 @@ export const dataTableCopy = {
     searchPlaceholder: "Buscar...",
     filterPlaceholderPrefix: "Filtrar",
   },
+  exportMenu: {
+    title: "Opções de exportação",
+    currentView: "Página atual",
+    currentViewDescription: "Linhas visíveis agora e colunas visíveis.",
+    filteredRows: "Dados filtrados",
+    filteredRowsDescription: "Todos os resultados filtrados e colunas visíveis.",
+    loadedRows: "Dados carregados",
+    loadedRowsDescription: "Todos os registros carregados e colunas exportáveis.",
+  },
   facetedFilter: {
     noResults: "Nenhum resultado encontrado.",
     selectedSuffix: "selecionados",
@@ -75,7 +84,7 @@ export const dataTableCopy = {
     hide: "Ocultar",
   },
   viewOptions: {
-    trigger: "Colunas",
+    trigger: "Coluna",
     tooltip: "Colunas",
   },
 } as const

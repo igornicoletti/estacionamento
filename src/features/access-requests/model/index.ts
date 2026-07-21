@@ -4,6 +4,10 @@ export {
   getAccessRequestDetailsTitle,
   getRecoveryRequestDetailItems,
 } from "./access-requests-details"
+export {
+  formatAccessRequestReason,
+  formatAccessRequestRequester,
+} from "./access-requests-formatters"
 export { normalizeRecoveryRequest, normalizeRecoveryRequests } from "./access-requests-normalization"
 export {
   accessRequestReviewDecisionValues,

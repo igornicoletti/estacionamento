@@ -45,10 +45,6 @@ export function PricesRoute() {
   const statusDialogDescription = recordToUpdateStatus?.status === "active"
     ? pricesCopy.dialogs.deactivateDescription
     : pricesCopy.dialogs.activateDescription
-  const statusActionLabel = recordToUpdateStatus?.status === "active"
-    ? pricesCopy.actions.confirmDeactivate
-    : pricesCopy.actions.confirmActivate
-
   async function handleUpdatePriceTableStatus() {
     if (!recordToUpdateStatus) {
       return
@@ -166,7 +162,7 @@ export function PricesRoute() {
         title={statusDialogTitle}
         description={statusDialogDescription}
         actionVariant={recordToUpdateStatus?.status === "active" ? "destructive" : "default"}
-        actionLabel={statusActionLabel}
+        actionLabel="Continuar"
         pendingLabel={pricesCopy.actions.saving}
         onAction={handleUpdatePriceTableStatus}
       />

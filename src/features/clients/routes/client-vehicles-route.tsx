@@ -2,7 +2,7 @@ import { ArrowLeftIcon, DatabaseIcon, ShieldAlertIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate, useParams } from "react-router"
 
-import { DataTable } from "@/components/data-table"
+import { DataTable, DataTableSensitiveValue } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
@@ -83,7 +83,13 @@ export function ClientVehiclesRoute() {
       ? clientsCopy.pages.clients.title
       : clientsCopy.pages.clientVehicles.fallbackTitle
   const pageSubtitle = client?.num_cnpj_cpf
-    ?? (isResolvingClient ? clientsCopy.pages.clients.subtitle : clientsCopy.pages.clientVehicles.fallbackDescription)
+    ? (
+      <DataTableSensitiveValue
+        value={client.num_cnpj_cpf}
+        kind="cpfCnpj"
+      />
+    )
+    : (isResolvingClient ? clientsCopy.pages.clients.subtitle : clientsCopy.pages.clientVehicles.fallbackDescription)
   const tableError = clientError ?? vehiclesError
   const tableVehicles = client ? tableData : []
 
@@ -109,14 +115,14 @@ export function ClientVehiclesRoute() {
         vehicleId: vehicle.cod_veiculo,
         vehiclePlate: vehicle.num_placa,
       })
-      await refetchVipRules()
+      await Promise.allSettled([refetchVipRules(), refetchVehicles()])
       notify.success(clientsCopy.feedback.vehicleVip.success)
     } catch {
       notify.error(clientsCopy.feedback.vehicleVip.error)
     } finally {
       setPendingVipVehicleId(null)
     }
-  }, [pendingVipVehicleId, refetchVipRules, toggleVehicleVip])
+  }, [pendingVipVehicleId, refetchVehicles, refetchVipRules, toggleVehicleVip])
 
   const columns = React.useMemo(
     () =>

@@ -12,6 +12,7 @@ export {
 } from "./data-table-copy"
 export { createDateTimeColumn } from "./data-table-date-time-column"
 export { DataTableEmptyState } from "./data-table-empty-state"
+export { DataTableExportMenu } from "./data-table-export-menu"
 export { DataTableFacetedFilter } from "./data-table-faceted-filter"
 export { includesSelectedValue } from "./data-table-filter-fns"
 export {
@@ -51,6 +52,7 @@ export {
   type DataTableColumnId,
   type DataTableFilterField,
   type DataTableFilterOption,
+  type DataTableFilterOptionGroup,
   type DataTableGlobalSearch,
   type DataTableSearchField,
   type DataTableStateAction,

@@ -73,8 +73,8 @@ export function AuditRoute() {
             setSelectedEvent(null)
           }
         }}
-        title={selectedEvent ? `${selectedEvent.eventLabel} · ${selectedEvent.actorName}` : undefined}
-        description={selectedEvent?.reason || auditCopy.details.fallbackDescription}
+        title={selectedEvent ? auditCopy.details.title : undefined}
+        description={selectedEvent ? auditCopy.details.description : undefined}
         items={selectedEvent ? getAuditEventDetails(selectedEvent) : []}
       />
     </PageSection>

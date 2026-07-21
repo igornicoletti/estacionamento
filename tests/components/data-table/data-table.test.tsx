@@ -163,4 +163,20 @@ describe("DataTable", () => {
     fireEvent.pointerUp(value)
     expect(value).toHaveTextContent("111.***.***-35")
   })
+
+  it("formats raw CNPJ values before masking and revealing", () => {
+    render(<DataTableSensitiveValue value="22111333000144" kind="cpfCnpj" />)
+
+    const value = screen.getByRole("button", {
+      name: "Segure para visualizar o conteúdo completo",
+    })
+
+    expect(value).toHaveTextContent("22.***.***/****-44")
+
+    fireEvent.pointerDown(value)
+    expect(value).toHaveTextContent("22.111.333/0001-44")
+
+    fireEvent.pointerUp(value)
+    expect(value).toHaveTextContent("22.***.***/****-44")
+  })
 })

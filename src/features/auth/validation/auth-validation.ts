@@ -99,32 +99,42 @@ export const requiredPasswordSchema = z
     error: authCopy.validation.confirmPasswordMismatch,
   })
 
-export const authRecoverySchema = z.object({
-  cpf: authCpfSchema,
-  phone: z
-    .string({ error: authCopy.validation.recoveryPhoneRequired })
-    .trim()
-    .min(1, { error: authCopy.validation.recoveryPhoneRequired })
-    .min(10, { error: authCopy.validation.recoveryPhoneInvalid })
-    .max(20, { error: authCopy.validation.recoveryPhoneInvalid })
-    .regex(phoneRegex, { error: authCopy.validation.recoveryPhoneInvalid }),
-  email: z
-    .union([
-      z.literal(""),
-      z.email({ error: authCopy.validation.recoveryEmailInvalid }),
-    ])
-    .optional()
-    .transform((value) => value ?? ""),
-  reason: z.enum(recoveryReasonValues, {
-    error: authCopy.validation.recoveryReasonRequired,
-  }),
-  description: z
-    .string()
-    .trim()
-    .max(500, { error: authCopy.validation.recoveryDescriptionMax })
-    .optional()
-    .transform((value) => value ?? ""),
-})
+export const authRecoverySchema = z
+  .object({
+    cpf: authCpfSchema,
+    phone: z
+      .string({ error: authCopy.validation.recoveryPhoneRequired })
+      .trim()
+      .min(1, { error: authCopy.validation.recoveryPhoneRequired })
+      .min(10, { error: authCopy.validation.recoveryPhoneInvalid })
+      .max(20, { error: authCopy.validation.recoveryPhoneInvalid })
+      .regex(phoneRegex, { error: authCopy.validation.recoveryPhoneInvalid }),
+    email: z
+      .union([
+        z.literal(""),
+        z.email({ error: authCopy.validation.recoveryEmailInvalid }),
+      ])
+      .optional()
+      .transform((value) => value ?? ""),
+    reason: z.enum(recoveryReasonValues, {
+      error: authCopy.validation.recoveryReasonRequired,
+    }),
+    description: z
+      .string()
+      .trim()
+      .max(500, { error: authCopy.validation.recoveryDescriptionMax })
+      .optional()
+      .transform((value) => value ?? ""),
+  })
+  .superRefine((value, context) => {
+    if (value.reason === "other" && value.description.trim().length === 0) {
+      context.addIssue({
+        code: "custom",
+        message: authCopy.validation.recoveryDescriptionRequired,
+        path: ["description"],
+      })
+    }
+  })
 
 export interface AuthRecoveryFormValues {
   cpf: string

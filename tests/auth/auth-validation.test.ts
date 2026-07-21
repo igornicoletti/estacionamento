@@ -38,6 +38,22 @@ describe("auth validation and authorization contracts", () => {
     })
 
     expect(result.success).toBe(true)
+
+    expect(authRecoverySchema.safeParse({
+      cpf: "123.456.789-09",
+      description: "",
+      email: "",
+      phone: "11987654321",
+      reason: "other",
+    }).success).toBe(false)
+
+    expect(authRecoverySchema.safeParse({
+      cpf: "123.456.789-09",
+      description: "Meu motivo não está na lista.",
+      email: "",
+      phone: "11987654321",
+      reason: "other",
+    }).success).toBe(true)
   })
 
   it("enforces unit scope for managers and operators", () => {

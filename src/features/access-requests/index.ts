@@ -1,4 +1,3 @@
-export { AccessRequestDenySummary } from "./components"
 export { accessRequestsCopy } from "./constants"
 export { useAccessRequests } from "./hooks"
 export {
@@ -16,4 +15,7 @@ export {
 } from "./model"
 export { AccessRequestsPanel, AccessRequestsRedirectRoute, AccessRequestsRoute } from "./routes"
 export { listPendingRecoveryRequests, reviewRecoveryRequest } from "./services"
-export { createRecoveryRequestsColumns } from "./table"
+export {
+  createRecoveryReasonFilterOptions,
+  createRecoveryRequestsColumns,
+} from "./table"

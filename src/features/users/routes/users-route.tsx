@@ -168,7 +168,7 @@ export function UsersRoute() {
 
     if (pendingAction.type === "block") {
       return {
-        actionLabel: usersCopy.dialogs.blockConfirm,
+        actionLabel: usersCopy.actions.continue,
         description: interpolateUserCopy(usersCopy.dialogs.blockDescription, userName),
         feedback: usersCopy.feedback.block,
         onAction: () => usersSnapshot.inactivateUser(pendingAction.user.id),
@@ -178,7 +178,7 @@ export function UsersRoute() {
 
     if (pendingAction.type === "reset") {
       return {
-        actionLabel: usersCopy.dialogs.resetConfirm,
+        actionLabel: usersCopy.actions.continue,
         description: interpolateUserCopy(usersCopy.dialogs.resetDescription, userName),
         feedback: usersCopy.feedback.reset,
         onAction: () => usersSnapshot.resetAccess(pendingAction.user.id),
@@ -188,7 +188,7 @@ export function UsersRoute() {
 
     if (pendingAction.type === "resetPasskey") {
       return {
-        actionLabel: usersCopy.dialogs.resetPasskeyConfirm,
+        actionLabel: usersCopy.actions.continue,
         description: interpolateUserCopy(usersCopy.dialogs.resetPasskeyDescription, userName),
         feedback: usersCopy.feedback.resetPasskey,
         onAction: () => usersSnapshot.resetPasskey(pendingAction.user.id),
@@ -200,9 +200,7 @@ export function UsersRoute() {
       const isBlocked = pendingAction.user.status === "inactive"
 
       return {
-        actionLabel: isBlocked
-          ? usersCopy.dialogs.unblockConfirm
-          : usersCopy.dialogs.clearLockConfirm,
+        actionLabel: usersCopy.actions.continue,
         description: interpolateUserCopy(
           isBlocked
             ? usersCopy.dialogs.unblockDescription
@@ -216,7 +214,7 @@ export function UsersRoute() {
     }
 
     return {
-      actionLabel: usersCopy.dialogs.revokeSessionsConfirm,
+      actionLabel: usersCopy.actions.continue,
       description: interpolateUserCopy(usersCopy.dialogs.revokeSessionsDescription, userName),
       feedback: usersCopy.feedback.revokeSessions,
       onAction: () => usersSnapshot.revokeSessions(pendingAction.user.id),

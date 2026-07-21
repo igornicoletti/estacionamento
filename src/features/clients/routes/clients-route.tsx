@@ -2,7 +2,7 @@ import { DatabaseIcon, HistoryIcon, RefreshCcwIcon, ShieldAlertIcon } from "luci
 import * as React from "react"
 import { useNavigate } from "react-router"
 
-import { DataTable } from "@/components/data-table"
+import { DataTable, DataTableSensitiveValue } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
@@ -258,7 +258,12 @@ export function ClientsRoute() {
           }
         }}
         title={selectedClient?.nom_pessoa}
-        description={selectedClient?.num_cnpj_cpf}
+        description={(
+          <DataTableSensitiveValue
+            value={selectedClient?.num_cnpj_cpf}
+            kind="cpfCnpj"
+          />
+        )}
         items={selectedClient ? getClientDetailItems(selectedClient) : []}
       />
 
@@ -272,6 +277,10 @@ export function ClientsRoute() {
           onRetry={() => {
             void refetchSyncHistory()
           }}
+          onSync={canSync ? () => {
+            void handleStartSync()
+          } : undefined}
+          isSyncing={isSyncing}
         />
       ) : null}
 

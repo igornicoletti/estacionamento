@@ -183,9 +183,23 @@ export function createUsersColumns(
       id: "onlineStatus",
       accessorFn: (user) => (isUserOnline(user.lastAccessAt) ? "online" : "offline"),
       meta: { label: usersCopy.filters.online },
-      header: usersCopy.filters.online,
+      header: () => <div className="text-center font-medium">{usersCopy.filters.online}</div>,
       enableHiding: true,
       enableSorting: false,
+      cell: ({ row }) => {
+        const online = row.getValue<string>("onlineStatus") === "online"
+
+        return (
+          <div className="flex justify-center">
+            <Badge
+              variant="secondary"
+              className={getBadgeToneClassName(online ? "success" : "info")}
+            >
+              {online ? "Online" : "Offline"}
+            </Badge>
+          </div>
+        )
+      },
     },
     createActionsColumn<UserRecord>((row) => {
       const isActive = row.original.status === "active"

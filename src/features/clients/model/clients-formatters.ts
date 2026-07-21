@@ -1,3 +1,5 @@
+import { formatCpfCnpj, formatPhone, onlyDigits } from "@/lib"
+
 export function normalizeDisplayName(value: string) {
   return value
     .toLocaleLowerCase("pt-BR")
@@ -60,4 +62,32 @@ export function formatDurationSeconds(value: number | null | undefined, fallback
   const minutes = Math.floor(value / 60)
   const seconds = Math.trunc(value % 60)
   return `${minutes}min ${seconds}s`
+}
+
+export function formatClientDocument(
+  value: string | null | undefined,
+  fallback: string
+) {
+  if (!value?.trim()) {
+    return fallback
+  }
+
+  return formatCpfCnpj(value)
+}
+
+export function formatClientPhone(
+  value: string | null | undefined,
+  fallback: string
+) {
+  if (!value?.trim()) {
+    return fallback
+  }
+
+  const digits = onlyDigits(value)
+
+  if (digits.length !== 10 && digits.length !== 11) {
+    return value.trim()
+  }
+
+  return formatPhone(digits)
 }

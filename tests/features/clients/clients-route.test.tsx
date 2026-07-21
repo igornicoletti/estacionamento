@@ -26,7 +26,7 @@ beforeEach(() => {
           cod_pessoa: 1001,
           nom_pessoa: "Auto Center Alfa Ltda",
           nom_fantasia: "Auto Center Alfa",
-          num_cnpj_cpf: "12.345.678/0001-10",
+          num_cnpj_cpf: "22111333000144",
           des_email_1: "contato@alfa.com.br",
           num_telefone_1: "(11) 3333-4444",
           nom_cidade: "Sao Paulo",
@@ -47,7 +47,7 @@ beforeEach(() => {
           cod_pessoa: 1001,
           nom_pessoa: "Auto Center Alfa Ltda",
           nom_fantasia: "Auto Center Alfa",
-          num_cnpj_cpf: "12.345.678/0001-10",
+          num_cnpj_cpf: "22111333000144",
           des_email_1: "contato@alfa.com.br",
           num_telefone_1: "(11) 3333-4444",
           nom_cidade: "Sao Paulo",
@@ -70,7 +70,7 @@ beforeEach(() => {
           cod_pessoa: 1001,
           nom_pessoa: "Auto Center Alfa Ltda",
           nom_fantasia: "Auto Center Alfa",
-          num_cnpj_cpf: "12.345.678/0001-10",
+          num_cnpj_cpf: "22111333000144",
           num_placa: "ABC1D23",
           des_veiculo: "Fiat Strada 1.4",
           nom_motorista: "Joao Carlos",
@@ -86,7 +86,7 @@ beforeEach(() => {
             cod_pessoa: 1001,
             nom_pessoa: "Auto Center Alfa Ltda",
             nom_fantasia: "Auto Center Alfa",
-            num_cnpj_cpf: "12.345.678/0001-10",
+            num_cnpj_cpf: "22111333000144",
             num_placa: "ABC1D23",
             des_veiculo: "Fiat Strada 1.4",
             nom_motorista: "Joao Carlos",
@@ -123,7 +123,10 @@ describe("Clients routes", () => {
 
     fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
 
-    const vehiclesMenuItem = await screen.findByRole("menuitem", { name: "Veículos" })
+    expect(screen.getByText("22.***.***/****-44")).toBeInTheDocument()
+    expect(screen.queryByText("22111333000144")).not.toBeInTheDocument()
+
+    const vehiclesMenuItem = await screen.findByRole("menuitem", { name: "Exibir veículos" })
     fireEvent.click(vehiclesMenuItem)
 
     await waitFor(() => {
@@ -139,6 +142,9 @@ describe("Clients routes", () => {
       expect(screen.getByText("ABC1D23")).toBeInTheDocument()
     })
     expect(screen.getByRole("button", { name: "Voltar" })).toBeInTheDocument()
+    expect(screen.getAllByRole("button", {
+      name: "Segure para visualizar o conteúdo completo",
+    })[0]).toHaveTextContent("22.***.***/****-44")
     expect(screen.queryByRole("button", { name: "Histórico" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Sincronizar" })).not.toBeInTheDocument()
   }, 15_000)

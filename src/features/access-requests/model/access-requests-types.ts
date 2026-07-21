@@ -9,8 +9,10 @@ export interface AccessRecoveryRequestRecord {
   description: string | null
   email: string | null
   id: string
-  phoneMasked: string
+  phoneMasked: string | null
   reason: RecoveryReason
+  reasonLabel: string
+  requesterLabel: string
 }
 
 export interface AccessRequestsSnapshot {

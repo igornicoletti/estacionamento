@@ -1,8 +1,12 @@
 import { recoveryReasonValues, type RecoveryReason } from "@/features/auth"
-import { resolveVisibleSensitiveValue } from "@/lib"
+import { formatPhone, isValidPhone, onlyDigits } from "@/lib"
 
 import { accessRequestsCopy } from "../constants"
 import type { AccessRecoveryRequestRecord } from "./access-requests-types"
+import {
+  formatAccessRequestReason,
+  formatAccessRequestRequester,
+} from "./access-requests-formatters"
 
 type UnknownRecord = Record<PropertyKey, unknown>
 
@@ -18,6 +22,26 @@ function isRecoveryReason(value: unknown): value is RecoveryReason {
   return recoveryReasonValues.some((reason) => reason === value)
 }
 
+function normalizePhoneDisplay(...values: readonly (string | null)[]) {
+  for (const value of values) {
+    if (!value) {
+      continue
+    }
+
+    if (isValidPhone(value)) {
+      return formatPhone(value)
+    }
+
+    const digits = onlyDigits(value)
+
+    if (value.includes("*") && digits.length >= 4) {
+      return value
+    }
+  }
+
+  return null
+}
+
 export function normalizeRecoveryRequest(value: unknown): AccessRecoveryRequestRecord | null {
   if (!isRecord(value)) {
     return null
@@ -25,22 +49,32 @@ export function normalizeRecoveryRequest(value: unknown): AccessRecoveryRequestR
 
   const createdAt = readString(value.created_at)
   const id = readString(value.id)
-  const phoneMasked =
-    resolveVisibleSensitiveValue(readString(value.phone_display), readString(value.phone_masked)) ??
-    accessRequestsCopy.shared.unavailableSensitiveValue
+  const phoneMasked = normalizePhoneDisplay(
+    readString(value.phone_display),
+    readString(value.phone_masked)
+  )
   const reason = isRecoveryReason(value.reason) ? value.reason : null
 
-  if (!createdAt || !id || !phoneMasked || !reason) {
+  if (!createdAt || !id || !reason) {
     return null
   }
 
-  return {
+  const description = readString(value.description)
+  const email = readString(value.email)
+  const reasonLabel = formatAccessRequestReason(reason, description)
+  const baseRecord = {
     createdAt,
-    description: readString(value.description),
-    email: readString(value.email),
+    description,
+    email,
     id,
     phoneMasked,
     reason,
+    reasonLabel,
+  }
+
+  return {
+    ...baseRecord,
+    requesterLabel: formatAccessRequestRequester(baseRecord),
   }
 }
 

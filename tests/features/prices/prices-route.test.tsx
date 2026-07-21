@@ -160,7 +160,7 @@ describe("PricesRoute", () => {
     expect(screen.getByRole("heading", { name: "Inativar tabela de preço" })).toBeInTheDocument()
     expect(updatePriceTableStatusMock).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole("button", { name: "Inativar tabela" }))
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }))
 
     await waitFor(() => {
       expect(updatePriceTableStatusMock).toHaveBeenCalledWith("price-global", "inactive")
@@ -182,7 +182,7 @@ describe("PricesRoute", () => {
     expect(screen.queryByRole("menuitem", { name: "Inativar" })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("menuitem", { name: "Ativar" }))
-    fireEvent.click(screen.getByRole("button", { name: "Ativar tabela" }))
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }))
 
     await waitFor(() => {
       expect(updatePriceTableStatusMock).toHaveBeenCalledWith("price-inactive", "active")

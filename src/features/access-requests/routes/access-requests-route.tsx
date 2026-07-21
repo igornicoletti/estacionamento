@@ -15,7 +15,6 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { newPasswordSchema } from "@/features/auth/validation"
 
-import { AccessRequestDenySummary } from "../components"
 import { ACCESS_REQUESTS_RECOVERY_TABLE_STATE_KEY, accessRequestsCopy } from "../constants"
 import { useAccessRequests } from "../hooks"
 import type {
@@ -28,7 +27,10 @@ import {
   getAccessRequestDetailsDescription,
   getAccessRequestDetailsTitle,
 } from "../model"
-import { createRecoveryRequestsColumns } from "../table"
+import {
+  createRecoveryReasonFilterOptions,
+  createRecoveryRequestsColumns,
+} from "../table"
 
 interface PendingRecoveryReview {
   decision: AccessRequestReviewDecision
@@ -88,6 +90,10 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
       }),
     [canReview]
   )
+  const recoveryReasonOptions = React.useMemo(
+    () => createRecoveryReasonFilterOptions(data.recoveryRequests),
+    [data.recoveryRequests]
+  )
 
   const resetPendingReview = React.useCallback(() => {
     setPendingRecoveryReview(null)
@@ -143,9 +149,17 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
         data={data.recoveryRequests}
         getRowId={(request) => request.id}
         globalSearch={{
-          columnIds: ["phoneMasked", "email", "description"],
+          columnIds: ["requesterLabel", "reasonLabel", "phoneMasked", "email"],
           placeholder: accessRequestsCopy.tables.recovery.searchPlaceholder,
         }}
+        filterFields={[
+          {
+            id: "reason",
+            title: accessRequestsCopy.filters.reason,
+            options: recoveryReasonOptions,
+            showCounts: true,
+          },
+        ]}
         globalFilterValue={recoverySearch}
         onGlobalFilterChange={setRecoverySearch}
         emptyState={
@@ -253,15 +267,13 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
         title={accessRequestsCopy.dialogs.denyTitle}
         description={accessRequestsCopy.dialogs.denyDescription}
         cancelLabel={accessRequestsCopy.actions.cancel}
-        actionLabel={accessRequestsCopy.actions.confirmDeny}
+        actionLabel={accessRequestsCopy.actions.continue}
         actionVariant="destructive"
         pendingLabel={accessRequestsCopy.feedback.recovery.denied.loading}
         onAction={async () => {
           await handleConfirmRecoveryReview()
         }}
-      >
-        {pendingRecoveryReview ? <AccessRequestDenySummary request={pendingRecoveryReview.request} /> : null}
-      </AppAlertDialog>
+      />
     </>
   )
 }

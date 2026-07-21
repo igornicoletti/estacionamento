@@ -1,16 +1,12 @@
 import type { AppDetailsSheetItem } from "@/components/shared/app-details-sheet"
-import type { RecoveryReason } from "@/features/auth"
 import { formatDateTime } from "@/lib"
 
 import { accessRequestsCopy } from "../constants"
 import type { AccessRecoveryRequestRecord, AccessRequestDetailsTarget } from "./access-requests-types"
+import { formatAccessRequestReason } from "./access-requests-formatters"
 
 function renderValue(value: string | null | undefined) {
   return value ?? accessRequestsCopy.shared.emptyValue
-}
-
-function formatReason(reason: RecoveryReason) {
-  return accessRequestsCopy.reasonLabels[reason]
 }
 
 export function getRecoveryRequestDetailItems(
@@ -27,29 +23,21 @@ export function getRecoveryRequestDetailItems(
     },
     {
       label: accessRequestsCopy.details.labels.reason,
-      value: formatReason(request.reason),
+      value: formatAccessRequestReason(request.reason, request.description),
     },
     {
       label: accessRequestsCopy.details.labels.phone,
-      value: request.phoneMasked,
+      value: renderValue(request.phoneMasked),
     },
     {
       label: accessRequestsCopy.details.labels.email,
       value: renderValue(request.email),
     },
-    {
-      label: accessRequestsCopy.details.labels.description,
-      value: renderValue(request.description),
-    },
   ]
 }
 
 export function getAccessRequestDetailsTitle(target: AccessRequestDetailsTarget | null) {
-  if (!target) {
-    return accessRequestsCopy.details.titleFallback
-  }
-
-  return formatReason(target.request.reason)
+  return target ? accessRequestsCopy.details.titleFallback : undefined
 }
 
 export function getAccessRequestDetailsDescription(target: AccessRequestDetailsTarget | null) {

@@ -1,20 +1,12 @@
-import {
-  type Column,
-  type Row,
-  type Table,
-} from "@tanstack/react-table"
-import { DownloadIcon, XIcon } from "lucide-react"
+import { type Table } from "@tanstack/react-table"
+import { XIcon } from "lucide-react"
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
-import { exportRowsToXlsx, type XlsxCellValue } from "@/lib/export"
+import { cn } from "@/lib/utils"
 
 import { dataTableCopy } from "./data-table-copy"
+import { DataTableExportMenu } from "./data-table-export-menu"
 import { DataTableFacetedFilter } from "./data-table-faceted-filter"
 import { normalizeSearchValue } from "./data-table-filter-utils"
 import { DataTableSearchInput } from "./data-table-search-input"
@@ -62,71 +54,6 @@ interface DataTableToolbarActionsProps<TData> {
   actions?: React.ReactNode
 }
 
-function formatExportColumnLabel(raw: string) {
-  return raw
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[-_]+/g, " ")
-    .trim()
-}
-
-function normalizeExportCellValue(value: unknown): XlsxCellValue {
-  if (value === null || value === undefined || value === "") {
-    return null
-  }
-
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean"
-  ) {
-    return value
-  }
-
-  if (typeof value === "bigint") {
-    return value.toString()
-  }
-
-  if (value instanceof Date) {
-    return value.toISOString()
-  }
-
-  if (Array.isArray(value)) {
-    return value
-      .map((item) => normalizeExportCellValue(item))
-      .join(", ")
-  }
-
-  return "—"
-}
-
-function getExportColumnHeader<TData>(column: Column<TData, unknown>) {
-  const label = column.columnDef.meta?.label
-
-  if (label) {
-    return formatExportColumnLabel(label)
-  }
-
-  if (typeof column.columnDef.header === "string") {
-    return formatExportColumnLabel(column.columnDef.header)
-  }
-
-  return formatExportColumnLabel(column.id)
-}
-
-function resolveExportCellValue<TData>(
-  column: Column<TData, unknown>,
-  row: Row<TData>
-) {
-  const rawValue = row.getValue(column.id)
-  const exportValue = column.columnDef.meta?.exportValue
-
-  if (exportValue) {
-    return normalizeExportCellValue(exportValue(rawValue, row.original))
-  }
-
-  return normalizeExportCellValue(rawValue)
-}
-
 function DataTableToolbarControls<TData>({
   table,
   globalSearch,
@@ -146,7 +73,7 @@ function DataTableToolbarControls<TData>({
   const isFiltered = isColumnFiltered || isGlobalFiltered
 
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-start gap-3">
+    <div className="flex min-w-0 flex-1 flex-wrap items-start gap-3 xl:flex-nowrap">
       {hasGlobalSearch && globalSearch ? (
         <DataTableSearchInput
           ariaLabel={globalSearch.placeholder ?? dataTableCopy.toolbar.search}
@@ -212,6 +139,7 @@ function DataTableToolbarControls<TData>({
             column={column}
             title={field.title}
             options={field.options}
+            groups={field.groups}
             showCounts={field.showCounts ?? !manualFiltering}
             maxVisibleChips={field.maxVisibleChips}
           />
@@ -254,66 +182,19 @@ function DataTableToolbarActions<TData>({
     return null
   }
 
-  function handleExport() {
-    const exportableColumns = table
-      .getVisibleLeafColumns()
-      .filter((column) => column.columnDef.meta?.enableExport !== false)
-
-    if (!exportableColumns.length) {
-      return
-    }
-
-    const tableRows = manualFiltering
-      ? table.getCoreRowModel().rows
-      : table.getFilteredRowModel().rows
-
-    const normalizedRows: Array<Record<string, XlsxCellValue>> =
-      tableRows.map((row) => {
-        const exportRow: Record<string, XlsxCellValue> = {}
-
-        for (const column of exportableColumns) {
-          exportRow[column.id] = resolveExportCellValue(column, row)
-        }
-
-        return exportRow
-      })
-
-    exportRowsToXlsx({
-      filename: "tabela",
-      sheetName: "Dados",
-      columns: exportableColumns.map((column) => ({
-        header: getExportColumnHeader(column),
-        accessor: (row: Record<string, XlsxCellValue>) => {
-          const rowValue = row[column.id]
-
-          return normalizeExportCellValue(rowValue)
-        },
-      })),
-      rows: normalizedRows,
-    })
-  }
+  const utilityActionCount =
+    (enableViewOptions ? 1 : 0) + (enableExport && canExport ? 1 : 0)
 
   return (
-    <div className="flex min-w-0 flex-wrap items-center justify-start gap-2 lg:justify-end">
+    <div
+      className={cn(
+        "grid min-w-0 items-center gap-2 sm:flex sm:flex-wrap sm:justify-start lg:flex-nowrap lg:justify-end",
+        utilityActionCount === 1 && !actions ? "grid-cols-1" : "grid-cols-2"
+      )}
+    >
       {enableViewOptions ? <DataTableViewOptions table={table} /> : null}
       {enableExport && canExport ? (
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              data-no-drag-scroll="true"
-              type="button"
-              variant="outline"
-              size="icon-lg"
-              onClick={handleExport}
-            >
-              <DownloadIcon aria-hidden="true" />
-              <span className="sr-only">{dataTableCopy.toolbar.export}</span>
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>
-            <p>{dataTableCopy.toolbar.exportTooltip}</p>
-          </TooltipContent>
-        </Tooltip>
+        <DataTableExportMenu table={table} manualFiltering={manualFiltering} />
       ) : null}
       {actions}
     </div>
@@ -335,19 +216,31 @@ export function DataTableToolbar<TData>({
   onGlobalFilterChange,
   onClearFilters,
 }: DataTableToolbarProps<TData>) {
+  const hasControls =
+    Boolean(globalSearch?.columnIds.length) ||
+    searchFields.length > 0 ||
+    filterFields.length > 0
+
   return (
-    <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
-      <DataTableToolbarControls
-        table={table}
-        globalSearch={globalSearch}
-        searchFields={searchFields}
-        filterFields={filterFields}
-        manualFiltering={manualFiltering}
-        isLoading={isLoading}
-        globalFilterValue={globalFilterValue}
-        onGlobalFilterChange={onGlobalFilterChange}
-        onClearFilters={onClearFilters}
-      />
+    <div
+      className={cn(
+        "grid min-w-0 gap-3",
+        hasControls && "lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start"
+      )}
+    >
+      {hasControls ? (
+        <DataTableToolbarControls
+          table={table}
+          globalSearch={globalSearch}
+          searchFields={searchFields}
+          filterFields={filterFields}
+          manualFiltering={manualFiltering}
+          isLoading={isLoading}
+          globalFilterValue={globalFilterValue}
+          onGlobalFilterChange={onGlobalFilterChange}
+          onClearFilters={onClearFilters}
+        />
+      ) : null}
 
       <DataTableToolbarActions<TData>
         table={table}

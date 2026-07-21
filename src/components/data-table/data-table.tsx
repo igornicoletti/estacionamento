@@ -705,9 +705,9 @@ export function DataTable<TData extends RowData, TValue>({
 
   const tableSurfaceContent = (
     <>
-      <div className="flex min-h-0 min-w-0 shrink flex-col overflow-hidden">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
         {shouldRenderInitialSkeleton || visibleRows.length > 0 ? (
-          <DataTableScrollContainer className="min-h-0 w-full max-h-full max-w-full">
+          <DataTableScrollContainer className="min-h-0 w-full max-h-full max-w-full flex-1">
             <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
               <caption className="sr-only">
                 {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
@@ -857,13 +857,13 @@ export function DataTable<TData extends RowData, TValue>({
       ) : null}
 
       {surface === "card" ? (
-        <Card size="sm" className="min-h-0">
-          <CardContent className="flex min-h-0 min-w-0 flex-col gap-4">
+        <Card size="sm" className="min-h-0 flex-1">
+          <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
             {tableSurfaceContent}
           </CardContent>
         </Card>
       ) : (
-        <div className="flex min-h-0 min-w-0 flex-col gap-4">
+        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
           {tableSurfaceContent}
         </div>
       )}

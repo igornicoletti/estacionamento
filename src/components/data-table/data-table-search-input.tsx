@@ -39,7 +39,7 @@ export function DataTableSearchInput({
   }
 
   return (
-    <InputGroup className="w-full lg:w-80">
+    <InputGroup className="w-full lg:w-72 xl:w-80">
       <InputGroupInput
         ref={inputRef}
         data-no-drag-scroll="true"

@@ -46,10 +46,6 @@ export function RulesRoute() {
   const statusDialogDescription = recordToUpdateStatus?.active
     ? rulesCopy.dialogs.deactivateDescription
     : rulesCopy.dialogs.activateDescription
-  const statusActionLabel = recordToUpdateStatus?.active
-    ? rulesCopy.actions.confirmDeactivate
-    : rulesCopy.actions.confirmActivate
-
   async function handleUpdateRuleStatus() {
     if (!recordToUpdateStatus) {
       return
@@ -202,7 +198,7 @@ export function RulesRoute() {
         title={statusDialogTitle}
         description={statusDialogDescription}
         actionVariant={recordToUpdateStatus?.active ? "destructive" : "default"}
-        actionLabel={statusActionLabel}
+        actionLabel="Continuar"
         pendingLabel={rulesCopy.actions.saving}
         onAction={handleUpdateRuleStatus}
       />

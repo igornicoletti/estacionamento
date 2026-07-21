@@ -102,6 +102,7 @@ for (const requiredFile of [
   "src/app-entry.tsx",
   "src/config/env.ts",
   "src/components/data-table/data-table.tsx",
+  "src/components/data-table/data-table-export-menu.tsx",
   "src/components/data-table/data-table-toolbar.tsx",
   "src/components/data-table/data-table-scroll-container.tsx",
   "src/components/ui/table.tsx",
@@ -218,13 +219,17 @@ for (const [file, needles] of [
       "shouldRenderInitialSkeleton || visibleRows.length > 0",
       "shouldRenderToolbar",
       "surface === \"card\"",
-      "flex min-h-0 min-w-0 shrink flex-col overflow-hidden",
+      "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
       "DataTableDefaultState",
     ],
   ],
   [
     "src/components/data-table/data-table-toolbar.tsx",
-    ["enableExport", "exportRowsToXlsx"],
+    ["enableExport", "DataTableExportMenu"],
+  ],
+  [
+    "src/components/data-table/data-table-export-menu.tsx",
+    ["exportRowsToXlsx", "currentView", "filteredRows", "loadedRows"],
   ],
   [
     "src/components/data-table/data-table-scroll-container.tsx",

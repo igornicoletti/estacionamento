@@ -90,7 +90,6 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
       header: unitsCopy.table.state,
       size: 90,
       cell: ({ row }) => row.original.sgl_estado.toUpperCase(),
-      enableHiding: false,
     },
     {
       id: "cidadeUf",

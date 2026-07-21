@@ -26,13 +26,13 @@ export function AppTabs({
 
   return (
     <Tabs defaultValue={resolvedDefaultValue} className={cn("flex w-full flex-col gap-4", className)} {...props}>
-      <TabsList className="h-9 w-full max-w-full justify-start overflow-x-auto rounded-lg p-1 sm:w-fit">
+      <TabsList className="h-10 w-full max-w-full justify-start overflow-x-auto rounded-lg p-1">
         {items.map((item) => (
           <TabsTrigger
             key={item.value}
             value={item.value}
             disabled={item.disabled}
-            className="h-7 flex-none rounded-md px-3 text-sm data-active:bg-background data-active:text-foreground data-active:shadow-sm"
+            className="h-8 min-w-28 flex-1 rounded-md px-3 text-sm data-active:bg-background data-[state=active]:bg-background data-active:text-foreground data-[state=active]:text-foreground data-active:shadow-sm data-[state=active]:shadow-sm"
           >
             {item.label}
           </TabsTrigger>
@@ -40,7 +40,7 @@ export function AppTabs({
       </TabsList>
 
       {items.map((item) => (
-        <TabsContent key={item.value} value={item.value} className="mt-0">
+        <TabsContent key={item.value} value={item.value} className="mt-0 min-w-0 px-px pb-px">
           {item.content}
         </TabsContent>
       ))}

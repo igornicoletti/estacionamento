@@ -1,6 +1,7 @@
 import { onlyDigits } from "./normalize"
 
 const cpfDigitsLength = 11
+const cnpjDigitsLength = 14
 
 export { onlyDigits }
 
@@ -11,6 +12,30 @@ export function formatCpf(value: string) {
     .replace(/^(\d{3})(\d)/, "$1.$2")
     .replace(/^(\d{3})\.(\d{3})(\d)/, "$1.$2.$3")
     .replace(/^(\d{3})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3-$4")
+}
+
+export function formatCnpj(value: string) {
+  const digits = onlyDigits(value).slice(0, cnpjDigitsLength)
+
+  return digits
+    .replace(/^(\d{2})(\d)/, "$1.$2")
+    .replace(/^(\d{2})\.(\d{3})(\d)/, "$1.$2.$3")
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})(\d)/, "$1.$2.$3/$4")
+    .replace(/^(\d{2})\.(\d{3})\.(\d{3})\/(\d{4})(\d)/, "$1.$2.$3/$4-$5")
+}
+
+export function formatCpfCnpj(value: string) {
+  const digits = onlyDigits(value)
+
+  if (digits.length === cpfDigitsLength) {
+    return formatCpf(digits)
+  }
+
+  if (digits.length === cnpjDigitsLength) {
+    return formatCnpj(digits)
+  }
+
+  return value.trim()
 }
 
 export function isValidCpf(value: string) {

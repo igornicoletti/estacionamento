@@ -4,7 +4,11 @@ import { createActionsColumn, DataTableSensitiveValue, DataTableTextAction } fro
 import { formatDateTime } from "@/lib"
 
 import { accessRequestsCopy } from "../constants"
-import type { AccessRecoveryRequestRecord, AccessRequestReviewDecision } from "../model"
+import {
+  formatAccessRequestRequester,
+  type AccessRecoveryRequestRecord,
+  type AccessRequestReviewDecision,
+} from "../model"
 
 interface CreateRecoveryRequestsColumnsOptions {
   canReview?: boolean
@@ -25,6 +29,21 @@ export function createRecoveryRequestsColumns({
       meta: { label: accessRequestsCopy.tables.recovery.columns.createdAt },
     },
     {
+      id: "requesterLabel",
+      accessorFn: (request) => request.requesterLabel,
+      cell: ({ row }) => (
+        <DataTableTextAction
+          onClick={() => {
+            onOpenDetails(row.original)
+          }}
+        >
+          {formatAccessRequestRequester(row.original)}
+        </DataTableTextAction>
+      ),
+      header: accessRequestsCopy.tables.recovery.columns.requester,
+      meta: { label: accessRequestsCopy.tables.recovery.columns.requester },
+    },
+    {
       accessorKey: "reason",
       cell: ({ row }) => (
         <DataTableTextAction
@@ -32,7 +51,7 @@ export function createRecoveryRequestsColumns({
             onOpenDetails(row.original)
           }}
         >
-          {accessRequestsCopy.reasonLabels[row.original.reason]}
+          {row.original.reasonLabel}
         </DataTableTextAction>
       ),
       header: accessRequestsCopy.tables.recovery.columns.reason,
@@ -55,12 +74,6 @@ export function createRecoveryRequestsColumns({
       cell: ({ row }) => row.original.email || accessRequestsCopy.shared.emptyValue,
       header: accessRequestsCopy.tables.recovery.columns.email,
       meta: { label: accessRequestsCopy.tables.recovery.columns.email },
-    },
-    {
-      accessorKey: "description",
-      cell: ({ row }) => row.original.description || accessRequestsCopy.shared.emptyValue,
-      header: accessRequestsCopy.tables.recovery.columns.description,
-      meta: { label: accessRequestsCopy.tables.recovery.columns.description },
     },
     createActionsColumn<AccessRecoveryRequestRecord>([
       {

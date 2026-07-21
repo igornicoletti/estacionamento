@@ -23,6 +23,12 @@ describe("NotificationsRoute", () => {
       expect(screen.getByText("Sincronização concluída")).toBeInTheDocument()
     })
 
+    const destination = screen.getByRole("link", { name: "/clientes" })
+    const description = screen.getByText("Clientes e unidades foram sincronizados com sucesso.")
+
+    expect(destination).toHaveClass("hover:underline")
+    expect(description).toHaveClass("truncate")
+
     expect(
       screen.getByRole("button", { name: "Marcar todas como lidas" })
     ).toBeInTheDocument()

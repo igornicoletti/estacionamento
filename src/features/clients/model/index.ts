@@ -11,6 +11,8 @@ export {
 export {
   formatClientDate,
   formatClientDateTime,
+  formatClientDocument,
+  formatClientPhone,
   formatDurationSeconds,
   normalizeDisplayName,
   parseClientRouteId,

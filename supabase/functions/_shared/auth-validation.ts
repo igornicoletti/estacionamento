@@ -51,13 +51,23 @@ export const authPasswordSchema = z.object({
   password: passwordSchema,
 })
 
-export const recoveryRequestSchema = z.object({
-  cpf: cpfSchema,
-  description: z.string().max(500).optional(),
-  email: z.string().email().optional().or(z.literal("")),
-  phone: z.string().min(10).max(20),
-  reason: z.enum(["lost_phone", "forgot_password", "attempts_blocked", "other"]),
-})
+export const recoveryRequestSchema = z
+  .object({
+    cpf: cpfSchema,
+    description: z.string().trim().max(500).optional(),
+    email: z.string().email().optional().or(z.literal("")),
+    phone: z.string().min(10).max(20),
+    reason: z.enum(["lost_phone", "forgot_password", "attempts_blocked", "other"]),
+  })
+  .superRefine((value, context) => {
+    if (value.reason === "other" && !value.description?.trim()) {
+      context.addIssue({
+        code: "custom",
+        message: "Informe o motivo.",
+        path: ["description"],
+      })
+    }
+  })
 
 export const adminCreateUserSchema = z.object({
   cpf: cpfSchema,

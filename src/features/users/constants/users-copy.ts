@@ -5,6 +5,7 @@ export const usersCopy = {
   },
   actions: {
     create: "Cadastrar",
+    continue: "Continuar",
     save: "Salvar",
     details: "Informações",
     edit: "Editar",

@@ -70,6 +70,7 @@ export const unitsCopy = {
   },
   filters: {
     brands: "Bandeiras",
+    cities: "Cidades",
     roles: "Perfis",
     states: "Estados",
     status: "Status",

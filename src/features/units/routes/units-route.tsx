@@ -320,6 +320,10 @@ export function UnitsRoute() {
         onRetry={() => {
           void refetchSyncHistory()
         }}
+        onSync={canSyncUnits ? () => {
+          void handleStartSync()
+        } : undefined}
+        isSyncing={isSyncing}
       />
 
       <UnitSyncBlockingDialog

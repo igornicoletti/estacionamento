@@ -14,6 +14,15 @@ const recoveryRequestsRows = [
     phone_masked: "(11) 98765-4321",
     reason: "lost_phone",
   },
+  {
+    created_at: "2026-07-04T09:30:00Z",
+    description: "Erro no aplicativo autenticador",
+    email: "",
+    id: "22222222-2222-2222-2222-222222222222",
+    phone_display: "Daniel",
+    phone_masked: "Dado indisponível",
+    reason: "other",
+  },
 ]
 
 vi.mock("@/lib/supabase-browser", () => {
@@ -80,6 +89,42 @@ describe("AccessRequestsRoute", () => {
     await waitFor(() => {
       expect(screen.getByText("(11) *****-4321")).toBeInTheDocument()
     })
+    expect(screen.getByText("Solicitante")).toBeInTheDocument()
+    expect(screen.getAllByText("pessoa@empresa.com").length).toBeGreaterThan(0)
+    expect(screen.getByText("Erro no aplicativo autenticador")).toBeInTheDocument()
+    expect(screen.queryByText("Descrição")).not.toBeInTheDocument()
+    expect(screen.queryByText("Da***el")).not.toBeInTheDocument()
+  }, 15_000)
+
+  it("filters access requests by reason with counters", async () => {
+    const { AccessRequestsRoute } = await import("@/features/access-requests")
+
+    const { baseElement } = render(
+      <MemoryRouter>
+        <AccessRequestsRoute />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("Erro no aplicativo autenticador")).toBeInTheDocument()
+    })
+
+    const reasonFilter = screen.getByRole("combobox", { name: "Motivos" })
+
+    fireEvent.click(reasonFilter)
+    fireEvent.keyDown(reasonFilter, { key: "ArrowDown" })
+
+    await waitFor(() => {
+      const content = baseElement.querySelector('[data-slot="combobox-content"]')
+      const items = Array.from(
+        content?.querySelectorAll('[data-slot="combobox-item"]') ?? []
+      )
+      const otherReason = items.find((item) =>
+        item.textContent?.includes("Outro motivo")
+      )
+
+      expect(otherReason?.textContent).toContain("1")
+    })
   }, 15_000)
 
   it("submits a recovery review action", async () => {
@@ -139,13 +184,9 @@ describe("AccessRequestsRoute", () => {
 
     expect(screen.getByRole("heading", { name: "Negar solicitação" })).toBeInTheDocument()
     expect(invokeMock).not.toHaveBeenCalled()
-    expect(
-      screen.getByRole("button", { name: "Negar solicitação" })
-    ).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Continuar" })).toBeEnabled()
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Negar solicitação" })
-    )
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }))
 
     await waitFor(() => {
       expect(invokeMock).toHaveBeenCalledWith("admin-recovery-review", {

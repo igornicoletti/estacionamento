@@ -20,10 +20,16 @@ export interface DataTableFilterOption {
   value: string
 }
 
+export interface DataTableFilterOptionGroup {
+  label: string
+  options: readonly DataTableFilterOption[]
+}
+
 export interface DataTableFilterField<TData> {
   id: DataTableColumnId<TData>
   title: string
   options: readonly DataTableFilterOption[]
+  groups?: readonly DataTableFilterOptionGroup[]
   showCounts?: boolean
   maxVisibleChips?: number
 }

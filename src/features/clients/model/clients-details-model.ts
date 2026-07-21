@@ -1,7 +1,11 @@
 import { type AppDetailsSheetItem } from "@/components/shared/app-details-sheet"
 
 import { clientsCopy } from "../constants/clients-copy"
-import { formatClientDate } from "./clients-formatters"
+import {
+  formatClientDate,
+  formatClientDocument,
+  formatClientPhone,
+} from "./clients-formatters"
 import { type ClientTableRow, type ClientVehicleTableRow } from "./clients-types"
 
 function emptyFallback(value: string | number | null | undefined) {
@@ -29,9 +33,9 @@ export function getClientDetailItems(client: ClientTableRow): readonly AppDetail
     { label: clientsCopy.table.customerCode, value: client.cod_pessoa },
     { label: clientsCopy.table.legalName, value: emptyFallback(client.nom_pessoa) },
     { label: clientsCopy.table.tradeName, value: emptyFallback(client.nom_fantasia) },
-    { label: clientsCopy.table.document, value: emptyFallback(client.num_cnpj_cpf) },
+    { label: clientsCopy.table.document, value: formatClientDocument(client.num_cnpj_cpf, clientsCopy.shared.emptyValue) },
     { label: clientsCopy.table.email, value: emptyFallback(client.des_email_1) },
-    { label: clientsCopy.table.phone, value: emptyFallback(client.num_telefone_1) },
+    { label: clientsCopy.table.phone, value: formatClientPhone(client.num_telefone_1, clientsCopy.shared.emptyValue) },
     { label: clientsCopy.table.cityState, value: formatCityState(client.nom_cidade, client.sgl_estado) },
     { label: clientsCopy.table.registrationDate, value: formatClientDate(client.dta_cadastro, clientsCopy.shared.emptyValue) },
     { label: clientsCopy.table.status, value: mapActiveStatus(client.ind_pessoa_ativa) },
@@ -50,7 +54,7 @@ export function getClientVehicleDetailItems(
     { label: clientsCopy.table.customerCode, value: vehicle.cod_pessoa },
     { label: clientsCopy.table.legalName, value: emptyFallback(vehicle.nom_pessoa) },
     { label: clientsCopy.table.tradeName, value: emptyFallback(vehicle.nom_fantasia) },
-    { label: clientsCopy.table.document, value: emptyFallback(vehicle.num_cnpj_cpf) },
+    { label: clientsCopy.table.document, value: formatClientDocument(vehicle.num_cnpj_cpf, clientsCopy.shared.emptyValue) },
     { label: clientsCopy.table.plate, value: emptyFallback(vehicle.num_placa) },
     { label: clientsCopy.table.vehicle, value: emptyFallback(vehicle.des_veiculo) },
     { label: clientsCopy.table.driver, value: emptyFallback(vehicle.nom_motorista) },

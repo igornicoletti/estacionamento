@@ -67,6 +67,14 @@ export function createNotificationsColumns(
     },
     {
       accessorKey: "description",
+      cell: ({ row }) => (
+        <span
+          className="block max-w-[28rem] truncate"
+          title={row.original.description}
+        >
+          {row.original.description}
+        </span>
+      ),
       header: notificationsCopy.details.description,
       meta: { label: notificationsCopy.details.description },
     },
@@ -105,7 +113,14 @@ export function createNotificationsColumns(
           return notificationsCopy.details.emptyDestination
         }
 
-        return <Link to={href}>{href}</Link>
+        return (
+          <Link
+            to={href}
+            className="font-medium text-foreground underline-offset-4 hover:underline"
+          >
+            {href}
+          </Link>
+        )
       },
       header: notificationsCopy.details.destination,
       meta: { label: notificationsCopy.details.destination },

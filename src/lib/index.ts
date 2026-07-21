@@ -1,6 +1,8 @@
 export { getBadgeToneClassName, type BadgeTone } from "./badge"
 export {
+  formatCnpj,
   formatCpf,
+  formatCpfCnpj,
   isValidCpf,
   onlyDigits
 } from "./cpf"

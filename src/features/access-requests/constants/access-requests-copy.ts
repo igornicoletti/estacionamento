@@ -10,9 +10,13 @@ export const accessRequestsCopy = {
     cancel: "Cancelar",
     confirmApprove: "Aprovar solicitação",
     confirmDeny: "Negar solicitação",
+    continue: "Continuar",
     deny: "Negar",
     details: "Detalhes",
     retry: "Recarregar",
+  },
+  filters: {
+    reason: "Motivos",
   },
   dialogs: {
     approveDescription: "Crie uma senha temporária forte. No próximo acesso, o usuário deverá definir uma nova senha antes de cadastrar a passkey.",
@@ -26,10 +30,10 @@ export const accessRequestsCopy = {
     recovery: {
       columns: {
         createdAt: "Data/hora",
-        description: "Descrição",
         email: "E-mail",
         phone: "Telefone",
         reason: "Motivo",
+        requester: "Solicitante",
       },
       emptyDescription: "Não há solicitações de recuperação de acesso aguardando análise.",
       emptyTitle: "Nenhuma solicitação de recuperação pendente",
@@ -41,13 +45,12 @@ export const accessRequestsCopy = {
   details: {
     labels: {
       createdAt: "Data/hora",
-      description: "Descrição",
       email: "E-mail",
       id: "ID",
       phone: "Telefone",
       reason: "Motivo",
     },
-    recoveryDescription: "Solicitação administrativa de recuperação de acesso.",
+    recoveryDescription: "Informações da solicitação de recuperação.",
     titleFallback: "Solicitação de acesso",
   },
   feedback: {
@@ -74,6 +77,6 @@ export const accessRequestsCopy = {
   } as const satisfies Record<RecoveryReason, string>,
   shared: {
     emptyValue: "—",
-    unavailableSensitiveValue: "Dado indisponível",
+    unavailableSensitiveValue: "—",
   },
 } as const

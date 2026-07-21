@@ -48,7 +48,7 @@ describe("DataTable export", () => {
     vi.restoreAllMocks()
   })
 
-  it("exports the loaded table dataset instead of only the visible page", () => {
+  it("exports the filtered table dataset instead of only the visible page", async () => {
     const exportRowsToXlsxMock = vi.mocked(exportModule.exportRowsToXlsx)
 
     render(
@@ -61,7 +61,8 @@ describe("DataTable export", () => {
       />
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "Exportar" }))
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Exportar" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Dados filtrados/i }))
 
     expect(exportRowsToXlsxMock).toHaveBeenCalledTimes(1)
     expect(exportRowsToXlsxMock.mock.calls[0]?.[0].rows).toEqual([
@@ -93,7 +94,8 @@ describe("DataTable export", () => {
       expect(screen.queryByText("Alpha")).not.toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole("button", { name: "Exportar" }))
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Exportar" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Dados filtrados/i }))
 
     const exportOptions = exportRowsToXlsxMock.mock.calls[0]?.[0]
 
@@ -103,6 +105,36 @@ describe("DataTable export", () => {
     ])
     expect(exportOptions.rows).toEqual([
       { name: "Beta", status: "Inativo" },
+    ])
+  })
+
+  it("can export all loaded rows with hidden exportable columns", async () => {
+    const exportRowsToXlsxMock = vi.mocked(exportModule.exportRowsToXlsx)
+
+    render(
+      <DataTable
+        columns={exportColumns}
+        data={exportRows}
+        getRowId={(row) => row.id}
+        defaultColumnVisibility={{ secret: false }}
+        enableViewOptions={false}
+      />
+    )
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Exportar" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Dados carregados/i }))
+
+    const exportOptions = exportRowsToXlsxMock.mock.calls[0]?.[0]
+
+    expect(exportOptions.columns.map((column: { header: string }) => column.header)).toEqual([
+      "Nome",
+      "Status",
+      "Segredo",
+    ])
+    expect(exportOptions.rows).toEqual([
+      { name: "Alpha", status: "Ativo", secret: "A1" },
+      { name: "Beta", status: "Inativo", secret: "B2" },
+      { name: "Gamma", status: "Ativo", secret: "C3" },
     ])
   })
 })

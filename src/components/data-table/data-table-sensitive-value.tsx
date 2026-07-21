@@ -1,6 +1,12 @@
 import * as React from "react"
 
-import { onlyDigits } from "@/lib"
+import {
+  formatCnpj,
+  formatCpf,
+  formatCpfCnpj,
+  formatPhone,
+  onlyDigits,
+} from "@/lib"
 import { cn } from "@/lib/utils"
 
 type SensitiveValueKind = "cpf" | "cnpj" | "cpfCnpj" | "phone" | "text"
@@ -57,6 +63,30 @@ function maskText(value: string) {
   return `${normalized.slice(0, 2)}***${normalized.slice(-2)}`
 }
 
+function formatDisplayValue(value: string, kind: SensitiveValueKind) {
+  if (value.includes("*")) {
+    return value
+  }
+
+  if (kind === "cpf") {
+    return formatCpf(value)
+  }
+
+  if (kind === "cnpj") {
+    return formatCnpj(value)
+  }
+
+  if (kind === "cpfCnpj") {
+    return formatCpfCnpj(value)
+  }
+
+  if (kind === "phone") {
+    return formatPhone(value)
+  }
+
+  return value
+}
+
 function maskSensitiveValue(value: string, kind: SensitiveValueKind) {
   if (value.includes("*")) {
     return value
@@ -105,11 +135,12 @@ export function DataTableSensitiveValue({
     return fallback
   }
 
+  const displayValue = formatDisplayValue(normalizedValue, kind)
   const maskedValue = maskSensitiveValue(normalizedValue, kind)
-  const canReveal = maskedValue !== normalizedValue
+  const canReveal = maskedValue !== displayValue
 
   if (!canReveal) {
-    return <span className={className}>{normalizedValue}</span>
+    return <span className={className}>{displayValue}</span>
   }
 
   return (
@@ -136,7 +167,7 @@ export function DataTableSensitiveValue({
         }
       }}
     >
-      {isPressed ? normalizedValue : maskedValue}
+      {isPressed ? displayValue : maskedValue}
     </span>
   )
 }

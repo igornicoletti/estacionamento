@@ -54,11 +54,12 @@ export function DataTableViewOptions<TData>({
               data-no-drag-scroll="true"
               type="button"
               variant="outline"
-              size="icon-lg"
+              size="lg"
+              className="w-full justify-center sm:w-auto lg:size-9 lg:px-0"
               aria-label={dataTableCopy.viewOptions.trigger}
             >
               <Settings2 aria-hidden="true" />
-              <span className="sr-only">{dataTableCopy.viewOptions.trigger}</span>
+              <span className="lg:sr-only">{dataTableCopy.viewOptions.trigger}</span>
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>

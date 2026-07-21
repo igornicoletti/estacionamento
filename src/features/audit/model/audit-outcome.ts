@@ -11,7 +11,7 @@ export function resolveAuditOutcomeVariant(event: AuditEvent) {
 
 export function resolveAuditSeverityVariant(severity: AuditSeverity) {
   if (severity === "critical") {
-    return "destructive" as const
+    return "warning" as const
   }
 
   if (severity === "warning") {
@@ -26,7 +26,5 @@ export function getAuditOutcomeLabel(event: AuditEvent) {
     return auditCopy.labels.success
   }
 
-  return event.severity === "critical"
-    ? auditCopy.labels.critical
-    : auditCopy.labels.failure
+  return auditCopy.labels.failure
 }

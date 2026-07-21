@@ -16,6 +16,15 @@ const recoveryRequestsRows = [
     phone_masked: "(11) 98765-4321",
     reason: "lost_phone",
   },
+  {
+    created_at: "2026-07-04T09:30:00Z",
+    description: "Erro no aplicativo autenticador",
+    email: "",
+    id: "22222222-2222-2222-2222-222222222222",
+    phone_display: "Daniel",
+    phone_masked: "Dado indisponível",
+    reason: "other",
+  },
 ]
 
 vi.mock("@/lib/supabase-browser", () => {
@@ -170,5 +179,8 @@ describe("UsersRoute", () => {
     await waitFor(() => {
       expect(screen.getByText("(11) *****-4321")).toBeInTheDocument()
     })
+    expect(screen.getByText("Solicitante")).toBeInTheDocument()
+    expect(screen.getByText("Erro no aplicativo autenticador")).toBeInTheDocument()
+    expect(screen.queryByText("Da***el")).not.toBeInTheDocument()
   })
 })

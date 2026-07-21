@@ -2,6 +2,7 @@ import {
   AlertTriangleIcon,
   CheckCircle2Icon,
   ChevronDownIcon,
+  HistoryIcon,
   RefreshCcwIcon,
   XCircleIcon,
 } from "lucide-react"
@@ -34,6 +35,8 @@ interface ClientsSyncHistoryDialogProps {
   isLoading: boolean
   error?: Error | string | null
   onRetry?: () => void
+  onSync?: () => void
+  isSyncing?: boolean
 }
 
 interface SyncHistoryCounter {
@@ -156,6 +159,8 @@ export function ClientsSyncHistoryDialog({
   isLoading,
   error = null,
   onRetry,
+  onSync,
+  isSyncing = false,
 }: ClientsSyncHistoryDialogProps) {
   const errorMessage = resolveErrorMessage(error)
 
@@ -189,9 +194,21 @@ export function ClientsSyncHistoryDialog({
         {!isLoading && !errorMessage && entries.length === 0 ? (
           <AppEmptyState
             className="min-h-32 rounded-md border border-solid p-4"
-            media={<RefreshCcwIcon />}
+            media={<HistoryIcon />}
             title={clientsCopy.sync.history.emptyTitle}
             description={clientsCopy.sync.history.emptyDescription}
+            actions={onSync ? (
+              <Button
+                type="button"
+                variant="outline"
+                size="lg"
+                disabled={isSyncing}
+                onClick={onSync}
+              >
+                <RefreshCcwIcon aria-hidden="true" />
+                {clientsCopy.actions.sync}
+              </Button>
+            ) : null}
           />
         ) : null}
 

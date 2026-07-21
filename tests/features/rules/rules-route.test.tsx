@@ -312,7 +312,7 @@ describe("RulesRoute", () => {
     expect(screen.getByRole("heading", { name: "Inativar regra" })).toBeInTheDocument()
     expect(saveVipRuleMock).not.toHaveBeenCalled()
 
-    fireEvent.click(screen.getByRole("button", { name: "Inativar regra" }))
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }))
 
     await waitFor(() => {
       expect(saveVipRuleMock).toHaveBeenCalledWith(
@@ -344,7 +344,7 @@ describe("RulesRoute", () => {
     expect(screen.queryByRole("menuitem", { name: "Inativar" })).not.toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("menuitem", { name: "Ativar" }))
-    fireEvent.click(screen.getByRole("button", { name: "Ativar regra" }))
+    fireEvent.click(screen.getByRole("button", { name: "Continuar" }))
 
     await waitFor(() => {
       expect(saveVipRuleMock).toHaveBeenCalledWith(
