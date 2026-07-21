@@ -49,3 +49,11 @@ Validar no navegador:
 - detalhes de veículo;
 - toggle VIP conforme permissão;
 - console sem erro e sem warning.
+
+
+## Correção final aplicada
+
+- Corrigido import ausente de `sanitizeErpClientPayload` em `src/features/clients/services/clients-service.ts`.
+- Centralizadas chaves de cache de VIP em `clients-persistence.ts`.
+- Revisado barrel raiz de `clients` para consistência com `units`.
+- Reexecutada validação estática isolada sobre `clients` e `units` no pacote final combinado.

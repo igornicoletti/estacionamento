@@ -32,7 +32,7 @@ src/features/clients/
 
 ## Correções aplicadas
 
-- Separada a resolução de cliente da consulta de veículos, evitando snapshot amplo de todos os veículos para abrir `/clientes/:cod_pessoa`.
+- Separada a resolução de cliente da consulta de veículos, evitando carregar a lista completa de clientes para abrir `/clientes/:cod_pessoa`.
 - Adicionada consulta dedicada `listClientVehiclesByClientId`.
 - Removidos filtros montados diretamente nas rotas.
 - Removido gateway mock local duplicado; a feature usa o mock central de ERP, como `units`.
@@ -46,3 +46,10 @@ src/features/clients/
 A página de clientes não carrega mais o hook genérico de regras comerciais para resolver VIP. A leitura de VIP usa uma consulta mínima e estável em `commercial_rules`, restrita a `type`, `target_type`, `client_id`, `vehicle_id`, `vehicle_ids`, `status`, `ends_at` e `updated_at`, evitando que colunas comerciais novas ou ausentes derrubem a tela operacional de clientes.
 
 A rota de veículos também passou a carregar o cliente por `cod_pessoa`, sem buscar toda a lista de clientes apenas para resolver título e subtítulo.
+
+
+## Correção final pós-revisão do commit
+
+- `clients-service.ts` importa explicitamente `sanitizeErpClientPayload`, corrigindo falha de build ao resolver cliente por `cod_pessoa`.
+- As chaves de cache de regras VIP foram movidas para `clients-persistence.ts`, mantendo o padrão de constantes técnicas centralizadas.
+- O barrel raiz passou a expor as constantes e serviços de sync/VIP de forma consistente com `src/features/units`.
