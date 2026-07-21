@@ -1,4 +1,13 @@
-export { listClientSyncHistory } from "./client-sync-history-service"
+export { executeClientSyncWithRefresh } from "./client-sync-runner"
+export {
+  configureClientSyncHistoryGateway,
+  getClientSyncHistoryGateway,
+  listClientSyncHistory,
+  recordMockClientSyncHistoryRun,
+  resetClientSyncHistoryGateway,
+  type ClientSyncHistoryGateway,
+  type RecordMockClientSyncHistoryRunInput,
+} from "./client-sync-history-service"
 export {
   isClientSyncInProgressError,
   triggerClientsSync,
@@ -10,6 +19,7 @@ export {
   type ClientsGateway,
 } from "./clients-gateway"
 export {
+  listClientVehiclesByClientId,
   listClients,
   listClientsSnapshot,
   listClientVehicles,

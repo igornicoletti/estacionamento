@@ -2,7 +2,7 @@
 
 ## Objetivo
 
-Feature responsável por consulta operacional de clientes, veículos vinculados, marcação VIP comercial e sincronização manual com o ERP.
+Feature responsável por consulta operacional de clientes ativos, veículos vinculados, marcação VIP comercial e sincronização manual com o ERP.
 
 ## Estrutura
 
@@ -19,20 +19,23 @@ src/features/clients/
 └── index.ts
 ```
 
-## Decisões aplicadas
+## Padrão alinhado a `src/features/units`
 
-- `constants` centraliza copy, chaves de cache, chaves de persistência e limites operacionais.
-- `model` centraliza contratos, parsing, sanitização, formatação, mapeamento de linhas e detalhes.
-- `services` concentra integração com Supabase, paginação segura e chamadas de Edge Function.
-- `hooks` expõe estado assíncrono por tela, sem regra de UI.
-- `table` contém colunas e opções de filtros.
-- `routes` apenas compõe tela, permissões, eventos e componentes reutilizáveis.
+- `constants/clients-copy.ts` concentra textos de interface e erros.
+- `constants/clients-persistence.ts` concentra chaves de cache, visibilidade de colunas, limites e valores padrão persistidos.
+- `constants/clients-routes.ts` concentra rotas da feature.
+- `hooks/use-clients-table-filters.ts` e `hooks/use-client-vehicles-table-filters.ts` montam filtros derivados da tabela, no mesmo padrão de `useUnitsTableFilters`.
+- `routes` compõe tela, permissões, eventos e componentes reutilizáveis sem montar filtros inline.
+- `services/clients-gateway.ts` segue o gateway de `units`: validação com `zod`, suporte a `erp-mock`, Supabase browser client e erro explícito quando o serviço não está configurado.
+- `components/clients-sync-history-dialog.tsx` é apenas wrapper de domínio sobre `SyncHistoryDialog`, como `UnitsSyncHistoryDialog`.
 - A raiz mantém apenas `index.ts`.
 
-## Correções relevantes
+## Correções aplicadas
 
-- Removido acesso genérico à tabela `clients`; a feature usa os contratos reais `erp_clients`, `erp_client_vehicles`, `client_sync_runs` e Edge Function `clients-sync`.
-- Removido fallback silencioso quando o Supabase client não existe; as falhas agora são explícitas.
-- Removido import fora do topo em service.
-- Preservadas as rotas `ClientsRoute` e `ClientVehiclesRoute`.
-- Preservado fluxo de histórico e bloqueio durante sincronização.
+- Separada a resolução de cliente da consulta de veículos, evitando snapshot amplo de todos os veículos para abrir `/clientes/:cod_pessoa`.
+- Adicionada consulta dedicada `listClientVehiclesByClientId`.
+- Removidos filtros montados diretamente nas rotas.
+- Removido gateway mock local duplicado; a feature usa o mock central de ERP, como `units`.
+- Adicionadas `DEFAULT_CLIENTS_COLUMN_VISIBILITY` e `DEFAULT_CLIENT_VEHICLES_COLUMN_VISIBILITY`.
+- Removido toast de carregamento por promessa para VIP; feedback de loading não usa toast.
+- Preservadas policies de RLS por permissão em migration dedicada.

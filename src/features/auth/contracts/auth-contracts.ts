@@ -40,6 +40,7 @@ export const AUTH_PERMISSION = {
   unitsRead: "units.read",
   clientsRead: "clients.read",
   clientVehiclesRead: "client_vehicles.read",
+  clientsSyncRead: "clients.sync.read",
   pricesRead: "prices.read",
   pricesManage: "prices.manage",
   rulesRead: "rules.read",
@@ -83,6 +84,7 @@ const managerPermissions = [...operatorPermissions, AUTH_PERMISSION.usersRead] a
 
 const auditorPermissions = [
   ...managerPermissions,
+  AUTH_PERMISSION.clientsSyncRead,
   AUTH_PERMISSION.accessRequestsRead,
   AUTH_PERMISSION.permissionsRead,
   AUTH_PERMISSION.auditRead,

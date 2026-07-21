@@ -17,6 +17,11 @@ export async function listClientVehicles(): Promise<ClientVehicle[]> {
   return sanitizeErpClientVehiclesPayload(payload)
 }
 
+export async function listClientVehiclesByClientId(clientId: number): Promise<ClientVehicle[]> {
+  const payload = await getClientsGateway().listClientVehiclesPayloadByClientId(clientId)
+  return sanitizeErpClientVehiclesPayload(payload)
+}
+
 export async function listClientsSnapshot(): Promise<ClientsSnapshot> {
   const [clients, vehicles] = await Promise.all([
     listClients(),

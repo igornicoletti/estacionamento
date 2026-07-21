@@ -1,5 +1,11 @@
 export { getClientDetailItems, getClientVehicleDetailItems } from "./clients-details-model"
-export { normalizeDisplayName, parseClientRouteId } from "./clients-formatters"
+export {
+  formatClientDate,
+  formatClientDateTime,
+  formatDurationSeconds,
+  normalizeDisplayName,
+  parseClientRouteId,
+} from "./clients-formatters"
 export {
   clientPayloadKeys,
   clientVehiclePayloadKeys,
@@ -8,10 +14,9 @@ export {
   isClientSyncTrigger,
   isRecord,
   parseClientRows,
-  parseClientSyncHistory,
-  parseClientSyncHistoryEntry,
   parseClientVehicleRows,
   parseRows,
+  parseRowsWithIssues,
   parseTriggerClientsSyncResult,
   readBoolean,
   readNullableString,
@@ -19,6 +24,12 @@ export {
   readString,
 } from "./clients-parsers"
 export {
+  normalizeCpfCnpj,
+  normalizeEmail,
+  normalizePhoneBr,
+  normalizePlate,
+  normalizeUf,
+  normalizeYesNoSourceFlag,
   sanitizeErpClientPayload,
   sanitizeErpClientsPayload,
   sanitizeErpClientVehiclePayload,
@@ -36,14 +47,18 @@ export type {
   ClientSyncCounters,
   ClientSyncHistoryEntry,
   ClientSyncMode,
-  ClientsSnapshot,
   ClientSyncStatus,
   ClientSyncTrigger,
+  ClientsMockScenario,
+  ClientsSnapshot,
   ClientTableRow,
   ClientVehicle,
+  ClientVehiclesSnapshot,
   ClientVehicleTableRow,
   ErpClientPayload,
   ErpClientVehiclePayload,
+  ParseIssue,
+  ParseRowsResult,
   TriggerClientsSyncResult,
   VipFlag,
 } from "./clients-types"

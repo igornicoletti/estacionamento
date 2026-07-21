@@ -1,6 +1,7 @@
 import { type AppDetailsSheetItem } from "@/components/shared/app-details-sheet"
 
-import { clientsCopy } from "../constants"
+import { clientsCopy } from "../constants/clients-copy"
+import { formatClientDate } from "./clients-formatters"
 import { type ClientTableRow, type ClientVehicleTableRow } from "./clients-types"
 
 function emptyFallback(value: string | number | null | undefined) {
@@ -8,6 +9,12 @@ function emptyFallback(value: string | number | null | undefined) {
 }
 
 function mapYesNoToStatus(value: string) {
+  return value.toLocaleUpperCase("pt-BR") === "S"
+    ? clientsCopy.table.yes
+    : clientsCopy.table.no
+}
+
+function mapActiveStatus(value: string) {
   return value.toLocaleUpperCase("pt-BR") === "S"
     ? clientsCopy.table.active
     : clientsCopy.table.inactive
@@ -26,11 +33,11 @@ export function getClientDetailItems(client: ClientTableRow): readonly AppDetail
     { label: clientsCopy.table.email, value: emptyFallback(client.des_email_1) },
     { label: clientsCopy.table.phone, value: emptyFallback(client.num_telefone_1) },
     { label: clientsCopy.table.cityState, value: formatCityState(client.nom_cidade, client.sgl_estado) },
-    { label: clientsCopy.table.registrationDate, value: emptyFallback(client.dta_cadastro) },
-    { label: clientsCopy.table.status, value: mapYesNoToStatus(client.ind_pessoa_ativa) },
+    { label: clientsCopy.table.registrationDate, value: formatClientDate(client.dta_cadastro, clientsCopy.shared.emptyValue) },
+    { label: clientsCopy.table.status, value: mapActiveStatus(client.ind_pessoa_ativa) },
     { label: clientsCopy.table.financialBlock, value: mapYesNoToStatus(client.bloqueio_financeiro) },
     { label: clientsCopy.table.vehicles, value: client.qtd_veiculos },
-    { label: clientsCopy.table.lastPurchase, value: emptyFallback(client.dta_ultima_compra) },
+    { label: clientsCopy.table.lastPurchase, value: formatClientDate(client.dta_ultima_compra, clientsCopy.shared.emptyValue) },
     { label: clientsCopy.table.vip, value: client.vip === "sim" ? clientsCopy.table.yes : clientsCopy.table.no },
   ]
 }

@@ -1,8 +1,24 @@
+import {
+  CLIENT_SYNC_RUN_MODES,
+  CLIENT_SYNC_STATUSES,
+  CLIENT_SYNC_TRIGGERS,
+} from "../constants/clients-sync"
+
 export type ClientStatus = "ativo" | "inativo"
 export type VipFlag = "sim" | "nao"
-export type ClientSyncMode = "full" | "incremental"
-export type ClientSyncStatus = "success" | "warning" | "failed"
-export type ClientSyncTrigger = "automatic" | "manual"
+export type ClientSyncMode = (typeof CLIENT_SYNC_RUN_MODES)[number]
+export type ClientSyncStatus = (typeof CLIENT_SYNC_STATUSES)[number]
+export type ClientSyncTrigger = (typeof CLIENT_SYNC_TRIGGERS)[number]
+export type ClientsMockScenario =
+  | "success"
+  | "empty"
+  | "partial-invalid-rows"
+  | "network-error"
+  | "timeout"
+  | "duplicate-vehicles"
+  | "orphan-vehicles"
+  | "malformed-payload"
+  | "large-dataset"
 
 export interface ErpClientPayload {
   bloqueio_financeiro: unknown
@@ -69,23 +85,41 @@ export interface ClientVehicleTableRow extends ClientVehicle {
   vip: VipFlag
 }
 
+export interface ClientVehiclesSnapshot {
+  client: Client | null
+  vehicles: ClientVehicle[]
+}
+
 export interface ClientsSnapshot {
   clients: Client[]
   vehicles: ClientVehicle[]
+}
+
+export interface ParseIssue {
+  index: number
+  missingKeys: readonly string[]
+  reason: "missing_required_keys" | "row_not_object"
+}
+
+export interface ParseRowsResult<TPayload> {
+  rejectedRows: number
+  rows: TPayload[]
+  issues: readonly ParseIssue[]
 }
 
 export interface ClientSyncCounters {
   clientsCreated: number
   clientsFailed: number
   clientsReceived: number
+  clientsRejected: number
   clientsUnchanged: number
   clientsUpdated: number
   vehiclesCreated: number
   vehiclesFailed: number
   vehiclesReceived: number
+  vehiclesRejected: number
   vehiclesUnchanged: number
   vehiclesUpdated: number
-  [key: string]: number
 }
 
 export interface ClientSyncHistoryEntry {

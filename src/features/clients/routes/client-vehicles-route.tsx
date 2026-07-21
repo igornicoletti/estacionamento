@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, DatabaseIcon } from "lucide-react"
+import { ArrowLeftIcon, DatabaseIcon, ShieldAlertIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate, useParams } from "react-router"
 
@@ -11,8 +11,17 @@ import { Button } from "@/components/ui/button"
 import { AUTH_PERMISSION, useAuth } from "@/features/auth"
 import { getVehicleVipStatus, useVipRules } from "@/features/rules"
 
-import { CLIENT_VEHICLES_TABLE_COLUMN_VISIBILITY_KEY, clientsCopy } from "../constants"
-import { useClientVehicles } from "../hooks"
+import { clientsCopy } from "../constants/clients-copy"
+import {
+  CLIENT_VEHICLES_TABLE_COLUMN_VISIBILITY_KEY,
+  DEFAULT_CLIENT_VEHICLES_COLUMN_VISIBILITY,
+} from "../constants/clients-persistence"
+import { clientsRoutePaths } from "../constants/clients-routes"
+import {
+  useClientVehicles,
+  useClientVehiclesTableFilters,
+  useClients,
+} from "../hooks"
 import {
   getClientVehicleDetailItems,
   mapClientVehicleToTableRow,
@@ -20,67 +29,113 @@ import {
   parseClientRouteId,
   type ClientVehicleTableRow,
 } from "../model"
-import {
-  createClientVehiclesColumns,
-  createVehiclePlateFilterOptions,
-  createVehicleVipFilterOptions,
-} from "../table"
+import { createClientVehiclesColumns } from "../table"
 
-function canManageOperationalData(auth: ReturnType<typeof useAuth>) {
-  return auth.access.hasPermission(AUTH_PERMISSION.syncExecute)
+function canReadClientVehicles(auth: ReturnType<typeof useAuth>) {
+  return auth.access.hasPermission(AUTH_PERMISSION.clientVehiclesRead)
+}
+
+function canManageVipRules(auth: ReturnType<typeof useAuth>) {
+  return auth.access.hasPermission(AUTH_PERMISSION.rulesManage)
 }
 
 export function ClientVehiclesRoute() {
   const navigate = useNavigate()
   const auth = useAuth()
   const params = useParams<{ cod_pessoa: string }>()
-  const clientId = React.useMemo(() => parseClientRouteId(params.cod_pessoa), [params.cod_pessoa])
-  const { client, data, error, isLoading, refetch } = useClientVehicles(clientId)
-  const { data: vipRules, toggleVehicleVip } = useVipRules()
+  const parsedClientId = React.useMemo(() => parseClientRouteId(params.cod_pessoa), [params.cod_pessoa])
+  const clientId = parsedClientId ?? null
+  const {
+    data: clients,
+    error: clientsError,
+    isLoading: isLoadingClients,
+    refetch: refetchClients,
+  } = useClients()
+  const client = React.useMemo(
+    () => clients.find((item) => item.cod_pessoa === clientId) ?? null,
+    [clientId, clients]
+  )
+  const shouldLoadVehicles = Boolean(client)
+  const {
+    data: vehicles,
+    error: vehiclesError,
+    isLoading: isLoadingVehicles,
+    refetch: refetchVehicles,
+  } = useClientVehicles(clientId, { enabled: shouldLoadVehicles })
+  const { data: vipRules, refetch: refetchVipRules, toggleVehicleVip } = useVipRules()
   const [selectedVehicle, setSelectedVehicle] = React.useState<ClientVehicleTableRow | null>(null)
-
-  const canManageClients = canManageOperationalData(auth)
+  const [pendingVipVehicleId, setPendingVipVehicleId] = React.useState<number | null>(null)
+  const canRead = canReadClientVehicles(auth)
+  const canManageVip = canManageVipRules(auth)
   const tableData = React.useMemo<ClientVehicleTableRow[]>(() => {
-    return data.map((vehicle) => mapClientVehicleToTableRow(vehicle, {
+    return vehicles.map((vehicle) => mapClientVehicleToTableRow(vehicle, {
       isVipEnabled: getVehicleVipStatus(vehicle, vipRules),
     }))
-  }, [data, vipRules])
+  }, [vehicles, vipRules])
+  const filterFields = useClientVehiclesTableFilters(tableData)
+  const isResolvingClient = Boolean(clientId) && isLoadingClients && !client
+  const isClientUnavailable = !isResolvingClient && !client
+  const pageTitle = client?.nom_pessoa
+    ? normalizeDisplayName(client.nom_pessoa)
+    : isResolvingClient
+      ? clientsCopy.pages.clients.title
+      : clientsCopy.pages.clientVehicles.fallbackTitle
+  const pageSubtitle = client?.num_cnpj_cpf
+    ?? (isResolvingClient ? clientsCopy.pages.clients.subtitle : clientsCopy.pages.clientVehicles.fallbackDescription)
+  const tableError = clientsError ?? vehiclesError
+  const tableVehicles = client ? tableData : []
+
+  const handleRetry = React.useCallback(async () => {
+    await Promise.allSettled([
+      refetchClients(),
+      shouldLoadVehicles ? refetchVehicles() : Promise.resolve([]),
+    ])
+  }, [refetchClients, refetchVehicles, shouldLoadVehicles])
+
+  const handleToggleVehicleVip = React.useCallback(async (vehicle: ClientVehicleTableRow) => {
+    if (pendingVipVehicleId !== null) {
+      return
+    }
+
+    setPendingVipVehicleId(vehicle.cod_veiculo)
+
+    try {
+      await toggleVehicleVip({
+        clientId: vehicle.cod_pessoa,
+        clientName: vehicle.nom_pessoa,
+        enabled: vehicle.vip !== "sim",
+        vehicleId: vehicle.cod_veiculo,
+        vehiclePlate: vehicle.num_placa,
+      })
+      await refetchVipRules()
+      notify.success(clientsCopy.feedback.vehicleVip.success)
+    } catch {
+      notify.error(clientsCopy.feedback.vehicleVip.error)
+    } finally {
+      setPendingVipVehicleId(null)
+    }
+  }, [pendingVipVehicleId, refetchVipRules, toggleVehicleVip])
 
   const columns = React.useMemo(
-    () => createClientVehiclesColumns({
-      onOpenDetails: setSelectedVehicle,
-      onToggleVip: canManageClients
-        ? (vehicle) => {
-          void notify.promise(
-            toggleVehicleVip({
-              clientId: vehicle.cod_pessoa,
-              clientName: vehicle.nom_pessoa,
-              enabled: vehicle.vip !== "sim",
-              vehicleId: vehicle.cod_veiculo,
-              vehiclePlate: vehicle.num_placa,
-            }),
-            clientsCopy.feedback.vehicleVip
-          )
-        }
-        : undefined,
-      vipActionLabel: clientsCopy.actions.toggleVehicleVip,
-    }),
-    [canManageClients, toggleVehicleVip]
-  )
-  const plateOptions = React.useMemo(
-    () => createVehiclePlateFilterOptions(tableData),
-    [tableData]
-  )
-  const vipOptions = React.useMemo(
-    () => createVehicleVipFilterOptions(tableData),
-    [tableData]
+    () =>
+      createClientVehiclesColumns({
+        onOpenDetails: setSelectedVehicle,
+        onToggleVip: canManageVip
+          ? (vehicle) => {
+            void handleToggleVehicleVip(vehicle)
+          }
+          : undefined,
+        pendingVipVehicleId,
+        vipActionLabel: clientsCopy.actions.toggleVehicleVip,
+      }),
+    [canManageVip, handleToggleVehicleVip, pendingVipVehicleId]
   )
 
   return (
     <PageSection>
       <PageHeader
-        title={client?.nom_pessoa ? normalizeDisplayName(client.nom_pessoa) : clientsCopy.pages.clientVehicles.fallbackTitle}
-        subtitle={client?.num_cnpj_cpf || clientsCopy.pages.clientVehicles.fallbackDescription}
+        title={parsedClientId === null ? clientsCopy.pages.clientVehicles.invalidTitle : pageTitle}
+        subtitle={parsedClientId === null ? clientsCopy.pages.clientVehicles.invalidDescription : pageSubtitle}
         actions={(
           <PageHeaderActions>
             <Button
@@ -88,7 +143,7 @@ export function ClientVehiclesRoute() {
               variant="secondary"
               size="lg"
               onClick={() => {
-                void navigate("/clientes")
+                void navigate(clientsRoutePaths.list)
               }}
             >
               <ArrowLeftIcon aria-hidden="true" />
@@ -98,45 +153,63 @@ export function ClientVehiclesRoute() {
         )}
       />
 
-      <DataTable
-        columns={columns}
-        data={tableData}
-        columnVisibilityStorageKey={CLIENT_VEHICLES_TABLE_COLUMN_VISIBILITY_KEY}
-        getRowId={(vehicle) => String(vehicle.cod_veiculo)}
-        globalSearch={{
-          columnIds: ["cod_veiculo", "nom_pessoa", "num_cnpj_cpf", "num_placa", "des_veiculo", "nom_motorista"],
-          placeholder: clientsCopy.pages.clientVehicles.searchPlaceholder,
-        }}
-        filterFields={[
-          { id: "num_placa", title: clientsCopy.filters.plates, options: plateOptions },
-          { id: "vip", title: clientsCopy.filters.vip, options: vipOptions },
-        ]}
-        emptyState={(
-          <AppEmptyState
-            media={<DatabaseIcon />}
-            title={clientsCopy.empty.vehiclesTitle}
-            description={clientsCopy.empty.vehiclesDescription}
-          />
-        )}
-        filteredEmptyState={(
-          <AppEmptyState
-            media={<DatabaseIcon />}
-            title={clientsCopy.filteredEmpty.vehiclesTitle}
-            description={clientsCopy.filteredEmpty.vehiclesDescription}
-          />
-        )}
-        isLoading={isLoading}
-        error={error}
-        onRetry={() => {
-          void refetch()
-        }}
-        enablePagination
-        enableViewOptions
-      />
+      {canRead ? (
+        <DataTable
+          columns={columns}
+          data={parsedClientId === null ? [] : tableVehicles}
+          defaultColumnVisibility={DEFAULT_CLIENT_VEHICLES_COLUMN_VISIBILITY}
+          columnVisibilityStorageKey={CLIENT_VEHICLES_TABLE_COLUMN_VISIBILITY_KEY}
+          getRowId={(vehicle: ClientVehicleTableRow) => String(vehicle.cod_veiculo)}
+          globalSearch={{
+            columnIds: ["cod_veiculo", "nom_pessoa", "num_cnpj_cpf", "num_placa", "des_veiculo", "nom_motorista"],
+            placeholder: clientsCopy.pages.clientVehicles.searchPlaceholder,
+          }}
+          filterFields={filterFields}
+          emptyState={(
+            <AppEmptyState
+              media={<DatabaseIcon />}
+              title={
+                parsedClientId === null
+                  ? clientsCopy.pages.clientVehicles.invalidTitle
+                  : isClientUnavailable
+                    ? clientsCopy.pages.clientVehicles.fallbackTitle
+                    : clientsCopy.empty.vehiclesTitle
+              }
+              description={
+                parsedClientId === null
+                  ? clientsCopy.pages.clientVehicles.invalidDescription
+                  : isClientUnavailable
+                    ? clientsCopy.pages.clientVehicles.fallbackDescription
+                    : clientsCopy.empty.vehiclesDescription
+              }
+            />
+          )}
+          filteredEmptyState={(
+            <AppEmptyState
+              media={<DatabaseIcon />}
+              title={clientsCopy.filteredEmpty.vehiclesTitle}
+              description={clientsCopy.filteredEmpty.vehiclesDescription}
+            />
+          )}
+          isLoading={parsedClientId !== null && (isLoadingClients || (shouldLoadVehicles && isLoadingVehicles))}
+          error={tableError}
+          onRetry={() => {
+            void handleRetry()
+          }}
+          enablePagination
+          enableViewOptions
+        />
+      ) : (
+        <AppEmptyState
+          media={<ShieldAlertIcon />}
+          title={clientsCopy.pages.clientVehicles.accessDeniedTitle}
+          description={clientsCopy.pages.clientVehicles.accessDeniedDescription}
+        />
+      )}
 
       <AppDetailsSheet
         open={Boolean(selectedVehicle)}
-        onOpenChange={(open) => {
+        onOpenChange={(open: boolean) => {
           if (!open) {
             setSelectedVehicle(null)
           }

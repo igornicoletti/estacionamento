@@ -1,11 +1,18 @@
-import { clientsCopy } from "../constants"
+import { clientsCopy } from "../constants/clients-copy"
 import {
-  type ClientSyncHistoryEntry,
+  CLIENT_SYNC_FAILED_STATUS,
+  CLIENT_SYNC_RUN_MODES,
+  CLIENT_SYNC_STATUSES,
+  CLIENT_SYNC_TRIGGERS,
+} from "../constants/clients-sync"
+import {
   type ClientSyncMode,
   type ClientSyncStatus,
   type ClientSyncTrigger,
   type ErpClientPayload,
   type ErpClientVehiclePayload,
+  type ParseIssue,
+  type ParseRowsResult,
   type TriggerClientsSyncResult,
 } from "./clients-types"
 
@@ -34,16 +41,55 @@ export function readBoolean(value: unknown) {
     return value
   }
 
-  if (typeof value === "string") {
-    const normalized = value.trim().toLocaleUpperCase("pt-BR")
-    return normalized === "TRUE" || normalized === "S" || normalized === "SIM"
+  if (typeof value === "number") {
+    return value === 1
   }
 
-  return Boolean(value)
+  if (typeof value === "string") {
+    const normalized = value.trim().toLocaleUpperCase("pt-BR")
+    return ["1", "TRUE", "S", "SIM", "Y", "YES", "ATIVO", "ACTIVE"].includes(normalized)
+  }
+
+  return false
 }
 
-function hasKeys(value: UnknownRecord, keys: readonly string[]) {
-  return keys.every((key) => key in value)
+function getMissingKeys(value: UnknownRecord, keys: readonly string[]) {
+  return keys.filter((key) => !(key in value))
+}
+
+export function parseRowsWithIssues<TPayload>(
+  value: unknown,
+  keys: readonly string[],
+  errorMessage: string
+): ParseRowsResult<TPayload> {
+  if (!Array.isArray(value)) {
+    throw new Error(errorMessage)
+  }
+
+  const rows: TPayload[] = []
+  const issues: ParseIssue[] = []
+
+  value.forEach((row, index) => {
+    if (!isRecord(row)) {
+      issues.push({ index, missingKeys: [], reason: "row_not_object" })
+      return
+    }
+
+    const missingKeys = getMissingKeys(row, keys)
+
+    if (missingKeys.length > 0) {
+      issues.push({ index, missingKeys, reason: "missing_required_keys" })
+      return
+    }
+
+    rows.push(row as TPayload)
+  })
+
+  return {
+    rows,
+    rejectedRows: issues.length,
+    issues,
+  }
 }
 
 export function parseRows<TPayload>(
@@ -51,17 +97,13 @@ export function parseRows<TPayload>(
   keys: readonly string[],
   errorMessage: string
 ): readonly TPayload[] {
-  if (!Array.isArray(value)) {
-    throw new Error(errorMessage)
+  const result = parseRowsWithIssues<TPayload>(value, keys, errorMessage)
+
+  if (result.rejectedRows > 0) {
+    throw new Error(`${errorMessage} ${result.rejectedRows} registro(s) rejeitado(s).`)
   }
 
-  return value.reduce<TPayload[]>((rows, row) => {
-    if (isRecord(row) && hasKeys(row, keys)) {
-      rows.push(row as TPayload)
-    }
-
-    return rows
-  }, [])
+  return result.rows
 }
 
 export const clientPayloadKeys = [
@@ -103,96 +145,20 @@ export function parseClientVehicleRows(value: unknown) {
   return parseRows<ErpClientVehiclePayload>(
     value,
     clientVehiclePayloadKeys,
-    clientsCopy.errors.invalidClientsResponse
+    clientsCopy.errors.invalidVehiclesResponse
   )
 }
 
 export function isClientSyncMode(value: unknown): value is ClientSyncMode {
-  return value === "full" || value === "incremental"
+  return (CLIENT_SYNC_RUN_MODES as readonly unknown[]).includes(value)
 }
 
 export function isClientSyncTrigger(value: unknown): value is ClientSyncTrigger {
-  return value === "automatic" || value === "manual"
+  return (CLIENT_SYNC_TRIGGERS as readonly unknown[]).includes(value)
 }
 
 export function isClientSyncStatus(value: unknown): value is ClientSyncStatus {
-  return value === "success" || value === "warning" || value === "failed"
-}
-
-function normalizeSyncMessage(message: unknown, status: ClientSyncStatus) {
-  const text = readNullableString(message)
-
-  if (text) {
-    return text
-  }
-
-  return status === "success"
-    ? clientsCopy.sync.feedback.success
-    : clientsCopy.sync.feedback.error
-}
-
-function normalizeSyncErrorDetails(value: unknown): readonly string[] {
-  if (!Array.isArray(value)) {
-    return []
-  }
-
-  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-}
-
-export function parseClientSyncHistoryEntry(value: unknown): ClientSyncHistoryEntry | null {
-  if (!isRecord(value)) {
-    return null
-  }
-
-  const id = readNullableString(value.id)
-  const mode = isClientSyncMode(value.mode) ? value.mode : null
-  const trigger = isClientSyncTrigger(value.trigger) ? value.trigger : null
-  const status = isClientSyncStatus(value.status) ? value.status : null
-  const startedAt = readNullableString(value.started_at)
-  const finishedAt = readNullableString(value.finished_at)
-
-  if (!id || !mode || !trigger || !status || !startedAt) {
-    return null
-  }
-
-  return {
-    consecutiveFailures: readNumber(value.consecutive_failures),
-    counters: {
-      clientsCreated: readNumber(value.counters_clients_created),
-      clientsFailed: readNumber(value.counters_clients_failed),
-      clientsReceived: readNumber(value.counters_clients_received),
-      clientsUnchanged: readNumber(value.counters_clients_unchanged),
-      clientsUpdated: readNumber(value.counters_clients_updated),
-      vehiclesCreated: readNumber(value.counters_vehicles_created),
-      vehiclesFailed: readNumber(value.counters_vehicles_failed),
-      vehiclesReceived: readNumber(value.counters_vehicles_received),
-      vehiclesUnchanged: readNumber(value.counters_vehicles_unchanged),
-      vehiclesUpdated: readNumber(value.counters_vehicles_updated),
-    },
-    durationSeconds: typeof value.duration_seconds === "number" ? value.duration_seconds : null,
-    errorDetails: normalizeSyncErrorDetails(value.error_details),
-    finishedAt,
-    id,
-    message: normalizeSyncMessage(value.message, status),
-    mode,
-    startedAt,
-    status,
-    trigger,
-  }
-}
-
-export function parseClientSyncHistory(value: unknown): ClientSyncHistoryEntry[] {
-  if (!Array.isArray(value)) {
-    throw new Error(clientsCopy.errors.invalidSyncHistoryResponse)
-  }
-
-  const entries = value.map(parseClientSyncHistoryEntry)
-
-  if (entries.some((entry) => entry === null)) {
-    throw new Error(clientsCopy.errors.invalidSyncHistoryResponse)
-  }
-
-  return entries.filter((entry): entry is ClientSyncHistoryEntry => entry !== null)
+  return (CLIENT_SYNC_STATUSES as readonly unknown[]).includes(value)
 }
 
 export function parseTriggerClientsSyncResult(value: unknown): TriggerClientsSyncResult {
@@ -200,7 +166,7 @@ export function parseTriggerClientsSyncResult(value: unknown): TriggerClientsSyn
     throw new Error(clientsCopy.sync.feedback.error)
   }
 
-  const status = isClientSyncStatus(value.status) ? value.status : "failed"
+  const status = isClientSyncStatus(value.status) ? value.status : CLIENT_SYNC_FAILED_STATUS
   const message = readNullableString(value.message) ?? clientsCopy.sync.feedback.error
   const runId = readNullableString(value.runId)
 

@@ -1,3 +1,5 @@
 export { useClientSyncHistory } from "./use-client-sync-history"
 export { useClientVehicles } from "./use-client-vehicles"
+export { useClientVehiclesTableFilters } from "./use-client-vehicles-table-filters"
 export { useClients } from "./use-clients"
+export { useClientsTableFilters } from "./use-clients-table-filters"

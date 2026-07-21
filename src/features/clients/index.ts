@@ -1,6 +1,25 @@
 export { ClientsSyncHistoryDialog } from "./components"
-export { clientsCopy } from "./constants"
-export { useClients, useClientSyncHistory, useClientVehicles } from "./hooks"
+export {
+  clientsCopy,
+  clientsRoutePaths,
+  CLIENT_VEHICLES_CACHE_KEY_PREFIX,
+  CLIENT_VEHICLES_TABLE_COLUMN_VISIBILITY_KEY,
+  CLIENTS_BATCH_SIZE,
+  CLIENTS_CACHE_KEY,
+  CLIENTS_MAX_BATCHES,
+  CLIENTS_SYNC_HISTORY_CACHE_KEY,
+  CLIENTS_SYNC_HISTORY_LIMIT,
+  CLIENTS_TABLE_COLUMN_VISIBILITY_KEY,
+  DEFAULT_CLIENTS_COLUMN_VISIBILITY,
+  DEFAULT_CLIENT_VEHICLES_COLUMN_VISIBILITY,
+} from "./constants"
+export {
+  useClientSyncHistory,
+  useClientVehicles,
+  useClientVehiclesTableFilters,
+  useClients,
+  useClientsTableFilters,
+} from "./hooks"
 export {
   getClientDetailItems,
   getClientVehicleDetailItems,
@@ -35,6 +54,7 @@ export {
   configureClientsGateway,
   getClientsGateway,
   isClientSyncInProgressError,
+  listClientVehiclesByClientId,
   listClients,
   listClientsSnapshot,
   listClientSyncHistory,
@@ -44,10 +64,6 @@ export {
   type ClientsGateway,
 } from "./services"
 export {
-  createClientStatusFilterOptions,
   createClientsColumns,
   createClientVehiclesColumns,
-  createClientVipFilterOptions,
-  createVehiclePlateFilterOptions,
-  createVehicleVipFilterOptions,
 } from "./table"

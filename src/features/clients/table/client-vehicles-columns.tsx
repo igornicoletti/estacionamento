@@ -5,12 +5,14 @@ import { createActionsColumn, DataTableTextAction } from "@/components/data-tabl
 import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
-import { clientsCopy } from "../constants"
+import { clientsCopy } from "../constants/clients-copy"
+import { CLIENT_SUCCESS_BADGE_TONE } from "../constants/clients-ui"
 import { type ClientVehicleTableRow } from "../model"
 
 interface CreateClientVehiclesColumnsOptions {
   onOpenDetails: (vehicle: ClientVehicleTableRow) => void
   onToggleVip?: (vehicle: ClientVehicleTableRow) => void
+  pendingVipVehicleId?: number | null
   vipActionLabel?: string
 }
 
@@ -84,32 +86,40 @@ export function createClientVehiclesColumns(
         return (
           <Badge
             variant="secondary"
-            className={getBadgeToneClassName(isVip ? "success" : undefined)}
+            className={getBadgeToneClassName(isVip ? CLIENT_SUCCESS_BADGE_TONE : undefined)}
           >
             {isVip ? clientsCopy.table.yes : clientsCopy.table.no}
           </Badge>
         )
       },
     },
-    createActionsColumn<ClientVehicleTableRow>([
-      {
-        id: "details",
-        label: clientsCopy.actions.details,
-        onSelect: (row) => {
-          options.onOpenDetails(row.original)
-        },
-      },
-      ...(options.onToggleVip
-        ? [
-          {
-            id: "vip" as const,
-            label: options.vipActionLabel ?? clientsCopy.actions.toggleVehicleVip,
-            onSelect: (row: { original: ClientVehicleTableRow }) => {
-              options.onToggleVip?.(row.original)
-            },
+    createActionsColumn<ClientVehicleTableRow>((row) => {
+      const isPendingVip = options.pendingVipVehicleId === row.original.cod_veiculo
+
+      return [
+        {
+          id: "details",
+          label: clientsCopy.actions.details,
+          disabled: isPendingVip,
+          onSelect: (selectedRow) => {
+            options.onOpenDetails(selectedRow.original)
           },
-        ]
-        : []),
-    ]),
+        },
+        ...(options.onToggleVip
+          ? [
+            {
+              id: "vip" as const,
+              label: isPendingVip
+                ? clientsCopy.actions.updating
+                : options.vipActionLabel ?? clientsCopy.actions.toggleVehicleVip,
+              disabled: isPendingVip,
+              onSelect: (selectedRow) => {
+                options.onToggleVip?.(selectedRow.original)
+              },
+            },
+          ]
+          : []),
+      ]
+    }),
   ]
 }

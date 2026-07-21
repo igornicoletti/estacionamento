@@ -1,4 +1,4 @@
-import { DatabaseIcon, HistoryIcon, RefreshCcwIcon } from "lucide-react"
+import { DatabaseIcon, HistoryIcon, RefreshCcwIcon, ShieldAlertIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate } from "react-router"
 
@@ -10,81 +10,126 @@ import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { AUTH_PERMISSION, useAuth } from "@/features/auth"
 import { getClientVipStatus, useVipRules } from "@/features/rules"
-import { executeSyncWithRefresh, SyncBlockingDialog } from "@/features/sync"
 
-import { ClientsSyncHistoryDialog } from "../components"
-import { CLIENTS_TABLE_COLUMN_VISIBILITY_KEY, clientsCopy } from "../constants"
-import { useClients, useClientSyncHistory } from "../hooks"
-import { getClientDetailItems, mapClientToTableRow, type ClientTableRow } from "../model"
-import { isClientSyncInProgressError, triggerClientsSync } from "../services"
+import { ClientSyncBlockingDialog, ClientsSyncHistoryDialog } from "../components"
+import { clientsCopy } from "../constants/clients-copy"
 import {
-  createClientsColumns,
-  createClientStatusFilterOptions,
-  createClientVipFilterOptions,
-} from "../table"
+  CLIENTS_TABLE_COLUMN_VISIBILITY_KEY,
+  DEFAULT_CLIENTS_COLUMN_VISIBILITY,
+} from "../constants/clients-persistence"
+import { CLIENT_SYNC_DEFAULT_MODE } from "../constants/clients-sync"
+import { clientsRoutePaths } from "../constants/clients-routes"
+import {
+  useClientSyncHistory,
+  useClients,
+  useClientsTableFilters,
+} from "../hooks"
+import { getClientDetailItems, mapClientToTableRow, type ClientTableRow } from "../model"
+import {
+  executeClientSyncWithRefresh,
+  isClientSyncInProgressError,
+  triggerClientsSync,
+} from "../services"
+import { createClientsColumns } from "../table"
 
-function canManageOperationalData(auth: ReturnType<typeof useAuth>) {
+function canReadClients(auth: ReturnType<typeof useAuth>) {
+  return auth.access.hasPermission(AUTH_PERMISSION.clientsRead)
+}
+
+function canReadClientSyncHistory(auth: ReturnType<typeof useAuth>) {
+  return auth.access.hasPermission(AUTH_PERMISSION.clientsSyncRead)
+    || auth.access.hasPermission(AUTH_PERMISSION.syncExecute)
+    || auth.access.hasPermission(AUTH_PERMISSION.auditRead)
+}
+
+function canExecuteClientSync(auth: ReturnType<typeof useAuth>) {
   return auth.access.hasPermission(AUTH_PERMISSION.syncExecute)
+}
+
+function canManageVipRules(auth: ReturnType<typeof useAuth>) {
+  return auth.access.hasPermission(AUTH_PERMISSION.rulesManage)
 }
 
 export function ClientsRoute() {
   const navigate = useNavigate()
   const auth = useAuth()
+  const canRead = canReadClients(auth)
+  const canReadHistory = canReadClientSyncHistory(auth)
+  const canSync = canExecuteClientSync(auth)
+  const canManageVip = canManageVipRules(auth)
   const { data: clients, error, isLoading, refetch } = useClients()
   const {
     data: syncHistory,
     error: syncHistoryError,
     isLoading: isLoadingSyncHistory,
     refetch: refetchSyncHistory,
-  } = useClientSyncHistory()
-  const { data: vipRules, toggleClientVip } = useVipRules()
+  } = useClientSyncHistory({ enabled: canReadHistory })
+  const { data: vipRules, refetch: refetchVipRules, toggleClientVip } = useVipRules()
   const [selectedClient, setSelectedClient] = React.useState<ClientTableRow | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
   const [isSyncing, setIsSyncing] = React.useState(false)
-
-  const canManageClients = canManageOperationalData(auth)
+  const [pendingVipClientId, setPendingVipClientId] = React.useState<number | null>(null)
   const tableData = React.useMemo<ClientTableRow[]>(() => {
     return clients.map((client) => mapClientToTableRow(client, {
       isVipEnabled: getClientVipStatus(client, vipRules),
     }))
   }, [clients, vipRules])
+  const filterFields = useClientsTableFilters(tableData)
+
+  const handleOpenDetails = React.useCallback((client: ClientTableRow) => {
+    setSelectedClient(client)
+  }, [])
+
+  const handleSelectVehicles = React.useCallback(
+    (client: ClientTableRow) => {
+      void navigate(clientsRoutePaths.vehicles(client.cod_pessoa))
+    },
+    [navigate]
+  )
+
+  const handleToggleClientVip = React.useCallback(async (client: ClientTableRow) => {
+    if (pendingVipClientId !== null) {
+      return
+    }
+
+    setPendingVipClientId(client.cod_pessoa)
+
+    try {
+      await toggleClientVip({
+        clientId: client.cod_pessoa,
+        clientName: client.nom_pessoa,
+        enabled: client.vip !== "sim",
+      })
+      await refetchVipRules()
+      notify.success(clientsCopy.feedback.clientVip.success)
+    } catch {
+      notify.error(clientsCopy.feedback.clientVip.error)
+    } finally {
+      setPendingVipClientId(null)
+    }
+  }, [pendingVipClientId, refetchVipRules, toggleClientVip])
 
   const columns = React.useMemo(
-    () => createClientsColumns({
-      onOpenDetails: setSelectedClient,
-      onSelectVehicles: (client) => {
-        void navigate(`/clientes/${client.cod_pessoa}`)
-      },
-      onToggleVip: canManageClients
-        ? (client) => {
-          void notify.promise(
-            toggleClientVip({
-              clientId: client.cod_pessoa,
-              clientName: client.nom_pessoa,
-              enabled: client.vip !== "sim",
-            }),
-            clientsCopy.feedback.clientVip
-          )
-        }
-        : undefined,
-      vipActionLabel: clientsCopy.actions.toggleClientVip,
-    }),
-    [canManageClients, navigate, toggleClientVip]
-  )
-  const statusOptions = React.useMemo(
-    () => createClientStatusFilterOptions(tableData),
-    [tableData]
-  )
-  const vipOptions = React.useMemo(
-    () => createClientVipFilterOptions(tableData),
-    [tableData]
+    () =>
+      createClientsColumns({
+        onOpenDetails: handleOpenDetails,
+        onSelectVehicles: handleSelectVehicles,
+        onToggleVip: canManageVip
+          ? (client) => {
+            void handleToggleClientVip(client)
+          }
+          : undefined,
+        pendingVipClientId,
+        vipActionLabel: clientsCopy.actions.toggleClientVip,
+      }),
+    [canManageVip, handleOpenDetails, handleSelectVehicles, handleToggleClientVip, pendingVipClientId]
   )
 
-  async function refreshOperationalSnapshots() {
-    await Promise.allSettled([refetch(), refetchSyncHistory()])
-  }
+  const refreshOperationalSnapshots = React.useCallback(async () => {
+    await Promise.allSettled([refetch(), refetchSyncHistory(), refetchVipRules()])
+  }, [refetch, refetchSyncHistory, refetchVipRules])
 
-  async function handleStartSync() {
+  const handleStartSync = React.useCallback(async () => {
     if (isSyncing) {
       return
     }
@@ -92,8 +137,8 @@ export function ClientsRoute() {
     setIsSyncing(true)
 
     try {
-      await executeSyncWithRefresh({
-        triggerSync: () => triggerClientsSync("incremental"),
+      await executeClientSyncWithRefresh({
+        triggerSync: () => triggerClientsSync(CLIENT_SYNC_DEFAULT_MODE),
         refreshSnapshots: refreshOperationalSnapshots,
         isInProgressError: isClientSyncInProgressError,
         onSuccess: () => {
@@ -109,6 +154,22 @@ export function ClientsRoute() {
     } finally {
       setIsSyncing(false)
     }
+  }, [isSyncing, refreshOperationalSnapshots])
+
+  if (!canRead) {
+    return (
+      <PageSection>
+        <PageHeader
+          title={clientsCopy.pages.clients.title}
+          subtitle={clientsCopy.pages.clients.subtitle}
+        />
+        <AppEmptyState
+          media={<ShieldAlertIcon />}
+          title={clientsCopy.pages.clients.accessDeniedTitle}
+          description={clientsCopy.pages.clients.accessDeniedDescription}
+        />
+      </PageSection>
+    )
   }
 
   return (
@@ -118,18 +179,13 @@ export function ClientsRoute() {
         subtitle={clientsCopy.pages.clients.subtitle}
         actions={(
           <PageHeaderActions>
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              onClick={() => {
-                setIsHistoryOpen(true)
-              }}
-            >
-              <HistoryIcon aria-hidden="true" />
-              {clientsCopy.actions.history}
-            </Button>
-            {canManageClients ? (
+            {canReadHistory ? (
+              <Button type="button" variant="secondary" size="lg" onClick={() => setIsHistoryOpen(true)}>
+                <HistoryIcon aria-hidden="true" />
+                {clientsCopy.actions.history}
+              </Button>
+            ) : null}
+            {canSync ? (
               <Button
                 type="button"
                 variant="secondary"
@@ -150,16 +206,23 @@ export function ClientsRoute() {
       <DataTable
         columns={columns}
         data={tableData}
+        defaultColumnVisibility={DEFAULT_CLIENTS_COLUMN_VISIBILITY}
         columnVisibilityStorageKey={CLIENTS_TABLE_COLUMN_VISIBILITY_KEY}
-        getRowId={(client) => String(client.cod_pessoa)}
+        getRowId={(client: ClientTableRow) => String(client.cod_pessoa)}
         globalSearch={{
-          columnIds: ["cod_pessoa", "nom_pessoa", "nom_fantasia", "num_cnpj_cpf", "nom_cidade", "qtd_veiculos"],
+          columnIds: [
+            "cod_pessoa",
+            "nom_pessoa",
+            "nom_fantasia",
+            "num_cnpj_cpf",
+            "des_email_1",
+            "num_telefone_1",
+            "nom_cidade",
+            "qtd_veiculos",
+          ],
           placeholder: clientsCopy.pages.clients.searchPlaceholder,
         }}
-        filterFields={[
-          { id: "status", title: clientsCopy.filters.status, options: statusOptions },
-          { id: "vip", title: clientsCopy.filters.vip, options: vipOptions },
-        ]}
+        filterFields={filterFields}
         emptyState={(
           <AppEmptyState
             media={<DatabaseIcon />}
@@ -195,18 +258,20 @@ export function ClientsRoute() {
         items={selectedClient ? getClientDetailItems(selectedClient) : []}
       />
 
-      <ClientsSyncHistoryDialog
-        open={isHistoryOpen}
-        onOpenChange={setIsHistoryOpen}
-        entries={syncHistory}
-        isLoading={isLoadingSyncHistory}
-        error={syncHistoryError}
-        onRetry={() => {
-          void refetchSyncHistory()
-        }}
-      />
+      {canReadHistory ? (
+        <ClientsSyncHistoryDialog
+          open={isHistoryOpen}
+          onOpenChange={setIsHistoryOpen}
+          entries={syncHistory}
+          isLoading={isLoadingSyncHistory}
+          error={syncHistoryError}
+          onRetry={() => {
+            void refetchSyncHistory()
+          }}
+        />
+      ) : null}
 
-      <SyncBlockingDialog
+      <ClientSyncBlockingDialog
         open={isSyncing}
         title={clientsCopy.sync.runningTitle}
         description={clientsCopy.sync.runningDescription}

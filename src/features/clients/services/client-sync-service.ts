@@ -1,6 +1,16 @@
+import { isErpCatalogMockEnabled } from "@/features/erp-mock"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
-import { clientsCopy } from "../constants"
+import { clientsCopy } from "../constants/clients-copy"
+import {
+  CLIENT_SYNC_DEFAULT_MODE,
+  CLIENT_SYNC_FETCH_ERROR_MESSAGE,
+  CLIENT_SYNC_FUNCTION_NAME,
+  CLIENT_SYNC_IN_PROGRESS_ERROR_CODE,
+  CLIENT_SYNC_MANUAL_TRIGGER,
+  CLIENT_SYNC_MOCK_RUN_ID_PREFIX,
+  CLIENT_SYNC_SUCCESS_STATUS,
+} from "../constants/clients-sync"
 import {
   isRecord,
   parseTriggerClientsSyncResult,
@@ -8,9 +18,15 @@ import {
   type ClientSyncMode,
   type TriggerClientsSyncResult,
 } from "../model"
+import { recordMockClientSyncHistoryRun } from "./client-sync-history-service"
 
-const syncInProgressErrorCode = "sync_in_progress"
+interface FunctionInvokeResult {
+  data: unknown
+  error: unknown
+}
+
 let activeClientSyncPromise: Promise<TriggerClientsSyncResult> | null = null
+let mockSyncRunSequence = 0
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
@@ -25,13 +41,13 @@ function readErrorMessage(error: unknown) {
 }
 
 async function readInvokeErrorMessage(error: unknown) {
-  if (error instanceof Error && error.message === "Failed to fetch") {
+  if (error instanceof Error && error.message === CLIENT_SYNC_FETCH_ERROR_MESSAGE) {
     return clientsCopy.errors.syncUnavailable
   }
 
   if (isRecord(error) && error.context instanceof Response) {
     try {
-      const payload = await error.context.clone().json() as unknown
+      const payload: unknown = await error.context.clone().json()
 
       if (isRecord(payload)) {
         return readNullableString(payload.message) ?? readErrorMessage(error)
@@ -44,25 +60,38 @@ async function readInvokeErrorMessage(error: unknown) {
   return readErrorMessage(error)
 }
 
-function getSupabaseOrThrow() {
-  const supabase = getSupabaseBrowserClient()
+function parseFunctionInvokeResponse(value: unknown): FunctionInvokeResult {
+  const record = isRecord(value) ? value : null
 
-  if (!supabase) {
+  if (!record) {
     throw new Error(clientsCopy.sync.feedback.error)
   }
 
-  return supabase
+  return {
+    data: record.data,
+    error: record.error ?? null,
+  }
+}
+
+function createMockSyncResult(mode: ClientSyncMode): TriggerClientsSyncResult {
+  mockSyncRunSequence += 1
+
+  return {
+    message: clientsCopy.sync.feedback.success,
+    runId: `${CLIENT_SYNC_MOCK_RUN_ID_PREFIX}-${mode}-${mockSyncRunSequence}`,
+    status: CLIENT_SYNC_SUCCESS_STATUS,
+  }
 }
 
 export function isClientSyncInProgressError(error: unknown) {
-  return error instanceof Error && error.message === syncInProgressErrorCode
+  return error instanceof Error && error.message === CLIENT_SYNC_IN_PROGRESS_ERROR_CODE
 }
 
 export async function triggerClientsSync(
-  mode: ClientSyncMode = "incremental"
+  mode: ClientSyncMode = CLIENT_SYNC_DEFAULT_MODE
 ): Promise<TriggerClientsSyncResult> {
   if (activeClientSyncPromise) {
-    throw new Error(syncInProgressErrorCode)
+    throw new Error(CLIENT_SYNC_IN_PROGRESS_ERROR_CODE)
   }
 
   const promise = executeClientSync(mode)
@@ -76,16 +105,36 @@ export async function triggerClientsSync(
 }
 
 async function executeClientSync(mode: ClientSyncMode): Promise<TriggerClientsSyncResult> {
-  const supabase = getSupabaseOrThrow()
-  const response = await supabase.functions.invoke("clients-sync", {
-    body: { mode, trigger: "manual" },
-  }) as { data: unknown; error: unknown }
+  if (isErpCatalogMockEnabled()) {
+    await Promise.resolve()
 
-  if (response.error) {
+    const result = createMockSyncResult(mode)
+
+    await recordMockClientSyncHistoryRun({
+      mode,
+      trigger: CLIENT_SYNC_MANUAL_TRIGGER,
+      result,
+    })
+
+    return result
+  }
+
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    throw new Error(clientsCopy.sync.feedback.error)
+  }
+
+  const response: unknown = await supabase.functions.invoke(CLIENT_SYNC_FUNCTION_NAME, {
+    body: { mode, trigger: CLIENT_SYNC_MANUAL_TRIGGER },
+  })
+  const invokeResult = parseFunctionInvokeResponse(response)
+
+  if (invokeResult.error) {
     throw new Error(
-      (await readInvokeErrorMessage(response.error)) ?? clientsCopy.sync.feedback.error
+      (await readInvokeErrorMessage(invokeResult.error)) ?? clientsCopy.sync.feedback.error
     )
   }
 
-  return parseTriggerClientsSyncResult(response.data)
+  return parseTriggerClientsSyncResult(invokeResult.data)
 }

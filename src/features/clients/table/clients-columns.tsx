@@ -5,13 +5,15 @@ import { createActionsColumn, DataTableTextAction } from "@/components/data-tabl
 import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
-import { clientsCopy } from "../constants"
+import { clientsCopy } from "../constants/clients-copy"
+import { CLIENT_SUCCESS_BADGE_TONE } from "../constants/clients-ui"
 import { type ClientTableRow } from "../model"
 
 interface CreateClientsColumnsOptions {
   onOpenDetails: (client: ClientTableRow) => void
   onSelectVehicles?: (client: ClientTableRow) => void
   onToggleVip?: (client: ClientTableRow) => void
+  pendingVipClientId?: number | null
   vipActionLabel?: string
 }
 
@@ -68,6 +70,20 @@ export function createClientsColumns(
       size: 160,
     },
     {
+      accessorKey: "des_email_1",
+      header: clientsCopy.table.email,
+      meta: { label: clientsCopy.table.email },
+      size: 180,
+      cell: ({ row }) => row.original.des_email_1 || clientsCopy.shared.emptyValue,
+    },
+    {
+      accessorKey: "num_telefone_1",
+      header: clientsCopy.table.phone,
+      meta: { label: clientsCopy.table.phone },
+      size: 140,
+      cell: ({ row }) => row.original.num_telefone_1 || clientsCopy.shared.emptyValue,
+    },
+    {
       id: "cidadeUf",
       accessorFn: (client) => formatCityState(client),
       header: clientsCopy.table.cityState,
@@ -87,7 +103,7 @@ export function createClientsColumns(
         return (
           <Badge
             variant="secondary"
-            className={getBadgeToneClassName(isActive ? "success" : undefined)}
+            className={getBadgeToneClassName(isActive ? CLIENT_SUCCESS_BADGE_TONE : undefined)}
           >
             {isActive ? clientsCopy.table.active : clientsCopy.table.inactive}
           </Badge>
@@ -121,39 +137,48 @@ export function createClientsColumns(
         return (
           <Badge
             variant="secondary"
-            className={getBadgeToneClassName(isVip ? "success" : undefined)}
+            className={getBadgeToneClassName(isVip ? CLIENT_SUCCESS_BADGE_TONE : undefined)}
           >
             {isVip ? clientsCopy.table.yes : clientsCopy.table.no}
           </Badge>
         )
       },
     },
-    createActionsColumn<ClientTableRow>([
-      {
-        id: "details",
-        label: clientsCopy.actions.details,
-        onSelect: (row) => {
-          options.onOpenDetails(row.original)
-        },
-      },
-      {
-        id: "vehicles",
-        label: clientsCopy.actions.openVehicles,
-        onSelect: (row) => {
-          options.onSelectVehicles?.(row.original)
-        },
-      },
-      ...(options.onToggleVip
-        ? [
-          {
-            id: "vip" as const,
-            label: options.vipActionLabel ?? clientsCopy.actions.toggleClientVip,
-            onSelect: (row: { original: ClientTableRow }) => {
-              options.onToggleVip?.(row.original)
-            },
+    createActionsColumn<ClientTableRow>((row) => {
+      const isPendingVip = options.pendingVipClientId === row.original.cod_pessoa
+
+      return [
+        {
+          id: "details",
+          label: clientsCopy.actions.details,
+          disabled: isPendingVip,
+          onSelect: (selectedRow) => {
+            options.onOpenDetails(selectedRow.original)
           },
-        ]
-        : []),
-    ]),
+        },
+        {
+          id: "vehicles",
+          label: clientsCopy.actions.openVehicles,
+          disabled: isPendingVip,
+          onSelect: (selectedRow) => {
+            options.onSelectVehicles?.(selectedRow.original)
+          },
+        },
+        ...(options.onToggleVip
+          ? [
+            {
+              id: "vip" as const,
+              label: isPendingVip
+                ? clientsCopy.actions.updating
+                : options.vipActionLabel ?? clientsCopy.actions.toggleClientVip,
+              disabled: isPendingVip,
+              onSelect: (selectedRow) => {
+                options.onToggleVip?.(selectedRow.original)
+              },
+            },
+          ]
+          : []),
+      ]
+    }),
   ]
 }
