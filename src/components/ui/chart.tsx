@@ -29,6 +29,23 @@ type ChartContextProps = {
 
 const ChartContext = React.createContext<ChartContextProps | null>(null)
 
+function sanitizeChartIdentifier(value: string) {
+  const sanitized = value.replace(/[^a-zA-Z0-9_-]/g, "_")
+
+  return sanitized || "chart"
+}
+
+function isSafeChartColor(value: string) {
+  const color = value.trim()
+
+  return (
+    color.length > 0 &&
+    color.length <= 160 &&
+    !/[;{}<>]/.test(color) &&
+    /^(#|var\(--|rgb\(|rgba\(|hsl\(|hsla\(|oklch\(|oklab\(|color-mix\(|[a-zA-Z]+$)/.test(color)
+  )
+}
+
 function useChart() {
   const context = React.useContext(ChartContext)
 
@@ -57,7 +74,7 @@ function ChartContainer({
   }
 }) {
   const uniqueId = React.useId()
-  const chartId = `chart-${id ?? uniqueId.replace(/:/g, "")}`
+  const chartId = sanitizeChartIdentifier(`chart-${id ?? uniqueId.replace(/:/g, "")}`)
 
   return (
     <ChartContext.Provider value={{ config }}>
@@ -82,9 +99,9 @@ function ChartContainer({
 }
 
 const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
-  const colorConfig = Object.entries(config).filter(
-    ([, config]) => config.theme ?? config.color
-  )
+  const colorConfig = Object.entries(config)
+    .map(([key, itemConfig]) => [sanitizeChartIdentifier(key), itemConfig] as const)
+    .filter(([, itemConfig]) => itemConfig.theme ?? itemConfig.color)
 
   if (!colorConfig.length) {
     return null
@@ -102,7 +119,7 @@ ${colorConfig
     const color =
       itemConfig.theme?.[theme as keyof typeof itemConfig.theme] ??
       itemConfig.color
-    return color ? `  --color-${key}: ${color};` : null
+    return color && isSafeChartColor(color) ? `  --color-${key}: ${color.trim()};` : null
   })
   .join("\n")}
 }

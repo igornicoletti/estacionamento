@@ -36,6 +36,10 @@ export const securityCopy = {
     completed: "Concluído",
     actionRequired: "Pendente",
   },
+  controls: {
+    title: "Controles da conta",
+    description: "Medidas suportadas pelo projeto para autenticação e recuperação.",
+  },
   measures: {
     strongPassword: {
       title: "Senha forte",

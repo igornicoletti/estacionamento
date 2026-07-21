@@ -42,8 +42,8 @@ const vehicleRule: VipRule = {
 
 describe("vip rules model", () => {
   it("resolves client and vehicle vip states from active rules", () => {
-    expect(getClientVipStatus({ cod_pessoa: 1001 } as never, [clientRule])).toBe(true)
-    expect(getVehicleVipStatus({ cod_pessoa: 1001, cod_veiculo: 2002 } as never, [clientRule])).toBe(true)
+    expect(getClientVipStatus({ cod_pessoa: 1001 }, [clientRule])).toBe(true)
+    expect(getVehicleVipStatus({ cod_pessoa: 1001, cod_veiculo: 2002 }, [clientRule])).toBe(true)
     expect(isClientVipFromRules([vehicleRule], 1001)).toBe(true)
     expect(isVehicleVipFromRules([vehicleRule], 1001, 2002)).toBe(true)
   })

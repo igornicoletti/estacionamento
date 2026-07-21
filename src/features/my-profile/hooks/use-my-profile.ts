@@ -27,9 +27,7 @@ export function useMyProfile(): MyProfileSnapshot {
 
       const avatarUrl = savedProfile.avatarPath?.startsWith("data:image/")
         ? savedProfile.avatarPath
-        : savedProfile.avatarPath?.startsWith("https://")
-          ? savedProfile.avatarPath
-          : input.avatarPreviewUrl ?? undefined
+        : undefined
 
       auth.actions.applyProfilePatch({
         avatarPath: savedProfile.avatarPath,

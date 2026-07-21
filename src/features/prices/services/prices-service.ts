@@ -137,7 +137,7 @@ export async function savePriceTable(payload: SavePriceTablePayload) {
     const now = new Date().toISOString()
     records.unshift({
       id: `mock-price-${Date.now()}`,
-      name: payload.notes ?? "Nova tabela",
+      name: payload.name,
       scope: payload.scope,
       unit_id: payload.unitId,
       unit_name: payload.unitName,
@@ -151,7 +151,7 @@ export async function savePriceTable(payload: SavePriceTablePayload) {
       notes: payload.notes,
       created_at: now,
       updated_at: now,
-    } as RawPriceTableRecord)
+    })
     writeMockPrices(records)
     return
   }

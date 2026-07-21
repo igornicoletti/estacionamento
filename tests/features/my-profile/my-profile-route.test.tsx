@@ -17,7 +17,7 @@ describe("MyProfileRoute", () => {
     expect(screen.getByDisplayValue("529.982.247-25")).toBeDisabled()
     expect(screen.getByLabelText("Nome")).toBeEnabled()
 
-    fireEvent.click(screen.getByRole("button", { name: "Alterar foto" }))
+    fireEvent.click(screen.getByRole("button", { name: "Atualizar foto" }))
 
     expect(screen.getByRole("dialog")).toBeInTheDocument()
     expect(screen.getAllByText(/PNG, JPG ou WebP até 5 MB/i).length).toBeGreaterThan(0)

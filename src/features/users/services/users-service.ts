@@ -32,9 +32,11 @@ type RawAppUserUnitRow = {
 type RawAppUserRow = {
   id: string
   auth_user_id: string
+  cpf_display?: string | null
   cpf_masked: string
   email: string | null
   name: string
+  phone_display?: string | null
   phone_masked: string
   role: string
   status: string
@@ -197,6 +199,14 @@ function resolveMaskedCpf(value: string | null | undefined) {
   return normalized
 }
 
+function resolveUserCpf(appUser: RawAppUserRow) {
+  return appUser.cpf_display?.trim() || resolveMaskedCpf(appUser.cpf_masked)
+}
+
+function resolveUserPhone(appUser: RawAppUserRow) {
+  return appUser.phone_display?.trim() || appUser.phone_masked?.trim() || null
+}
+
 function assertValidUserInput(
   input: CreateUserInput | UpdateUserInput,
   options: { requireFirstAccessPassword: boolean }
@@ -288,7 +298,7 @@ async function listRawAppUsersFromSupabase(supabase: SupabaseClient) {
   const response = await supabase
     .from("app_users")
     .select(
-      "id, auth_user_id, cpf_masked, email, name, phone_masked, role, status, locked_until, created_at, app_user_units(unit_id)"
+      "id, auth_user_id, cpf_display, cpf_masked, email, name, phone_display, phone_masked, role, status, locked_until, created_at, app_user_units(unit_id)"
     )
     .order("created_at", { ascending: false })
 
@@ -333,9 +343,9 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
         id: appUser.id,
         authUserId: appUser.auth_user_id,
         name: appUser.name,
-        cpf: resolveMaskedCpf(appUser.cpf_masked),
+        cpf: resolveUserCpf(appUser),
         email: appUser.email,
-        phoneMasked: appUser.phone_masked?.trim() || null,
+        phoneMasked: resolveUserPhone(appUser),
         role: appUser.role,
         status: appUser.status,
         lockedUntil: appUser.locked_until ?? null,

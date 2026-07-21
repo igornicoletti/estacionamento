@@ -1,6 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
-import { describe, expect, it, vi } from "vitest"
+import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { UserMenu } from "@/components/sidebar"
 import { updateCurrentProfile, uploadProfileAvatarFile } from "@/features/my-profile/services/profile-service"
@@ -10,7 +10,7 @@ vi.mock("@/features/my-profile/services/profile-service", async (importOriginal)
 
   return {
     ...actual,
-    updateCurrentProfile: vi.fn(async () => ({
+    updateCurrentProfile: vi.fn(() => Promise.resolve({
       avatarPath: "test-auth-user/avatar-1.png",
       avatarUrl: "https://cdn.example.com/avatar-1.png",
       email: "admin.test@example.com",
@@ -18,11 +18,24 @@ vi.mock("@/features/my-profile/services/profile-service", async (importOriginal)
       phoneMasked: "(11) 90000-0001",
       requiresPasskeyRegistration: false,
     })),
-    uploadProfileAvatarFile: vi.fn(async () => "test-auth-user/avatar-1.png"),
+    uploadProfileAvatarFile: vi.fn(() => Promise.resolve("test-auth-user/avatar-1.png")),
   }
 })
 
 describe("UserMenu", () => {
+  beforeEach(() => {
+    vi.mocked(updateCurrentProfile).mockClear()
+    vi.mocked(uploadProfileAvatarFile).mockClear()
+    Object.defineProperty(URL, "createObjectURL", {
+      configurable: true,
+      value: vi.fn(() => "blob:test-avatar"),
+    })
+    Object.defineProperty(URL, "revokeObjectURL", {
+      configurable: true,
+      value: vi.fn(),
+    })
+  })
+
   it("abre menu do usuario com acoes principais", async () => {
     render(
       <MemoryRouter>
@@ -36,11 +49,11 @@ describe("UserMenu", () => {
       expect(screen.getByRole("menuitem", { name: "Meu perfil" })).toBeInTheDocument()
     })
 
-    expect(screen.getByRole("menuitem", { name: "Alterar foto" })).toBeInTheDocument()
+    expect(screen.getByRole("menuitem", { name: "Atualizar foto do perfil" })).toBeInTheDocument()
     expect(screen.getByRole("menuitem", { name: "Notificações" })).toBeInTheDocument()
   })
 
-  it("atualiza avatar pelo fluxo de URL segura", async () => {
+  it("atualiza avatar pelo fluxo de upload suportado", async () => {
     render(
       <MemoryRouter>
         <UserMenu />
@@ -48,32 +61,26 @@ describe("UserMenu", () => {
     )
 
     fireEvent.pointerDown(screen.getByRole("button", { name: /abrir menu de usuário/i }))
-    const changePhotoItem = await screen.findByRole("menuitem", { name: "Alterar foto" })
+    const changePhotoItem = await screen.findByRole("menuitem", { name: "Atualizar foto do perfil" })
     fireEvent.keyDown(changePhotoItem, { key: "Enter" })
 
-    expect(await screen.findByRole("heading", { name: "Alterar foto" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Atualizar foto do perfil" })).toBeInTheDocument()
 
-    const urlTab = screen.getByRole("tab", { name: /URL de imagem/i })
-    urlTab.focus()
-    fireEvent.keyDown(urlTab, { key: "Enter" })
-    fireEvent.click(urlTab)
+    const input = document.querySelector<HTMLInputElement>("input[type='file']")
+    const file = new File(["avatar"], "avatar.png", { type: "image/png" })
 
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText("https://")).toBeInTheDocument()
-    })
-
-    const urlInput = screen.getByPlaceholderText("https://")
-    fireEvent.change(urlInput, { target: { value: "https://cdn.example.com/avatar-1.png" } })
+    expect(input).not.toBeNull()
+    fireEvent.change(input!, { target: { files: [file] } })
+    expect(screen.getByText("avatar.png")).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
 
     await waitFor(() => {
+      expect(uploadProfileAvatarFile).toHaveBeenCalledWith(file, "test-auth-user")
       expect(updateCurrentProfile).toHaveBeenCalled()
     })
-
-    expect(uploadProfileAvatarFile).not.toHaveBeenCalled()
   })
 
-  it("mostra erro de validacao para URL de imagem invalida", async () => {
+  it("mostra erro de validacao para arquivo de imagem invalido", async () => {
     render(
       <MemoryRouter>
         <UserMenu />
@@ -81,26 +88,18 @@ describe("UserMenu", () => {
     )
 
     fireEvent.pointerDown(screen.getByRole("button", { name: /abrir menu de usuário/i }))
-    const changePhotoItem = await screen.findByRole("menuitem", { name: "Alterar foto" })
+    const changePhotoItem = await screen.findByRole("menuitem", { name: "Atualizar foto do perfil" })
     fireEvent.keyDown(changePhotoItem, { key: "Enter" })
 
-    expect(await screen.findByRole("heading", { name: "Alterar foto" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Atualizar foto do perfil" })).toBeInTheDocument()
 
-    const urlTab = screen.getByRole("tab", { name: /URL de imagem/i })
-    urlTab.focus()
-    fireEvent.keyDown(urlTab, { key: "Enter" })
-    fireEvent.click(urlTab)
+    const input = document.querySelector<HTMLInputElement>("input[type='file']")
+    const file = new File(["avatar"], "avatar.txt", { type: "text/plain" })
 
-    await waitFor(() => {
-      expect(screen.getByPlaceholderText("https://")).toBeInTheDocument()
-    })
+    expect(input).not.toBeNull()
+    fireEvent.change(input!, { target: { files: [file] } })
 
-    const urlInput = screen.getByPlaceholderText("https://")
-    fireEvent.change(urlInput, { target: { value: "http://inseguro.com/avatar.png" } })
-    fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
-
-    await waitFor(() => {
-      expect(screen.getByText("Informe uma URL HTTPS válida para a imagem.")).toBeInTheDocument()
-    })
+    expect(screen.getByText("Envie uma imagem JPG, PNG ou WebP.")).toBeInTheDocument()
+    expect(uploadProfileAvatarFile).not.toHaveBeenCalled()
   })
 })

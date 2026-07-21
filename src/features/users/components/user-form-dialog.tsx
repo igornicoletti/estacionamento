@@ -98,22 +98,15 @@ export function UserFormDialog({
   open,
   unitOptions,
 }: UserFormDialogProps) {
-  const [values, setValues] = React.useState<UsersFormValues>(createDefaultFormValues)
+  const [values, setValues] = React.useState<UsersFormValues>(() =>
+    editingUser ? mapUserToFormValues(editingUser) : createDefaultFormValues()
+  )
   const [errors, setErrors] = React.useState<Partial<Record<UsersFormFieldName, string>>>({})
   const isEditMode = editingUser !== null
   const isGlobalScopeRole = isGlobalRole(values.role)
   const selectedUnit = isGlobalScopeRole
     ? null
     : unitOptions.find((unit) => unit.value === values.unitId) ?? null
-
-  React.useEffect(() => {
-    if (!open) {
-      return
-    }
-
-    setValues(editingUser ? mapUserToFormValues(editingUser) : createDefaultFormValues())
-    setErrors({})
-  }, [editingUser, open])
 
   function setValue<Key extends keyof UsersFormValues>(key: Key, value: UsersFormValues[Key]) {
     setValues((current) => ({ ...current, [key]: value }))

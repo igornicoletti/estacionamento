@@ -13,5 +13,6 @@ Feature responsável pela visão operacional consolidada por unidade selecionada
 
 ## Observações
 
-- Dados atuais estão mockados por unidade para acelerar validação de UX.
+- Dados atuais estão mockados por unidade para acelerar validação de UX fora de produção.
+- Em `PROD`, o service falha em vez de exibir indicadores sintéticos como dado operacional.
 - Estrutura foi preparada para substituição gradual por API real sem quebra de layout.

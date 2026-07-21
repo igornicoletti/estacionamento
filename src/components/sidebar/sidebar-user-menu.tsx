@@ -19,7 +19,7 @@ import { useAuth, type AuthProfile } from "@/features/auth"
 import {
   getProfileInitials,
   ProfilePhotoDialog,
-} from "@/features/my-profile/components/profile-photo-dialog"
+} from "@/features/my-profile/components"
 import { myProfileCopy } from "@/features/my-profile/my-profile-copy"
 import {
   updateCurrentProfile,
@@ -56,27 +56,25 @@ export function UserMenu() {
   const displayMeta = getDisplayMeta(auth.profile)
   const fallback = getProfileInitials(displayName) || getFallback(displayName)
 
-  async function saveAvatar(avatarPath: string | null, previewUrl: string) {
+  async function saveAvatar(avatarPath: string | null) {
     if (!auth.profile) {
       return
     }
 
     await updateCurrentProfile({
       avatarPath,
-      avatarPreviewUrl: previewUrl,
       email: auth.profile.email,
       name: auth.profile.name,
     })
-    const resolvedAvatarUrl = avatarPath?.startsWith("data:image/") ? avatarPath : previewUrl
     auth.actions.applyProfilePatch({
       avatarPath,
-      avatarUrl: resolvedAvatarUrl,
+      ...(avatarPath?.startsWith("data:image/") ? { avatarUrl: avatarPath } : {}),
     })
     setIsPhotoDialogOpen(false)
     await auth.actions.refreshProfile()
   }
 
-  async function handleSaveFile(payload: { file?: File; imageUrl?: string; previewUrl: string }) {
+  async function handleSaveFile(payload: { file: File; previewUrl: string }) {
     const profile = auth.profile
 
     if (!profile) {
@@ -87,10 +85,8 @@ export function UserMenu() {
 
     try {
       await notify.track((async () => {
-        const avatarPath = payload.file
-          ? await uploadProfileAvatarFile(payload.file, profile.authUserId)
-          : null
-        await saveAvatar(avatarPath, payload.imageUrl ?? payload.previewUrl)
+        const avatarPath = await uploadProfileAvatarFile(payload.file, profile.authUserId)
+        await saveAvatar(avatarPath)
       })(), myProfileCopy.feedback.profile)
     } finally {
       setIsSavingPhoto(false)
@@ -99,7 +95,7 @@ export function UserMenu() {
 
   return (
     <>
-      <DropdownMenu>
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <Button
             type="button"

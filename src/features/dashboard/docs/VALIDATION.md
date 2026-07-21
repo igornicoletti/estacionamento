@@ -5,3 +5,4 @@
 - [x] Blocos internos separados por responsabilidade.
 - [x] Carregamento e fallback de erro com retry.
 - [x] Compatível com layout responsivo base.
+- [x] Mock operacional bloqueado em produção até existir gateway real.

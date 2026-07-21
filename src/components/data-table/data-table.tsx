@@ -399,7 +399,7 @@ export function DataTable<TData extends RowData, TValue>({
   const sanitizeColumnFilters = React.useCallback(
     (filters: ColumnFiltersState): ColumnFiltersState => {
       return filters.flatMap((filter) => {
-        if (searchFieldIds.has(filter.id as DataTableColumnId<TData>)) {
+        if (searchFieldIds.has(filter.id)) {
           const value =
             typeof filter.value === "string"
               ? normalizeSearchValue(filter.value)
@@ -408,9 +408,7 @@ export function DataTable<TData extends RowData, TValue>({
           return value ? [{ ...filter, value }] : []
         }
 
-        const allowedValues = facetedFilterOptions.get(
-          filter.id as DataTableColumnId<TData>
-        )
+        const allowedValues = facetedFilterOptions.get(filter.id)
 
         if (allowedValues) {
           const values = Array.isArray(filter.value)

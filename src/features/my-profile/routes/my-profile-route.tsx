@@ -1,7 +1,7 @@
-import { AlertTriangleIcon, KeyRoundIcon } from "lucide-react"
+import { AlertTriangleIcon } from "lucide-react"
 import * as React from "react"
 
-import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
+import { PageHeader, PageSection } from "@/components/page"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
@@ -50,8 +50,7 @@ export function MyProfileRoute() {
   }
 
   async function handleSavePhotoFile(payload: {
-    file?: File
-    imageUrl?: string
+    file: File
     previewUrl: string
   }) {
     if (!profile || isSavingPhoto) {
@@ -62,13 +61,11 @@ export function MyProfileRoute() {
 
     try {
       await notify.track((async () => {
-        const avatarPath = payload.file
-          ? await uploadAvatarFile(payload.file)
-          : null
+        const avatarPath = await uploadAvatarFile(payload.file)
 
         await saveProfile({
           avatarPath,
-          avatarPreviewUrl: payload.imageUrl ?? payload.previewUrl,
+          avatarPreviewUrl: payload.previewUrl,
           email: profile.email,
           name: profile.name,
         })
@@ -134,14 +131,6 @@ export function MyProfileRoute() {
       <PageHeader
         title={myProfileCopy.page.title}
         subtitle={myProfileCopy.page.subtitle}
-        actions={(
-          <PageHeaderActions>
-            <Button type="button" variant="secondary" size="lg" onClick={() => setIsPasswordDialogOpen(true)}>
-              <KeyRoundIcon aria-hidden="true" />
-              {myProfileCopy.changePassword.action}
-            </Button>
-          </PageHeaderActions>
-        )}
       />
 
       <div className="grid gap-4">
@@ -159,6 +148,7 @@ export function MyProfileRoute() {
           isSaving={isSavingProfile}
           onSave={handleSaveProfile}
           onOpenPhotoDialog={() => setIsPhotoDialogOpen(true)}
+          onOpenPasswordDialog={() => setIsPasswordDialogOpen(true)}
         />
       </div>
 

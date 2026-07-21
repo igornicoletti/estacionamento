@@ -132,7 +132,7 @@ export function createUsersColumns(
             <span className="inline-flex items-center gap-2">
               <span
                 className={`inline-block size-2 shrink-0 rounded-full ${online ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
-                aria-label={resolveOnlineLabel(row.original.lastAccessAt)}
+                aria-hidden="true"
                 title={resolveOnlineLabel(row.original.lastAccessAt)}
               />
               {row.original.name}

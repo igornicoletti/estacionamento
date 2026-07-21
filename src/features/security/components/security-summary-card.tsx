@@ -131,18 +131,18 @@ function SecurityMeasureRow({
   const isCompleted = status === "completed"
 
   return (
-    <Item variant="default" className="items-start px-0 py-0">
+    <Item variant="default" className="items-start gap-3 px-0 py-0">
       <ItemMedia variant="icon" className={cn("mt-0.5", isCompleted ? "text-success" : "text-warning")}>
         {isCompleted ? <CheckCircle2Icon aria-hidden="true" /> : <AlertTriangleIcon aria-hidden="true" />}
       </ItemMedia>
       <ItemMedia variant="icon" className="mt-0.5 text-muted-foreground">
         {icon}
       </ItemMedia>
-      <ItemContent>
+      <ItemContent className="min-w-0">
         <ItemTitle className="line-clamp-none">{title}</ItemTitle>
         <ItemDescription className="line-clamp-none">{description}</ItemDescription>
       </ItemContent>
-      <ItemActions className="ml-auto flex-wrap justify-end">
+      <ItemActions className="basis-full flex-wrap justify-start sm:ml-auto sm:basis-auto sm:justify-end *:data-[slot=badge]:w-fit [&>a]:w-full [&>button]:w-full sm:[&>a]:w-auto sm:[&>button]:w-auto">
         {action ?? <SecurityStatusBadge status={status} />}
       </ItemActions>
     </Item>
@@ -199,15 +199,15 @@ function SecurityEventsList({
     <ItemGroup className="gap-3">
       {events.map((event, index) => (
         <React.Fragment key={event.id}>
-          <Item variant="default" className="items-start px-0 py-0">
+          <Item variant="default" className="items-start gap-3 px-0 py-0">
             <ItemMedia variant="icon" className="mt-1 text-primary">
               <BellIcon aria-hidden="true" />
             </ItemMedia>
-            <ItemContent>
+            <ItemContent className="min-w-0">
               <ItemTitle className="line-clamp-none">{event.title}</ItemTitle>
               <ItemDescription className="line-clamp-none">{event.description}</ItemDescription>
             </ItemContent>
-            <ItemActions className="ml-auto text-xs text-muted-foreground">
+            <ItemActions className="basis-full justify-start text-xs text-muted-foreground sm:ml-auto sm:basis-auto sm:justify-end">
               {formatDateTime(event.occurredAt)}
             </ItemActions>
           </Item>
@@ -250,10 +250,12 @@ export function SecuritySummaryCard({
     <>
       <div className="grid gap-4">
         <Card>
-          <CardContent className="grid gap-5 md:grid-cols-[auto_1fr] md:items-start">
-            <SecurityScoreRing score={score} />
-            <div className="grid gap-2 pt-1">
-              <div className="flex flex-wrap items-center gap-2">
+          <CardContent className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start">
+            <div className="justify-self-center sm:justify-self-start">
+              <SecurityScoreRing score={score} />
+            </div>
+            <div className="grid min-w-0 gap-2 pt-1 text-center sm:text-left">
+              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
                 <h2 className="text-base font-semibold text-foreground">{securityCopy.score.title}</h2>
                 <Badge variant="secondary" className={getBadgeToneClassName(scoreTone)}>
                   {securityCopy.score.labels[scoreTone]}
@@ -267,8 +269,8 @@ export function SecuritySummaryCard({
 
         <Card>
           <CardHeader>
-            <CardTitle>{securityCopy.page.title}</CardTitle>
-            <CardDescription>{securityCopy.page.subtitle}</CardDescription>
+            <CardTitle>{securityCopy.controls.title}</CardTitle>
+            <CardDescription>{securityCopy.controls.description}</CardDescription>
           </CardHeader>
           <CardContent>
             <ItemGroup className="gap-5">
@@ -342,12 +344,12 @@ export function SecuritySummaryCard({
         </Card>
 
         <Card>
-          <CardHeader className="grid-cols-[1fr_auto]">
-            <div className="grid gap-1">
+          <CardHeader className="gap-3 sm:grid-cols-[1fr_auto]">
+            <div className="grid min-w-0 gap-1">
               <CardTitle>{securityCopy.events.title}</CardTitle>
               <CardDescription>{securityCopy.events.description}</CardDescription>
             </div>
-            <Button asChild variant="ghost" size="sm" className="justify-self-end">
+            <Button asChild variant="ghost" size="sm" className="w-full justify-self-start sm:w-auto sm:justify-self-end">
               <Link to={appRoutePaths.notifications}>
                 {securityCopy.events.viewAll}
                 <ChevronRightIcon aria-hidden="true" />
@@ -369,7 +371,7 @@ export function SecuritySummaryCard({
               <CardTitle>{securityCopy.session.title}</CardTitle>
               <CardDescription>{securityCopy.session.description}</CardDescription>
             </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2">
+            <CardContent className="grid gap-3 sm:grid-cols-2 sm:*:min-w-0">
               <DetailRow label={securityCopy.session.browser} value={security.session.browser} />
               <DetailRow label={securityCopy.session.operatingSystem} value={security.session.operatingSystem} />
               <DetailRow label={securityCopy.session.ip} value={security.session.ipAddress ?? securityCopy.session.unavailable} />

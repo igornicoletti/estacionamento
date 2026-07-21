@@ -42,6 +42,11 @@ function requireFile(filePath) {
 }
 
 function requireContent(filePath, needle, label) {
+  if (!exists(filePath)) {
+    errors.push(`Missing file for ${label}: ${filePath}`)
+    return
+  }
+
   if (!read(filePath).includes(needle)) {
     errors.push(`Missing ${label} in ${filePath}`)
   }
@@ -94,19 +99,19 @@ for (const requiredFile of [
   "components.json",
   "package.json",
   "src/App.tsx",
-  "src/main.tsx",
+  "src/app-entry.tsx",
   "src/config/env.ts",
   "src/components/data-table/data-table.tsx",
   "src/components/data-table/data-table-toolbar.tsx",
   "src/components/data-table/data-table-scroll-container.tsx",
   "src/components/ui/table.tsx",
-  "src/app/app-providers.tsx",
+  "src/app/providers/app-providers.tsx",
   "src/features/auth/api/auth-api.ts",
   "src/features/auth/context/auth-provider.tsx",
   "src/features/auth/contracts/auth-contracts.ts",
   "src/features/users/routes/users-route.tsx",
   "src/features/users/services/users-service.ts",
-  "src/features/users/columns/users-columns.tsx",
+  "src/features/users/table/users-columns.tsx",
   "src/features/notifications/context/notifications-provider.tsx",
   "supabase/functions/_shared/index.ts",
   "supabase/functions/_shared/auth-cors.ts",
@@ -225,7 +230,7 @@ for (const [file, needles] of [
   ],
   [
     "src/components/ui/table.tsx",
-    ["relative w-full", "[&:has([role=checkbox])]:pr-0"],
+    ["relative w-full", "has-[[role=checkbox]]:pr-0"],
   ],
   [
     "src/features/users/services/users-service.ts",
@@ -233,10 +238,14 @@ for (const [file, needles] of [
   ],
   [
     "src/features/users/routes/users-route.tsx",
-    ["emptyOption", "enableExport={canExportUsers}", "resetPasskey"],
+    ["enableExport={canExportUsers}", "resetPasskey", "createUserOnlineFilterOptions"],
   ],
   [
-    "src/features/users/columns/users-columns.tsx",
+    "src/features/users/table/users-filter-options.ts",
+    ["emptyOption", "createUserOnlineFilterOptions"],
+  ],
+  [
+    "src/features/users/table/users-columns.tsx",
     ["canResetPasskey", "canRevokeSessions", "resolveLastAccessLabel", "passkeyStatus", "Passkey"],
   ],
   [
@@ -259,7 +268,7 @@ for (const [file, needles] of [
 
 for (const [file, needles] of [
   [
-    "src/app/app-providers.tsx",
+    "src/app/providers/app-providers.tsx",
     ["NotificationsProvider", "AuthProvider"],
   ],
   [
@@ -268,7 +277,11 @@ for (const [file, needles] of [
   ],
   [
     "src/features/auth/context/auth-provider.tsx",
-    ["requiredPasswordCredentialsRef", "clearAsyncSnapshotCache", "AUTH_INACTIVITY"],
+    ["requiredPasswordCredentialsRef", "clearAsyncSnapshotCache"],
+  ],
+  [
+    "src/features/auth/context/auth-inactivity.ts",
+    ["AUTH_INACTIVITY"],
   ],
   [
     "src/features/auth/contracts/auth-contracts.ts",
@@ -279,7 +292,7 @@ for (const [file, needles] of [
     ["create_commercial_price_table"],
   ],
   [
-    "src/features/rules/services/vip-rules-service.ts",
+    "src/features/rules/services/rules-service.ts",
     ["save_commercial_rule_version"],
   ],
   [

@@ -89,6 +89,27 @@ function configureCatalogGateways() {
         },
       ]
     },
+    async listClientPayloadById(clientId) {
+      await Promise.resolve()
+      return clientId === 1001
+        ? {
+          bloqueio_financeiro: "N",
+          cod_pessoa: 1001,
+          des_email_1: "contato@alfa.com.br",
+          dta_cadastro: "2024-01-15",
+          dta_ultima_compra: "2026-06-20",
+          ind_pessoa_ativa: "S",
+          is_active_120d: true,
+          nom_cidade: "Sao Paulo",
+          nom_fantasia: "Auto Center Alfa",
+          nom_pessoa: "Auto Center Alfa Ltda",
+          num_cnpj_cpf: "12.345.678/0001-10",
+          num_telefone_1: "(11) 3333-4444",
+          qtd_veiculos: 1,
+          sgl_estado: "SP",
+        }
+        : null
+    },
     async listClientVehiclesPayload() {
       await Promise.resolve()
       return [
@@ -103,6 +124,23 @@ function configureCatalogGateways() {
           num_placa: "ABC1D23",
         },
       ]
+    },
+    async listClientVehiclesPayloadByClientId(clientId) {
+      await Promise.resolve()
+      return clientId === 1001
+        ? [
+          {
+            cod_pessoa: 1001,
+            cod_veiculo: 5001,
+            des_veiculo: "Fiat Strada 1.4",
+            nom_fantasia: "Auto Center Alfa",
+            nom_motorista: "Joao Carlos",
+            nom_pessoa: "Auto Center Alfa Ltda",
+            num_cnpj_cpf: "12.345.678/0001-10",
+            num_placa: "ABC1D23",
+          },
+        ]
+        : []
     },
   })
 

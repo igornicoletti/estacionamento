@@ -3,6 +3,5 @@ export {
   ProfileServiceError,
   updateCurrentProfile,
   uploadProfileAvatarFile,
-  validateAvatarFile,
-  validateAvatarImageUrl
+  validateAvatarFile
 } from "./profile-service"

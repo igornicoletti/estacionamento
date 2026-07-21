@@ -12,7 +12,7 @@ declare module "@tanstack/react-table" {
   }
 }
 
-export type DataTableColumnId<TData> = Extract<keyof TData, string>
+export type DataTableColumnId<TData> = Extract<keyof TData, string> | (string & {})
 
 export interface DataTableFilterOption {
   count?: number

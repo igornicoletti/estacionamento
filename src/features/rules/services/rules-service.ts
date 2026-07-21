@@ -144,6 +144,7 @@ export async function saveVipRule(payload: SaveVipRulePayload) {
     const rules = getMockRules()
     const now = new Date().toISOString()
     const existingIndex = payload.id ? rules.findIndex((r) => r.id === payload.id) : -1
+    const existingRule = existingIndex >= 0 ? rules[existingIndex] : null
     const newRule: RawVipRuleRecord = {
       id: payload.id ?? `mock-rule-${Date.now()}`,
       type: payload.type,
@@ -161,7 +162,7 @@ export async function saveVipRule(payload: SaveVipRulePayload) {
       yard_occupancy_threshold: payload.yardOccupancyThreshold,
       yard_stale_vehicle_hours: payload.yardStaleVehicleHours,
       notes: payload.notes,
-      created_at: existingIndex >= 0 ? (rules[existingIndex].created_at as string) : now,
+      created_at: existingRule?.created_at ?? now,
       updated_at: now,
     }
     if (existingIndex >= 0) {

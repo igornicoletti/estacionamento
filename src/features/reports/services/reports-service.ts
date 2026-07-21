@@ -13,6 +13,10 @@ function cloneSnapshot(snapshot: ReportsSnapshot): ReportsSnapshot {
 }
 
 export async function getReportsSnapshotByUnitId(unitId: string | null) {
+  if (import.meta.env.PROD) {
+    throw new Error("Relatórios indisponíveis sem fonte de dados operacional.")
+  }
+
   await Promise.resolve()
 
   const resolvedId = unitId ?? defaultUnitId

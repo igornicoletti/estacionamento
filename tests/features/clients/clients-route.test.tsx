@@ -14,8 +14,10 @@ import {
   configureClientsGateway,
   resetClientsGateway,
 } from "@/features/clients"
+import { clearAsyncSnapshotCache } from "@/hooks/use-async-snapshot"
 
 beforeEach(() => {
+  clearAsyncSnapshotCache()
   configureClientsGateway({
     async listClientsPayload() {
       await Promise.resolve()
@@ -133,7 +135,9 @@ describe("Clients routes", () => {
     expect(
       screen.getByRole("heading", { name: "Auto Center Alfa Ltda" })
     ).toBeInTheDocument()
-    expect(screen.getByText("ABC1D23")).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByText("ABC1D23")).toBeInTheDocument()
+    })
     expect(screen.getByRole("button", { name: "Voltar" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Histórico" })).not.toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Sincronizar" })).not.toBeInTheDocument()

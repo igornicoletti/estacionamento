@@ -7,4 +7,5 @@
 - [x] Eventos recentes filtrados por notificações de segurança do usuário.
 - [x] Sessão atual e permissões efetivas renderizadas.
 - [x] Estrutura de diretórios alinhada ao padrão.
+- [x] Linhas de ações, score e eventos ajustados para mobile, tablet e desktop.
 - [x] MFA/TOTP, trusted devices, localização e histórico completo de logins omitidos por falta de suporte na rota.

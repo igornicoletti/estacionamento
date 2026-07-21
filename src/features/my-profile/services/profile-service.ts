@@ -22,9 +22,7 @@ function getDevPreviewAvatarPath(value: string | null | undefined) {
     return null
   }
 
-  return normalized.startsWith("data:image/") || /^https:\/\//i.test(normalized)
-    ? normalized
-    : null
+  return normalized.startsWith("data:image/") ? normalized : null
 }
 
 function getAvatarExtension(file: File) {
@@ -146,20 +144,6 @@ export function validateAvatarObjectPath(value: string, authUserId: string) {
 
   if (!/\.(jpe?g|png|webp)$/i.test(normalized)) {
     throw new ProfileServiceError("Formato da foto inválido.")
-  }
-
-  return normalized
-}
-
-export function validateAvatarImageUrl(value: string) {
-  const normalized = value.trim()
-
-  if (!/^https:\/\//i.test(normalized)) {
-    throw new ProfileServiceError("Informe uma URL HTTPS válida para a imagem.")
-  }
-
-  if (!/\.(jpe?g|png|webp)(\?.*)?$/i.test(normalized)) {
-    throw new ProfileServiceError("A URL deve apontar para uma imagem JPG, PNG ou WebP.")
   }
 
   return normalized

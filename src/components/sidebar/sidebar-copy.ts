@@ -12,7 +12,7 @@ export const sidebarCopy = {
     developmentMode: "Modo de desenvolvimento",
   },
   menu: {
-    changePhoto: "Alterar foto",
+    changePhoto: "Atualizar foto do perfil",
     myProfile: "Meu perfil",
     notifications: "Notificações",
     signOut: "Sair",

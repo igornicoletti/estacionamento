@@ -16,6 +16,10 @@ function cloneSnapshot(snapshot: DashboardDataSnapshot): DashboardDataSnapshot {
 }
 
 export async function getDashboardSnapshotByUnitId(unitId: string | null) {
+  if (import.meta.env.PROD) {
+    throw new Error("Dashboard indisponível sem fonte de dados operacional.")
+  }
+
   await Promise.resolve()
 
   const resolvedId = unitId ?? defaultUnitId

@@ -13,6 +13,7 @@ Feature responsável pela exploração analítica por unidade em abas especializ
 
 ## Estratégia atual
 
+- Dados atuais usam snapshot mockado apenas fora de produção; em `PROD`, o service falha para não apresentar relatórios sintéticos como oficiais.
 - Separação por domínio para reduzir redundância:
   - movimentação de veículos;
   - faturamento;

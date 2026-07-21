@@ -336,6 +336,7 @@ export function UsersRoute() {
       />
 
       <UserFormDialog
+        key={editingUser?.id ?? "create"}
         assignableRoleValues={assignableRoleValues}
         editingUser={editingUser}
         isSaving={usersSnapshot.isSaving}

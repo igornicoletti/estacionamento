@@ -38,6 +38,7 @@ describe("PricesRoute", () => {
     endsAt: null,
     graceMinutes: 15,
     id: "price-global",
+    name: "Tabela operacional",
     notes: "Tabela operacional vigente.",
     scope: "global",
     startsAt: "2026-07-01T12:00:00.000Z",

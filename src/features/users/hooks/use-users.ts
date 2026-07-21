@@ -22,7 +22,7 @@ export function useUsers(options: { enabled?: boolean } = {}) {
     cacheKey: enabled ? USERS_CACHE_KEY : USERS_DISABLED_CACHE_KEY,
     errorMessage: usersCopy.errors.load,
     initialData: [],
-    loadData: enabled ? listUsers : async () => [],
+    loadData: enabled ? listUsers : () => Promise.resolve([]),
   })
   const [isSaving, setIsSaving] = React.useState(false)
   const activeSaveRef = React.useRef<Promise<UserRecord> | null>(null)

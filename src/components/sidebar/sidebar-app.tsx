@@ -22,7 +22,7 @@ export function AppSidebar({ homeHref }: AppSidebarProps) {
       collapsible="icon"
       className="group-data-[side=left]:border-r-0 group-data-[side=left]:border-sidebar-border/40 group-data-[side=right]:border-l group-data-[side=right]:border-sidebar-border/40"
     >
-      <SidebarHeader className="h-14 bg-background backdrop-blur-sm">
+      <SidebarHeader className="h-16 bg-background backdrop-blur-sm">
         <SidebarBrand homeHref={homeHref} />
       </SidebarHeader>
 
