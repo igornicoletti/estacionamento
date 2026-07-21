@@ -33,6 +33,7 @@ export function createReportsOccupancyColumns(options: {
     },
     {
       accessorKey: "severity",
+      enableSorting: false,
       header: () => <div className="text-center">Severidade</div>,
       meta: { label: "Severidade" },
       cell: ({ row }) => (

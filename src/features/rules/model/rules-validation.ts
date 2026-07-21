@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 import { rulesCopy } from "../constants"
 import {
   ruleTargetTypeValues,
@@ -27,18 +29,102 @@ function parseNumber(value: string) {
   return Number.isFinite(number) ? number : null
 }
 
-function parseNumberList(value: string) {
-  return value
-    .split(",")
-    .map((item) => Number(item.trim()))
-    .filter((item) => Number.isFinite(item))
-}
-
 function parseStringList(value: string) {
   return value
     .split(",")
     .map((item) => item.trim())
     .filter(Boolean)
+}
+
+const vipRuleFormValidationSchema = z
+  .object({
+    id: z.string().optional(),
+    active: z.boolean(),
+    appliesToAllUnits: z.boolean(),
+    benefitHours: z.number({ error: rulesCopy.validation.positiveNumber }).nullable(),
+    clientId: z.number({ error: rulesCopy.validation.invalidClientId }).int({ error: rulesCopy.validation.invalidClientId }).positive({ error: rulesCopy.validation.invalidClientId }).nullable(),
+    clientName: z.string(),
+    fuelMinLiters: z.number({ error: rulesCopy.validation.positiveNumber }).nullable(),
+    notes: z.string(),
+    targetType: z.string({ error: rulesCopy.validation.required }).refine(isRuleTargetType, { error: rulesCopy.validation.required }),
+    type: z.string({ error: rulesCopy.validation.required }).refine(isRuleType, { error: rulesCopy.validation.required }),
+    unitIds: z.array(z.string()),
+    vehicleId: z.number({ error: rulesCopy.validation.required }).int({ error: rulesCopy.validation.required }).positive({ error: rulesCopy.validation.required }).nullable(),
+    vehiclePlate: z.string(),
+    yardOccupancyThreshold: z.number({ error: rulesCopy.validation.percentage }).nullable(),
+    yardStaleVehicleHours: z.number({ error: rulesCopy.validation.positiveNumber }).nullable(),
+  })
+  .superRefine((value, context) => {
+    if (value.targetType === "client" && value.clientId === null) {
+      context.addIssue({
+        code: "custom",
+        message: rulesCopy.validation.invalidClientId,
+        path: ["clientId"],
+      })
+    }
+
+    if (value.targetType === "vehicle" && value.vehicleId === null) {
+      context.addIssue({
+        code: "custom",
+        message: rulesCopy.validation.required,
+        path: ["vehicleId"],
+      })
+    }
+
+    if (!value.appliesToAllUnits && value.unitIds.length === 0) {
+      context.addIssue({
+        code: "custom",
+        message: rulesCopy.validation.required,
+        path: ["unitIds"],
+      })
+    }
+
+    if (value.type === "fuel" && (!value.fuelMinLiters || value.fuelMinLiters <= 0)) {
+      context.addIssue({
+        code: "custom",
+        message: rulesCopy.validation.positiveNumber,
+        path: ["fuelMinLiters"],
+      })
+    }
+
+    if (value.type === "vip" && (!value.benefitHours || value.benefitHours <= 0)) {
+      context.addIssue({
+        code: "custom",
+        message: rulesCopy.validation.positiveNumber,
+        path: ["benefitHours"],
+      })
+    }
+
+    if (
+      value.type === "yard_cleaning" &&
+      (!value.yardOccupancyThreshold || value.yardOccupancyThreshold < 1 || value.yardOccupancyThreshold > 100)
+    ) {
+      context.addIssue({
+        code: "custom",
+        message: rulesCopy.validation.percentage,
+        path: ["yardOccupancyThreshold"],
+      })
+    }
+
+    if (value.type === "yard_cleaning" && (!value.yardStaleVehicleHours || value.yardStaleVehicleHours <= 0)) {
+      context.addIssue({
+        code: "custom",
+        message: rulesCopy.validation.positiveNumber,
+        path: ["yardStaleVehicleHours"],
+      })
+    }
+  })
+
+function getVipRuleFormErrors(error: z.ZodError): VipRuleFormErrors {
+  return error.issues.reduce<VipRuleFormErrors>((errors, issue) => {
+    const fieldName = issue.path[0]
+
+    if (typeof fieldName === "string" && fieldName in createEmptyVipRuleFormValues()) {
+      errors[fieldName as keyof VipRuleFormValues] = issue.message
+    }
+
+    return errors
+  }, {})
 }
 
 export function createEmptyVipRuleFormValues(): VipRuleFormValues {
@@ -65,75 +151,52 @@ export function createVipRuleFormValues(values: Partial<VipRuleFormValues>): Vip
 }
 
 export function validateVipRuleForm(values: VipRuleFormValues) {
-  const errors: VipRuleFormErrors = {}
   const fuelMinLiters = parseNumber(values.fuelMinLiters)
   const benefitHours = parseNumber(values.benefitHours)
   const yardOccupancyThreshold = parseNumber(values.yardOccupancyThreshold)
   const yardStaleVehicleHours = parseNumber(values.yardStaleVehicleHours)
 
-  if (!isRuleType(values.type)) {
-    errors.type = rulesCopy.validation.required
-  }
-
-  if (!isRuleTargetType(values.targetType)) {
-    errors.targetType = rulesCopy.validation.required
-  }
-
-  if (values.targetType === "client" && !values.clientId.trim()) {
-    errors.clientId = rulesCopy.validation.invalidClientId
-  }
-
-  if (values.targetType === "vehicle" && !values.vehicleId.trim()) {
-    errors.vehicleId = rulesCopy.validation.required
-  }
-
-  if (!values.appliesToAllUnits && !values.unitIds.trim()) {
-    errors.unitIds = rulesCopy.validation.required
-  }
-
-  if (values.type === "fuel" && (fuelMinLiters === null || fuelMinLiters <= 0)) {
-    errors.fuelMinLiters = rulesCopy.validation.positiveNumber
-  }
-
-  if (values.type === "vip" && (benefitHours === null || benefitHours <= 0)) {
-    errors.benefitHours = rulesCopy.validation.positiveNumber
-  }
-
-  if (
-    values.type === "yard_cleaning" &&
-    (yardOccupancyThreshold === null || yardOccupancyThreshold < 1 || yardOccupancyThreshold > 100)
-  ) {
-    errors.yardOccupancyThreshold = rulesCopy.validation.percentage
-  }
-
-  if (
-    values.type === "yard_cleaning" &&
-    (yardStaleVehicleHours === null || yardStaleVehicleHours <= 0)
-  ) {
-    errors.yardStaleVehicleHours = rulesCopy.validation.positiveNumber
-  }
-
-  if (Object.keys(errors).length > 0 || !isRuleType(values.type) || !isRuleTargetType(values.targetType)) {
-    return { success: false as const, errors }
-  }
-
-  const payload: SaveVipRulePayload = {
+  const result = vipRuleFormValidationSchema.safeParse({
     id: values.id,
-    type: values.type,
-    targetType: values.targetType,
-    clientId: values.clientId.trim() ? Number(values.clientId) : null,
-    clientName: values.clientName.trim() || null,
-    vehicleId: values.vehicleId.trim() ? Number(values.vehicleId) : null,
-    vehiclePlate: values.vehiclePlate.trim() || null,
-    vehicleIds: parseNumberList(values.vehicleId),
-    appliesToAllUnits: values.appliesToAllUnits,
-    unitIds: values.appliesToAllUnits ? [] : parseStringList(values.unitIds),
     active: values.active,
-    fuelMinLiters: values.type === "fuel" ? fuelMinLiters : null,
-    benefitHours: values.type === "vip" ? benefitHours : null,
-    yardOccupancyThreshold: values.type === "yard_cleaning" ? yardOccupancyThreshold : null,
-    yardStaleVehicleHours: values.type === "yard_cleaning" ? yardStaleVehicleHours : null,
-    notes: values.notes.trim() || null,
+    appliesToAllUnits: values.appliesToAllUnits,
+    benefitHours,
+    clientId: values.clientId.trim() ? Number(values.clientId) : null,
+    clientName: values.clientName,
+    fuelMinLiters,
+    notes: values.notes,
+    targetType: values.targetType,
+    type: values.type,
+    unitIds: values.appliesToAllUnits ? [] : parseStringList(values.unitIds),
+    vehicleId: values.vehicleId.trim() ? Number(values.vehicleId) : null,
+    vehiclePlate: values.vehiclePlate,
+    yardOccupancyThreshold,
+    yardStaleVehicleHours,
+  })
+
+  if (!result.success) {
+    return { success: false as const, errors: getVipRuleFormErrors(result.error) }
+  }
+
+  const type = result.data.type
+  const targetType = result.data.targetType
+  const payload: SaveVipRulePayload = {
+    id: result.data.id,
+    type,
+    targetType,
+    clientId: result.data.clientId,
+    clientName: result.data.clientName.trim() || null,
+    vehicleId: result.data.vehicleId,
+    vehiclePlate: result.data.vehiclePlate.trim() || null,
+    vehicleIds: result.data.vehicleId ? [result.data.vehicleId] : [],
+    appliesToAllUnits: result.data.appliesToAllUnits,
+    unitIds: result.data.unitIds,
+    active: result.data.active,
+    fuelMinLiters: type === "fuel" ? result.data.fuelMinLiters : null,
+    benefitHours: type === "vip" ? result.data.benefitHours : null,
+    yardOccupancyThreshold: type === "yard_cleaning" ? result.data.yardOccupancyThreshold : null,
+    yardStaleVehicleHours: type === "yard_cleaning" ? result.data.yardStaleVehicleHours : null,
+    notes: result.data.notes.trim() || null,
   }
 
   return {

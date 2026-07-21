@@ -49,7 +49,7 @@ describe("UserMenu", () => {
       expect(screen.getByRole("menuitem", { name: "Meu perfil" })).toBeInTheDocument()
     })
 
-    expect(screen.getByRole("menuitem", { name: "Atualizar foto do perfil" })).toBeInTheDocument()
+    expect(screen.getByRole("menuitem", { name: "Foto do perfil" })).toBeInTheDocument()
     expect(screen.getByRole("menuitem", { name: "Notificações" })).toBeInTheDocument()
   })
 
@@ -61,10 +61,10 @@ describe("UserMenu", () => {
     )
 
     fireEvent.pointerDown(screen.getByRole("button", { name: /abrir menu de usuário/i }))
-    const changePhotoItem = await screen.findByRole("menuitem", { name: "Atualizar foto do perfil" })
+    const changePhotoItem = await screen.findByRole("menuitem", { name: "Foto do perfil" })
     fireEvent.keyDown(changePhotoItem, { key: "Enter" })
 
-    expect(await screen.findByRole("heading", { name: "Atualizar foto do perfil" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Foto do perfil" })).toBeInTheDocument()
 
     const input = document.querySelector<HTMLInputElement>("input[type='file']")
     const file = new File(["avatar"], "avatar.png", { type: "image/png" })
@@ -72,6 +72,33 @@ describe("UserMenu", () => {
     expect(input).not.toBeNull()
     fireEvent.change(input!, { target: { files: [file] } })
     expect(screen.getByText("avatar.png")).toBeInTheDocument()
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
+
+    await waitFor(() => {
+      expect(uploadProfileAvatarFile).toHaveBeenCalledWith(file, "test-auth-user")
+      expect(updateCurrentProfile).toHaveBeenCalled()
+    })
+  })
+
+  it("aceita imagem arrastada para a area da foto", async () => {
+    render(
+      <MemoryRouter>
+        <UserMenu />
+      </MemoryRouter>
+    )
+
+    fireEvent.pointerDown(screen.getByRole("button", { name: /abrir menu de usuário/i }))
+    const changePhotoItem = await screen.findByRole("menuitem", { name: "Foto do perfil" })
+    fireEvent.keyDown(changePhotoItem, { key: "Enter" })
+
+    expect(await screen.findByRole("heading", { name: "Foto do perfil" })).toBeInTheDocument()
+
+    const file = new File(["avatar"], "avatar-drop.png", { type: "image/png" })
+    fireEvent.drop(screen.getByRole("button", { name: /Escolha uma imagem/ }), {
+      dataTransfer: { files: [file] },
+    })
+
+    expect(screen.getByText("avatar-drop.png")).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
 
     await waitFor(() => {
@@ -88,10 +115,10 @@ describe("UserMenu", () => {
     )
 
     fireEvent.pointerDown(screen.getByRole("button", { name: /abrir menu de usuário/i }))
-    const changePhotoItem = await screen.findByRole("menuitem", { name: "Atualizar foto do perfil" })
+    const changePhotoItem = await screen.findByRole("menuitem", { name: "Foto do perfil" })
     fireEvent.keyDown(changePhotoItem, { key: "Enter" })
 
-    expect(await screen.findByRole("heading", { name: "Atualizar foto do perfil" })).toBeInTheDocument()
+    expect(await screen.findByRole("heading", { name: "Foto do perfil" })).toBeInTheDocument()
 
     const input = document.querySelector<HTMLInputElement>("input[type='file']")
     const file = new File(["avatar"], "avatar.txt", { type: "text/plain" })

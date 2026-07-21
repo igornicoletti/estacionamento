@@ -113,6 +113,28 @@ export function createNotificationsColumns(
     {
       cell: ({ row }) => {
         const isUpdating = options.isNotificationUpdating?.(row.original.id) ?? false
+        const statusAction: DataTableRowAction<NotificationRecord> = isUpdating
+          ? {
+            disabled: true,
+            id: "updating",
+            label: notificationsCopy.actions.updating,
+          }
+          : row.original.status === "unread"
+            ? {
+              id: "mark-read",
+              label: notificationsCopy.actions.markAsRead,
+              onSelect: (currentRow) => {
+                options.onMarkAsRead?.(currentRow.original)
+              },
+            }
+            : {
+              id: "mark-unread",
+              label: notificationsCopy.actions.markAsUnread,
+              onSelect: (currentRow) => {
+                options.onMarkAsUnread?.(currentRow.original)
+              },
+            }
+        const canOpenDestination = isInternalNotificationHref(row.original.href)
         const actions: DataTableRowAction<NotificationRecord>[] = [
           {
             id: "details",
@@ -121,43 +143,27 @@ export function createNotificationsColumns(
               options.onOpenDetails?.(currentRow.original)
             },
           },
-          {
-            disabled: isUpdating || row.original.status === "read",
-            id: "mark-read",
-            label: isUpdating
-              ? notificationsCopy.actions.updating
-              : notificationsCopy.actions.markAsRead,
-            onSelect: (currentRow) => {
-              options.onMarkAsRead?.(currentRow.original)
-            },
-          },
-          {
-            disabled: isUpdating || row.original.status === "unread",
-            id: "mark-unread",
-            label: isUpdating
-              ? notificationsCopy.actions.updating
-              : notificationsCopy.actions.markAsUnread,
-            onSelect: (currentRow) => {
-              options.onMarkAsUnread?.(currentRow.original)
-            },
-          },
-          {
-            disabled: !isInternalNotificationHref(row.original.href),
-            id: "open-destination",
-            label: notificationsCopy.actions.openDestination,
-            onSelect: (currentRow) => {
-              const href = currentRow.original.href
+          statusAction,
+          ...(canOpenDestination
+            ? [
+              {
+                id: "open-destination" as const,
+                label: notificationsCopy.actions.openDestination,
+                onSelect: (currentRow: { original: NotificationRecord }) => {
+                  const href = currentRow.original.href
 
-              if (!isInternalNotificationHref(href) || typeof window === "undefined") {
-                return
-              }
+                  if (!isInternalNotificationHref(href) || typeof window === "undefined") {
+                    return
+                  }
 
-              window.location.assign(href)
-            },
-            shortcut: isInternalNotificationHref(row.original.href) ? (
-              <ArrowUpRightIcon className="size-3 text-muted-foreground" />
-            ) : undefined,
-          },
+                  window.location.assign(href)
+                },
+                shortcut: (
+                  <ArrowUpRightIcon className="size-3 text-muted-foreground" />
+                ),
+              },
+            ]
+            : []),
         ]
 
         return (

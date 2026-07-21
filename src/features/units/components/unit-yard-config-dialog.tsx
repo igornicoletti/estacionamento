@@ -67,7 +67,7 @@ export function UnitYardConfigDialog({
           </Button>
           <Button type="button" size="lg" disabled={isSaving} aria-busy={isSaving} onClick={onSave}>
             {isSaving ? <Spinner data-icon="inline-start" /> : null}
-            {unitsCopy.actions.save}
+            {isSaving ? unitsCopy.actions.saving : unitsCopy.actions.save}
           </Button>
         </div>
       )}

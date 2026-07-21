@@ -39,6 +39,7 @@ export {
 export { DataTableScrollContainer } from "./data-table-scroll-container"
 export { DataTableSearchInput } from "./data-table-search-input"
 export { createSelectColumn } from "./data-table-select-column"
+export { DataTableSensitiveValue } from "./data-table-sensitive-value"
 export { DataTableStackedCell } from "./data-table-stacked-cell"
 export {
   DataTableTextAction,

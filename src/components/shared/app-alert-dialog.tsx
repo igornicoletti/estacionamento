@@ -1,5 +1,6 @@
 "use client"
 
+import { CircleAlertIcon } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -14,6 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { Spinner } from "@/components/ui/spinner"
 import { useControllableOpen } from "@/hooks/use-controllable-open"
 import { cn } from "@/lib/utils"
 
@@ -75,14 +77,17 @@ export function AppAlertDialog({
     onOpenChange,
   })
   const [isPending, setIsPending] = React.useState(false)
+  const isPendingRef = React.useRef(false)
+  const resolvedMedia = media ?? <CircleAlertIcon />
   const hasHeader =
-    isRenderable(media) || isRenderable(title) || isRenderable(description)
+    isRenderable(resolvedMedia) || isRenderable(title) || isRenderable(description)
   const hasFooter = showFooter && footer !== null && footer !== false
 
   async function executeAction(event: React.MouseEvent<HTMLButtonElement>) {
-    if (!onAction) return
+    if (!onAction || isPendingRef.current) return
 
     event.preventDefault()
+    isPendingRef.current = true
     setIsPending(true)
 
     try {
@@ -91,7 +96,10 @@ export function AppAlertDialog({
       if (closeOnAction) {
         setCurrentOpen(false)
       }
+    } catch {
+      // A acao deve exibir feedback proprio para o usuario e manter o dialog aberto.
     } finally {
+      isPendingRef.current = false
       setIsPending(false)
     }
   }
@@ -100,10 +108,18 @@ export function AppAlertDialog({
     void executeAction(event)
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (isPendingRef.current) {
+      return
+    }
+
+    setCurrentOpen(nextOpen)
+  }
+
   return (
     <AlertDialog
       open={currentOpen}
-      onOpenChange={setCurrentOpen}
+      onOpenChange={handleOpenChange}
       {...props}
     >
       {trigger ? (
@@ -113,8 +129,8 @@ export function AppAlertDialog({
       <AlertDialogContent {...contentProps} className={cn(className)}>
         {hasHeader ? (
           <AlertDialogHeader>
-            {isRenderable(media) ? (
-              <AlertDialogMedia>{media}</AlertDialogMedia>
+            {isRenderable(resolvedMedia) ? (
+              <AlertDialogMedia>{resolvedMedia}</AlertDialogMedia>
             ) : null}
 
             {isRenderable(title) ? (
@@ -143,6 +159,7 @@ export function AppAlertDialog({
                   disabled={isPending}
                   onClick={handleActionClick}
                 >
+                  {isPending ? <Spinner data-icon="inline-start" /> : null}
                   {isPending ? pendingLabel : actionLabel}
                 </AlertDialogAction>
               </>

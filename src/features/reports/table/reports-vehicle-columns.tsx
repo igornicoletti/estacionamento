@@ -49,6 +49,7 @@ export function createReportsVehicleColumns(options: {
     },
     {
       accessorKey: "status",
+      enableSorting: false,
       header: () => <div className="text-center">Status</div>,
       meta: { label: "Status" },
       cell: ({ row }) => (

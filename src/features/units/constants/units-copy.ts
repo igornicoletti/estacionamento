@@ -17,6 +17,7 @@ export const unitsCopy = {
     details: "Detalhes",
     history: "Histórico",
     save: "Salvar",
+    saving: "Salvando...",
     cancel: "Cancelar",
     sync: "Sincronizar",
     users: "Funcionários",

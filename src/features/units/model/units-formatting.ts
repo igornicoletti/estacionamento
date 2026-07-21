@@ -1,6 +1,7 @@
 import { unitsCopy } from "../constants/units-copy"
 import { normalizeUnitYardConfig, sanitizeParkingSpots } from "./units-normalization"
 import { type Unit, type UnitUserStats, type UnitYardConfig } from "./units-types"
+import { unitYardConfigSchema } from "./units-validation"
 
 type UserWithUnitRole = {
   role: string
@@ -64,9 +65,14 @@ export function resolveYardStatusLabel(value: boolean) {
 export function parseYardSpotsInput(value: string) {
   const normalizedValue = value.trim()
   const parsed = Number(normalizedValue)
-  if (!normalizedValue || !Number.isSafeInteger(parsed) || parsed < 0) {
+  const validation = unitYardConfigSchema.pick({ parkingSpots: true }).safeParse({
+    parkingSpots: parsed,
+  })
+
+  if (!normalizedValue || !validation.success || !Number.isSafeInteger(parsed)) {
     return { isValid: false as const, error: unitsCopy.yard.validationInvalidSpots }
   }
+
   return { isValid: true as const, value: sanitizeParkingSpots(parsed) }
 }
 

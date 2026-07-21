@@ -11,7 +11,9 @@ Componente genérico de tabela baseado em TanStack Table e componentes shadcn/ui
 - Estados vazios, erro e filtros sem resultado usam `AppEmptyState`.
 - Header da tabela é fixo durante o scroll vertical.
 - Scroll horizontal por clique e arraste fica no `DataTableScrollContainer`.
-- Controles, paginação e exportação só aparecem quando há dataset carregado.
+- O bloco de controles só aparece quando a tabela tem busca, filtros, ações, visibilidade de coluna ou exportação.
+- A paginação é independente do bloco de controles e continua disponível quando habilitada.
+- Use `surface="plain"` quando a tabela já estiver dentro de um `Card`; use o padrão `surface="card"` para listagens de página.
 - Ações de linha devem ser declaradas com `createActionsColumn` e renderizadas por `DataTableRowActions`.
 - A paginação usa `Select` shadcn/ui e botões de navegação com labels ocultos para acessibilidade.
 
@@ -22,6 +24,7 @@ Componente genérico de tabela baseado em TanStack Table e componentes shadcn/ui
 - Use `defaultColumnVisibility` para esconder colunas técnicas usadas apenas por filtros.
 - Não coloque detalhes de domínio dentro do `DataTable`; use rota + `AppDetailsSheet`.
 - Para ações exibir/editar/excluir, prefira uma coluna única de ações com labels claras e ação destrutiva apenas quando necessário.
+- Evite `surface="card"` dentro de outro `Card`; isso recria bordas duplicadas e reduz a legibilidade da listagem.
 
 ## Dependências visuais
 

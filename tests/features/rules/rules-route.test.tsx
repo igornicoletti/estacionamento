@@ -66,6 +66,12 @@ const activeVipRule: VipRule = {
   yardStaleVehicleHours: null,
 }
 
+const inactiveVipRule: VipRule = {
+  ...activeVipRule,
+  active: false,
+  id: "rule-vip-1001-inactive",
+}
+
 function configureCatalogGateways() {
   configureClientsGateway({
     async listClientsPayload() {
@@ -312,6 +318,38 @@ describe("RulesRoute", () => {
       expect(saveVipRuleMock).toHaveBeenCalledWith(
         expect.objectContaining({
           active: false,
+          clientId: 1001,
+          type: "vip",
+        })
+      )
+    })
+  }, 15_000)
+
+  it("shows activate action for inactive rules", async () => {
+    listVipRulesMock.mockResolvedValueOnce([inactiveVipRule])
+
+    render(
+      <MemoryRouter>
+        <RulesRoute />
+      </MemoryRouter>
+    )
+
+    await waitFor(() => {
+      expect(screen.getByText("Auto Center Alfa")).toBeInTheDocument()
+    })
+
+    fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
+
+    expect(await screen.findByRole("menuitem", { name: "Ativar" })).toBeInTheDocument()
+    expect(screen.queryByRole("menuitem", { name: "Inativar" })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Ativar" }))
+    fireEvent.click(screen.getByRole("button", { name: "Ativar regra" }))
+
+    await waitFor(() => {
+      expect(saveVipRuleMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          active: true,
           clientId: 1001,
           type: "vip",
         })

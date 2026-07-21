@@ -7,6 +7,7 @@ import { PageHeader, PageSection } from "@/components/page"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import {
   saveVipRule,
@@ -37,35 +38,49 @@ export function RulesRoute() {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "updatedAt", desc: true },
   ])
-  const [recordToDeactivate, setRecordToDeactivate] = React.useState<VipRuleRecord | null>(null)
+  const [recordToUpdateStatus, setRecordToUpdateStatus] = React.useState<VipRuleRecord | null>(null)
 
-  async function handleDeactivateRule() {
-    if (!recordToDeactivate) {
+  const statusDialogTitle = recordToUpdateStatus?.active
+    ? rulesCopy.dialogs.deactivateTitle
+    : rulesCopy.dialogs.activateTitle
+  const statusDialogDescription = recordToUpdateStatus?.active
+    ? rulesCopy.dialogs.deactivateDescription
+    : rulesCopy.dialogs.activateDescription
+  const statusActionLabel = recordToUpdateStatus?.active
+    ? rulesCopy.actions.confirmDeactivate
+    : rulesCopy.actions.confirmActivate
+
+  async function handleUpdateRuleStatus() {
+    if (!recordToUpdateStatus) {
       return
     }
 
-    const normalizedType = recordToDeactivate.type
+    const normalizedType = recordToUpdateStatus.type
     const payload = {
-      id: recordToDeactivate.id,
+      id: recordToUpdateStatus.id,
       type: normalizedType,
-      targetType: recordToDeactivate.targetType,
-      clientId: recordToDeactivate.clientId,
-      clientName: recordToDeactivate.clientName,
-      vehicleId: recordToDeactivate.vehicleId,
-      vehiclePlate: recordToDeactivate.vehiclePlate,
-      vehicleIds: recordToDeactivate.vehicleIds,
-      appliesToAllUnits: recordToDeactivate.appliesToAllUnits,
-      unitIds: recordToDeactivate.unitIds,
-      active: false,
-      fuelMinLiters: recordToDeactivate.fuelMinLiters,
-      benefitHours: recordToDeactivate.benefitHours,
-      yardOccupancyThreshold: recordToDeactivate.yardOccupancyThreshold,
-      yardStaleVehicleHours: recordToDeactivate.yardStaleVehicleHours,
-      notes: recordToDeactivate.notes,
+      targetType: recordToUpdateStatus.targetType,
+      clientId: recordToUpdateStatus.clientId,
+      clientName: recordToUpdateStatus.clientName,
+      vehicleId: recordToUpdateStatus.vehicleId,
+      vehiclePlate: recordToUpdateStatus.vehiclePlate,
+      vehicleIds: recordToUpdateStatus.vehicleIds,
+      appliesToAllUnits: recordToUpdateStatus.appliesToAllUnits,
+      unitIds: recordToUpdateStatus.unitIds,
+      active: !recordToUpdateStatus.active,
+      fuelMinLiters: recordToUpdateStatus.fuelMinLiters,
+      benefitHours: recordToUpdateStatus.benefitHours,
+      yardOccupancyThreshold: recordToUpdateStatus.yardOccupancyThreshold,
+      yardStaleVehicleHours: recordToUpdateStatus.yardStaleVehicleHours,
+      notes: recordToUpdateStatus.notes,
     }
 
-    await saveVipRule(payload)
-    setRecordToDeactivate(null)
+    await notify.track(saveVipRule(payload), {
+      loading: rulesCopy.actions.saving,
+      success: rulesCopy.feedback.statusSuccess,
+      error: rulesCopy.feedback.statusError,
+    })
+    setRecordToUpdateStatus(null)
     await refetch()
   }
 
@@ -77,8 +92,8 @@ export function RulesRoute() {
           setIsFormOpen(true)
         },
         onDetails: setDetailsRecord,
-        onDeactivate(record) {
-          setRecordToDeactivate(record)
+        onStatusChange(record) {
+          setRecordToUpdateStatus(record)
         },
       }),
     []
@@ -178,18 +193,18 @@ export function RulesRoute() {
       />
 
       <AppAlertDialog
-        open={recordToDeactivate !== null}
+        open={recordToUpdateStatus !== null}
         onOpenChange={(open) => {
           if (!open) {
-            setRecordToDeactivate(null)
+            setRecordToUpdateStatus(null)
           }
         }}
-        title={rulesCopy.dialogs.deactivateTitle}
-        description={rulesCopy.dialogs.deactivateDescription}
-        actionVariant="destructive"
-        actionLabel={rulesCopy.actions.confirmDeactivate}
-        pendingLabel={rulesCopy.actions.confirmDeactivate}
-        onAction={handleDeactivateRule}
+        title={statusDialogTitle}
+        description={statusDialogDescription}
+        actionVariant={recordToUpdateStatus?.active ? "destructive" : "default"}
+        actionLabel={statusActionLabel}
+        pendingLabel={rulesCopy.actions.saving}
+        onAction={handleUpdateRuleStatus}
       />
     </PageSection>
   )

@@ -1,6 +1,6 @@
 # Índice de Relatórios de Fluxo
 
-Data de atualização: 2026-07-20
+Data de atualização: 2026-07-21
 
 ## Objetivo
 
@@ -22,6 +22,8 @@ Centralizar os relatórios de validação executados por fluxo, com rastreabilid
    - Auditoria, notificações e segurança de mensagens ao usuário.
 7. `docs/reports/2026-07-20__flow-security-chaos-validation.md`
    - Validação de segurança com erros forçados e comportamento defensivo.
+8. `docs/reports/2026-07-21__flow-forms-tables-filters-audit.md`
+   - Auditoria e refatoração de formulários, tabelas, filtros e dialogs de confirmação.
 
 ## Observação
 

@@ -168,7 +168,7 @@ describe("UsersRoute", () => {
     ).toHaveAttribute("aria-selected", "true")
 
     await waitFor(() => {
-      expect(screen.getByText("(11) 98765-4321")).toBeInTheDocument()
+      expect(screen.getByText("(11) *****-4321")).toBeInTheDocument()
     })
   })
 })

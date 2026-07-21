@@ -128,7 +128,6 @@ export function ClientVehiclesRoute() {
           }
           : undefined,
         pendingVipVehicleId,
-        vipActionLabel: clientsCopy.actions.toggleVehicleVip,
       }),
     [canManageVip, handleToggleVehicleVip, pendingVipVehicleId, vipRulesError]
   )

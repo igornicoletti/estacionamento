@@ -78,7 +78,7 @@ describe("AccessRequestsRoute", () => {
     ).toBeInTheDocument()
 
     await waitFor(() => {
-      expect(screen.getByText("(11) 98765-4321")).toBeInTheDocument()
+      expect(screen.getByText("(11) *****-4321")).toBeInTheDocument()
     })
   }, 15_000)
 
@@ -94,7 +94,7 @@ describe("AccessRequestsRoute", () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText("(11) 98765-4321")).toBeInTheDocument()
+      expect(screen.getByText("(11) *****-4321")).toBeInTheDocument()
     })
 
     fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
@@ -131,7 +131,7 @@ describe("AccessRequestsRoute", () => {
     )
 
     await waitFor(() => {
-      expect(screen.getByText("(11) 98765-4321")).toBeInTheDocument()
+      expect(screen.getByText("(11) *****-4321")).toBeInTheDocument()
     })
 
     fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])

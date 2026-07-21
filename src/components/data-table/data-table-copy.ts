@@ -31,6 +31,8 @@ export const dataTableCopy = {
   toolbar: {
     clearFilters: "Limpar filtros",
     clearFiltersAriaLabel: "Limpar todos os filtros da tabela",
+    controlsTitle: "Filtros e ações",
+    controlsDescription: "Busca, filtros, colunas e exportação da listagem.",
     export: "Exportar",
     exportAriaLabel: "Exportar dados da tabela para Excel",
     exportTooltip: "Exportar",

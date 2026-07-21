@@ -3,6 +3,7 @@ import { ExternalLinkIcon } from "lucide-react"
 
 import {
   createActionsColumn,
+  DataTableSensitiveValue,
   DataTableTextAction,
   DataTableTextLink,
 } from "@/components/data-table"
@@ -73,6 +74,9 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
       meta: { label: unitsCopy.table.cnpj },
       header: unitsCopy.table.cnpj,
       size: 170,
+      cell: ({ row }) => (
+        <DataTableSensitiveValue value={row.original.num_cnpj} kind="cnpj" />
+      ),
     },
     {
       accessorKey: "des_bandeira",
@@ -157,6 +161,7 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
     {
       id: "yardStatus",
       accessorFn: (unit) => resolveYardStatusLabel(unit.yardConfig.patioActive),
+      enableSorting: false,
       meta: {
         label: unitsCopy.table.yard,
         exportValue: (_value, row) => resolveYardStatusLabel(row.yardConfig.patioActive),

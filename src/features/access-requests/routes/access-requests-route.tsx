@@ -65,6 +65,7 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
   const [pendingRecoveryReview, setPendingRecoveryReview] = React.useState<PendingRecoveryReview | null>(null)
   const [temporaryPassword, setTemporaryPassword] = React.useState("")
   const [isPasswordTouched, setIsPasswordTouched] = React.useState(false)
+  const isReviewingRef = React.useRef(false)
 
   const passwordError = React.useMemo(() => getPasswordError(temporaryPassword), [temporaryPassword])
   const showPasswordError =
@@ -95,7 +96,7 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
   }, [])
 
   const handleConfirmRecoveryReview = React.useCallback(async () => {
-    if (!pendingRecoveryReview) {
+    if (!pendingRecoveryReview || isReviewingRef.current) {
       return
     }
 
@@ -109,20 +110,26 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
 
     const { decision, request } = pendingRecoveryReview
 
-    await notify.track(
-      reviewRecovery(
-        request.id,
-        decision,
-        decision === "approved" ? temporaryPassword.trim() : undefined
-      ),
-      {
-        error: accessRequestsCopy.feedback.recovery[decision].error,
-        loading: accessRequestsCopy.feedback.recovery[decision].loading,
-        success: accessRequestsCopy.feedback.recovery[decision].success,
-      }
-    )
+    isReviewingRef.current = true
 
-    resetPendingReview()
+    try {
+      await notify.track(
+        reviewRecovery(
+          request.id,
+          decision,
+          decision === "approved" ? temporaryPassword.trim() : undefined
+        ),
+        {
+          error: accessRequestsCopy.feedback.recovery[decision].error,
+          loading: accessRequestsCopy.feedback.recovery[decision].loading,
+          success: accessRequestsCopy.feedback.recovery[decision].success,
+        }
+      )
+
+      resetPendingReview()
+    } finally {
+      isReviewingRef.current = false
+    }
   }, [isApprovalPasswordInvalid, pendingRecoveryReview, resetPendingReview, reviewRecovery, temporaryPassword])
 
   return (
@@ -212,7 +219,9 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
               }}
             >
               {isReviewing ? <Spinner data-icon="inline-start" /> : null}
-              {accessRequestsCopy.actions.confirmApprove}
+              {isReviewing
+                ? accessRequestsCopy.feedback.recovery.approved.loading
+                : accessRequestsCopy.actions.confirmApprove}
             </Button>
           </>
         )}
@@ -248,11 +257,7 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
         actionVariant="destructive"
         pendingLabel={accessRequestsCopy.feedback.recovery.denied.loading}
         onAction={async () => {
-          try {
-            await handleConfirmRecoveryReview()
-          } catch {
-            return
-          }
+          await handleConfirmRecoveryReview()
         }}
       >
         {pendingRecoveryReview ? <AccessRequestDenySummary request={pendingRecoveryReview.request} /> : null}

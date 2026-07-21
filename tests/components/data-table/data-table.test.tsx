@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
 import { DataTable } from "@/components/data-table/data-table"
+import { DataTableSensitiveValue } from "@/components/data-table/data-table-sensitive-value"
 import { createTextColumn } from "@/components/data-table/data-table-text-column"
 import { type DataTableGlobalSearch } from "@/components/data-table/data-table-types"
 
@@ -77,6 +78,8 @@ describe("DataTable", () => {
 
     expect(screen.getByText("Alpha")).toBeInTheDocument()
     expect(screen.getByText("Beta")).toBeInTheDocument()
+    expect(screen.getByRole("button", { name: /Filtros e ações/ })).toBeInTheDocument()
+    expect(screen.queryByText("Registros")).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText("Buscar linhas..."), {
       target: { value: "missing" },
@@ -88,6 +91,21 @@ describe("DataTable", () => {
 
     expect(screen.getByText("Alpha")).toBeInTheDocument()
     expect(screen.getByText("Beta")).toBeInTheDocument()
+  })
+
+  it("omits the controls block when the table has no toolbar capabilities", () => {
+    render(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        enableViewOptions={false}
+        enableExport={false}
+      />
+    )
+
+    expect(screen.getByText("Alpha")).toBeInTheDocument()
+    expect(screen.queryByRole("button", { name: /Filtros e ações/ })).not.toBeInTheDocument()
   })
 
   it("uses the provided empty states for business-specific scenarios", () => {
@@ -128,5 +146,21 @@ describe("DataTable", () => {
     })
 
     expect(searchInput).toHaveValue("Alpha ")
+  })
+
+  it("reveals sensitive values only while pressed", () => {
+    render(<DataTableSensitiveValue value="111.444.777-35" kind="cpf" />)
+
+    const value = screen.getByRole("button", {
+      name: "Segure para visualizar o conteúdo completo",
+    })
+
+    expect(value).toHaveTextContent("111.***.***-35")
+
+    fireEvent.pointerDown(value)
+    expect(value).toHaveTextContent("111.444.777-35")
+
+    fireEvent.pointerUp(value)
+    expect(value).toHaveTextContent("111.***.***-35")
   })
 })

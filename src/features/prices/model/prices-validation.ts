@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 import { pricesCopy } from "../constants"
 import {
   priceScopeValues,
@@ -34,6 +36,52 @@ function toIso(value: string) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString()
 }
 
+const priceTableValidationSchema = z
+  .object({
+    id: z.string().optional(),
+    amount: z.number({ error: pricesCopy.validation.positiveMoney }).positive({ error: pricesCopy.validation.positiveMoney }),
+    cycleHours: z.number({ error: pricesCopy.validation.positiveInteger }).int({ error: pricesCopy.validation.positiveInteger }).positive({ error: pricesCopy.validation.positiveInteger }),
+    endsAt: z.string({ error: pricesCopy.validation.invalidDate }).min(1, { error: pricesCopy.validation.invalidDate }).nullable(),
+    graceMinutes: z.number({ error: pricesCopy.validation.nonNegativeInteger }).int({ error: pricesCopy.validation.nonNegativeInteger }).min(0, { error: pricesCopy.validation.nonNegativeInteger }),
+    name: z.string({ error: pricesCopy.validation.required }).trim().min(1, { error: pricesCopy.validation.required }),
+    notes: z.string(),
+    scope: z.string({ error: pricesCopy.validation.required }).refine(isPriceScope, { error: pricesCopy.validation.required }),
+    startsAt: z.string({ error: pricesCopy.validation.invalidDate }).min(1, { error: pricesCopy.validation.invalidDate }),
+    status: z.string({ error: pricesCopy.validation.required }).refine(isPriceStatus, { error: pricesCopy.validation.required }),
+    toleranceMinutes: z.number({ error: pricesCopy.validation.nonNegativeInteger }).int({ error: pricesCopy.validation.nonNegativeInteger }).min(0, { error: pricesCopy.validation.nonNegativeInteger }),
+    unitId: z.string(),
+    unitName: z.string(),
+  })
+  .superRefine((value, context) => {
+    if (value.scope === "unit" && !value.unitId.trim()) {
+      context.addIssue({
+        code: "custom",
+        message: pricesCopy.validation.required,
+        path: ["unitId"],
+      })
+    }
+
+    if (value.endsAt && value.endsAt <= value.startsAt) {
+      context.addIssue({
+        code: "custom",
+        message: pricesCopy.validation.endBeforeStart,
+        path: ["endsAt"],
+      })
+    }
+  })
+
+function getPriceTableFormErrors(error: z.ZodError): PriceTableFormErrors {
+  return error.issues.reduce<PriceTableFormErrors>((errors, issue) => {
+    const fieldName = issue.path[0]
+
+    if (typeof fieldName === "string" && fieldName in createEmptyPriceTableFormValues()) {
+      errors[fieldName as keyof PriceTableFormValues] = issue.message
+    }
+
+    return errors
+  }, {})
+}
+
 export function createEmptyPriceTableFormValues(): PriceTableFormValues {
   const defaultStartsAt = new Date().toISOString().slice(0, 16)
 
@@ -58,76 +106,42 @@ export function createPriceTableFormValues(record: Partial<PriceTableFormValues>
 }
 
 export function validatePriceTableForm(values: PriceTableFormValues) {
-  const errors: PriceTableFormErrors = {}
-  const amount = parseNumber(values.amount)
-  const graceMinutes = parseInteger(values.graceMinutes)
-  const toleranceMinutes = parseInteger(values.toleranceMinutes)
-  const cycleHours = parseInteger(values.cycleHours)
-  const startsAt = toIso(values.startsAt)
-  const endsAt = values.endsAt ? toIso(values.endsAt) : null
-
-  if (!values.name.trim()) {
-    errors.name = pricesCopy.validation.required
-  }
-
-  if (!isPriceScope(values.scope)) {
-    errors.scope = pricesCopy.validation.required
-  }
-
-  if (values.scope === "unit" && !values.unitId.trim()) {
-    errors.unitId = pricesCopy.validation.required
-  }
-
-  if (amount === null || amount <= 0) {
-    errors.amount = pricesCopy.validation.positiveMoney
-  }
-
-  if (graceMinutes === null || graceMinutes < 0) {
-    errors.graceMinutes = pricesCopy.validation.nonNegativeInteger
-  }
-
-  if (toleranceMinutes === null || toleranceMinutes < 0) {
-    errors.toleranceMinutes = pricesCopy.validation.nonNegativeInteger
-  }
-
-  if (cycleHours === null || cycleHours <= 0) {
-    errors.cycleHours = pricesCopy.validation.positiveInteger
-  }
-
-  if (!startsAt) {
-    errors.startsAt = pricesCopy.validation.invalidDate
-  }
-
-  if (values.endsAt && !endsAt) {
-    errors.endsAt = pricesCopy.validation.invalidDate
-  }
-
-  if (startsAt && endsAt && endsAt <= startsAt) {
-    errors.endsAt = pricesCopy.validation.endBeforeStart
-  }
-
-  if (!isPriceStatus(values.status)) {
-    errors.status = pricesCopy.validation.required
-  }
-
-  if (Object.keys(errors).length > 0 || amount === null || graceMinutes === null || toleranceMinutes === null || cycleHours === null || !startsAt || !isPriceScope(values.scope) || !isPriceStatus(values.status)) {
-    return { success: false as const, errors }
-  }
-
-  const payload: SavePriceTablePayload = {
+  const result = priceTableValidationSchema.safeParse({
     id: values.id,
-    name: values.name.trim(),
+    amount: parseNumber(values.amount),
+    cycleHours: parseInteger(values.cycleHours),
+    endsAt: values.endsAt ? toIso(values.endsAt) ?? "" : null,
+    graceMinutes: parseInteger(values.graceMinutes),
+    name: values.name,
+    notes: values.notes,
     scope: values.scope,
-    unitId: values.scope === "unit" ? values.unitId.trim() : null,
-    unitName: values.scope === "unit" ? values.unitName.trim() || null : null,
-    graceMinutes,
-    toleranceMinutes,
-    cycleHours,
-    amount,
-    startsAt,
-    endsAt,
+    startsAt: toIso(values.startsAt),
     status: values.status,
-    notes: values.notes.trim() || null,
+    toleranceMinutes: parseInteger(values.toleranceMinutes),
+    unitId: values.unitId,
+    unitName: values.unitName,
+  })
+
+  if (!result.success) {
+    return { success: false as const, errors: getPriceTableFormErrors(result.error) }
+  }
+
+  const scope = result.data.scope
+  const status = result.data.status
+  const payload: SavePriceTablePayload = {
+    id: result.data.id,
+    name: result.data.name,
+    scope,
+    unitId: scope === "unit" ? result.data.unitId.trim() : null,
+    unitName: scope === "unit" ? result.data.unitName.trim() || null : null,
+    graceMinutes: result.data.graceMinutes,
+    toleranceMinutes: result.data.toleranceMinutes,
+    cycleHours: result.data.cycleHours,
+    amount: result.data.amount,
+    startsAt: result.data.startsAt,
+    endsAt: result.data.endsAt,
+    status,
+    notes: result.data.notes.trim() || null,
   }
 
   return {

@@ -1,7 +1,7 @@
 import { type ColumnDef, type Row } from "@tanstack/react-table"
 import { CrownIcon } from "lucide-react"
 
-import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
+import { createActionsColumn, DataTableSensitiveValue, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
@@ -13,7 +13,6 @@ interface CreateClientVehiclesColumnsOptions {
   onOpenDetails: (vehicle: ClientVehicleTableRow) => void
   onToggleVip?: (vehicle: ClientVehicleTableRow) => void
   pendingVipVehicleId?: number | null
-  vipActionLabel?: string
 }
 
 export function createClientVehiclesColumns(
@@ -54,6 +53,9 @@ export function createClientVehiclesColumns(
       header: clientsCopy.table.document,
       meta: { label: clientsCopy.table.document },
       size: 160,
+      cell: ({ row }) => (
+        <DataTableSensitiveValue value={row.original.num_cnpj_cpf} kind="cpfCnpj" />
+      ),
     },
     {
       accessorKey: "num_placa",
@@ -76,7 +78,7 @@ export function createClientVehiclesColumns(
     },
     {
       accessorKey: "vip",
-      header: clientsCopy.table.vip,
+      header: () => <div className="text-center font-medium">{clientsCopy.table.vip}</div>,
       meta: { label: clientsCopy.table.vip },
       size: 80,
       enableSorting: false,
@@ -84,23 +86,25 @@ export function createClientVehiclesColumns(
         const isVip = row.original.vip === "sim"
 
         return (
-          <Badge
-            variant="secondary"
-            className={getBadgeToneClassName(isVip ? CLIENT_SUCCESS_BADGE_TONE : undefined)}
-          >
-            {isVip ? clientsCopy.table.yes : clientsCopy.table.no}
-          </Badge>
+          <div className="flex justify-center">
+            <Badge
+              variant="secondary"
+              className={getBadgeToneClassName(isVip ? CLIENT_SUCCESS_BADGE_TONE : undefined)}
+            >
+              {isVip ? clientsCopy.table.yes : clientsCopy.table.no}
+            </Badge>
+          </div>
         )
       },
     },
     createActionsColumn<ClientVehicleTableRow>((row) => {
       const isPendingVip = options.pendingVipVehicleId === row.original.cod_veiculo
+      const isVip = row.original.vip === "sim"
 
       return [
         {
           id: "details",
           label: clientsCopy.actions.details,
-          disabled: isPendingVip,
           onSelect: (selectedRow) => {
             options.onOpenDetails(selectedRow.original)
           },
@@ -111,7 +115,9 @@ export function createClientVehiclesColumns(
               id: "vip" as const,
               label: isPendingVip
                 ? clientsCopy.actions.updating
-                : options.vipActionLabel ?? clientsCopy.actions.toggleVehicleVip,
+                : isVip
+                  ? clientsCopy.actions.removeVehicleVip
+                  : clientsCopy.actions.addVehicleVip,
               disabled: isPendingVip,
               onSelect: (selectedRow: Row<ClientVehicleTableRow>) => {
                 options.onToggleVip?.(selectedRow.original)

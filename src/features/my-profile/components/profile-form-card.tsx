@@ -10,6 +10,7 @@ import {
   UserRoundIcon,
 } from "lucide-react"
 import * as React from "react"
+import { z } from "zod"
 
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
@@ -51,6 +52,42 @@ interface ProfileFormCardProps {
 
 type ProfileFieldErrors = Partial<Record<"email" | "name" | "phone", string>>
 
+const profileFormSchema = z
+  .object({
+    email: z.union([
+      z.literal(""),
+      z.email({ error: "Informe um e-mail válido." }),
+    ]),
+    name: z
+      .string({ error: "Informe um nome com pelo menos 3 caracteres." })
+      .trim()
+      .min(3, { error: "Informe um nome com pelo menos 3 caracteres." }),
+    phone: z.string(),
+    phoneChanged: z.boolean(),
+  })
+  .superRefine((values, context) => {
+    if (!values.phoneChanged) {
+      return
+    }
+
+    if (!values.phone.trim()) {
+      context.addIssue({
+        code: "custom",
+        message: "Informe um telefone.",
+        path: ["phone"],
+      })
+      return
+    }
+
+    if (!isValidPhone(values.phone)) {
+      context.addIssue({
+        code: "custom",
+        message: "Informe um telefone válido.",
+        path: ["phone"],
+      })
+    }
+  })
+
 function normalizeEmail(value: string) {
   const normalized = value.trim()
   return normalized.length > 0 ? normalized : null
@@ -76,27 +113,26 @@ function validateForm({
   phone: string
   phoneChanged: boolean
 }) {
-  const errors: ProfileFieldErrors = {}
+  const result = profileFormSchema.safeParse({
+    email: normalizeEmail(email) ?? "",
+    name,
+    phone,
+    phoneChanged,
+  })
 
-  if (name.trim().length < 3) {
-    errors.name = "Informe um nome com pelo menos 3 caracteres."
+  if (result.success) {
+    return {}
   }
 
-  const normalizedEmail = normalizeEmail(email)
+  return result.error.issues.reduce<ProfileFieldErrors>((errors, issue) => {
+    const fieldName = issue.path[0]
 
-  if (normalizedEmail && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(normalizedEmail)) {
-    errors.email = "Informe um e-mail válido."
-  }
-
-  if (phoneChanged) {
-    if (!phone.trim()) {
-      errors.phone = "Informe um telefone."
-    } else if (!isValidPhone(phone)) {
-      errors.phone = "Informe um telefone válido."
+    if (fieldName === "email" || fieldName === "name" || fieldName === "phone") {
+      errors[fieldName] = issue.message
     }
-  }
 
-  return errors
+    return errors
+  }, {})
 }
 
 function getProfileStatusTone(status: ProfileSummary["status"]): BadgeTone {
@@ -264,6 +300,7 @@ export function ProfileFormCard({
   const [email, setEmail] = React.useState(profile.email ?? "")
   const [phone, setPhone] = React.useState(profile.phoneMasked ?? "")
   const [errors, setErrors] = React.useState<ProfileFieldErrors>({})
+  const isSavingRef = React.useRef(false)
 
   const normalizedCurrentEmail = profile.email?.trim() || null
   const normalizedCurrentPhone = profile.phoneMasked?.trim() || null
@@ -277,7 +314,7 @@ export function ProfileFormCard({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (isSaving) {
+    if (isSaving || isSavingRef.current) {
       return
     }
 
@@ -290,12 +327,18 @@ export function ProfileFormCard({
 
     setErrors({})
 
-    await onSave({
-      avatarPath: profile.avatarPath,
-      email: normalizeEmail(email),
-      name: name.trim(),
-      phone: phoneChanged && !hasMaskedPhoneValue(phone) ? normalizePhone(phone) : undefined,
-    })
+    isSavingRef.current = true
+
+    try {
+      await onSave({
+        avatarPath: profile.avatarPath,
+        email: normalizeEmail(email),
+        name: name.trim(),
+        phone: phoneChanged && !hasMaskedPhoneValue(phone) ? normalizePhone(phone) : undefined,
+      })
+    } finally {
+      isSavingRef.current = false
+    }
   }
 
   return (

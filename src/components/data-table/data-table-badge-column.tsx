@@ -3,7 +3,6 @@ import { type ColumnDef, type Row } from "@tanstack/react-table"
 
 import { Badge } from "@/components/ui/badge"
 
-import { createDataTableColumnHeader } from "./data-table-column-header"
 import { type DataTableColumnId } from "./data-table-types"
 
 interface DataTableBadgeColumnConfig<TData> {
@@ -26,18 +25,24 @@ export function createBadgeColumn<TData>({
     meta: {
       label: title,
     },
-    header: createDataTableColumnHeader<TData, unknown>(title),
+    header: () => <div className="text-center font-medium">{title}</div>,
     cell: ({ row }) => {
       const value =
         row.getValue<React.ReactNode | null | undefined>(accessorKey)
 
       if (value === null || value === undefined || value === "") {
-        return typeof fallback === "function" ? fallback(row) : fallback
+        const resolvedFallback = typeof fallback === "function" ? fallback(row) : fallback
+
+        return resolvedFallback ? <div className="flex justify-center">{resolvedFallback}</div> : null
       }
 
-      return <Badge variant="outline">{value}</Badge>
+      return (
+        <div className="flex justify-center">
+          <Badge variant="outline" className="justify-center text-center">{value}</Badge>
+        </div>
+      )
     },
     enableHiding,
-    enableSorting,
+    enableSorting: enableSorting ?? false,
   }
 }

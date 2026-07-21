@@ -5,9 +5,11 @@ export const pricesCopy = {
     searchPlaceholder: "Buscar tabelas de preço...",
   },
   actions: {
+    activate: "Ativar",
     add: "Adicionar",
     edit: "Editar",
     deactivate: "Inativar",
+    confirmActivate: "Ativar tabela",
     confirmDeactivate: "Inativar tabela",
     details: "Detalhes",
     clearFilters: "Limpar filtros",
@@ -28,8 +30,13 @@ export const pricesCopy = {
     loadError: "Não foi possível carregar as tabelas de preço.",
     saveSuccess: "Tabela de preço salva com sucesso.",
     saveError: "Não foi possível salvar. Revise os dados e tente novamente.",
+    statusSuccess: "Status da tabela de preço atualizado.",
+    statusError: "Não foi possível atualizar o status da tabela de preço.",
   },
   dialogs: {
+    activateTitle: "Ativar tabela de preço",
+    activateDescription:
+      "Confirme para ativar esta tabela. Ela voltará a ficar disponível conforme a vigência configurada.",
     deactivateTitle: "Inativar tabela de preço",
     deactivateDescription:
       "Confirme para inativar esta tabela. A alteração pode ser revertida posteriormente.",

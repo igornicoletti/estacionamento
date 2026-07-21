@@ -37,6 +37,7 @@ export function SecurityChangePasswordDialog({
   const [newPassword, setNewPassword] = React.useState("")
   const [confirmPassword, setConfirmPassword] = React.useState("")
   const [touched, setTouched] = React.useState({ current: false, new: false, confirm: false })
+  const isSavingRef = React.useRef(false)
 
   const copy = securityCopy.passwordDialog
   const newPasswordError = touched.new ? getPasswordError(newPassword) : null
@@ -65,7 +66,7 @@ export function SecurityChangePasswordDialog({
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (isSaving) {
+    if (isSaving || isSavingRef.current) {
       return
     }
 
@@ -79,15 +80,21 @@ export function SecurityChangePasswordDialog({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (!canSubmit || isSaving) {
+    if (!canSubmit || isSaving || isSavingRef.current) {
       return
     }
 
-    await onSubmit({
-      currentPassword: currentPassword.trim(),
-      newPassword: newPassword.trim(),
-    })
-    resetForm()
+    isSavingRef.current = true
+
+    try {
+      await onSubmit({
+        currentPassword: currentPassword.trim(),
+        newPassword: newPassword.trim(),
+      })
+      resetForm()
+    } finally {
+      isSavingRef.current = false
+    }
   }
 
   return (

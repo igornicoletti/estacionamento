@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table"
 
-import { createActionsColumn } from "@/components/data-table"
+import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
@@ -18,14 +18,18 @@ import {
 export function createRulesColumns(options: {
   onEdit?: (record: VipRuleRecord) => void
   onDetails?: (record: VipRuleRecord) => void
-  onDeactivate?: (record: VipRuleRecord) => void
+  onStatusChange?: (record: VipRuleRecord) => void
 } = {}): ColumnDef<VipRuleRecord>[] {
   return [
     {
       accessorKey: "type",
       meta: { label: rulesCopy.table.type },
       header: rulesCopy.table.type,
-      cell: ({ row }) => ruleTypeLabels[row.original.type],
+      cell: ({ row }) => (
+        <DataTableTextAction onClick={() => options.onDetails?.(row.original)}>
+          {ruleTypeLabels[row.original.type]}
+        </DataTableTextAction>
+      ),
     },
     {
       accessorKey: "targetType",
@@ -67,14 +71,17 @@ export function createRulesColumns(options: {
     {
       accessorKey: "active",
       meta: { label: rulesCopy.table.status },
-      header: rulesCopy.table.status,
+      header: () => <div className="text-center font-medium">{rulesCopy.table.status}</div>,
+      enableSorting: false,
       cell: ({ row }) => (
-        <Badge
-          variant="secondary"
-          className={getBadgeToneClassName(row.original.active ? "success" : undefined)}
-        >
-          {row.original.active ? rulesCopy.labels.active : rulesCopy.labels.inactive}
-        </Badge>
+        <div className="flex justify-center">
+          <Badge
+            variant="secondary"
+            className={getBadgeToneClassName(row.original.active ? "success" : undefined)}
+          >
+            {row.original.active ? rulesCopy.labels.active : rulesCopy.labels.inactive}
+          </Badge>
+        </div>
       ),
     },
     {
@@ -83,23 +90,28 @@ export function createRulesColumns(options: {
       header: rulesCopy.table.updatedAt,
       cell: ({ row }) => formatNullableDateTime(row.original.updatedAt),
     },
-    createActionsColumn<VipRuleRecord>([
-      {
-        id: "edit",
-        label: rulesCopy.actions.edit,
-        onSelect: (row) => options.onEdit?.(row.original),
-      },
-      {
-        id: "deactivate",
-        label: rulesCopy.actions.deactivate,
-        variant: "destructive",
-        onSelect: (row) => options.onDeactivate?.(row.original),
-      },
+    createActionsColumn<VipRuleRecord>((row) => [
       {
         id: "details",
         label: rulesCopy.actions.details,
-        onSelect: (row) => options.onDetails?.(row.original),
+        onSelect: (selectedRow) => options.onDetails?.(selectedRow.original),
       },
+      {
+        id: "edit",
+        label: rulesCopy.actions.edit,
+        onSelect: (selectedRow) => options.onEdit?.(selectedRow.original),
+      },
+      ...(options.onStatusChange
+        ? [
+          {
+            id: "status" as const,
+            label: row.original.active ? rulesCopy.actions.deactivate : rulesCopy.actions.activate,
+            variant: row.original.active ? "destructive" as const : "default" as const,
+            separatorBefore: true,
+            onSelect: (selectedRow: { original: VipRuleRecord }) => options.onStatusChange?.(selectedRow.original),
+          },
+        ]
+        : []),
     ]),
   ]
 }

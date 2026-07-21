@@ -26,12 +26,13 @@ export function AppTabs({
 
   return (
     <Tabs defaultValue={resolvedDefaultValue} className={cn("flex w-full flex-col gap-4", className)} {...props}>
-      <TabsList className="w-full justify-start">
+      <TabsList className="h-9 w-full max-w-full justify-start overflow-x-auto rounded-lg p-1 sm:w-fit">
         {items.map((item) => (
           <TabsTrigger
             key={item.value}
             value={item.value}
             disabled={item.disabled}
+            className="h-7 flex-none rounded-md px-3 text-sm data-active:bg-background data-active:text-foreground data-active:shadow-sm"
           >
             {item.label}
           </TabsTrigger>

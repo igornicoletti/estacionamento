@@ -59,6 +59,7 @@ export function DashboardTablesBlock({
           <DataTable
             columns={movementColumns}
             data={limitedMovements}
+            surface="plain"
             getRowId={(row) => row.id}
             emptyState={<AppEmptyState media={<DatabaseIcon />} title="Nenhuma movimentação encontrada" description="Ajuste os filtros para exibir movimentações." />}
             enablePagination={false}

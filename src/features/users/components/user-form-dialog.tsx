@@ -102,6 +102,7 @@ export function UserFormDialog({
     editingUser ? mapUserToFormValues(editingUser) : createDefaultFormValues()
   )
   const [errors, setErrors] = React.useState<Partial<Record<UsersFormFieldName, string>>>({})
+  const isSubmittingRef = React.useRef(false)
   const isEditMode = editingUser !== null
   const isGlobalScopeRole = isGlobalRole(values.role)
   const selectedUnit = isGlobalScopeRole
@@ -114,6 +115,10 @@ export function UserFormDialog({
   }
 
   function handleOpenChange(nextOpen: boolean) {
+    if (isSaving || isSubmittingRef.current) {
+      return
+    }
+
     onOpenChange(nextOpen)
 
     if (!nextOpen) {
@@ -125,7 +130,7 @@ export function UserFormDialog({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (isSaving) {
+    if (isSaving || isSubmittingRef.current) {
       return
     }
 
@@ -136,8 +141,16 @@ export function UserFormDialog({
       return
     }
 
-    await onSubmit(result.data)
-    handleOpenChange(false)
+    isSubmittingRef.current = true
+
+    try {
+      await onSubmit(result.data)
+      onOpenChange(false)
+      setValues(createDefaultFormValues())
+      setErrors({})
+    } finally {
+      isSubmittingRef.current = false
+    }
   }
 
   return (
@@ -154,12 +167,18 @@ export function UserFormDialog({
           </Button>
           <Button type="submit" form={USERS_DIALOG_FORM_ID} size="lg" disabled={isSaving} aria-busy={isSaving}>
             {isSaving ? <Spinner data-icon="inline-start" /> : null}
-            {isEditMode ? usersCopy.actions.save : usersCopy.actions.create}
+            {isSaving
+              ? isEditMode
+                ? usersCopy.feedback.update.loading
+                : usersCopy.feedback.create.loading
+              : isEditMode
+                ? usersCopy.actions.save
+                : usersCopy.actions.create}
           </Button>
         </div>
       )}
     >
-      <form id={USERS_DIALOG_FORM_ID} onSubmit={(event: React.FormEvent<HTMLFormElement>) => { void handleSubmit(event) }}>
+      <form id={USERS_DIALOG_FORM_ID} onSubmit={(event: React.FormEvent<HTMLFormElement>) => { void handleSubmit(event) }} noValidate>
         <FieldGroup>
           <Field data-invalid={Boolean(errors.name)}>
             <FieldLabel htmlFor="user-name">

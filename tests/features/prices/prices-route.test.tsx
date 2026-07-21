@@ -48,6 +48,12 @@ describe("PricesRoute", () => {
     unitName: null,
     updatedAt: "2026-07-02T12:00:00.000Z",
   }
+  const inactivePrice: PriceTable = {
+    ...activePrice,
+    id: "price-inactive",
+    name: "Tabela inativa",
+    status: "inactive",
+  }
 
   beforeEach(() => {
     listPriceTablesMock.mockReset()
@@ -158,6 +164,28 @@ describe("PricesRoute", () => {
 
     await waitFor(() => {
       expect(updatePriceTableStatusMock).toHaveBeenCalledWith("price-global", "inactive")
+    })
+  })
+
+  it("shows activate action for inactive price tables", async () => {
+    listPriceTablesMock.mockResolvedValueOnce([inactivePrice])
+
+    render(<PricesRoute />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Tabela inativa")).toBeInTheDocument()
+    })
+
+    fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
+
+    expect(await screen.findByRole("menuitem", { name: "Ativar" })).toBeInTheDocument()
+    expect(screen.queryByRole("menuitem", { name: "Inativar" })).not.toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("menuitem", { name: "Ativar" }))
+    fireEvent.click(screen.getByRole("button", { name: "Ativar tabela" }))
+
+    await waitFor(() => {
+      expect(updatePriceTableStatusMock).toHaveBeenCalledWith("price-inactive", "active")
     })
   })
 })

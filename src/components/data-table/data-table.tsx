@@ -18,11 +18,25 @@ import {
   type SortingState,
   type VisibilityState,
 } from "@tanstack/react-table"
-import { DatabaseIcon, ListRestartIcon, PlusIcon, RefreshCcwIcon, SearchXIcon } from "lucide-react"
+import {
+  ChevronDownIcon,
+  DatabaseIcon,
+  ListRestartIcon,
+  PlusIcon,
+  RefreshCcwIcon,
+  SearchXIcon,
+  SlidersHorizontalIcon,
+} from "lucide-react"
 import * as React from "react"
 
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
 import {
   Table,
   TableBody,
@@ -162,6 +176,7 @@ function DataTableDefaultState({
 export interface DataTableProps<TData extends RowData, TValue> {
   columns: readonly ColumnDef<TData, TValue>[]
   data: readonly TData[]
+  surface?: "card" | "plain"
   getRowId?: (originalRow: TData, index: number, parent?: Row<TData>) => string
   globalSearch?: DataTableGlobalSearch<TData>
   searchFields?: readonly DataTableSearchField<TData>[]
@@ -213,6 +228,7 @@ export interface DataTableProps<TData extends RowData, TValue> {
 export function DataTable<TData extends RowData, TValue>({
   columns,
   data,
+  surface = "card",
   getRowId,
   globalSearch,
   searchFields,
@@ -566,8 +582,21 @@ export function DataTable<TData extends RowData, TValue>({
   const isInitialLoading = isLoading && !hasVisibleRows && !hasDatasetRows
   const shouldRenderInitialSkeleton =
     isLoading && !loadingState && !hasVisibleRows
-  const shouldRenderControls =
+  const hasToolbarSearch =
+    Boolean(normalizedGlobalSearch) || normalizedSearchFields.length > 0
+  const hasToolbarFilters = normalizedFilterFields.length > 0
+  const hasToolbarActions = Boolean(toolbarActions)
+  const hasToolbarUtilities = enableViewOptions || enableExport
+  const hasToolbarSurface =
+    hasToolbarSearch ||
+    hasToolbarFilters ||
+    hasToolbarActions ||
+    hasToolbarUtilities
+  const canRenderResolvedTable =
     !hasBlockingError && !isInitialLoading && hasDatasetRows
+  const shouldRenderToolbar = canRenderResolvedTable && hasToolbarSurface
+  const shouldRenderPagination =
+    enablePagination && canRenderResolvedTable && hasVisibleRows
   const handleClearFilters = React.useCallback(() => {
     table.resetColumnFilters()
     handleGlobalFilterChange("")
@@ -674,48 +703,9 @@ export function DataTable<TData extends RowData, TValue>({
         ? filteredEmptyState ?? defaultFilteredEmptyState
         : emptyState ?? defaultEmptyState
 
-  return (
-    <div
-      className="flex min-h-0 min-w-0 flex-1 flex-col gap-4"
-      aria-busy={isLoading || undefined}
-    >
-      {hasNonBlockingError ? (
-        <div
-          className="rounded-md border p-4"
-          role="alert"
-          aria-live="assertive"
-        >
-          {errorState ?? defaultErrorState}
-        </div>
-      ) : null}
-
-      {shouldRenderControls ? (
-        <DataTableToolbar
-          table={table}
-          globalSearch={normalizedGlobalSearch}
-          searchFields={normalizedSearchFields}
-          filterFields={normalizedFilterFields}
-          actions={toolbarActions}
-          enableViewOptions={enableViewOptions}
-          enableExport={enableExport}
-          canExport={visibleRows.length > 0}
-          manualFiltering={manualFiltering}
-          isLoading={isLoading}
-          globalFilterValue={globalFilter}
-          onGlobalFilterChange={handleGlobalFilterChange}
-          onClearFilters={handleClearFilters}
-        />
-      ) : null}
-
-      {isLoading && !loadingState ? (
-        <span className="sr-only" role="status" aria-live="polite">
-          {shouldRenderInitialSkeleton
-            ? loadingAnnouncement
-            : refetchAnnouncement}
-        </span>
-      ) : null}
-
-      <div className="flex min-h-0 min-w-0 shrink flex-col overflow-hidden rounded-md border">
+  const tableSurfaceContent = (
+    <>
+      <div className="flex min-h-0 min-w-0 shrink flex-col overflow-hidden">
         {shouldRenderInitialSkeleton || visibleRows.length > 0 ? (
           <DataTableScrollContainer className="min-h-0 w-full max-h-full max-w-full">
             <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
@@ -723,15 +713,15 @@ export function DataTable<TData extends RowData, TValue>({
                 {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
                 {isFiltered ? " (filtrado)" : ""}
               </caption>
-              <TableHeader className="sticky top-0 z-20 bg-background">
+              <TableHeader className="sticky top-0 z-20 bg-card">
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="bg-background">
+                  <TableRow key={headerGroup.id} className="bg-card">
                     {headerGroup.headers.map((header) => (
                       <TableHead
                         key={header.id}
                         colSpan={header.colSpan}
                         style={{ width: header.getSize() }}
-                        className="bg-background"
+                        className="bg-card"
                         aria-sort={getHeaderAriaSort(header)}
                       >
                         {header.isPlaceholder
@@ -791,7 +781,7 @@ export function DataTable<TData extends RowData, TValue>({
         ) : null}
       </div>
 
-      {enablePagination && shouldRenderControls && hasVisibleRows ? (
+      {shouldRenderPagination ? (
         <DataTablePagination
           table={table}
           pageSizeOptions={normalizedPageSizeOptions}
@@ -800,6 +790,83 @@ export function DataTable<TData extends RowData, TValue>({
           showSelectedCount={enableRowSelection}
         />
       ) : null}
+    </>
+  )
+
+  return (
+    <div
+      className="flex min-h-0 min-w-0 flex-1 flex-col gap-4"
+      aria-busy={isLoading || undefined}
+    >
+      {hasNonBlockingError ? (
+        <div
+          className="rounded-md border p-4"
+          role="alert"
+          aria-live="assertive"
+        >
+          {errorState ?? defaultErrorState}
+        </div>
+      ) : null}
+
+      {shouldRenderToolbar ? (
+        <Card size="sm">
+          <Collapsible defaultOpen className="group/data-table-controls">
+            <CollapsibleTrigger type="button" className="flex w-full items-center justify-between gap-3 rounded-t-xl px-(--card-spacing) text-left outline-none transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
+              <span className="flex min-w-0 items-start gap-2">
+                <SlidersHorizontalIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <span className="grid min-w-0 gap-1">
+                  <span className="text-sm leading-snug font-medium text-foreground">
+                    {dataTableCopy.toolbar.controlsTitle}
+                  </span>
+                  <span className="text-sm text-muted-foreground">
+                    {dataTableCopy.toolbar.controlsDescription}
+                  </span>
+                </span>
+              </span>
+              <ChevronDownIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]/data-table-controls:rotate-180" />
+            </CollapsibleTrigger>
+            <CollapsibleContent className="pt-3">
+              <CardContent>
+                <DataTableToolbar
+                  table={table}
+                  globalSearch={normalizedGlobalSearch}
+                  searchFields={normalizedSearchFields}
+                  filterFields={normalizedFilterFields}
+                  actions={toolbarActions}
+                  enableViewOptions={enableViewOptions}
+                  enableExport={enableExport}
+                  canExport={visibleRows.length > 0}
+                  manualFiltering={manualFiltering}
+                  isLoading={isLoading}
+                  globalFilterValue={globalFilter}
+                  onGlobalFilterChange={handleGlobalFilterChange}
+                  onClearFilters={handleClearFilters}
+                />
+              </CardContent>
+            </CollapsibleContent>
+          </Collapsible>
+        </Card>
+      ) : null}
+
+      {isLoading && !loadingState ? (
+        <span className="sr-only" role="status" aria-live="polite">
+          {shouldRenderInitialSkeleton
+            ? loadingAnnouncement
+            : refetchAnnouncement}
+        </span>
+      ) : null}
+
+      {surface === "card" ? (
+        <Card size="sm" className="min-h-0">
+          <CardContent className="flex min-h-0 min-w-0 flex-col gap-4">
+            {tableSurfaceContent}
+          </CardContent>
+        </Card>
+      ) : (
+        <div className="flex min-h-0 min-w-0 flex-col gap-4">
+          {tableSurfaceContent}
+        </div>
+      )}
     </div>
   )
 }

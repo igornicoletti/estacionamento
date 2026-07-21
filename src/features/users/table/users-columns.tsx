@@ -1,8 +1,8 @@
 import { type ColumnDef, type Row } from "@tanstack/react-table"
-import * as React from "react"
 
 import {
   createActionsColumn,
+  DataTableSensitiveValue,
   DataTableStackedCell,
   DataTableTextAction,
   type DataTableRowAction,
@@ -22,47 +22,6 @@ import {
   userRoleLabels,
   type UserRecord,
 } from "../model"
-
-function maskCpfForDisplay(value: string) {
-  const digits = value.replace(/\D/g, "")
-
-  if (digits.length !== 11) {
-    return value
-  }
-
-  return `${digits.slice(0, 3)}.***.***-${digits.slice(-2)}`
-}
-
-function CpfPressToRevealCell({ value }: { value: string }) {
-  const [isPressed, setIsPressed] = React.useState(false)
-
-  return (
-    <span
-      role="button"
-      tabIndex={0}
-      className="cursor-pointer select-none"
-      onMouseDown={() => setIsPressed(true)}
-      onMouseUp={() => setIsPressed(false)}
-      onMouseLeave={() => setIsPressed(false)}
-      onTouchStart={() => setIsPressed(true)}
-      onTouchEnd={() => setIsPressed(false)}
-      onKeyDown={(event) => {
-        if (event.key === " " || event.key === "Enter") {
-          setIsPressed(true)
-        }
-      }}
-      onKeyUp={(event) => {
-        if (event.key === " " || event.key === "Enter") {
-          setIsPressed(false)
-        }
-      }}
-      aria-label="Pressione para visualizar CPF completo"
-      title="Segure para visualizar CPF completo"
-    >
-      {isPressed ? value : maskCpfForDisplay(value)}
-    </span>
-  )
-}
 
 interface CreateUsersColumnsOptions {
   canEditUser?: boolean
@@ -151,21 +110,15 @@ export function createUsersColumns(
       accessorKey: "cpf",
       meta: { label: usersCopy.form.fields.cpf },
       header: usersCopy.form.fields.cpf,
-      cell: ({ row }) => {
-        const value = row.original.cpf
-
-        if (!value) {
-          return "—"
-        }
-
-        return <CpfPressToRevealCell value={value} />
-      },
+      cell: ({ row }) => <DataTableSensitiveValue value={row.original.cpf} kind="cpf" />,
     },
     {
       accessorKey: "phoneMasked",
       meta: { label: usersCopy.form.fields.phone },
       header: usersCopy.form.fields.phone,
-      cell: ({ row }) => row.original.phoneMasked || "—",
+      cell: ({ row }) => (
+        <DataTableSensitiveValue value={row.original.phoneMasked} kind="phone" />
+      ),
     },
     {
       accessorKey: "role",
@@ -176,15 +129,17 @@ export function createUsersColumns(
     {
       accessorKey: "status",
       meta: { label: usersCopy.filters.status },
-      header: usersCopy.filters.status,
+      header: () => <div className="text-center font-medium">{usersCopy.filters.status}</div>,
       enableSorting: false,
       cell: ({ row }) => (
-        <Badge
-          variant="secondary"
-          className={getBadgeToneClassName(resolveStatusBadgeTone(row.original.status))}
-        >
-          {appUserStatusLabels[row.original.status]}
-        </Badge>
+        <div className="flex justify-center">
+          <Badge
+            variant="secondary"
+            className={getBadgeToneClassName(resolveStatusBadgeTone(row.original.status))}
+          >
+            {appUserStatusLabels[row.original.status]}
+          </Badge>
+        </div>
       ),
     },
     {
@@ -196,18 +151,20 @@ export function createUsersColumns(
     {
       accessorKey: "passkeyStatus",
       meta: { label: usersCopy.details.passkeyLabel },
-      header: usersCopy.details.passkeyLabel,
+      header: () => <div className="text-center font-medium">{usersCopy.details.passkeyLabel}</div>,
       enableSorting: false,
       cell: ({ row }) => {
         const isActive = row.original.passkeyStatus === "active"
 
         return (
-          <Badge
-            variant="secondary"
-            className={getBadgeToneClassName(isActive ? "success" : undefined)}
-          >
-            {resolvePasskeyLabel(row.original.passkeyStatus)}
-          </Badge>
+          <div className="flex justify-center">
+            <Badge
+              variant="secondary"
+              className={getBadgeToneClassName(isActive ? "success" : undefined)}
+            >
+              {resolvePasskeyLabel(row.original.passkeyStatus)}
+            </Badge>
+          </div>
         )
       },
     },
@@ -244,62 +201,56 @@ export function createUsersColumns(
 
       return [
         ...createDetailsAction(row, options.onViewUserDetails),
-        ...(options.canEditUser && options.onEditUser
+        ...(options.canEditUser && options.onEditUser && !(isOwnerUser && !options.canManageOwnerUser)
           ? [
             {
               id: "edit" as const,
               label: usersCopy.actions.edit,
-              disabled: isOwnerUser && !options.canManageOwnerUser,
               onSelect: () => options.onEditUser?.(row.original),
             },
           ]
           : []),
-        ...(options.canResetPassword && options.onResetAccess
+        ...(options.canResetPassword && options.onResetAccess && !isProtectedTarget
           ? [
             {
               id: "reset-access" as const,
               label: usersCopy.actions.resetPassword,
-              disabled: isProtectedTarget,
               onSelect: () => options.onResetAccess?.(row.original),
             },
           ]
           : []),
-        ...(options.remoteMode && options.canResetPasskey && options.onResetPasskey
+        ...(options.remoteMode && options.canResetPasskey && options.onResetPasskey && !isProtectedTarget && row.original.passkeyStatus === "active"
           ? [
             {
               id: "reset-passkey" as const,
               label: usersCopy.actions.resetPasskey,
-              disabled: isProtectedTarget,
               onSelect: () => options.onResetPasskey?.(row.original),
             },
           ]
           : []),
-        ...(options.remoteMode && (isBlocked || isTemporarilyLocked) && options.canClearLock && options.onClearLock
+        ...(options.remoteMode && (isBlocked || isTemporarilyLocked) && options.canClearLock && options.onClearLock && !(isOwnerUser && !options.canManageOwnerUser)
           ? [
             {
               id: "clear-lock" as const,
               label: isBlocked ? usersCopy.actions.unblockUser : usersCopy.actions.clearLock,
-              disabled: isOwnerUser && !options.canManageOwnerUser,
               onSelect: () => options.onClearLock?.(row.original),
             },
           ]
           : []),
-        ...(options.remoteMode && options.canRevokeSessions && options.onRevokeSessions
+        ...(options.remoteMode && options.canRevokeSessions && options.onRevokeSessions && !isProtectedTarget
           ? [
             {
               id: "revoke-sessions" as const,
               label: usersCopy.actions.revokeSessions,
-              disabled: isProtectedTarget,
               onSelect: () => options.onRevokeSessions?.(row.original),
             },
           ]
           : []),
-        ...(isActive && options.canBlockUser && options.onBlockUser
+        ...(isActive && options.canBlockUser && options.onBlockUser && !isProtectedTarget
           ? [
             {
               id: "block" as const,
               label: usersCopy.actions.blockUser,
-              disabled: isProtectedTarget,
               variant: "destructive" as const,
               separatorBefore: true,
               onSelect: () => options.onBlockUser?.(row.original),

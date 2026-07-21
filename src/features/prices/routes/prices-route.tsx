@@ -7,6 +7,7 @@ import { PageHeader, PageSection } from "@/components/page"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 
 import { updatePriceTableStatus } from "@/features/prices/services/prices-service"
@@ -35,15 +36,33 @@ export function PricesRoute() {
   const [sorting, setSorting] = React.useState<SortingState>([
     { id: "startsAt", desc: true },
   ])
-  const [recordToDeactivate, setRecordToDeactivate] = React.useState<PriceTableRecord | null>(null)
+  const [recordToUpdateStatus, setRecordToUpdateStatus] = React.useState<PriceTableRecord | null>(null)
 
-  async function handleDeactivatePriceTable() {
-    if (!recordToDeactivate) {
+  const nextStatus = recordToUpdateStatus?.status === "active" ? "inactive" : "active"
+  const statusDialogTitle = recordToUpdateStatus?.status === "active"
+    ? pricesCopy.dialogs.deactivateTitle
+    : pricesCopy.dialogs.activateTitle
+  const statusDialogDescription = recordToUpdateStatus?.status === "active"
+    ? pricesCopy.dialogs.deactivateDescription
+    : pricesCopy.dialogs.activateDescription
+  const statusActionLabel = recordToUpdateStatus?.status === "active"
+    ? pricesCopy.actions.confirmDeactivate
+    : pricesCopy.actions.confirmActivate
+
+  async function handleUpdatePriceTableStatus() {
+    if (!recordToUpdateStatus) {
       return
     }
 
-    await updatePriceTableStatus(recordToDeactivate.id, "inactive")
-    setRecordToDeactivate(null)
+    await notify.track(
+      updatePriceTableStatus(recordToUpdateStatus.id, nextStatus),
+      {
+        loading: pricesCopy.actions.saving,
+        success: pricesCopy.feedback.statusSuccess,
+        error: pricesCopy.feedback.statusError,
+      }
+    )
+    setRecordToUpdateStatus(null)
     await refetch()
   }
 
@@ -54,8 +73,8 @@ export function PricesRoute() {
         setIsFormOpen(true)
       },
       onDetails: setDetailsRecord,
-      onDeactivate(record) {
-        setRecordToDeactivate(record)
+      onStatusChange(record) {
+        setRecordToUpdateStatus(record)
       },
     }),
     []
@@ -138,18 +157,18 @@ export function PricesRoute() {
       />
 
       <AppAlertDialog
-        open={recordToDeactivate !== null}
+        open={recordToUpdateStatus !== null}
         onOpenChange={(open) => {
           if (!open) {
-            setRecordToDeactivate(null)
+            setRecordToUpdateStatus(null)
           }
         }}
-        title={pricesCopy.dialogs.deactivateTitle}
-        description={pricesCopy.dialogs.deactivateDescription}
-        actionVariant="destructive"
-        actionLabel={pricesCopy.actions.confirmDeactivate}
-        pendingLabel={pricesCopy.actions.confirmDeactivate}
-        onAction={handleDeactivatePriceTable}
+        title={statusDialogTitle}
+        description={statusDialogDescription}
+        actionVariant={recordToUpdateStatus?.status === "active" ? "destructive" : "default"}
+        actionLabel={statusActionLabel}
+        pendingLabel={pricesCopy.actions.saving}
+        onAction={handleUpdatePriceTableStatus}
       />
     </PageSection>
   )

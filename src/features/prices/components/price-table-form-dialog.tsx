@@ -89,6 +89,7 @@ export function PriceTableFormDialog({
   const [values, setValues] = React.useState(() => toFormValues(record))
   const [errors, setErrors] = React.useState<PriceTableFormErrors>({})
   const [isSaving, setIsSaving] = React.useState(false)
+  const isSavingRef = React.useRef(false)
 
   function updateValue(key: keyof PriceTableFormValues) {
     return (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -97,7 +98,7 @@ export function PriceTableFormDialog({
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (isSaving) {
+    if (isSavingRef.current) {
       return
     }
 
@@ -107,7 +108,7 @@ export function PriceTableFormDialog({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (isSaving) {
+    if (isSavingRef.current) {
       return
     }
 
@@ -119,6 +120,7 @@ export function PriceTableFormDialog({
     }
 
     setErrors({})
+    isSavingRef.current = true
     setIsSaving(true)
 
     try {
@@ -129,6 +131,7 @@ export function PriceTableFormDialog({
     } catch {
       notify.error(pricesCopy.feedback.saveError)
     } finally {
+      isSavingRef.current = false
       setIsSaving(false)
     }
   }
@@ -219,6 +222,24 @@ export function PriceTableFormDialog({
             </FieldLabel>
             <Input id="price-cycle-hours" type="number" min="1" step="1" value={values.cycleHours} onChange={updateValue("cycleHours")} aria-invalid={Boolean(errors.cycleHours)} disabled={isSaving} />
             {errors.cycleHours ? <FieldError>{errors.cycleHours}</FieldError> : null}
+          </Field>
+
+          <Field data-invalid={Boolean(errors.graceMinutes)}>
+            <FieldLabel htmlFor="price-grace-minutes">
+              {pricesCopy.form.graceMinutes}
+              <RequiredMark />
+            </FieldLabel>
+            <Input id="price-grace-minutes" type="number" min="0" step="1" value={values.graceMinutes} onChange={updateValue("graceMinutes")} aria-invalid={Boolean(errors.graceMinutes)} disabled={isSaving} />
+            {errors.graceMinutes ? <FieldError>{errors.graceMinutes}</FieldError> : null}
+          </Field>
+
+          <Field data-invalid={Boolean(errors.toleranceMinutes)}>
+            <FieldLabel htmlFor="price-tolerance-minutes">
+              {pricesCopy.form.toleranceMinutes}
+              <RequiredMark />
+            </FieldLabel>
+            <Input id="price-tolerance-minutes" type="number" min="0" step="1" value={values.toleranceMinutes} onChange={updateValue("toleranceMinutes")} aria-invalid={Boolean(errors.toleranceMinutes)} disabled={isSaving} />
+            {errors.toleranceMinutes ? <FieldError>{errors.toleranceMinutes}</FieldError> : null}
           </Field>
 
           <Field data-invalid={Boolean(errors.startsAt)}>

@@ -66,7 +66,7 @@ export function DataTableRowActions<TData>({
   }
 
   return (
-    <DropdownMenu>
+    <DropdownMenu modal={false}>
       <DropdownMenuTrigger asChild>
         <Button
           data-no-drag-scroll="true"

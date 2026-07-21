@@ -146,7 +146,7 @@ function DataTableToolbarControls<TData>({
   const isFiltered = isColumnFiltered || isGlobalFiltered
 
   return (
-    <div className="flex min-w-0 flex-1 flex-wrap items-start gap-2">
+    <div className="flex min-w-0 flex-1 flex-wrap items-start gap-3">
       {hasGlobalSearch && globalSearch ? (
         <DataTableSearchInput
           ariaLabel={globalSearch.placeholder ?? dataTableCopy.toolbar.search}
@@ -336,7 +336,7 @@ export function DataTableToolbar<TData>({
   onClearFilters,
 }: DataTableToolbarProps<TData>) {
   return (
-    <div className="grid min-w-0 gap-2 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+    <div className="grid min-w-0 gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
       <DataTableToolbarControls
         table={table}
         globalSearch={globalSearch}

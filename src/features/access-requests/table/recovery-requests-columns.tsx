@@ -1,6 +1,6 @@
 import type { ColumnDef } from "@tanstack/react-table"
 
-import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
+import { createActionsColumn, DataTableSensitiveValue, DataTableTextAction } from "@/components/data-table"
 import { formatDateTime } from "@/lib"
 
 import { accessRequestsCopy } from "../constants"
@@ -42,6 +42,13 @@ export function createRecoveryRequestsColumns({
       accessorKey: "phoneMasked",
       header: accessRequestsCopy.tables.recovery.columns.phone,
       meta: { label: accessRequestsCopy.tables.recovery.columns.phone },
+      cell: ({ row }) => (
+        <DataTableSensitiveValue
+          value={row.original.phoneMasked}
+          kind="phone"
+          fallback={accessRequestsCopy.shared.emptyValue}
+        />
+      ),
     },
     {
       accessorKey: "email",

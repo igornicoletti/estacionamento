@@ -5,9 +5,11 @@ export const rulesCopy = {
     searchPlaceholder: "Buscar por regra, cliente, veiculo ou observacao...",
   },
   actions: {
+    activate: "Ativar",
     add: "Adicionar",
     edit: "Editar",
     deactivate: "Inativar",
+    confirmActivate: "Ativar regra",
     confirmDeactivate: "Inativar regra",
     details: "Detalhes",
     cancel: "Cancelar",
@@ -26,8 +28,13 @@ export const rulesCopy = {
     loadError: "Não foi possível carregar as regras.",
     saveSuccess: "Regra salva com sucesso.",
     saveError: "Não foi possível salvar. Revise os dados e tente novamente.",
+    statusSuccess: "Status da regra atualizado.",
+    statusError: "Não foi possível atualizar o status da regra.",
   },
   dialogs: {
+    activateTitle: "Ativar regra",
+    activateDescription:
+      "Confirme para ativar esta regra. Ela voltará a ser aplicada nas condições configuradas.",
     deactivateTitle: "Inativar regra",
     deactivateDescription:
       "Confirme para inativar esta regra. A alteração pode ser revertida posteriormente.",

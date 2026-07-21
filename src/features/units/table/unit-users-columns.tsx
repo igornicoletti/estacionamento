@@ -1,6 +1,6 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
-import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
+import { createActionsColumn, DataTableSensitiveValue, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import {
   appUserStatusLabels,
@@ -55,7 +55,13 @@ export function createUnitUsersColumns(
         exportValue: (_value, row) => resolveCpfValue(row),
       },
       header: unitsCopy.table.cpf,
-      cell: ({ row }) => resolveCpfValue(row.original),
+      cell: ({ row }) => (
+        <DataTableSensitiveValue
+          value={resolveCpfValue(row.original)}
+          kind="cpf"
+          fallback={unitsCopy.details.emptyValue}
+        />
+      ),
     },
     {
       accessorKey: "email",
@@ -73,7 +79,13 @@ export function createUnitUsersColumns(
         exportValue: (_value, row) => resolvePhoneValue(row),
       },
       header: unitsCopy.table.phone,
-      cell: ({ row }) => resolvePhoneValue(row.original),
+      cell: ({ row }) => (
+        <DataTableSensitiveValue
+          value={resolvePhoneValue(row.original)}
+          kind="phone"
+          fallback={unitsCopy.details.emptyValue}
+        />
+      ),
     },
     {
       accessorKey: "role",
@@ -86,6 +98,7 @@ export function createUnitUsersColumns(
     },
     {
       accessorKey: "status",
+      enableSorting: false,
       meta: {
         label: unitsCopy.table.status,
         exportValue: (_value, row) => appUserStatusLabels[row.status],
@@ -105,6 +118,7 @@ export function createUnitUsersColumns(
     },
     {
       accessorKey: "passkeyStatus",
+      enableSorting: false,
       meta: {
         label: unitsCopy.table.passkey,
         exportValue: (_value, row) => resolvePasskeyLabel(row.passkeyStatus),

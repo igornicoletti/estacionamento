@@ -96,6 +96,7 @@ export function VipRuleFormDialog({
   const [values, setValues] = React.useState(() => toFormValues(record))
   const [errors, setErrors] = React.useState<VipRuleFormErrors>({})
   const [isSaving, setIsSaving] = React.useState(false)
+  const isSavingRef = React.useRef(false)
   const [clientOptions, setClientOptions] = React.useState<readonly ClientOption[]>([])
 
   React.useEffect(() => {
@@ -139,7 +140,7 @@ export function VipRuleFormDialog({
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (isSaving) {
+    if (isSavingRef.current) {
       return
     }
 
@@ -149,7 +150,7 @@ export function VipRuleFormDialog({
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
-    if (isSaving) {
+    if (isSavingRef.current) {
       return
     }
 
@@ -161,6 +162,7 @@ export function VipRuleFormDialog({
     }
 
     setErrors({})
+    isSavingRef.current = true
     setIsSaving(true)
 
     try {
@@ -171,6 +173,7 @@ export function VipRuleFormDialog({
     } catch {
       notify.error(rulesCopy.feedback.saveError)
     } finally {
+      isSavingRef.current = false
       setIsSaving(false)
     }
   }
@@ -320,6 +323,16 @@ export function VipRuleFormDialog({
               id="rule-all-units"
               checked={values.appliesToAllUnits}
               onCheckedChange={(checked: boolean | "indeterminate") => setValues((current) => ({ ...current, appliesToAllUnits: checked === true }))}
+              disabled={isSaving}
+            />
+          </Field>
+
+          <Field>
+            <FieldLabel htmlFor="rule-active">{rulesCopy.form.active}</FieldLabel>
+            <Checkbox
+              id="rule-active"
+              checked={values.active}
+              onCheckedChange={(checked: boolean | "indeterminate") => setValues((current) => ({ ...current, active: checked === true }))}
               disabled={isSaving}
             />
           </Field>

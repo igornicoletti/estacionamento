@@ -30,7 +30,7 @@ function resolveStatusTone(status: PriceStatus) {
 export function createPricesColumns(options: {
   onEdit?: (record: PriceTableRecord) => void
   onDetails?: (record: PriceTableRecord) => void
-  onDeactivate?: (record: PriceTableRecord) => void
+  onStatusChange?: (record: PriceTableRecord) => void
 } = {}): ColumnDef<PriceTableRecord>[] {
   return [
     {
@@ -98,33 +98,45 @@ export function createPricesColumns(options: {
     {
       accessorKey: "status",
       meta: { label: pricesCopy.table.status },
-      header: pricesCopy.table.status,
+      header: () => <div className="text-center font-medium">{pricesCopy.table.status}</div>,
+      enableSorting: false,
       cell: ({ row }) => (
-        <Badge
-          variant="secondary"
-          className={getBadgeToneClassName(resolveStatusTone(row.original.status))}
-        >
-          {priceStatusLabels[row.original.status]}
-        </Badge>
+        <div className="flex justify-center">
+          <Badge
+            variant="secondary"
+            className={getBadgeToneClassName(resolveStatusTone(row.original.status))}
+          >
+            {priceStatusLabels[row.original.status]}
+          </Badge>
+        </div>
       ),
     },
-    createActionsColumn<PriceTableRecord>([
-      {
-        id: "edit",
-        label: pricesCopy.actions.edit,
-        onSelect: (row) => options.onEdit?.(row.original),
-      },
-      {
-        id: "deactivate",
-        label: pricesCopy.actions.deactivate,
-        variant: "destructive",
-        onSelect: (row) => options.onDeactivate?.(row.original),
-      },
-      {
-        id: "details",
-        label: pricesCopy.actions.details,
-        onSelect: (row) => options.onDetails?.(row.original),
-      },
-    ]),
+    createActionsColumn<PriceTableRecord>((row) => {
+      const isActive = row.original.status === "active"
+
+      return [
+        {
+          id: "details",
+          label: pricesCopy.actions.details,
+          onSelect: (selectedRow) => options.onDetails?.(selectedRow.original),
+        },
+        {
+          id: "edit",
+          label: pricesCopy.actions.edit,
+          onSelect: (selectedRow) => options.onEdit?.(selectedRow.original),
+        },
+        ...(options.onStatusChange
+          ? [
+            {
+              id: "status" as const,
+              label: isActive ? pricesCopy.actions.deactivate : pricesCopy.actions.activate,
+              variant: isActive ? "destructive" as const : "default" as const,
+              separatorBefore: true,
+              onSelect: (selectedRow: { original: PriceTableRecord }) => options.onStatusChange?.(selectedRow.original),
+            },
+          ]
+          : []),
+      ]
+    }),
   ]
 }

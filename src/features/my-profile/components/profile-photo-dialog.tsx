@@ -47,6 +47,8 @@ export function ProfilePhotoDialog({
   const [selectedFile, setSelectedFile] = React.useState<File | null>(null)
   const [selectedPreviewUrl, setSelectedPreviewUrl] = React.useState<string | null>(null)
   const [error, setError] = React.useState<string | null>(null)
+  const [isDraggingFile, setIsDraggingFile] = React.useState(false)
+  const isSavingRef = React.useRef(false)
   const previewUrl = selectedPreviewUrl ?? avatarUrl
 
   React.useEffect(() => {
@@ -58,13 +60,21 @@ export function ProfilePhotoDialog({
   }, [selectedPreviewUrl])
 
   function openFilePicker() {
-    if (!isSaving) {
+    if (!isSaving && !isSavingRef.current) {
       document.getElementById(fileInputId)?.click()
     }
   }
 
+  function handleOpenChange(nextOpen: boolean) {
+    if (isSaving || isSavingRef.current) {
+      return
+    }
+
+    onOpenChange(nextOpen)
+  }
+
   function selectFile(file: File) {
-    if (isSaving) {
+    if (isSaving || isSavingRef.current) {
       return
     }
 
@@ -92,8 +102,46 @@ export function ProfilePhotoDialog({
     }
   }
 
+  function handleDragOver(event: React.DragEvent<HTMLButtonElement>) {
+    event.preventDefault()
+
+    if (!isSaving && !isSavingRef.current) {
+      setIsDraggingFile(true)
+    }
+  }
+
+  function handleDragLeave(event: React.DragEvent<HTMLButtonElement>) {
+    const relatedTarget = event.relatedTarget
+
+    if (relatedTarget instanceof Node && event.currentTarget.contains(relatedTarget)) {
+      return
+    }
+
+    setIsDraggingFile(false)
+  }
+
+  function handleDrop(event: React.DragEvent<HTMLButtonElement>) {
+    event.preventDefault()
+    setIsDraggingFile(false)
+
+    if (isSaving || isSavingRef.current) {
+      return
+    }
+
+    const file = Array.from(event.dataTransfer.files).find((item) =>
+      item.type.startsWith("image/")
+    )
+
+    if (!file) {
+      setError(myProfileCopy.photoDialog.required)
+      return
+    }
+
+    selectFile(file)
+  }
+
   async function handleSaveFile() {
-    if (isSaving) {
+    if (isSaving || isSavingRef.current) {
       return
     }
 
@@ -102,13 +150,19 @@ export function ProfilePhotoDialog({
       return
     }
 
-    await onSaveFile({ file: selectedFile, previewUrl: selectedPreviewUrl })
+    isSavingRef.current = true
+
+    try {
+      await onSaveFile({ file: selectedFile, previewUrl: selectedPreviewUrl })
+    } finally {
+      isSavingRef.current = false
+    }
   }
 
   return (
     <AppDialog
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       title={myProfileCopy.photoDialog.title}
       description={myProfileCopy.photoDialog.description}
       className="sm:max-w-md"
@@ -117,7 +171,7 @@ export function ProfilePhotoDialog({
       footerClassName="grid grid-cols-1 gap-2 sm:grid-cols-2"
       footer={(
         <>
-          <Button type="button" variant="outline" size="lg" className="w-full" onClick={() => onOpenChange(false)} disabled={isSaving}>
+          <Button type="button" variant="outline" size="lg" className="w-full" onClick={() => handleOpenChange(false)} disabled={isSaving}>
             {myProfileCopy.photoDialog.cancel}
           </Button>
           <Button type="button" size="lg" className="w-full" disabled={isSaving} onClick={() => { void handleSaveFile() }}>
@@ -131,23 +185,27 @@ export function ProfilePhotoDialog({
         type="button"
         className={cn(
           "grid w-full justify-items-center gap-3 rounded-lg border border-dashed border-border bg-muted/20 px-4 py-8 text-center transition-colors hover:bg-muted/30 focus-visible:border-ring focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none",
+          isDraggingFile && "border-primary bg-primary/5",
           isSaving && "pointer-events-none opacity-60"
         )}
         aria-disabled={isSaving || undefined}
         onClick={openFilePicker}
+        onDragOver={handleDragOver}
+        onDragLeave={handleDragLeave}
+        onDrop={handleDrop}
       >
         <Avatar className="size-28 text-2xl">
           {previewUrl ? <AvatarImage src={previewUrl} alt="" /> : null}
           <AvatarFallback>{fallback}</AvatarFallback>
         </Avatar>
         <span className="grid max-w-xs gap-1">
-          <span className="text-sm font-medium text-foreground">{myProfileCopy.photoDialog.previewTitle}</span>
+          <span className="text-sm font-medium text-foreground">
+            {isDraggingFile ? myProfileCopy.photoDialog.dropTitle : myProfileCopy.photoDialog.previewTitle}
+          </span>
           <span className="text-xs text-muted-foreground">{myProfileCopy.photoDialog.dropDescription}</span>
           {selectedFile ? (
             <span className="break-all text-xs text-muted-foreground">{selectedFile.name}</span>
-          ) : (
-            <span className="text-xs text-muted-foreground">{myProfileCopy.photoDialog.selectFile}</span>
-          )}
+          ) : null}
         </span>
       </button>
 

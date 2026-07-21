@@ -75,6 +75,7 @@ export function UnitsRoute() {
   const [yardStatus, setYardStatus] = React.useState<YardStatusFormValue>("inactive")
   const [yardSpots, setYardSpots] = React.useState("0")
   const [yardError, setYardError] = React.useState<string | null>(null)
+  const isSavingYardRef = React.useRef(false)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
   const [isSyncing, setIsSyncing] = React.useState(false)
   const yardConfigByUnitId = React.useMemo(() => buildUnitYardConfigMap(unitYardConfigs), [unitYardConfigs])
@@ -135,7 +136,7 @@ export function UnitsRoute() {
   }, [refetch, refetchSyncHistory, refetchUnitUserStats])
 
   const handleSaveYardSettings = React.useCallback(async () => {
-    if (!configuringUnit || isSavingYard) {
+    if (!configuringUnit || isSavingYard || isSavingYardRef.current) {
       return
     }
 
@@ -147,6 +148,7 @@ export function UnitsRoute() {
     }
 
     try {
+      isSavingYardRef.current = true
       await saveConfig({
         unitId: String(configuringUnit.cod_empresa),
         patioActive: yardStatus === "active",
@@ -159,6 +161,8 @@ export function UnitsRoute() {
     } catch {
       setYardError(unitsCopy.yard.feedback.error)
       notify.error(unitsCopy.yard.feedback.error)
+    } finally {
+      isSavingYardRef.current = false
     }
   }, [
     configuringUnit,
