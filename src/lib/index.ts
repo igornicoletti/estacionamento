@@ -4,7 +4,7 @@ export {
   isValidCpf,
   onlyDigits
 } from "./cpf"
-export { toError } from "./errors"
+export { readResponseErrorMessage, toError } from "./errors"
 export {
   formatDate,
   formatDateTime

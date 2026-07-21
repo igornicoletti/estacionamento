@@ -1,4 +1,4 @@
-import { getSupabaseBrowserClient } from "@/lib"
+import { getSupabaseBrowserClient, readResponseErrorMessage } from "@/lib"
 
 import type { ProfileUpdateInput } from "../types/profile-types"
 
@@ -25,27 +25,6 @@ function getDevPreviewAvatarPath(value: string | null | undefined) {
   return normalized.startsWith("data:image/") || /^https:\/\//i.test(normalized)
     ? normalized
     : null
-}
-
-async function readFunctionErrorMessage(error: unknown) {
-  const context =
-    typeof error === "object" && error !== null && "context" in error
-      ? (error as { context?: unknown }).context
-      : null
-
-  if (context instanceof Response) {
-    try {
-      const payload = await context.clone().json() as { message?: unknown }
-
-      if (typeof payload.message === "string" && payload.message.trim()) {
-        return payload.message
-      }
-    } catch {
-      return null
-    }
-  }
-
-  return error instanceof Error && error.message.trim() ? error.message : null
 }
 
 function getAvatarExtension(file: File) {
@@ -256,7 +235,7 @@ export async function updateCurrentProfile(input: ProfileUpdateInput) {
 
   if (response.error) {
     throw new ProfileServiceError(
-      (await readFunctionErrorMessage(response.error)) ??
+      (await readResponseErrorMessage(response.error)) ??
       "Não foi possível atualizar o perfil."
     )
   }
@@ -267,30 +246,5 @@ export async function updateCurrentProfile(input: ProfileUpdateInput) {
     name: input.name.trim(),
     phoneMasked: readPhoneMasked(response.data),
     requiresPasskeyRegistration: readRequiresPasskeyRegistration(response.data),
-  }
-}
-
-const PROFILE_CHANGE_PASSWORD_FUNCTION = "profile-change-password"
-
-export async function changeCurrentPassword(input: {
-  currentPassword: string
-  newPassword: string
-}): Promise<void> {
-  const supabase = getSupabaseBrowserClient()
-
-  if (!supabase) {
-    throw new ProfileServiceError("Configuração remota indisponível para alterar a senha.")
-  }
-
-  const response = await supabase.functions.invoke(PROFILE_CHANGE_PASSWORD_FUNCTION, {
-    body: {
-      currentPassword: input.currentPassword,
-      newPassword: input.newPassword,
-    },
-  })
-
-  if (response.error) {
-    const message = await readFunctionErrorMessage(response.error)
-    throw new ProfileServiceError(message ?? "Não foi possível alterar a senha.")
   }
 }

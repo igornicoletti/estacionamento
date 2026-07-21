@@ -1,5 +1,5 @@
+export { changeCurrentPassword } from "@/features/security/services/security-password-service"
 export {
-  changeCurrentPassword,
   ProfileServiceError,
   updateCurrentProfile,
   uploadProfileAvatarFile,

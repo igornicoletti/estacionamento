@@ -33,12 +33,25 @@ export function useSecurity(): SecuritySnapshot {
 
   const security = React.useMemo(
     () => ({
+      account: {
+        email: auth.profile?.email ?? null,
+        phoneMasked: auth.profile?.phoneMasked ?? null,
+        status: auth.profile?.status ?? "inactive",
+      },
       isAuthenticated: auth.isAuthenticated,
       passkeyStatus: auth.profile?.passkeyStatus ?? "inactive",
       permissions: auth.access.permissions,
       session,
     }),
-    [auth.access.permissions, auth.isAuthenticated, auth.profile?.passkeyStatus, session]
+    [
+      auth.access.permissions,
+      auth.isAuthenticated,
+      auth.profile?.email,
+      auth.profile?.passkeyStatus,
+      auth.profile?.phoneMasked,
+      auth.profile?.status,
+      session,
+    ]
   )
 
   return {
@@ -48,5 +61,6 @@ export function useSecurity(): SecuritySnapshot {
     security,
     refreshProfile: auth.actions.refreshProfile,
     registerPasskey: auth.actions.registerProfilePasskey,
+    logout: auth.actions.logoutAsync,
   }
 }

@@ -7,11 +7,12 @@ import { notify } from "@/components/toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
+import { SecurityChangePasswordDialog } from "@/features/security/components/security-change-password-dialog"
+import { useSecurityPasswordChange } from "@/features/security/hooks/use-security-password-change"
 
-import { getProfileInitials, ProfileChangePasswordDialog, ProfileFormCard, ProfilePhotoDialog } from "../components"
+import { getProfileInitials, ProfileFormCard, ProfilePhotoDialog } from "../components"
 import { useMyProfile } from "../hooks/use-my-profile"
 import { myProfileCopy } from "../my-profile-copy"
-import { changeCurrentPassword } from "../services"
 
 function CenteredState({ children }: { children: React.ReactNode }) {
   return (
@@ -27,21 +28,11 @@ export function MyProfileRoute() {
   const [isSavingPhoto, setIsSavingPhoto] = React.useState(false)
   const [isPhotoDialogOpen, setIsPhotoDialogOpen] = React.useState(false)
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false)
-  const [isChangingPassword, setIsChangingPassword] = React.useState(false)
+  const { changePassword, isChangingPassword } = useSecurityPasswordChange()
 
   async function handleChangePassword(input: { currentPassword: string; newPassword: string }) {
-    if (isChangingPassword) {
-      return
-    }
-
-    setIsChangingPassword(true)
-
-    try {
-      await notify.track(changeCurrentPassword(input), myProfileCopy.feedback.changePassword)
-      setIsPasswordDialogOpen(false)
-    } finally {
-      setIsChangingPassword(false)
-    }
+    await changePassword(input)
+    setIsPasswordDialogOpen(false)
   }
 
   async function handleSaveProfile(input: Parameters<typeof saveProfile>[0]) {
@@ -182,7 +173,7 @@ export function MyProfileRoute() {
         />
       ) : null}
 
-      <ProfileChangePasswordDialog
+      <SecurityChangePasswordDialog
         open={isPasswordDialogOpen}
         isSaving={isChangingPassword}
         onOpenChange={setIsPasswordDialogOpen}

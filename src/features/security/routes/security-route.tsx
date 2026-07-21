@@ -7,10 +7,13 @@ import { notify } from "@/components/toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
+import { useNotifications } from "@/features/notifications"
 
-import { SecuritySummaryCard } from "../components/security-summary-card"
+import { SecurityChangePasswordDialog, SecuritySummaryCard } from "../components"
 import { securityCopy } from "../constants/security-copy"
+import { useSecurityPasswordChange } from "../hooks/use-security-password-change"
 import { useSecurity } from "../hooks/use-security"
+import { getRecentSecurityEvents } from "../model"
 
 function CenteredState({ children }: { children: React.ReactNode }) {
   return (
@@ -22,8 +25,15 @@ function CenteredState({ children }: { children: React.ReactNode }) {
 
 export function SecurityRoute() {
   const { error, isLoading, profile, refreshProfile, registerPasskey, security } = useSecurity()
+  const notifications = useNotifications()
+  const { changePassword, isChangingPassword } = useSecurityPasswordChange()
   const [isRegisteringPasskey, setIsRegisteringPasskey] = React.useState(false)
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false)
   const activeRegistrationRef = React.useRef<ReturnType<typeof registerPasskey> | null>(null)
+  const securityEvents = React.useMemo(
+    () => getRecentSecurityEvents(notifications.data),
+    [notifications.data]
+  )
 
   async function handleRegisterPasskey() {
     if (activeRegistrationRef.current) {
@@ -39,6 +49,11 @@ export function SecurityRoute() {
       activeRegistrationRef.current = null
       setIsRegisteringPasskey(false)
     }
+  }
+
+  async function handleChangePassword(input: { currentPassword: string; newPassword: string }) {
+    await changePassword(input)
+    setIsPasswordDialogOpen(false)
   }
 
   if (isLoading) {
@@ -98,10 +113,21 @@ export function SecurityRoute() {
 
         <SecuritySummaryCard
           security={security}
+          events={securityEvents}
+          eventsError={notifications.error}
+          isEventsLoading={notifications.isLoading}
           isRegisteringPasskey={isRegisteringPasskey}
+          onOpenChangePassword={() => setIsPasswordDialogOpen(true)}
           onRegisterPasskey={handleRegisterPasskey}
         />
       </div>
+
+      <SecurityChangePasswordDialog
+        open={isPasswordDialogOpen}
+        isSaving={isChangingPassword}
+        onOpenChange={setIsPasswordDialogOpen}
+        onSubmit={handleChangePassword}
+      />
     </PageSection>
   )
 }

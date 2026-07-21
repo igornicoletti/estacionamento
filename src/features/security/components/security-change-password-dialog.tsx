@@ -7,11 +7,11 @@ import { FieldGroup } from "@/components/ui/field"
 import { Spinner } from "@/components/ui/spinner"
 import { newPasswordSchema } from "@/features/auth/validation"
 
-import { myProfileCopy } from "../my-profile-copy"
+import { securityCopy } from "../constants/security-copy"
 
-const CHANGE_PASSWORD_FORM_ID = "change-password-form"
+const CHANGE_PASSWORD_FORM_ID = "security-change-password-form"
 
-interface ProfileChangePasswordDialogProps {
+interface SecurityChangePasswordDialogProps {
   open: boolean
   isSaving: boolean
   onOpenChange: (open: boolean) => void
@@ -27,23 +27,24 @@ function getPasswordError(value: string) {
   return result.success ? null : result.error.issues[0]?.message ?? null
 }
 
-export function ProfileChangePasswordDialog({
+export function SecurityChangePasswordDialog({
   open,
   isSaving,
   onOpenChange,
   onSubmit,
-}: ProfileChangePasswordDialogProps) {
+}: SecurityChangePasswordDialogProps) {
   const [currentPassword, setCurrentPassword] = React.useState("")
   const [newPassword, setNewPassword] = React.useState("")
   const [confirmPassword, setConfirmPassword] = React.useState("")
   const [touched, setTouched] = React.useState({ current: false, new: false, confirm: false })
 
+  const copy = securityCopy.passwordDialog
   const newPasswordError = touched.new ? getPasswordError(newPassword) : null
   const confirmError = touched.confirm && confirmPassword && newPassword !== confirmPassword
-    ? myProfileCopy.changePassword.mismatch
+    ? copy.mismatch
     : null
   const sameAsCurrentError = touched.new && newPassword && currentPassword && newPassword === currentPassword
-    ? myProfileCopy.changePassword.sameAsCurrent
+    ? copy.sameAsCurrent
     : null
 
   const canSubmit = Boolean(
@@ -56,18 +57,20 @@ export function ProfileChangePasswordDialog({
     newPassword === confirmPassword
   )
 
-  React.useEffect(() => {
-    if (!open) {
-      setCurrentPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
-      setTouched({ current: false, new: false, confirm: false })
-    }
-  }, [open])
+  function resetForm() {
+    setCurrentPassword("")
+    setNewPassword("")
+    setConfirmPassword("")
+    setTouched({ current: false, new: false, confirm: false })
+  }
 
   function handleOpenChange(nextOpen: boolean) {
     if (isSaving) {
       return
+    }
+
+    if (!nextOpen) {
+      resetForm()
     }
 
     onOpenChange(nextOpen)
@@ -84,22 +87,23 @@ export function ProfileChangePasswordDialog({
       currentPassword: currentPassword.trim(),
       newPassword: newPassword.trim(),
     })
+    resetForm()
   }
 
   return (
     <AppDialog
       open={open}
       onOpenChange={handleOpenChange}
-      title={myProfileCopy.changePassword.title}
-      description={myProfileCopy.changePassword.description}
+      title={copy.title}
+      description={copy.description}
       footer={(
         <div className="grid w-full grid-cols-2 gap-2">
           <Button type="button" variant="outline" size="lg" disabled={isSaving} onClick={() => handleOpenChange(false)}>
-            {myProfileCopy.changePassword.cancel}
+            {copy.cancel}
           </Button>
           <Button type="submit" form={CHANGE_PASSWORD_FORM_ID} size="lg" disabled={isSaving || !canSubmit} aria-busy={isSaving}>
             {isSaving ? <Spinner data-icon="inline-start" /> : null}
-            {isSaving ? myProfileCopy.changePassword.saving : myProfileCopy.changePassword.save}
+            {isSaving ? copy.saving : copy.save}
           </Button>
         </div>
       )}
@@ -107,38 +111,38 @@ export function ProfileChangePasswordDialog({
       <form id={CHANGE_PASSWORD_FORM_ID} onSubmit={(event) => { void handleSubmit(event) }} noValidate>
         <FieldGroup>
           <AppPasswordField
-            id="change-pw-current"
-            label={myProfileCopy.changePassword.currentLabel}
+            id="security-change-pw-current"
+            label={copy.currentLabel}
             value={currentPassword}
             onChange={(event) => {
               setCurrentPassword(event.target.value)
-              setTouched((t) => ({ ...t, current: true }))
+              setTouched((state) => ({ ...state, current: true }))
             }}
             disabled={isSaving}
             autoComplete="current-password"
             required
           />
           <AppPasswordField
-            id="change-pw-new"
-            label={myProfileCopy.changePassword.newLabel}
+            id="security-change-pw-new"
+            label={copy.newLabel}
             value={newPassword}
             onChange={(event) => {
               setNewPassword(event.target.value)
-              setTouched((t) => ({ ...t, new: true }))
+              setTouched((state) => ({ ...state, new: true }))
             }}
             error={newPasswordError ?? sameAsCurrentError ?? undefined}
             disabled={isSaving}
             autoComplete="new-password"
-            description={myProfileCopy.changePassword.hint}
+            description={copy.hint}
             required
           />
           <AppPasswordField
-            id="change-pw-confirm"
-            label={myProfileCopy.changePassword.confirmLabel}
+            id="security-change-pw-confirm"
+            label={copy.confirmLabel}
             value={confirmPassword}
             onChange={(event) => {
               setConfirmPassword(event.target.value)
-              setTouched((t) => ({ ...t, confirm: true }))
+              setTouched((state) => ({ ...state, confirm: true }))
             }}
             error={confirmError ?? undefined}
             disabled={isSaving}
