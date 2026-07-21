@@ -9,7 +9,8 @@ import {
 import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
-import { UNIT_SUCCESS_BADGE_TONE, unitsCopy } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
+import { UNIT_SUCCESS_BADGE_TONE } from "../constants/units-ui"
 import {
   createUnitMapHref,
   formatUnitCityState,
@@ -36,6 +37,10 @@ function getTotalUsers(unit: UnitTableRow) {
 
 function resolveTextExportValue(value: string) {
   return value.trim() || unitsCopy.details.emptyValue
+}
+
+function resolveActiveBadgeClassName(isActive: boolean) {
+  return getBadgeToneClassName(isActive ? UNIT_SUCCESS_BADGE_TONE : undefined)
 }
 
 export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDef<UnitTableRow>[] {
@@ -162,7 +167,7 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
         <div className="flex justify-center">
           <Badge
             variant="secondary"
-            className={getBadgeToneClassName(row.original.yardConfig.patioActive ? UNIT_SUCCESS_BADGE_TONE : undefined)}
+            className={resolveActiveBadgeClassName(row.original.yardConfig.patioActive)}
           >
             {resolveYardStatusLabel(row.original.yardConfig.patioActive)}
           </Badge>

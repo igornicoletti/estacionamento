@@ -10,26 +10,25 @@ import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { AUTH_PERMISSION, useAuth } from "@/features/auth"
 import { SyncBlockingDialog, executeSyncWithRefresh } from "@/features/sync"
-import { useUsers } from "@/features/users"
 
 import {
   UnitYardConfigDialog,
   UnitsSyncHistoryDialog,
 } from "../components"
+import { unitsCopy } from "../constants/units-copy"
 import {
   DEFAULT_UNITS_COLUMN_VISIBILITY,
   UNITS_TABLE_COLUMN_VISIBILITY_KEY,
-  unitsCopy,
-  unitsRoutePaths,
-} from "../constants"
+} from "../constants/units-persistence"
+import { unitsRoutePaths } from "../constants/units-routes"
 import {
   useUnitSyncHistory,
+  useUnitUserStats,
   useUnitYardConfigs,
   useUnits,
   useUnitsTableFilters,
 } from "../hooks"
 import {
-  buildUnitUserStats,
   buildUnitYardConfigMap,
   getUnitDetailItems,
   parseYardSpotsInput,
@@ -52,10 +51,14 @@ function canManageOperationalData(auth: ReturnType<typeof useAuth>) {
 export function UnitsRoute() {
   const navigate = useNavigate()
   const auth = useAuth()
+  const canReadUsers = auth.access.hasPermission(AUTH_PERMISSION.usersRead)
+  const canSyncUnits = canManageOperationalData(auth)
   const { data: units, error, isLoading, refetch } = useUnits()
-  const { data: users } = useUsers({
-    enabled: auth.access.hasPermission(AUTH_PERMISSION.usersRead),
-  })
+  const {
+    data: userStatsByUnitId,
+    error: userStatsError,
+    refetch: refetchUnitUserStats,
+  } = useUnitUserStats({ enabled: canReadUsers })
   const {
     data: syncHistory,
     error: syncHistoryError,
@@ -70,9 +73,7 @@ export function UnitsRoute() {
   const [yardError, setYardError] = React.useState<string | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
   const [isSyncing, setIsSyncing] = React.useState(false)
-  const canSyncUnits = canManageOperationalData(auth)
   const yardConfigByUnitId = React.useMemo(() => buildUnitYardConfigMap(unitYardConfigs), [unitYardConfigs])
-  const userStatsByUnitId = React.useMemo(() => buildUnitUserStats(users), [users])
   const unitsTableData = React.useMemo<UnitTableRow[]>(
     () =>
       units.map((unit) => {
@@ -95,6 +96,7 @@ export function UnitsRoute() {
     () => unitsTableData.find((unit) => String(unit.cod_empresa) === configuringUnitId) ?? null,
     [configuringUnitId, unitsTableData]
   )
+  const tableError = error ?? userStatsError
 
   const handleOpenDetails = React.useCallback((unit: UnitTableRow) => {
     setSelectedUnitId(String(unit.cod_empresa))
@@ -125,8 +127,8 @@ export function UnitsRoute() {
   )
 
   const refreshOperationalSnapshots = React.useCallback(async () => {
-    await Promise.allSettled([refetch(), refetchSyncHistory()])
-  }, [refetch, refetchSyncHistory])
+    await Promise.allSettled([refetch(), refetchSyncHistory(), refetchUnitUserStats()])
+  }, [refetch, refetchSyncHistory, refetchUnitUserStats])
 
   const handleSaveYardSettings = React.useCallback(async () => {
     if (!configuringUnit || isSavingYard) {
@@ -254,9 +256,9 @@ export function UnitsRoute() {
           />
         )}
         isLoading={isLoading}
-        error={error}
+        error={tableError}
         onRetry={() => {
-          void refetch()
+          void refreshOperationalSnapshots()
         }}
         enablePagination
         enableViewOptions

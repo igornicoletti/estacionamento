@@ -9,7 +9,9 @@ import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { Button } from "@/components/ui/button"
 import { type UserRecord } from "@/features/users"
 
-import { UNIT_USERS_TABLE_COLUMN_VISIBILITY_KEY, unitsCopy, unitsRoutePaths } from "../constants"
+import { unitsCopy } from "../constants/units-copy"
+import { UNIT_USERS_TABLE_COLUMN_VISIBILITY_KEY } from "../constants/units-persistence"
+import { unitsRoutePaths } from "../constants/units-routes"
 import {
   useUnitUsers,
   useUnitUsersTableFilters,
@@ -54,6 +56,13 @@ export function UnitUsersRoute() {
     ?? (isResolvingUnit ? unitsCopy.pages.units.subtitle : unitsCopy.pages.unitUsers.fallbackDescription)
   const tableError = unitsError ?? usersError
   const tableUsers = unit ? users : []
+
+  const handleRetry = React.useCallback(async () => {
+    await Promise.allSettled([
+      refetchUnits(),
+      shouldLoadUsers ? refetchUsers() : Promise.resolve([]),
+    ])
+  }, [refetchUnits, refetchUsers, shouldLoadUsers])
 
   return (
     <PageSection>
@@ -108,7 +117,7 @@ export function UnitUsersRoute() {
         isLoading={isLoadingUnits || (shouldLoadUsers && isLoadingUsers)}
         error={tableError}
         onRetry={() => {
-          void Promise.allSettled([refetchUnits(), refetchUsers()])
+          void handleRetry()
         }}
         enablePagination
         enableViewOptions
