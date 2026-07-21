@@ -115,15 +115,23 @@ export function createClientsColumns(
       header: clientsCopy.table.vehicles,
       meta: { label: clientsCopy.table.vehicles },
       size: 96,
-      cell: ({ row }) => (
-        <DataTableTextAction
-          onClick={() => {
-            options.onSelectVehicles?.(row.original)
-          }}
-        >
-          {row.original.qtd_veiculos}
-        </DataTableTextAction>
-      ),
+      cell: ({ row }) => {
+        if (!options.onSelectVehicles || row.original.qtd_veiculos === 0) {
+          return row.original.qtd_veiculos === 0
+            ? clientsCopy.shared.emptyValue
+            : row.original.qtd_veiculos
+        }
+
+        return (
+          <DataTableTextAction
+            onClick={() => {
+              options.onSelectVehicles?.(row.original)
+            }}
+          >
+            {row.original.qtd_veiculos}
+          </DataTableTextAction>
+        )
+      },
     },
     {
       accessorKey: "vip",
@@ -156,14 +164,18 @@ export function createClientsColumns(
             options.onOpenDetails(selectedRow.original)
           },
         },
-        {
-          id: "vehicles",
-          label: clientsCopy.actions.openVehicles,
-          disabled: isPendingVip,
-          onSelect: (selectedRow) => {
-            options.onSelectVehicles?.(selectedRow.original)
-          },
-        },
+        ...(options.onSelectVehicles && row.original.qtd_veiculos > 0
+          ? [
+            {
+              id: "vehicles" as const,
+              label: clientsCopy.actions.openVehicles,
+              disabled: isPendingVip,
+              onSelect: (selectedRow) => {
+                options.onSelectVehicles?.(selectedRow.original)
+              },
+            },
+          ]
+          : []),
         ...(options.onToggleVip
           ? [
             {

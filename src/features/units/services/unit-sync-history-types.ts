@@ -1,9 +1,4 @@
-import {
-  type TriggerUnitsSyncResult,
-  type UnitSyncHistoryEntry,
-  type UnitSyncRunMode,
-  type UnitSyncTrigger,
-} from "../model"
+import { type TriggerUnitsSyncResult, type UnitSyncHistoryEntry, type UnitSyncRunMode, type UnitSyncTrigger } from "../model"
 
 export interface RecordMockUnitSyncHistoryRunInput {
   mode: UnitSyncRunMode

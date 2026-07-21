@@ -6,13 +6,11 @@ function readString(value: unknown) {
 
 function readNumber(value: unknown) {
   const numberValue = typeof value === "number" ? value : Number(value)
-
   return Number.isFinite(numberValue) ? numberValue : 0
 }
 
 function readPositiveInteger(value: unknown) {
   const numberValue = readNumber(value)
-
   return numberValue > 0 ? Math.trunc(numberValue) : null
 }
 
@@ -39,16 +37,13 @@ export function sanitizeErpUnitPayload(payload: ErpUnitPayload): Unit {
 }
 
 export function sanitizeErpUnitsPayload(payload: readonly ErpUnitPayload[]) {
-  return payload
-    .filter(hasValidUnitIdentity)
-    .map(sanitizeErpUnitPayload)
+  return payload.filter(hasValidUnitIdentity).map(sanitizeErpUnitPayload)
 }
 
 export function sanitizeParkingSpots(value: number) {
   if (!Number.isFinite(value) || value < 0) {
     return 0
   }
-
   return Math.trunc(value)
 }
 

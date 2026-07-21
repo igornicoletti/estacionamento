@@ -9,7 +9,6 @@ import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { AUTH_PERMISSION, useAuth } from "@/features/auth"
-import { getClientVipStatus, useVipRules } from "@/features/rules"
 
 import { ClientSyncBlockingDialog, ClientsSyncHistoryDialog } from "../components"
 import { clientsCopy } from "../constants/clients-copy"
@@ -21,10 +20,11 @@ import { CLIENT_SYNC_DEFAULT_MODE } from "../constants/clients-sync"
 import { clientsRoutePaths } from "../constants/clients-routes"
 import {
   useClientSyncHistory,
+  useClientVipRules,
   useClients,
   useClientsTableFilters,
 } from "../hooks"
-import { getClientDetailItems, mapClientToTableRow, type ClientTableRow } from "../model"
+import { getClientDetailItems, getClientVipStatus, mapClientToTableRow, type ClientTableRow } from "../model"
 import {
   executeClientSyncWithRefresh,
   isClientSyncInProgressError,
@@ -64,7 +64,12 @@ export function ClientsRoute() {
     isLoading: isLoadingSyncHistory,
     refetch: refetchSyncHistory,
   } = useClientSyncHistory({ enabled: canReadHistory })
-  const { data: vipRules, refetch: refetchVipRules, toggleClientVip } = useVipRules()
+  const {
+    data: vipRules,
+    error: vipRulesError,
+    refetch: refetchVipRules,
+    toggleClientVip,
+  } = useClientVipRules({ enabled: canRead })
   const [selectedClient, setSelectedClient] = React.useState<ClientTableRow | null>(null)
   const [isHistoryOpen, setIsHistoryOpen] = React.useState(false)
   const [isSyncing, setIsSyncing] = React.useState(false)
@@ -114,7 +119,7 @@ export function ClientsRoute() {
       createClientsColumns({
         onOpenDetails: handleOpenDetails,
         onSelectVehicles: handleSelectVehicles,
-        onToggleVip: canManageVip
+        onToggleVip: canManageVip && !vipRulesError
           ? (client) => {
             void handleToggleClientVip(client)
           }
@@ -122,7 +127,7 @@ export function ClientsRoute() {
         pendingVipClientId,
         vipActionLabel: clientsCopy.actions.toggleClientVip,
       }),
-    [canManageVip, handleOpenDetails, handleSelectVehicles, handleToggleClientVip, pendingVipClientId]
+    [canManageVip, handleOpenDetails, handleSelectVehicles, handleToggleClientVip, pendingVipClientId, vipRulesError]
   )
 
   const refreshOperationalSnapshots = React.useCallback(async () => {

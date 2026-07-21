@@ -19,6 +19,7 @@ import {
 
 export interface ClientsGateway {
   listClientVehiclesPayload: () => Promise<readonly ErpClientVehiclePayload[]>
+  listClientPayloadById: (clientId: number) => Promise<ErpClientPayload | null>
   listClientVehiclesPayloadByClientId: (clientId: number) => Promise<readonly ErpClientVehiclePayload[]>
   listClientsPayload: () => Promise<readonly ErpClientPayload[]>
 }
@@ -199,6 +200,26 @@ function createSupabaseClientsGateway(): ClientsGateway {
 
         return parseClientRows(data)
       })
+    },
+    async listClientPayloadById(clientId) {
+      if (isErpCatalogMockEnabled()) {
+        return parseClientRows(mockErpClientsPayload).find((client) => Number(client.cod_pessoa) === clientId) ?? null
+      }
+
+      const supabase = getSupabaseOrThrow()
+      const response: unknown = await supabase
+        .from("erp_clients")
+        .select(clientPayloadColumns.join(","))
+        .eq("cod_pessoa", clientId)
+        .eq("is_active_120d", true)
+        .maybeSingle()
+      const data = parseSupabaseResponse(response, clientsCopy.errors.clientsLoad)
+
+      if (!data) {
+        return null
+      }
+
+      return parseClientRows([data])[0] ?? null
     },
     async listClientVehiclesPayload() {
       if (isErpCatalogMockEnabled()) {

@@ -8,21 +8,11 @@ import {
 } from "@/features/users"
 
 import { unitsCopy } from "../constants/units-copy"
-import {
-  createUnitMapHref,
-  formatUnitCityState,
-  formatUnitSystemLabel,
-  resolveYardStatusLabel,
-} from "./units-formatting"
+import { createUnitMapHref, formatUnitCityState, formatUnitSystemLabel, resolveYardStatusLabel } from "./units-formatting"
 import { type Unit, type UnitUserStats, type UnitYardConfig } from "./units-types"
 
-export function getUnitDetailItems(
-  unit: Unit,
-  yardConfig: UnitYardConfig,
-  userStats: UnitUserStats
-): readonly AppDetailsSheetItem[] {
+export function getUnitDetailItems(unit: Unit, yardConfig: UnitYardConfig, userStats: UnitUserStats): readonly AppDetailsSheetItem[] {
   const mapHref = createUnitMapHref(unit.des_coordenada_empresa)
-
   return [
     { label: unitsCopy.table.companyCode, value: unit.cod_empresa },
     { label: unitsCopy.table.legalName, value: unit.nom_razao_social },

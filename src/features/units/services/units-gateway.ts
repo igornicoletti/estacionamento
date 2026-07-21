@@ -29,7 +29,6 @@ const unitPayloadColumns = [
 const numericPayloadValueSchema = z.union([z.number(), z.string()])
 const nullableNumericPayloadValueSchema = numericPayloadValueSchema.nullable()
 const nullableStringPayloadValueSchema = z.string().nullable()
-
 const erpUnitPayloadSchema = z.object({
   cod_empresa: numericPayloadValueSchema,
   nom_razao_social: nullableStringPayloadValueSchema,
@@ -45,34 +44,25 @@ const erpUnitPayloadSchema = z.object({
   ip_rede: nullableStringPayloadValueSchema,
   nom_banco_dados: nullableStringPayloadValueSchema,
 })
-
 const erpUnitsPayloadSchema = z.array(erpUnitPayloadSchema)
-const supabaseResponseSchema = z.object({
-  data: z.unknown().nullable(),
-  error: z.unknown().nullable(),
-}).passthrough()
+const supabaseResponseSchema = z.object({ data: z.unknown().nullable(), error: z.unknown().nullable() }).passthrough()
 
 function parseSupabaseResponse(value: unknown) {
   const result = supabaseResponseSchema.safeParse(value)
-
   if (!result.success) {
     throw new Error(unitsCopy.errors.unitsLoad, { cause: result.error })
   }
-
   if (result.data.error) {
     throw new Error(unitsCopy.errors.unitsLoad, { cause: result.data.error })
   }
-
   return result.data.data
 }
 
 function parseErpRows(value: unknown): readonly ErpUnitPayload[] {
   const result = erpUnitsPayloadSchema.safeParse(value ?? [])
-
   if (!result.success) {
     throw new Error(unitsCopy.errors.unitsLoad, { cause: result.error })
   }
-
   return result.data.map((row) => ({
     cod_empresa: row.cod_empresa,
     nom_razao_social: row.nom_razao_social ?? "",
@@ -96,19 +86,15 @@ function createSupabaseUnitsGateway(): UnitsGateway {
       if (isErpCatalogMockEnabled()) {
         return mockErpUnitsPayload
       }
-
       const supabase = getSupabaseBrowserClient()
-
       if (!supabase) {
         throw new Error(unitsCopy.errors.unitsUnavailable)
       }
-
       const response: unknown = await supabase
         .from("erp_units")
         .select(unitPayloadColumns.join(","))
         .order("cod_empresa", { ascending: true })
       const data = parseSupabaseResponse(response)
-
       return parseErpRows(data)
     },
   }

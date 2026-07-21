@@ -2,12 +2,7 @@ import { z } from "zod"
 
 import { unitsCopy } from "../constants/units-copy"
 import { UNIT_SYNC_HISTORY_LIMIT } from "../constants/units-persistence"
-import {
-  UNIT_SYNC_RUN_MODES,
-  UNIT_SYNC_STATUSES,
-  UNIT_SYNC_SUCCESS_STATUS,
-  UNIT_SYNC_TRIGGERS,
-} from "../constants/units-sync"
+import { UNIT_SYNC_RUN_MODES, UNIT_SYNC_STATUSES, UNIT_SYNC_SUCCESS_STATUS, UNIT_SYNC_TRIGGERS } from "../constants/units-sync"
 import { type UnitSyncHistoryEntry, type UnitSyncRunStatus } from "../model"
 
 const syncModeSchema = z.enum(UNIT_SYNC_RUN_MODES)
@@ -20,7 +15,6 @@ const unitSyncCountersSchema = z.object({
   unchanged: z.number(),
   failed: z.number(),
 })
-
 const rawUnitSyncRunRowSchema = z.object({
   id: z.string().trim().min(1),
   mode: syncModeSchema,
@@ -38,7 +32,6 @@ const rawUnitSyncRunRowSchema = z.object({
   consecutive_failures: z.number(),
   error_details: z.unknown(),
 })
-
 const unitSyncHistoryEntrySchema = z.object({
   id: z.string().trim().min(1),
   mode: syncModeSchema,
@@ -52,35 +45,21 @@ const unitSyncHistoryEntrySchema = z.object({
   consecutiveFailures: z.number(),
   errorDetails: z.array(z.string()),
 })
-
-const supabaseResponseSchema = z.object({
-  data: z.unknown().nullable(),
-  error: z.unknown().nullable(),
-}).passthrough()
-
+const supabaseResponseSchema = z.object({ data: z.unknown().nullable(), error: z.unknown().nullable() }).passthrough()
 const rawUnitSyncRunRowsSchema = z.array(rawUnitSyncRunRowSchema)
 const unitSyncHistoryEntriesSchema = z.array(unitSyncHistoryEntrySchema)
-
 type RawUnitSyncRunRow = z.infer<typeof rawUnitSyncRunRowSchema>
 
 function normalizeSyncHistoryMessage(message: string, status: UnitSyncRunStatus) {
   const value = message.trim()
-
-  if (value) {
-    return value
-  }
-
-  return status === UNIT_SYNC_SUCCESS_STATUS ? unitsCopy.sync.feedback.success : unitsCopy.sync.feedback.error
+  return value || (status === UNIT_SYNC_SUCCESS_STATUS ? unitsCopy.sync.feedback.success : unitsCopy.sync.feedback.error)
 }
 
 function normalizeSyncErrorDetails(value: unknown) {
   if (!Array.isArray(value)) {
     return []
   }
-
-  return value
-    .filter((item): item is string => typeof item === "string" && item.trim().length > 0)
-    .map((item) => item.trim())
+  return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0).map((item) => item.trim())
 }
 
 function mapUnitSyncHistory(row: RawUnitSyncRunRow): UnitSyncHistoryEntry {
@@ -115,34 +94,24 @@ export function limitUnitSyncHistoryEntries(entries: readonly UnitSyncHistoryEnt
 
 export function parseSupabaseUnitSyncHistoryResponse(value: unknown) {
   const result = supabaseResponseSchema.safeParse(value)
-
   if (!result.success) {
     throw new Error(unitsCopy.sync.historyLoadError, { cause: result.error })
   }
-
   if (result.data.error) {
     throw new Error(unitsCopy.sync.historyLoadError, { cause: result.data.error })
   }
-
   return result.data.data
 }
 
 export function parseUnitSyncHistoryRows(value: unknown) {
   const result = rawUnitSyncRunRowsSchema.safeParse(value ?? [])
-
   if (!result.success) {
     throw new Error(unitsCopy.sync.historyLoadError, { cause: result.error })
   }
-
   return limitUnitSyncHistoryEntries(result.data.map(mapUnitSyncHistory))
 }
 
 export function parseStoredUnitSyncHistory(value: unknown) {
   const result = unitSyncHistoryEntriesSchema.safeParse(value)
-
-  if (!result.success) {
-    return []
-  }
-
-  return limitUnitSyncHistoryEntries(result.data)
+  return result.success ? limitUnitSyncHistoryEntries(result.data) : []
 }

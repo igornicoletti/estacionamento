@@ -1,5 +1,14 @@
 export { getClientDetailItems, getClientVehicleDetailItems } from "./clients-details-model"
 export {
+  getClientVipStatus,
+  getVehicleVipStatus,
+  normalizeClientVipRuleRecord,
+  normalizeClientVipRuleRecords,
+  type ClientVipRuleRecord,
+  type ClientVipRuleTargetType,
+  type RawClientVipRuleRecord,
+} from "./client-vip-rules"
+export {
   formatClientDate,
   formatClientDateTime,
   formatDurationSeconds,

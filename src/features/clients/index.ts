@@ -1,4 +1,4 @@
-export { ClientsSyncHistoryDialog } from "./components"
+export { ClientSyncBlockingDialog, ClientsSyncHistoryDialog } from "./components"
 export {
   clientsCopy,
   clientsRoutePaths,
@@ -14,7 +14,9 @@ export {
   DEFAULT_CLIENT_VEHICLES_COLUMN_VISIBILITY,
 } from "./constants"
 export {
+  useClient,
   useClientSyncHistory,
+  useClientVipRules,
   useClientVehicles,
   useClientVehiclesTableFilters,
   useClients,
@@ -22,7 +24,9 @@ export {
 } from "./hooks"
 export {
   getClientDetailItems,
+  getClientVipStatus,
   getClientVehicleDetailItems,
+  getVehicleVipStatus,
   mapClientToTableRow,
   mapClientVehicleToTableRow,
   normalizeDisplayName,
@@ -37,6 +41,8 @@ export {
   type ClientStatus,
   type ClientSyncCounters,
   type ClientSyncHistoryEntry,
+  type ClientVipRuleRecord,
+  type ClientVipRuleTargetType,
   type ClientSyncMode,
   type ClientsSnapshot,
   type ClientSyncStatus,
@@ -54,12 +60,16 @@ export {
   configureClientsGateway,
   getClientsGateway,
   isClientSyncInProgressError,
+  listClientById,
+  listClientVipRules,
   listClientVehiclesByClientId,
   listClients,
   listClientsSnapshot,
   listClientSyncHistory,
   listClientVehicles,
   resetClientsGateway,
+  toggleClientVipRule,
+  toggleVehicleVipRule,
   triggerClientsSync,
   type ClientsGateway,
 } from "./services"

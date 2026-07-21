@@ -9,9 +9,9 @@ import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { AUTH_PERMISSION, useAuth } from "@/features/auth"
-import { SyncBlockingDialog, executeSyncWithRefresh } from "@/features/sync"
 
 import {
+  UnitSyncBlockingDialog,
   UnitYardConfigDialog,
   UnitsSyncHistoryDialog,
 } from "../components"
@@ -36,7 +36,11 @@ import {
   type UnitUserStats,
   type YardStatusFormValue,
 } from "../model"
-import { isUnitSyncInProgressError, triggerUnitsSync } from "../services"
+import {
+  executeUnitSyncWithRefresh,
+  isUnitSyncInProgressError,
+  triggerUnitsSync,
+} from "../services"
 import { createUnitsColumns, type UnitTableRow } from "../table"
 
 const EMPTY_UNIT_USER_STATS = {
@@ -173,7 +177,7 @@ export function UnitsRoute() {
     setIsSyncing(true)
 
     try {
-      await executeSyncWithRefresh({
+      await executeUnitSyncWithRefresh({
         triggerSync: triggerUnitsSync,
         refreshSnapshots: refreshOperationalSnapshots,
         isInProgressError: isUnitSyncInProgressError,
@@ -314,7 +318,7 @@ export function UnitsRoute() {
         }}
       />
 
-      <SyncBlockingDialog
+      <UnitSyncBlockingDialog
         open={isSyncing}
         title={unitsCopy.sync.runningTitle}
         description={unitsCopy.sync.runningDescription}

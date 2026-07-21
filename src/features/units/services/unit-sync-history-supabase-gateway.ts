@@ -2,21 +2,16 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import { unitsCopy } from "../constants/units-copy"
 import { UNIT_SYNC_HISTORY_LIMIT } from "../constants/units-persistence"
-import {
-  parseSupabaseUnitSyncHistoryResponse,
-  parseUnitSyncHistoryRows,
-} from "./unit-sync-history-normalization"
+import { parseSupabaseUnitSyncHistoryResponse, parseUnitSyncHistoryRows } from "./unit-sync-history-normalization"
 import { type UnitSyncHistoryGateway } from "./unit-sync-history-types"
 
 export function createSupabaseUnitSyncHistoryGateway(): UnitSyncHistoryGateway {
   return {
     async listHistory() {
       const supabase = getSupabaseBrowserClient()
-
       if (!supabase) {
         throw new Error(unitsCopy.sync.historyLoadError)
       }
-
       const response: unknown = await supabase
         .from("unit_sync_runs")
         .select([
@@ -39,7 +34,6 @@ export function createSupabaseUnitSyncHistoryGateway(): UnitSyncHistoryGateway {
         .order("started_at", { ascending: false })
         .limit(UNIT_SYNC_HISTORY_LIMIT)
       const data = parseSupabaseUnitSyncHistoryResponse(response)
-
       return parseUnitSyncHistoryRows(data)
     },
   }

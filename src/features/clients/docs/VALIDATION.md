@@ -12,11 +12,14 @@ Validação executada sobre o pacote revisado:
 Resultado aplicado no pacote revisado:
 
 - `src/features/clients` não importa mais a feature legada de sincronização;
+- `src/features/clients` não importa mais `@/features/rules` nem `useVipRules`;
 - `clients` possui diálogo bloqueante de sync local e runner local específico;
 - telefone de cliente fica visível por padrão;
 - documento em veículos fica visível por padrão;
 - `ClientSyncCounters` mantém chaves explícitas;
 - filtros ficam em hooks, seguindo o padrão de `units`;
+- `/clientes/:cod_pessoa` usa consulta direta do cliente por ID;
+- leitura de VIP usa serviço local com select mínimo e não derruba a tabela quando falhar;
 - histórico de sincronização mantém gateway, mock, Supabase, normalização e types separados;
 - não há toast de carregamento por promessa em `src/features/clients`;
 - não há `any` nos arquivos `.ts` e `.tsx` entregues.

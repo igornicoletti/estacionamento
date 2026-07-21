@@ -4,6 +4,8 @@ export {
   buildUnitYardConfigMap,
   createUnitMapHref,
   formatUnitCityState,
+  formatUnitDateTime,
+  formatUnitDuration,
   formatUnitSystemLabel,
   parseUnitRouteId,
   parseYardSpotsInput,

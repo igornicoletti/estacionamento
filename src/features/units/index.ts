@@ -1,4 +1,4 @@
-export { UnitsSyncHistoryDialog, UnitYardConfigDialog } from "./components"
+export { UnitSyncBlockingDialog, UnitsSyncHistoryDialog, UnitYardConfigDialog } from "./components"
 export {
   DEFAULT_UNITS_COLUMN_VISIBILITY,
   UNIT_SYNC_DEFAULT_MODE,
@@ -40,6 +40,8 @@ export {
   buildUnitYardConfigMap,
   createUnitMapHref,
   formatUnitCityState,
+  formatUnitDateTime,
+  formatUnitDuration,
   formatUnitSystemLabel,
   getUnitDetailItems,
   getUnitUserDetailItems,
@@ -75,6 +77,7 @@ export {
   configureUnitSyncHistoryGateway,
   configureUnitYardGateway,
   configureUnitsGateway,
+  executeUnitSyncWithRefresh,
   getUnitSyncHistoryGateway,
   getUnitYardConfig,
   getUnitYardGateway,

@@ -106,7 +106,7 @@ export function normalizeEmail(value: unknown) {
     return ""
   }
 
-  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : email
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email) ? email : ""
 }
 
 export function normalizeUf(value: unknown) {

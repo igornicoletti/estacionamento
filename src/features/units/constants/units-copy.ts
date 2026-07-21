@@ -25,11 +25,33 @@ export const unitsCopy = {
     historyLoadError: "Não foi possível carregar o histórico de sincronização.",
     runningTitle: "Sincronização em andamento",
     runningDescription: "A tela será liberada automaticamente ao finalizar.",
+    retryLabel: "Recarregar histórico",
     history: {
       title: "Histórico de sincronização",
       description: "Acompanhe as últimas execuções de sincronização de unidades.",
       emptyTitle: "Ainda não há execuções registradas",
       emptyDescription: "Nenhuma execução de sincronização foi registrada até o momento.",
+      loadErrorTitle: "Histórico indisponível",
+      details: {
+        duration: "Duração",
+        start: "Início",
+        end: "Fim",
+        mode: "Modo",
+        trigger: "Acionamento",
+      },
+      modes: {
+        full: "Completa",
+        incremental: "Incremental",
+      },
+      statuses: {
+        failed: "Falha",
+        success: "Sucesso",
+        warning: "Atenção",
+      },
+      triggers: {
+        automatic: "Automático",
+        manual: "Manual",
+      },
       counters: {
         created: "Unidades novas",
         failed: "Unidades com falha",
@@ -42,8 +64,7 @@ export const unitsCopy = {
       success: "Sincronização concluída.",
       error: "Não foi possível sincronizar as unidades.",
       inProgress: "Já existe uma sincronização de unidades em andamento.",
-      connectionError:
-        "Não foi possível conectar ao serviço de sincronização. Verifique sua conexão e tente novamente.",
+      connectionError: "Não foi possível conectar ao serviço de sincronização. Verifique sua conexão e tente novamente.",
     },
   },
   filters: {

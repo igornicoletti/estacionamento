@@ -1,43 +1,33 @@
-# src/features/units
+# Unidades
 
-Feature responsável por unidades sincronizadas do ERP, funcionários vinculados por unidade,
-configuração operacional de pátio e histórico de sincronização.
+## Objetivo
+
+Feature responsável por unidades sincronizadas do ERP, funcionários vinculados por unidade, configuração operacional de pátio e histórico de sincronização.
 
 ## Estrutura
 
-- `constants`: textos, labels, mensagens e chaves técnicas/persistência da feature.
-- `model`: contratos, normalização, formatação, validação Zod e detalhes exibidos no sheet.
-- `services`: gateways Supabase/mock, serviços de unidades, pátio, sincronização e histórico.
-- `hooks`: snapshots assíncronos, mutações serializadas e filtros de tabela.
-- `table`: colunas das tabelas de unidades e funcionários.
-- `components`: dialogs específicos da feature.
-- `routes`: composição das páginas e integração entre hooks, tabela, dialogs, detalhes,
-  sincronização e histórico.
+```text
+src/features/units/
+├── components/
+├── constants/
+├── docs/
+├── hooks/
+├── model/
+├── routes/
+├── services/
+├── table/
+└── index.ts
+```
 
 ## Decisões
 
-- A raiz da feature mantém somente `index.ts` para evitar arquivos soltos.
-- As rotas fazem composição de tela e orquestração operacional, mas não fazem parsing,
-  sanitização ou normalização de payload externo.
-- Parsing, sanitização e normalização de dados externos permanecem concentrados em
-  `model` e `services`.
-- A configuração de pátio usa validação Zod e validação defensiva no service.
-- O service de unidades falha explicitamente quando Supabase não está configurado,
-  evitando empty state falso por falha silenciosa.
-- O gateway mantém o mock apenas quando `VITE_ERP_CATALOG_MOCK_ENABLED` estiver habilitado.
-- As tabelas recebem dados já normalizados e snapshots derivados pela rota, evitando que
-  colunas dependam de estado externo não materializado na linha.
-- Textos, labels, mensagens de erro e empty states ficam centralizados em
-  `constants/units-copy.ts`, reduzindo hardcoded text nas telas.
-- Constantes técnicas de sincronização ficam centralizadas em `constants/units-sync.ts`,
-  evitando contratos mágicos soltos nos services.
-- Tokens técnicos de UI específicos da feature ficam centralizados em `constants/units-ui.ts`.
-- O histórico de sincronização separa normalização, gateway mock, gateway Supabase e
-  service para manter responsabilidades claras entre persistência, validação e API de domínio.
-
-- Estatísticas de funcionários por unidade usam service próprio (`unit-user-stats-service`),
-  evitando carregar o cadastro completo de usuários e evitando chamadas administrativas de autenticação
-  no carregamento da página de unidades.
-- Barrels existem apenas como ponto de entrada externo; arquivos internos usam imports diretos
-  para reduzir ciclos e manter inferência estável no ESLint TypeScript.
-- Contadores de sincronização usam contrato fechado, sem chaves dinâmicas arbitrárias.
+- A raiz da feature mantém somente `index.ts`.
+- Rotas compõem tela e orquestração, sem parsing direto de payload externo.
+- Parsing, sanitização e normalização ficam em `model` e `services`.
+- Histórico e bloqueio de sincronização são autocontidos na feature para remover dependência de `src/features/sync`.
+- O mock de ERP permanece centralizado em `src/features/erp-mock` e é usado apenas quando a flag de mock estiver habilitada.
+- A configuração de pátio usa validação Zod, estado otimista serializado e validação defensiva no service.
+- Tabelas recebem dados normalizados e estados derivados já materializados na rota.
+- Textos e mensagens permanecem centralizados em `constants/units-copy.ts`.
+- Constantes técnicas de sincronização permanecem centralizadas em `constants/units-sync.ts`.
+- Barrels são pontos de entrada externos; imports internos usam caminhos diretos para reduzir ciclos.

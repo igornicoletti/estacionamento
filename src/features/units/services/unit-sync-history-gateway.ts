@@ -34,7 +34,4 @@ export function resetUnitSyncHistoryGateway() {
   unitSyncHistoryGateway = createDefaultUnitSyncHistoryGateway()
 }
 
-export type {
-  RecordMockUnitSyncHistoryRunInput,
-  UnitSyncHistoryGateway,
-} from "./unit-sync-history-types"
+export type { RecordMockUnitSyncHistoryRunInput, UnitSyncHistoryGateway } from "./unit-sync-history-types"

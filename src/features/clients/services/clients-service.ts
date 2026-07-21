@@ -12,6 +12,11 @@ export async function listClients(): Promise<Client[]> {
   return sanitizeErpClientsPayload(payload)
 }
 
+export async function listClientById(clientId: number): Promise<Client | null> {
+  const payload = await getClientsGateway().listClientPayloadById(clientId)
+  return payload ? sanitizeErpClientPayload(payload) : null
+}
+
 export async function listClientVehicles(): Promise<ClientVehicle[]> {
   const payload = await getClientsGateway().listClientVehiclesPayload()
   return sanitizeErpClientVehiclesPayload(payload)

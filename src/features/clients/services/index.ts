@@ -1,5 +1,10 @@
 export { executeClientSyncWithRefresh } from "./client-sync-runner"
 export {
+  listClientVipRules,
+  toggleClientVipRule,
+  toggleVehicleVipRule,
+} from "./client-vip-rules-service"
+export {
   configureClientSyncHistoryGateway,
   getClientSyncHistoryGateway,
   listClientSyncHistory,
@@ -19,6 +24,7 @@ export {
   type ClientsGateway,
 } from "./clients-gateway"
 export {
+  listClientById,
   listClientVehiclesByClientId,
   listClients,
   listClientsSnapshot,

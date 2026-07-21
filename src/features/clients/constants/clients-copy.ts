@@ -146,6 +146,8 @@ export const clientsCopy = {
     invalidClientsResponse: "A resposta de clientes retornou em formato inválido.",
     invalidSyncHistoryResponse: "A resposta do histórico de sincronização é inválida.",
     invalidVehiclesResponse: "A resposta de veículos retornou em formato inválido.",
+    vipRulesLoad: "Não foi possível carregar as regras VIP de clientes.",
+    vipRulesUnavailable: "O serviço de regras VIP de clientes não está configurado.",
     syncLimitExceeded: "A busca de clientes excedeu o limite seguro de páginas.",
     syncUnavailable: "Não foi possível conectar ao serviço de sincronização. Verifique sua conexão e tente novamente.",
     vehiclesLoad: "Não foi possível carregar os veículos do cliente.",

@@ -9,7 +9,6 @@ import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { AUTH_PERMISSION, useAuth } from "@/features/auth"
-import { getVehicleVipStatus, useVipRules } from "@/features/rules"
 
 import { clientsCopy } from "../constants/clients-copy"
 import {
@@ -18,12 +17,14 @@ import {
 } from "../constants/clients-persistence"
 import { clientsRoutePaths } from "../constants/clients-routes"
 import {
+  useClient,
   useClientVehicles,
   useClientVehiclesTableFilters,
-  useClients,
+  useClientVipRules,
 } from "../hooks"
 import {
   getClientVehicleDetailItems,
+  getVehicleVipStatus,
   mapClientVehicleToTableRow,
   normalizeDisplayName,
   parseClientRouteId,
@@ -43,18 +44,16 @@ export function ClientVehiclesRoute() {
   const navigate = useNavigate()
   const auth = useAuth()
   const params = useParams<{ cod_pessoa: string }>()
+  const canRead = canReadClientVehicles(auth)
+  const canManageVip = canManageVipRules(auth)
   const parsedClientId = React.useMemo(() => parseClientRouteId(params.cod_pessoa), [params.cod_pessoa])
   const clientId = parsedClientId ?? null
   const {
-    data: clients,
-    error: clientsError,
-    isLoading: isLoadingClients,
-    refetch: refetchClients,
-  } = useClients()
-  const client = React.useMemo(
-    () => clients.find((item) => item.cod_pessoa === clientId) ?? null,
-    [clientId, clients]
-  )
+    data: client,
+    error: clientError,
+    isLoading: isLoadingClient,
+    refetch: refetchClient,
+  } = useClient(clientId, { enabled: parsedClientId !== null })
   const shouldLoadVehicles = Boolean(client)
   const {
     data: vehicles,
@@ -62,18 +61,21 @@ export function ClientVehiclesRoute() {
     isLoading: isLoadingVehicles,
     refetch: refetchVehicles,
   } = useClientVehicles(clientId, { enabled: shouldLoadVehicles })
-  const { data: vipRules, refetch: refetchVipRules, toggleVehicleVip } = useVipRules()
+  const {
+    data: vipRules,
+    error: vipRulesError,
+    refetch: refetchVipRules,
+    toggleVehicleVip,
+  } = useClientVipRules({ enabled: canRead })
   const [selectedVehicle, setSelectedVehicle] = React.useState<ClientVehicleTableRow | null>(null)
   const [pendingVipVehicleId, setPendingVipVehicleId] = React.useState<number | null>(null)
-  const canRead = canReadClientVehicles(auth)
-  const canManageVip = canManageVipRules(auth)
   const tableData = React.useMemo<ClientVehicleTableRow[]>(() => {
     return vehicles.map((vehicle) => mapClientVehicleToTableRow(vehicle, {
       isVipEnabled: getVehicleVipStatus(vehicle, vipRules),
     }))
   }, [vehicles, vipRules])
   const filterFields = useClientVehiclesTableFilters(tableData)
-  const isResolvingClient = Boolean(clientId) && isLoadingClients && !client
+  const isResolvingClient = Boolean(clientId) && isLoadingClient && !client
   const isClientUnavailable = !isResolvingClient && !client
   const pageTitle = client?.nom_pessoa
     ? normalizeDisplayName(client.nom_pessoa)
@@ -82,15 +84,15 @@ export function ClientVehiclesRoute() {
       : clientsCopy.pages.clientVehicles.fallbackTitle
   const pageSubtitle = client?.num_cnpj_cpf
     ?? (isResolvingClient ? clientsCopy.pages.clients.subtitle : clientsCopy.pages.clientVehicles.fallbackDescription)
-  const tableError = clientsError ?? vehiclesError
+  const tableError = clientError ?? vehiclesError
   const tableVehicles = client ? tableData : []
 
   const handleRetry = React.useCallback(async () => {
     await Promise.allSettled([
-      refetchClients(),
+      refetchClient(),
       shouldLoadVehicles ? refetchVehicles() : Promise.resolve([]),
     ])
-  }, [refetchClients, refetchVehicles, shouldLoadVehicles])
+  }, [refetchClient, refetchVehicles, shouldLoadVehicles])
 
   const handleToggleVehicleVip = React.useCallback(async (vehicle: ClientVehicleTableRow) => {
     if (pendingVipVehicleId !== null) {
@@ -120,7 +122,7 @@ export function ClientVehiclesRoute() {
     () =>
       createClientVehiclesColumns({
         onOpenDetails: setSelectedVehicle,
-        onToggleVip: canManageVip
+        onToggleVip: canManageVip && !vipRulesError
           ? (vehicle) => {
             void handleToggleVehicleVip(vehicle)
           }
@@ -128,7 +130,7 @@ export function ClientVehiclesRoute() {
         pendingVipVehicleId,
         vipActionLabel: clientsCopy.actions.toggleVehicleVip,
       }),
-    [canManageVip, handleToggleVehicleVip, pendingVipVehicleId]
+    [canManageVip, handleToggleVehicleVip, pendingVipVehicleId, vipRulesError]
   )
 
   return (
@@ -191,7 +193,7 @@ export function ClientVehiclesRoute() {
               description={clientsCopy.filteredEmpty.vehiclesDescription}
             />
           )}
-          isLoading={parsedClientId !== null && (isLoadingClients || (shouldLoadVehicles && isLoadingVehicles))}
+          isLoading={parsedClientId !== null && (isLoadingClient || (shouldLoadVehicles && isLoadingVehicles))}
           error={tableError}
           onRetry={() => {
             void handleRetry()

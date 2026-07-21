@@ -27,7 +27,7 @@ src/features/clients/
 - `hooks/use-clients-table-filters.ts` e `hooks/use-client-vehicles-table-filters.ts` montam filtros derivados da tabela, no mesmo padrão de `useUnitsTableFilters`.
 - `routes` compõe tela, permissões, eventos e componentes reutilizáveis sem montar filtros inline.
 - `services/clients-gateway.ts` segue o gateway de `units`: validação com `zod`, suporte a `erp-mock`, Supabase browser client e erro explícito quando o serviço não está configurado.
-- `components/clients-sync-history-dialog.tsx` é apenas wrapper de domínio sobre `SyncHistoryDialog`, como `UnitsSyncHistoryDialog`.
+- `components/clients-sync-history-dialog.tsx` é autocontido e não depende de `src/features/sync`, mantendo a sincronização de clientes restrita à própria feature.
 - A raiz mantém apenas `index.ts`.
 
 ## Correções aplicadas
@@ -39,3 +39,10 @@ src/features/clients/
 - Adicionadas `DEFAULT_CLIENTS_COLUMN_VISIBILITY` e `DEFAULT_CLIENT_VEHICLES_COLUMN_VISIBILITY`.
 - Removido toast de carregamento por promessa para VIP; feedback de loading não usa toast.
 - Preservadas policies de RLS por permissão em migration dedicada.
+
+
+## Revisão crítica pós-erro 400 em commercial_rules
+
+A página de clientes não carrega mais o hook genérico de regras comerciais para resolver VIP. A leitura de VIP usa uma consulta mínima e estável em `commercial_rules`, restrita a `type`, `target_type`, `client_id`, `vehicle_id`, `vehicle_ids`, `status`, `ends_at` e `updated_at`, evitando que colunas comerciais novas ou ausentes derrubem a tela operacional de clientes.
+
+A rota de veículos também passou a carregar o cliente por `cod_pessoa`, sem buscar toda a lista de clientes apenas para resolver título e subtítulo.
