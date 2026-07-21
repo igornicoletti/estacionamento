@@ -13,6 +13,13 @@ type SyncMode = "full" | "incremental"
 type SyncTrigger = "automatic" | "manual"
 type SyncStatus = "success" | "warning" | "failed"
 
+type UpsertableTable = {
+  upsert(
+    rows: readonly object[],
+    options: { onConflict: string }
+  ): Promise<{ error: unknown }>
+}
+
 const unitsSyncLockResource = "units-sync"
 const unitsSyncLockTtlSeconds = 300
 const syncUpsertChunkSize = 1000
@@ -405,7 +412,7 @@ async function saveSyncState(mode: SyncMode, status: SyncStatus, startedAt: stri
   return nextConsecutiveFailures
 }
 
-async function upsertRowsInChunks<T extends Record<string, unknown>>(
+async function upsertRowsInChunks<T extends object>(
   supabase: ReturnType<typeof createAdminClient>,
   table: string,
   rows: readonly T[],
@@ -417,9 +424,8 @@ async function upsertRowsInChunks<T extends Record<string, unknown>>(
 
   for (let start = 0; start < rows.length; start += syncUpsertChunkSize) {
     const chunk = rows.slice(start, start + syncUpsertChunkSize)
-    const { error } = await supabase
-      .from(table)
-      .upsert(chunk, { onConflict })
+    const tableClient = supabase.from(table) as unknown as UpsertableTable
+    const { error } = await tableClient.upsert(chunk, { onConflict })
 
     if (error) {
       throw error
