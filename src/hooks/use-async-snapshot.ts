@@ -76,6 +76,11 @@ export function useAsyncSnapshot<TData>({
   const [isLoading, setIsLoading] = React.useState(!hasCachedData)
   const [error, setError] = React.useState<Error | null>(null)
   const requestVersionRef = React.useRef(0)
+  const loadDataRef = React.useRef(loadData)
+
+  React.useEffect(() => {
+    loadDataRef.current = loadData
+  })
 
   const setData = React.useCallback<React.Dispatch<React.SetStateAction<TData>>>(
     (value) => {
@@ -108,7 +113,7 @@ export function useAsyncSnapshot<TData>({
       }
 
       setError(null)
-      const snapshot = await loadData()
+      const snapshot = await loadDataRef.current()
 
       if (shouldApplyResult()) {
         setData(snapshot)
@@ -122,7 +127,7 @@ export function useAsyncSnapshot<TData>({
         setIsLoading(false)
       }
     }
-  }, [errorMessage, loadData, setData])
+  }, [errorMessage, setData])
 
   const refetch = React.useCallback(() => {
     return loadSnapshot(() => true, { setLoading: true })

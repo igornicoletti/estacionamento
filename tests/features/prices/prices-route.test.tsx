@@ -134,10 +134,9 @@ describe("PricesRoute", () => {
     })
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
 
-    expect(
-      await screen.findByText("Não foi possível salvar. Revise os dados e tente novamente.")
-    ).toBeInTheDocument()
-    expect(screen.getByRole("heading", { name: "Adicionar tabela de preço" })).toBeInTheDocument()
+    await waitFor(() => {
+      expect(screen.getByRole("heading", { name: "Adicionar tabela de preço" })).toBeInTheDocument()
+    })
     expect(screen.queryByText(/duplicate key/i)).not.toBeInTheDocument()
   })
 

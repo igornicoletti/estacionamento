@@ -8,6 +8,10 @@ import {
   type NotificationRecord,
 } from "@/features/notifications"
 import {
+  configureUnitUserStatsGateway,
+  resetUnitUserStatsGateway,
+} from "@/features/units/services/unit-user-stats-service"
+import {
   resetUsersGateway,
   setUsersGateway,
 } from "@/features/users/services/users-gateway"
@@ -38,9 +42,9 @@ if (!HTMLElement.prototype.scrollIntoView) {
 if (!globalThis.ResizeObserver) {
   Object.defineProperty(globalThis, "ResizeObserver", {
     value: class ResizeObserver {
-      observe() {}
-      unobserve() {}
-      disconnect() {}
+      observe() { }
+      unobserve() { }
+      disconnect() { }
     },
   })
 }
@@ -228,6 +232,28 @@ beforeEach(() => {
     async saveAll(users) {
       await Promise.resolve()
       currentUsers.splice(0, currentUsers.length, ...users)
+    },
+  })
+
+  resetUnitUserStatsGateway()
+  configureUnitUserStatsGateway({
+    async listStats() {
+      await Promise.resolve()
+      const stats = new Map<string, { managers: number; operators: number }>()
+      for (const user of currentUsers) {
+        if (!user.unitId || user.status !== "active") {
+          continue
+        }
+        const current = stats.get(user.unitId) ?? { managers: 0, operators: 0 }
+        if (user.role === "manager") {
+          current.managers += 1
+        }
+        if (user.role === "operator") {
+          current.operators += 1
+        }
+        stats.set(user.unitId, current)
+      }
+      return stats
     },
   })
 })

@@ -1,4 +1,4 @@
-import { LayoutDashboardIcon, ParkingCircleIcon, ShieldCheckIcon, TruckIcon, UserRoundIcon } from "lucide-react"
+import { LayoutDashboardIcon, ParkingCircleIcon, ShieldQuestionIcon, TruckIcon, UserRoundIcon } from "lucide-react"
 import { describe, expect, it } from "vitest"
 
 import {
@@ -58,6 +58,6 @@ describe("clients route and sidebar integration", () => {
     expect(routeIconById[appRouteIds.yard]).toBe(ParkingCircleIcon)
     expect(routeIconById[appRouteIds.clients]).toBe(TruckIcon)
     expect(routeIconById[appRouteIds.profile]).toBe(UserRoundIcon)
-    expect(routeIconById[appRouteIds.security]).toBe(ShieldCheckIcon)
+    expect(routeIconById[appRouteIds.security]).toBe(ShieldQuestionIcon)
   })
 })

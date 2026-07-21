@@ -21,6 +21,9 @@ import {
   createDashboardMovementsColumns,
 } from "../table"
 
+const DASHBOARD_MOVEMENTS_LIMIT = 8
+const DASHBOARD_ALERTS_LIMIT = 6
+
 export function DashboardTablesBlock({
   vehicleMovements,
   alerts,
@@ -34,6 +37,14 @@ export function DashboardTablesBlock({
     () => createDashboardMovementsColumns({ onOpenDetails: onOpenMovementDetails }),
     [onOpenMovementDetails]
   )
+  const limitedMovements = React.useMemo(
+    () => vehicleMovements.slice(0, DASHBOARD_MOVEMENTS_LIMIT),
+    [vehicleMovements]
+  )
+  const limitedAlerts = React.useMemo(
+    () => alerts.slice(0, DASHBOARD_ALERTS_LIMIT),
+    [alerts]
+  )
 
   return (
     <section className="grid gap-3 xl:grid-cols-3">
@@ -44,10 +55,10 @@ export function DashboardTablesBlock({
             Leituras recentes das câmeras e status operacional dos veículos no pátio.
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="max-h-96 overflow-y-auto">
           <DataTable
             columns={movementColumns}
-            data={vehicleMovements}
+            data={limitedMovements}
             getRowId={(row) => row.id}
             emptyState={<AppEmptyState media={<DatabaseIcon />} title="Nenhuma movimentação encontrada" description="Ajuste os filtros para exibir movimentações." />}
             enablePagination={false}
@@ -65,16 +76,16 @@ export function DashboardTablesBlock({
           </CardDescription>
         </CardHeader>
         <CardContent>
-          {alerts.length === 0 ? (
+          {limitedAlerts.length === 0 ? (
             <AppEmptyState
               media={<DatabaseIcon />}
               title="Nenhum alerta encontrado"
               description="A unidade não possui alertas para os filtros atuais."
             />
           ) : (
-            <ScrollArea className="h-100 pr-1">
+            <ScrollArea className="max-h-96 pr-1">
               <ItemGroup>
-                {alerts.map((alert) => (
+                {limitedAlerts.map((alert) => (
                   <Item
                     key={alert.id}
                     variant="outline"

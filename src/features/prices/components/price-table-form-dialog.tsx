@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
+import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
 
 import { savePriceTable } from "@/features/prices/services/prices-service"
 import { pricesCopy } from "../constants"
@@ -29,6 +30,8 @@ import {
   type PriceTableFormValues,
   type PriceTableRecord,
 } from "../model"
+
+const PRICES_FORM_ID = "prices-form"
 
 interface PriceTableFormDialogProps {
   open: boolean
@@ -86,13 +89,19 @@ export function PriceTableFormDialog({
   const [values, setValues] = React.useState(() => toFormValues(record))
   const [errors, setErrors] = React.useState<PriceTableFormErrors>({})
   const [isSaving, setIsSaving] = React.useState(false)
-  const [submitError, setSubmitError] = React.useState<string | null>(null)
 
   function updateValue(key: keyof PriceTableFormValues) {
     return (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setValues((current) => ({ ...current, [key]: event.target.value }))
-      setSubmitError(null)
     }
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (isSaving) {
+      return
+    }
+
+    onOpenChange(nextOpen)
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -110,7 +119,6 @@ export function PriceTableFormDialog({
     }
 
     setErrors({})
-    setSubmitError(null)
     setIsSaving(true)
 
     try {
@@ -119,7 +127,6 @@ export function PriceTableFormDialog({
       onSaved()
       onOpenChange(false)
     } catch {
-      setSubmitError(pricesCopy.feedback.saveError)
       notify.error(pricesCopy.feedback.saveError)
     } finally {
       setIsSaving(false)
@@ -130,18 +137,30 @@ export function PriceTableFormDialog({
     <AppDialog
       key={dialogStateKey}
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       title={record ? pricesCopy.form.editTitle : pricesCopy.form.createTitle}
       description={pricesCopy.form.description}
+      contentProps={{ onInteractOutside: preventDialogCloseOnFloatingLayerInteraction }}
+      footer={(
+        <div className="grid w-full grid-cols-2 gap-2">
+          <Button type="button" variant="outline" size="lg" disabled={isSaving} onClick={() => handleOpenChange(false)}>
+            {pricesCopy.actions.cancel}
+          </Button>
+          <Button type="submit" form={PRICES_FORM_ID} size="lg" disabled={isSaving} aria-busy={isSaving}>
+            {isSaving ? <Spinner data-icon="inline-start" /> : null}
+            {isSaving ? pricesCopy.actions.saving : pricesCopy.actions.save}
+          </Button>
+        </div>
+      )}
     >
-      <form onSubmit={(event: React.FormEvent<HTMLFormElement>) => void handleSubmit(event)} noValidate>
+      <form id={PRICES_FORM_ID} onSubmit={(event: React.FormEvent<HTMLFormElement>) => { void handleSubmit(event) }} noValidate>
         <FieldGroup>
           <Field data-invalid={Boolean(errors.name)}>
             <FieldLabel htmlFor="price-name">
               {pricesCopy.form.name}
               <RequiredMark />
             </FieldLabel>
-            <Input id="price-name" value={values.name} onChange={updateValue("name")} aria-invalid={Boolean(errors.name)} />
+            <Input id="price-name" value={values.name} onChange={updateValue("name")} aria-invalid={Boolean(errors.name)} disabled={isSaving} />
             {errors.name ? <FieldError>{errors.name}</FieldError> : null}
           </Field>
 
@@ -153,6 +172,7 @@ export function PriceTableFormDialog({
             <Select
               value={values.scope || undefined}
               onValueChange={(value: string) => setValues((current) => ({ ...current, scope: value as PriceTableFormValues["scope"] }))}
+              disabled={isSaving}
             >
               <SelectTrigger id="price-scope" aria-invalid={Boolean(errors.scope)}>
                 <SelectValue placeholder={pricesCopy.form.selectPlaceholder} />
@@ -173,12 +193,12 @@ export function PriceTableFormDialog({
                   {pricesCopy.form.unitId}
                   <RequiredMark />
                 </FieldLabel>
-                <Input id="price-unit-id" value={values.unitId} onChange={updateValue("unitId")} aria-invalid={Boolean(errors.unitId)} />
+                <Input id="price-unit-id" value={values.unitId} onChange={updateValue("unitId")} aria-invalid={Boolean(errors.unitId)} disabled={isSaving} />
                 {errors.unitId ? <FieldError>{errors.unitId}</FieldError> : null}
               </Field>
               <Field>
                 <FieldLabel htmlFor="price-unit-name">{pricesCopy.form.unitName}</FieldLabel>
-                <Input id="price-unit-name" value={values.unitName} onChange={updateValue("unitName")} />
+                <Input id="price-unit-name" value={values.unitName} onChange={updateValue("unitName")} disabled={isSaving} />
               </Field>
             </>
           ) : null}
@@ -188,8 +208,7 @@ export function PriceTableFormDialog({
               {pricesCopy.form.amount}
               <RequiredMark />
             </FieldLabel>
-            <Input id="price-amount" aria-label={pricesCopy.form.amount} value={values.amount} onChange={updateValue("amount")} inputMode="decimal" aria-invalid={Boolean(errors.amount)} />
-
+            <Input id="price-amount" aria-label={pricesCopy.form.amount} value={values.amount} onChange={updateValue("amount")} inputMode="decimal" aria-invalid={Boolean(errors.amount)} disabled={isSaving} />
             {errors.amount ? <FieldError>{errors.amount}</FieldError> : null}
           </Field>
 
@@ -198,7 +217,7 @@ export function PriceTableFormDialog({
               {pricesCopy.form.cycleHours}
               <RequiredMark />
             </FieldLabel>
-            <Input id="price-cycle-hours" type="number" min="1" step="1" value={values.cycleHours} onChange={updateValue("cycleHours")} aria-invalid={Boolean(errors.cycleHours)} />
+            <Input id="price-cycle-hours" type="number" min="1" step="1" value={values.cycleHours} onChange={updateValue("cycleHours")} aria-invalid={Boolean(errors.cycleHours)} disabled={isSaving} />
             {errors.cycleHours ? <FieldError>{errors.cycleHours}</FieldError> : null}
           </Field>
 
@@ -207,13 +226,13 @@ export function PriceTableFormDialog({
               {pricesCopy.form.startsAt}
               <RequiredMark />
             </FieldLabel>
-            <Input id="price-starts-at" type="datetime-local" value={values.startsAt} onChange={updateValue("startsAt")} aria-invalid={Boolean(errors.startsAt)} />
+            <Input id="price-starts-at" type="datetime-local" value={values.startsAt} onChange={updateValue("startsAt")} aria-invalid={Boolean(errors.startsAt)} disabled={isSaving} />
             {errors.startsAt ? <FieldError>{errors.startsAt}</FieldError> : null}
           </Field>
 
           <Field data-invalid={Boolean(errors.endsAt)}>
             <FieldLabel htmlFor="price-ends-at">{pricesCopy.form.endsAt}</FieldLabel>
-            <Input id="price-ends-at" type="datetime-local" value={values.endsAt} onChange={updateValue("endsAt")} aria-invalid={Boolean(errors.endsAt)} />
+            <Input id="price-ends-at" type="datetime-local" value={values.endsAt} onChange={updateValue("endsAt")} aria-invalid={Boolean(errors.endsAt)} disabled={isSaving} />
             {errors.endsAt ? <FieldError>{errors.endsAt}</FieldError> : null}
           </Field>
 
@@ -225,6 +244,7 @@ export function PriceTableFormDialog({
             <Select
               value={values.status || undefined}
               onValueChange={(value: string) => setValues((current) => ({ ...current, status: value as PriceTableFormValues["status"] }))}
+              disabled={isSaving}
             >
               <SelectTrigger id="price-status" aria-invalid={Boolean(errors.status)}>
                 <SelectValue placeholder={pricesCopy.form.selectPlaceholder} />
@@ -240,19 +260,8 @@ export function PriceTableFormDialog({
 
           <Field>
             <FieldLabel htmlFor="price-notes">{pricesCopy.form.notes}</FieldLabel>
-            <Textarea id="price-notes" value={values.notes} onChange={updateValue("notes")} />
+            <Textarea id="price-notes" value={values.notes} onChange={updateValue("notes")} disabled={isSaving} />
           </Field>
-
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            {submitError ? <FieldError>{submitError}</FieldError> : null}
-            <Button type="button" variant="outline" size="lg" onClick={() => onOpenChange(false)} disabled={isSaving}>
-              {pricesCopy.actions.cancel}
-            </Button>
-            <Button type="submit" size="lg" disabled={isSaving}>
-              {isSaving ? <Spinner data-icon="inline-start" /> : null}
-              {isSaving ? pricesCopy.actions.saving : pricesCopy.actions.save}
-            </Button>
-          </div>
         </FieldGroup>
       </form>
     </AppDialog>

@@ -5,6 +5,7 @@ import * as React from "react"
 import { DataTable } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { Button } from "@/components/ui/button"
 
@@ -16,7 +17,7 @@ import {
   pricesCopy,
 } from "../constants"
 import { usePriceTables } from "../hooks"
-import { type PriceTableRecord } from "../model"
+import { getPriceTableDetailItems, type PriceTableRecord } from "../model"
 import {
   createPriceScopeOptions,
   createPriceStatusOptions,
@@ -26,7 +27,8 @@ import {
 
 export function PricesRoute() {
   const { data, error, isLoading, refetch } = usePriceTables()
-  const [selectedRecord, setSelectedRecord] = React.useState<PriceTableRecord | null>(null)
+  const [editingRecord, setEditingRecord] = React.useState<PriceTableRecord | null>(null)
+  const [detailsRecord, setDetailsRecord] = React.useState<PriceTableRecord | null>(null)
   const [isFormOpen, setIsFormOpen] = React.useState(false)
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -48,10 +50,10 @@ export function PricesRoute() {
   const columns = React.useMemo(
     () => createPricesColumns({
       onEdit(record) {
-        setSelectedRecord(record)
+        setEditingRecord(record)
         setIsFormOpen(true)
       },
-      onDetails: setSelectedRecord,
+      onDetails: setDetailsRecord,
       onDeactivate(record) {
         setRecordToDeactivate(record)
       },
@@ -78,7 +80,7 @@ export function PricesRoute() {
         title={pricesCopy.page.title}
         subtitle={pricesCopy.page.subtitle}
         actions={
-          <Button type="button" size="lg" onClick={() => { setSelectedRecord(null); setIsFormOpen(true) }}>
+          <Button type="button" variant="secondary" size="lg" onClick={() => { setEditingRecord(null); setIsFormOpen(true) }}>
             <PlusIcon />
             {pricesCopy.actions.add}
           </Button>
@@ -107,7 +109,7 @@ export function PricesRoute() {
           { id: "scope", title: pricesCopy.filters.scope, options: scopeOptions, showCounts: true },
           { id: "unitId", title: pricesCopy.filters.unit, options: unitOptions, showCounts: true },
         ]}
-        emptyState={<AppEmptyState media={<BadgeDollarSignIcon />} title={pricesCopy.empty.title} description={pricesCopy.empty.description} actions={<Button type="button" variant="secondary" size="lg" onClick={() => { setSelectedRecord(null); setIsFormOpen(true) }}>{pricesCopy.actions.add}</Button>} />}
+        emptyState={<AppEmptyState media={<BadgeDollarSignIcon />} title={pricesCopy.empty.title} description={pricesCopy.empty.description} actions={<Button type="button" variant="secondary" size="lg" onClick={() => { setEditingRecord(null); setIsFormOpen(true) }}>{pricesCopy.actions.add}</Button>} />}
         filteredEmptyState={<AppEmptyState media={<BadgeDollarSignIcon />} title={pricesCopy.filteredEmpty.title} description={pricesCopy.filteredEmpty.description} />}
         isLoading={isLoading}
         error={error}
@@ -118,9 +120,21 @@ export function PricesRoute() {
 
       <PriceTableFormDialog
         open={isFormOpen}
-        record={selectedRecord}
+        record={editingRecord}
         onOpenChange={setIsFormOpen}
         onSaved={() => void refetch()}
+      />
+
+      <AppDetailsSheet
+        open={Boolean(detailsRecord)}
+        onOpenChange={(open: boolean) => {
+          if (!open) {
+            setDetailsRecord(null)
+          }
+        }}
+        title={detailsRecord?.name}
+        description={detailsRecord ? pricesCopy.form.description : undefined}
+        items={detailsRecord ? getPriceTableDetailItems(detailsRecord) : []}
       />
 
       <AppAlertDialog

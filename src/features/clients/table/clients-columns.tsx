@@ -1,4 +1,4 @@
-import { type ColumnDef } from "@tanstack/react-table"
+import { type ColumnDef, type Row } from "@tanstack/react-table"
 import { CrownIcon } from "lucide-react"
 
 import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
@@ -170,7 +170,7 @@ export function createClientsColumns(
               id: "vehicles" as const,
               label: clientsCopy.actions.openVehicles,
               disabled: isPendingVip,
-              onSelect: (selectedRow) => {
+              onSelect: (selectedRow: Row<ClientTableRow>) => {
                 options.onSelectVehicles?.(selectedRow.original)
               },
             },
@@ -184,7 +184,7 @@ export function createClientsColumns(
                 ? clientsCopy.actions.updating
                 : options.vipActionLabel ?? clientsCopy.actions.toggleClientVip,
               disabled: isPendingVip,
-              onSelect: (selectedRow) => {
+              onSelect: (selectedRow: Row<ClientTableRow>) => {
                 options.onToggleVip?.(selectedRow.original)
               },
             },

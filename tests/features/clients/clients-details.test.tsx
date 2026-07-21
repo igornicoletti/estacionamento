@@ -37,7 +37,15 @@ beforeEach(() => {
         },
       ]
     },
+    async listClientPayloadById() {
+      await Promise.resolve()
+      return null
+    },
     async listClientVehiclesPayload() {
+      await Promise.resolve()
+      return []
+    },
+    async listClientVehiclesPayloadByClientId() {
       await Promise.resolve()
       return []
     },

@@ -58,6 +58,11 @@ beforeEach(() => {
         },
       ]
     },
+    async listClientPayloadById(clientId) {
+      await Promise.resolve()
+      const clients = await this.listClientsPayload()
+      return clients.find((c) => Number(c.cod_pessoa) === clientId) ?? null
+    },
     async listClientVehiclesPayload() {
       await Promise.resolve()
       return [
@@ -82,6 +87,11 @@ beforeEach(() => {
           nom_motorista: "Pedro Alves",
         },
       ]
+    },
+    async listClientVehiclesPayloadByClientId(clientId) {
+      await Promise.resolve()
+      const vehicles = await this.listClientVehiclesPayload()
+      return vehicles.filter((v) => Number(v.cod_pessoa) === clientId)
     },
   })
 })
@@ -133,7 +143,15 @@ describe("clients-service", () => {
           },
         ]
       },
+      async listClientPayloadById() {
+        await Promise.resolve()
+        return null
+      },
       async listClientVehiclesPayload() {
+        await Promise.resolve()
+        return []
+      },
+      async listClientVehiclesPayloadByClientId() {
         await Promise.resolve()
         return []
       },

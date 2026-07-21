@@ -25,8 +25,15 @@ export function useMyProfile(): MyProfileSnapshot {
     saveProfile: async (input) => {
       const savedProfile = await updateCurrentProfile(input)
 
+      const avatarUrl = savedProfile.avatarPath?.startsWith("data:image/")
+        ? savedProfile.avatarPath
+        : savedProfile.avatarPath?.startsWith("https://")
+          ? savedProfile.avatarPath
+          : input.avatarPreviewUrl ?? undefined
+
       auth.actions.applyProfilePatch({
         avatarPath: savedProfile.avatarPath,
+        ...(avatarUrl ? { avatarUrl } : {}),
         email: savedProfile.email,
         name: savedProfile.name,
         ...(savedProfile.requiresPasskeyRegistration

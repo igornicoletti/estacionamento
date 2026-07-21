@@ -1,12 +1,12 @@
 import { LayoutDashboardIcon } from "lucide-react"
 import * as React from "react"
 
-import { PageSection } from "@/components/page"
+import { PageHeader, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppUnitSelector, useSelectedUnit } from "@/components/shared/app-unit-selector"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { WorkspacePageHeader } from "@/features/workspace"
 
 import {
   DashboardChartsBlock,
@@ -30,15 +30,18 @@ type DetailsState =
   | null
 
 export function DashboardRoute() {
+  const { selectedUnitName } = useSelectedUnit()
   const { data, error, isLoading, refetch } = useDashboardSnapshot()
   const [details, setDetails] = React.useState<DetailsState>(null)
+  const pageTitle = `${dashboardCopy.page.title} — ${selectedUnitName}`
 
   if (isLoading) {
     return (
       <PageSection>
-        <WorkspacePageHeader
-          pageName={dashboardCopy.page.title}
+        <PageHeader
+          title={pageTitle}
           subtitle={dashboardCopy.page.subtitle}
+          actions={<AppUnitSelector />}
         />
 
         <div className="flex flex-1 items-center justify-center">
@@ -51,9 +54,10 @@ export function DashboardRoute() {
   if (error || !data) {
     return (
       <PageSection>
-        <WorkspacePageHeader
-          pageName={dashboardCopy.page.title}
+        <PageHeader
+          title={pageTitle}
           subtitle={dashboardCopy.page.subtitle}
+          actions={<AppUnitSelector />}
         />
 
         <div className="flex flex-1 items-center justify-center">
@@ -89,9 +93,10 @@ export function DashboardRoute() {
 
   return (
     <PageSection>
-      <WorkspacePageHeader
-        pageName={dashboardCopy.page.title}
+      <PageHeader
+        title={pageTitle}
         subtitle={dashboardCopy.page.subtitle}
+        actions={<AppUnitSelector />}
       />
 
       <section className="space-y-3">

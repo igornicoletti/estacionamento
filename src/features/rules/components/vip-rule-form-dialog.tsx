@@ -26,10 +26,9 @@ import {
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
 import { listClients } from "@/features/clients"
+import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
 
-import {
-  saveVipRule,
-} from "@/features/rules/services/vip-rules-service"
+import { saveVipRule } from "@/features/rules/services/vip-rules-service"
 import { rulesCopy } from "../constants"
 import {
   createEmptyVipRuleFormValues,
@@ -43,6 +42,8 @@ import {
   type VipRuleFormValues,
   type VipRuleRecord,
 } from "../model"
+
+const RULES_FORM_ID = "rules-form"
 
 interface VipRuleFormDialogProps {
   open: boolean
@@ -95,7 +96,6 @@ export function VipRuleFormDialog({
   const [values, setValues] = React.useState(() => toFormValues(record))
   const [errors, setErrors] = React.useState<VipRuleFormErrors>({})
   const [isSaving, setIsSaving] = React.useState(false)
-  const [submitError, setSubmitError] = React.useState<string | null>(null)
   const [clientOptions, setClientOptions] = React.useState<readonly ClientOption[]>([])
 
   React.useEffect(() => {
@@ -131,11 +131,19 @@ export function VipRuleFormDialog({
       isMounted = false
     }
   }, [open])
+
   function updateTextValue(key: keyof VipRuleFormValues) {
     return (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       setValues((current) => ({ ...current, [key]: event.target.value }))
-      setSubmitError(null)
     }
+  }
+
+  function handleOpenChange(nextOpen: boolean) {
+    if (isSaving) {
+      return
+    }
+
+    onOpenChange(nextOpen)
   }
 
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
@@ -153,7 +161,6 @@ export function VipRuleFormDialog({
     }
 
     setErrors({})
-    setSubmitError(null)
     setIsSaving(true)
 
     try {
@@ -162,7 +169,6 @@ export function VipRuleFormDialog({
       onSaved()
       onOpenChange(false)
     } catch {
-      setSubmitError(rulesCopy.feedback.saveError)
       notify.error(rulesCopy.feedback.saveError)
     } finally {
       setIsSaving(false)
@@ -173,11 +179,23 @@ export function VipRuleFormDialog({
     <AppDialog
       key={dialogStateKey}
       open={open}
-      onOpenChange={onOpenChange}
+      onOpenChange={handleOpenChange}
       title={record ? rulesCopy.form.editTitle : rulesCopy.form.createTitle}
       description={rulesCopy.form.description}
+      contentProps={{ onInteractOutside: preventDialogCloseOnFloatingLayerInteraction }}
+      footer={(
+        <div className="grid w-full grid-cols-2 gap-2">
+          <Button type="button" variant="outline" size="lg" disabled={isSaving} onClick={() => handleOpenChange(false)}>
+            {rulesCopy.actions.cancel}
+          </Button>
+          <Button type="submit" form={RULES_FORM_ID} size="lg" disabled={isSaving} aria-busy={isSaving}>
+            {isSaving ? <Spinner data-icon="inline-start" /> : null}
+            {isSaving ? rulesCopy.actions.saving : rulesCopy.actions.save}
+          </Button>
+        </div>
+      )}
     >
-      <form onSubmit={(event: React.FormEvent<HTMLFormElement>) => void handleSubmit(event)} noValidate>
+      <form id={RULES_FORM_ID} onSubmit={(event: React.FormEvent<HTMLFormElement>) => { void handleSubmit(event) }} noValidate>
         <FieldGroup>
           <Field data-invalid={Boolean(errors.type)}>
             <FieldLabel htmlFor="rule-type">
@@ -187,6 +205,7 @@ export function VipRuleFormDialog({
             <Select
               value={values.type || undefined}
               onValueChange={(value: string) => setValues((current) => ({ ...current, type: value as VipRuleFormValues["type"] }))}
+              disabled={isSaving}
             >
               <SelectTrigger id="rule-type" aria-invalid={Boolean(errors.type)}>
                 <SelectValue placeholder={rulesCopy.form.selectPlaceholder} />
@@ -208,6 +227,7 @@ export function VipRuleFormDialog({
             <Select
               value={values.targetType || undefined}
               onValueChange={(value: string) => setValues((current) => ({ ...current, targetType: value as VipRuleFormValues["targetType"] }))}
+              disabled={isSaving}
             >
               <SelectTrigger id="rule-target-type" aria-invalid={Boolean(errors.targetType)}>
                 <SelectValue placeholder={rulesCopy.form.selectPlaceholder} />
@@ -231,17 +251,15 @@ export function VipRuleFormDialog({
                 <Combobox<ClientOption>
                   items={clientOptions}
                   value={clientOptions.find((option) => option.value === values.clientId) ?? null}
-                  onValueChange={(value: ClientOption | ClientOption[] | null) => {
-                    const selectedOption = Array.isArray(value) ? value[0] ?? null : value
-
+                  onValueChange={(value: ClientOption | null) => {
                     setValues((current) => ({
                       ...current,
-                      clientId: selectedOption ? String(selectedOption.clientId) : "",
-                      clientName: selectedOption?.label ?? "",
+                      clientId: value ? String(value.clientId) : "",
+                      clientName: value?.label ?? "",
                     }))
                     setErrors((current) => ({ ...current, clientId: undefined }))
-                    setSubmitError(null)
                   }}
+                  isItemEqualToValue={(a, b) => a.value === b.value}
                   itemToStringLabel={(client: ClientOption) => client.label}
                   itemToStringValue={(client: ClientOption) => `${client.value} ${client.label}`}
                   disabled={isSaving}
@@ -274,7 +292,7 @@ export function VipRuleFormDialog({
               </Field>
               <Field>
                 <FieldLabel htmlFor="rule-client-id">{rulesCopy.form.clientId}</FieldLabel>
-                <Input id="rule-client-id" value={values.clientId} onChange={updateTextValue("clientId")} inputMode="numeric" />
+                <Input id="rule-client-id" value={values.clientId} onChange={updateTextValue("clientId")} inputMode="numeric" disabled={isSaving} />
               </Field>
             </>
           ) : null}
@@ -286,12 +304,12 @@ export function VipRuleFormDialog({
                   {rulesCopy.form.vehicleId}
                   <RequiredMark />
                 </FieldLabel>
-                <Input id="rule-vehicle-id" value={values.vehicleId} onChange={updateTextValue("vehicleId")} inputMode="numeric" aria-invalid={Boolean(errors.vehicleId)} />
+                <Input id="rule-vehicle-id" value={values.vehicleId} onChange={updateTextValue("vehicleId")} inputMode="numeric" aria-invalid={Boolean(errors.vehicleId)} disabled={isSaving} />
                 {errors.vehicleId ? <FieldError>{errors.vehicleId}</FieldError> : null}
               </Field>
               <Field>
                 <FieldLabel htmlFor="rule-vehicle-plate">{rulesCopy.form.vehiclePlate}</FieldLabel>
-                <Input id="rule-vehicle-plate" value={values.vehiclePlate} onChange={updateTextValue("vehiclePlate")} />
+                <Input id="rule-vehicle-plate" value={values.vehiclePlate} onChange={updateTextValue("vehiclePlate")} disabled={isSaving} />
               </Field>
             </>
           ) : null}
@@ -302,6 +320,7 @@ export function VipRuleFormDialog({
               id="rule-all-units"
               checked={values.appliesToAllUnits}
               onCheckedChange={(checked: boolean | "indeterminate") => setValues((current) => ({ ...current, appliesToAllUnits: checked === true }))}
+              disabled={isSaving}
             />
           </Field>
 
@@ -311,7 +330,7 @@ export function VipRuleFormDialog({
                 {rulesCopy.form.unitIds}
                 <RequiredMark />
               </FieldLabel>
-              <Input id="rule-unit-ids" value={values.unitIds} onChange={updateTextValue("unitIds")} aria-invalid={Boolean(errors.unitIds)} />
+              <Input id="rule-unit-ids" value={values.unitIds} onChange={updateTextValue("unitIds")} aria-invalid={Boolean(errors.unitIds)} disabled={isSaving} />
               {errors.unitIds ? <FieldError>{errors.unitIds}</FieldError> : null}
             </Field>
           ) : null}
@@ -322,7 +341,7 @@ export function VipRuleFormDialog({
                 {rulesCopy.form.fuelMinLiters}
                 <RequiredMark />
               </FieldLabel>
-              <Input id="rule-fuel-min-liters" value={values.fuelMinLiters} onChange={updateTextValue("fuelMinLiters")} inputMode="decimal" aria-invalid={Boolean(errors.fuelMinLiters)} />
+              <Input id="rule-fuel-min-liters" value={values.fuelMinLiters} onChange={updateTextValue("fuelMinLiters")} inputMode="decimal" aria-invalid={Boolean(errors.fuelMinLiters)} disabled={isSaving} />
               {errors.fuelMinLiters ? <FieldError>{errors.fuelMinLiters}</FieldError> : null}
             </Field>
           ) : null}
@@ -333,7 +352,7 @@ export function VipRuleFormDialog({
                 {rulesCopy.form.benefitHours}
                 <RequiredMark />
               </FieldLabel>
-              <Input id="rule-benefit-hours" value={values.benefitHours} onChange={updateTextValue("benefitHours")} inputMode="decimal" aria-invalid={Boolean(errors.benefitHours)} />
+              <Input id="rule-benefit-hours" value={values.benefitHours} onChange={updateTextValue("benefitHours")} inputMode="decimal" aria-invalid={Boolean(errors.benefitHours)} disabled={isSaving} />
               {errors.benefitHours ? <FieldError>{errors.benefitHours}</FieldError> : null}
             </Field>
           ) : null}
@@ -345,7 +364,7 @@ export function VipRuleFormDialog({
                   {rulesCopy.form.yardOccupancyThreshold}
                   <RequiredMark />
                 </FieldLabel>
-                <Input id="rule-yard-occupancy" value={values.yardOccupancyThreshold} onChange={updateTextValue("yardOccupancyThreshold")} inputMode="numeric" aria-invalid={Boolean(errors.yardOccupancyThreshold)} />
+                <Input id="rule-yard-occupancy" value={values.yardOccupancyThreshold} onChange={updateTextValue("yardOccupancyThreshold")} inputMode="numeric" aria-invalid={Boolean(errors.yardOccupancyThreshold)} disabled={isSaving} />
                 {errors.yardOccupancyThreshold ? <FieldError>{errors.yardOccupancyThreshold}</FieldError> : null}
               </Field>
               <Field data-invalid={Boolean(errors.yardStaleVehicleHours)}>
@@ -353,7 +372,7 @@ export function VipRuleFormDialog({
                   {rulesCopy.form.yardStaleVehicleHours}
                   <RequiredMark />
                 </FieldLabel>
-                <Input id="rule-yard-stale" value={values.yardStaleVehicleHours} onChange={updateTextValue("yardStaleVehicleHours")} inputMode="decimal" aria-invalid={Boolean(errors.yardStaleVehicleHours)} />
+                <Input id="rule-yard-stale" value={values.yardStaleVehicleHours} onChange={updateTextValue("yardStaleVehicleHours")} inputMode="decimal" aria-invalid={Boolean(errors.yardStaleVehicleHours)} disabled={isSaving} />
                 {errors.yardStaleVehicleHours ? <FieldError>{errors.yardStaleVehicleHours}</FieldError> : null}
               </Field>
             </>
@@ -361,19 +380,8 @@ export function VipRuleFormDialog({
 
           <Field>
             <FieldLabel htmlFor="rule-notes">{rulesCopy.form.notes}</FieldLabel>
-            <Textarea id="rule-notes" value={values.notes} onChange={updateTextValue("notes")} />
+            <Textarea id="rule-notes" value={values.notes} onChange={updateTextValue("notes")} disabled={isSaving} />
           </Field>
-
-          <div className="flex flex-col-reverse gap-2 sm:flex-row sm:justify-end">
-            {submitError ? <FieldError>{submitError}</FieldError> : null}
-            <Button type="button" variant="outline" size="lg" onClick={() => onOpenChange(false)} disabled={isSaving}>
-              {rulesCopy.actions.cancel}
-            </Button>
-            <Button type="submit" size="lg" disabled={isSaving}>
-              {isSaving ? <Spinner data-icon="inline-start" /> : null}
-              {isSaving ? rulesCopy.actions.saving : rulesCopy.actions.save}
-            </Button>
-          </div>
         </FieldGroup>
       </form>
     </AppDialog>

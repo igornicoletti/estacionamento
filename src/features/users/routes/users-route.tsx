@@ -1,5 +1,6 @@
 import { DatabaseIcon, PlusIcon, ShieldAlertIcon } from "lucide-react"
 import * as React from "react"
+import { useSearchParams } from "react-router"
 
 import { DataTable, type DataTableStateAction } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
@@ -41,6 +42,7 @@ import {
 
 export function UsersRoute() {
   const auth = useAuth()
+  const [searchParams] = useSearchParams()
   const remoteMode = Boolean(getSupabaseBrowserClient()) && !shouldBypassAuthInDev()
   const canReadUsers = auth.access.hasPermission(AUTH_PERMISSION.usersRead)
   const canManageUsers = auth.access.hasPermission(AUTH_PERMISSION.usersManage)
@@ -72,7 +74,9 @@ export function UsersRoute() {
     [canAssignOwnerRole, usersSnapshot.data]
   )
 
-  const defaultUsersTab = USERS_TAB_VALUE
+  const defaultUsersTab = searchParams.get("tab") === ACCESS_REQUESTS_TAB_VALUE
+    ? ACCESS_REQUESTS_TAB_VALUE
+    : USERS_TAB_VALUE
 
   const unitOptions = React.useMemo<UserFormUnitOption[]>(() => {
     return unitsSnapshot.data.map((unit) => ({

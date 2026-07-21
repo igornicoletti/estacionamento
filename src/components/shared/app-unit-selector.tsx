@@ -3,7 +3,10 @@ import * as React from "react"
 import { AUTH_ROLE_KEY, useAuth } from "@/features/auth"
 import { useUnits, type Unit } from "@/features/units"
 
-type WorkspaceUnitContextValue = {
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Spinner } from "@/components/ui/spinner"
+
+type SelectedUnitContextValue = {
   isLoading: boolean
   selectedUnitId: string | null
   selectedUnitName: string
@@ -12,16 +15,16 @@ type WorkspaceUnitContextValue = {
   setSelectedUnitId: (unitId: string) => void
 }
 
-const WORKSPACE_UNIT_STORAGE_KEY = "rmc.workspace.selected-unit-id"
+const SELECTED_UNIT_STORAGE_KEY = "rmc.selected-unit-id"
 
-const WorkspaceUnitContext = React.createContext<WorkspaceUnitContextValue | null>(null)
+const SelectedUnitContext = React.createContext<SelectedUnitContextValue | null>(null)
 
 function getStoredUnitId() {
   if (typeof window === "undefined") {
     return null
   }
 
-  const value = window.localStorage.getItem(WORKSPACE_UNIT_STORAGE_KEY)
+  const value = window.localStorage.getItem(SELECTED_UNIT_STORAGE_KEY)
   return value && value.trim() ? value : null
 }
 
@@ -31,11 +34,11 @@ function setStoredUnitId(unitId: string | null) {
   }
 
   if (!unitId) {
-    window.localStorage.removeItem(WORKSPACE_UNIT_STORAGE_KEY)
+    window.localStorage.removeItem(SELECTED_UNIT_STORAGE_KEY)
     return
   }
 
-  window.localStorage.setItem(WORKSPACE_UNIT_STORAGE_KEY, unitId)
+  window.localStorage.setItem(SELECTED_UNIT_STORAGE_KEY, unitId)
 }
 
 function resolveUnitNameById(units: readonly Unit[], unitId: string | null) {
@@ -70,7 +73,7 @@ function resolveInitialUnitId(input: {
   return units.length > 0 ? String(units[0].cod_empresa) : null
 }
 
-export function WorkspaceUnitProvider({ children }: { children: React.ReactNode }) {
+export function SelectedUnitProvider({ children }: { children: React.ReactNode }) {
   const auth = useAuth()
   const { data: units, isLoading } = useUnits()
   const profileUnitId = auth.profile?.unitId ?? null
@@ -126,7 +129,7 @@ export function WorkspaceUnitProvider({ children }: { children: React.ReactNode 
     return resolveUnitNameById(units, resolvedSelectedUnitId)
   }, [canSelectUnit, profileUnitId, resolvedSelectedUnitId, units])
 
-  const value = React.useMemo<WorkspaceUnitContextValue>(() => ({
+  const value = React.useMemo<SelectedUnitContextValue>(() => ({
     isLoading,
     selectedUnitId: canSelectUnit ? resolvedSelectedUnitId : profileUnitId,
     selectedUnitName,
@@ -135,15 +138,57 @@ export function WorkspaceUnitProvider({ children }: { children: React.ReactNode 
     setSelectedUnitId,
   }), [canSelectUnit, isLoading, profileUnitId, resolvedSelectedUnitId, selectedUnitName, setSelectedUnitId, units])
 
-  return <WorkspaceUnitContext.Provider value={value}>{children}</WorkspaceUnitContext.Provider>
+  return <SelectedUnitContext.Provider value={value}>{children}</SelectedUnitContext.Provider>
 }
 
-export function useWorkspaceUnit() {
-  const context = React.useContext(WorkspaceUnitContext)
+export function useSelectedUnit() {
+  const context = React.useContext(SelectedUnitContext)
 
   if (!context) {
-    throw new Error("useWorkspaceUnit deve ser utilizado dentro de WorkspaceUnitProvider.")
+    throw new Error("useSelectedUnit deve ser utilizado dentro de SelectedUnitProvider.")
   }
 
   return context
+}
+
+export function AppUnitSelector() {
+  const {
+    canSelectUnit,
+    isLoading,
+    selectedUnitId,
+    setSelectedUnitId,
+    visibleUnits,
+  } = useSelectedUnit()
+
+  if (!canSelectUnit) {
+    return null
+  }
+
+  if (isLoading) {
+    return (
+      <div className="flex h-9 items-center justify-start text-muted-foreground">
+        <Spinner className="size-4" />
+      </div>
+    )
+  }
+
+  return (
+    <div className="w-full lg:w-[320px]">
+      <Select
+        value={selectedUnitId ?? undefined}
+        onValueChange={setSelectedUnitId}
+      >
+        <SelectTrigger className="w-full" aria-label="Selecionar unidade">
+          <SelectValue placeholder="Selecione uma unidade" />
+        </SelectTrigger>
+        <SelectContent position="popper" align="end">
+          {visibleUnits.map((unit) => (
+            <SelectItem key={unit.cod_empresa} value={String(unit.cod_empresa)}>
+              {unit.nom_fantasia}
+            </SelectItem>
+          ))}
+        </SelectContent>
+      </Select>
+    </div>
+  )
 }

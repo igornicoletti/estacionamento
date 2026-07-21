@@ -3,7 +3,7 @@ export const clientsCopy = {
     clients: {
       title: "Clientes",
       subtitle: "Consulte clientes ativos sincronizados do ERP.",
-      searchPlaceholder: "Buscar por código, nome, fantasia, documento, cidade ou veículos...",
+      searchPlaceholder: "Buscar clientes...",
       accessDeniedTitle: "Acesso restrito a clientes",
       accessDeniedDescription: "Seu perfil não possui permissão para consultar clientes sincronizados.",
     },
@@ -16,7 +16,7 @@ export const clientsCopy = {
       loadingDescription: "Aguarde enquanto os veículos vinculados são consultados.",
       accessDeniedTitle: "Acesso restrito a veículos",
       accessDeniedDescription: "Seu perfil não possui permissão para consultar veículos de clientes.",
-      searchPlaceholder: "Buscar por código, cliente, documento, placa, veículo ou motorista...",
+      searchPlaceholder: "Buscar veículos...",
     },
   },
   actions: {

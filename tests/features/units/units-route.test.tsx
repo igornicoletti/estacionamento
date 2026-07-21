@@ -10,15 +10,17 @@ import {
 
 import {
   UnitsRoute,
+  configureUnitUserStatsGateway,
   configureUnitYardGateway,
   configureUnitsGateway,
+  resetUnitUserStatsGateway,
   resetUnitYardGateway,
   resetUnitsGateway,
 } from "@/features/units"
 import type {
   UnitYardConfig,
   UpsertUnitYardConfigInput,
-} from "@/features/units/types/units-types"
+} from "@/features/units/model/units-types"
 import { setUsersGateway, type UserRecord } from "@/features/users"
 
 function configureMemoryYardGateway(seed: UnitYardConfig[] = []) {
@@ -79,6 +81,7 @@ beforeEach(() => {
 afterEach(() => {
   resetUnitYardGateway()
   resetUnitsGateway()
+  resetUnitUserStatsGateway()
 })
 
 describe("UnitsRoute", () => {
@@ -104,6 +107,11 @@ describe("UnitsRoute", () => {
     expect(screen.getAllByText("Código").length).toBeGreaterThan(0)
     expect(screen.getByRole("heading", { name: "Monte Carlo Centro" })).toBeInTheDocument()
     expect(screen.getAllByText("Posto Monte Carlo Centro Ltda").length).toBeGreaterThan(0)
+
+    fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" })
+    await waitFor(() => {
+      expect(screen.queryByRole("dialog")).not.toBeInTheDocument()
+    })
 
     fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
     expect(
@@ -139,6 +147,12 @@ describe("UnitsRoute", () => {
 
   it("shows an inert dash when the unit has no employees", async () => {
     configureMemoryYardGateway()
+    configureUnitUserStatsGateway({
+      async listStats() {
+        await Promise.resolve()
+        return new Map()
+      },
+    })
     setUsersGateway({
       async list(): Promise<UserRecord[]> {
         await Promise.resolve()

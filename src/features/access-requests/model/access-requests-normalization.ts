@@ -49,11 +49,13 @@ export function normalizeRecoveryRequests(value: unknown): AccessRecoveryRequest
     throw new Error(accessRequestsCopy.feedback.invalidResponse)
   }
 
-  const requests = value.map(normalizeRecoveryRequest)
+  return value.reduce<AccessRecoveryRequestRecord[]>((result, item) => {
+    const normalized = normalizeRecoveryRequest(item)
 
-  if (requests.some((request) => request === null)) {
-    throw new Error(accessRequestsCopy.feedback.invalidResponse)
-  }
+    if (normalized) {
+      result.push(normalized)
+    }
 
-  return requests.filter((request): request is AccessRecoveryRequestRecord => request !== null)
+    return result
+  }, [])
 }

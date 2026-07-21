@@ -6,6 +6,7 @@ import {
   it,
 } from "vitest"
 
+import { type UnitYardConfig, type UpsertUnitYardConfigInput } from "@/features/units/model/units-types"
 import {
   configureUnitYardGateway,
   resetUnitYardGateway,
@@ -15,7 +16,6 @@ import {
   listUnitYardConfigs,
   upsertUnitYardConfig,
 } from "@/features/units/services/unit-yard-service"
-import { type UnitYardConfig, type UpsertUnitYardConfigInput } from "@/features/units/types/units-types"
 
 function configureMemoryYardGateway(seed: UnitYardConfig[] = []) {
   const store = seed.map((item) => ({ ...item }))

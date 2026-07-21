@@ -30,17 +30,17 @@ type ChartPoint = {
 }
 
 const chartConfig = {
-  occupancyPercent: {
-    label: "Ocupação",
-    color: "var(--primary)",
-  },
   entries: {
     label: "Entradas",
-    color: "color-mix(in oklab, var(--primary) 78%, white)",
+    color: "var(--primary)",
   },
   exits: {
     label: "Saídas",
-    color: "color-mix(in oklab, var(--primary) 60%, white)",
+    color: "color-mix(in oklab, var(--primary) 55%, var(--muted-foreground))",
+  },
+  occupancyPercent: {
+    label: "Ocupação (%)",
+    color: "color-mix(in oklab, var(--primary) 35%, var(--muted-foreground))",
   },
 } satisfies ChartConfig
 
@@ -86,14 +86,14 @@ const seriesByRange: Record<ChartRange, ChartPoint[]> = {
 
 function getChartTooltipLabelFormatter(range: ChartRange) {
   if (range === "day") {
-    return (value: React.ReactNode) => `Horário ${String(value)}`
+    return (value: unknown) => `Horário ${value as string}`
   }
 
   if (range === "week") {
-    return (value: React.ReactNode) => `Dia ${String(value)}`
+    return (value: unknown) => `Dia ${value as string}`
   }
 
-  return (value: React.ReactNode) => `Semana ${String(value)}`
+  return (value: unknown) => `Semana ${value as string}`
 }
 
 export function DashboardChartsBlock({
@@ -145,7 +145,7 @@ export function DashboardChartsBlock({
           </Select>
         </CardHeader>
         <CardContent className="px-2 pt-4 sm:px-6 sm:pt-6">
-          <ChartContainer config={chartConfig} className="aspect-auto h-62.5 w-full">
+          <ChartContainer config={chartConfig} className="aspect-auto h-80 w-full">
             <AreaChart data={chartData} margin={{ left: 12, right: 12 }}>
               <defs>
                 <linearGradient id="fillOccupancy" x1="0" y1="0" x2="0" y2="1">

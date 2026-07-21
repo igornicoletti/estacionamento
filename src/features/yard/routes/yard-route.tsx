@@ -1,16 +1,21 @@
-import { PageSection } from "@/components/page"
-import { AppEmptyState } from "@/components/shared/app-empty-state"
-import { WorkspacePageHeader } from "@/features/workspace"
 import { ParkingCircleIcon } from "lucide-react"
+
+import { PageHeader, PageSection } from "@/components/page"
+import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppUnitSelector, useSelectedUnit } from "@/components/shared/app-unit-selector"
 
 import { yardCopy } from "../yard-copy"
 
 export function YardRoute() {
+  const { selectedUnitName } = useSelectedUnit()
+  const pageTitle = `${yardCopy.page.title} — ${selectedUnitName}`
+
   return (
     <PageSection>
-      <WorkspacePageHeader
-        pageName={yardCopy.page.title}
+      <PageHeader
+        title={pageTitle}
         subtitle={yardCopy.page.subtitle}
+        actions={<AppUnitSelector />}
       />
       <div className="flex flex-1 items-center justify-center">
         <AppEmptyState

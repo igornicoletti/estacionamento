@@ -23,6 +23,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { Spinner } from "@/components/ui/spinner"
 import { formatCpfInput } from "@/features/auth/validation"
 import { formatPhone, onlyDigits } from "@/lib"
 import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
@@ -155,10 +156,11 @@ export function UserFormDialog({
       contentProps={{ onInteractOutside: preventDialogCloseOnFloatingLayerInteraction }}
       footer={(
         <div className="grid w-full grid-cols-2 gap-2">
-          <Button type="button" variant="outline" size="lg" onClick={() => handleOpenChange(false)}>
+          <Button type="button" variant="outline" size="lg" disabled={isSaving} onClick={() => handleOpenChange(false)}>
             {usersCopy.dialogs.cancel}
           </Button>
-          <Button type="submit" form={USERS_DIALOG_FORM_ID} size="lg" disabled={isSaving}>
+          <Button type="submit" form={USERS_DIALOG_FORM_ID} size="lg" disabled={isSaving} aria-busy={isSaving}>
+            {isSaving ? <Spinner data-icon="inline-start" /> : null}
             {isEditMode ? usersCopy.actions.save : usersCopy.actions.create}
           </Button>
         </div>
@@ -277,15 +279,15 @@ export function UserFormDialog({
             <Combobox<UserFormUnitOption>
               items={unitOptions}
               value={selectedUnit}
-              onValueChange={(value: UserFormUnitOption | UserFormUnitOption[] | null) => {
-                const selectedOption = Array.isArray(value) ? value[0] ?? null : value
+              onValueChange={(value: UserFormUnitOption | null) => {
                 setValues((current) => ({
                   ...current,
-                  unitId: selectedOption?.value ?? "",
-                  unitName: selectedOption?.label ?? "",
+                  unitId: value?.value ?? "",
+                  unitName: value?.label ?? "",
                 }))
                 setErrors((current) => ({ ...current, unitId: undefined, unitName: undefined }))
               }}
+              isItemEqualToValue={(a, b) => a.value === b.value}
               itemToStringLabel={(unit: UserFormUnitOption) => unit.label}
               itemToStringValue={(unit: UserFormUnitOption) => `${unit.value} ${unit.label}`}
               disabled={isSaving || isGlobalScopeRole}

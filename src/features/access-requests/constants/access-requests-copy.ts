@@ -35,7 +35,7 @@ export const accessRequestsCopy = {
       emptyTitle: "Nenhuma solicitação de recuperação pendente",
       filteredEmptyDescription: "Ajuste a busca para localizar uma solicitação de recuperação.",
       filteredEmptyTitle: "Nenhuma recuperação encontrada",
-      searchPlaceholder: "Buscar por telefone, e-mail, descrição ou motivo...",
+      searchPlaceholder: "Buscar solicitações...",
     },
   },
   details: {

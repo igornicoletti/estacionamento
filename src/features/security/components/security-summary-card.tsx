@@ -30,12 +30,12 @@ function SectionRow({
   actions?: ReactNode
 }) {
   return (
-    <div className="grid gap-3 md:grid-cols-[minmax(220px,320px)_1fr] md:items-start">
+    <div className="grid gap-3">
       <div className="space-y-1">
         <p className="text-sm font-medium text-foreground">{title}</p>
         <p className="text-xs leading-relaxed text-muted-foreground">{description}</p>
       </div>
-      <div className="flex flex-wrap items-center justify-between gap-2">{actions}</div>
+      {actions ? <div className="flex flex-wrap items-center gap-2">{actions}</div> : null}
     </div>
   )
 }

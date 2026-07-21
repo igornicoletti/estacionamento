@@ -5,6 +5,7 @@ import * as React from "react"
 import { DataTable } from "@/components/data-table"
 import { PageHeader, PageSection } from "@/components/page"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { Button } from "@/components/ui/button"
 import {
@@ -18,7 +19,7 @@ import {
   rulesCopy,
 } from "../constants"
 import { useVipRules } from "../hooks"
-import { type VipRuleRecord } from "../model"
+import { getRuleDetailItems, type VipRuleRecord } from "../model"
 import {
   createRuleStatusOptions,
   createRuleTargetTypeOptions,
@@ -28,7 +29,8 @@ import {
 
 export function RulesRoute() {
   const { data, error, isLoading, refetch } = useVipRules()
-  const [selectedRecord, setSelectedRecord] = React.useState<VipRuleRecord | null>(null)
+  const [editingRecord, setEditingRecord] = React.useState<VipRuleRecord | null>(null)
+  const [detailsRecord, setDetailsRecord] = React.useState<VipRuleRecord | null>(null)
   const [isFormOpen, setIsFormOpen] = React.useState(false)
   const [globalFilter, setGlobalFilter] = React.useState("")
   const [columnFilters, setColumnFilters] = React.useState<ColumnFiltersState>([])
@@ -71,10 +73,10 @@ export function RulesRoute() {
     () =>
       createRulesColumns({
         onEdit(record) {
-          setSelectedRecord(record)
+          setEditingRecord(record)
           setIsFormOpen(true)
         },
-        onDetails: setSelectedRecord,
+        onDetails: setDetailsRecord,
         onDeactivate(record) {
           setRecordToDeactivate(record)
         },
@@ -94,9 +96,10 @@ export function RulesRoute() {
         actions={
           <Button
             type="button"
+            variant="secondary"
             size="lg"
             onClick={() => {
-              setSelectedRecord(null)
+              setEditingRecord(null)
               setIsFormOpen(true)
             }}
           >
@@ -138,7 +141,7 @@ export function RulesRoute() {
             media={<ClipboardListIcon />}
             title={rulesCopy.empty.title}
             description={rulesCopy.empty.description}
-            actions={<Button type="button" variant="secondary" size="lg" onClick={() => { setSelectedRecord(null); setIsFormOpen(true) }}>{rulesCopy.actions.add}</Button>}
+            actions={<Button type="button" variant="secondary" size="lg" onClick={() => { setEditingRecord(null); setIsFormOpen(true) }}>{rulesCopy.actions.add}</Button>}
           />
         }
         filteredEmptyState={
@@ -157,9 +160,21 @@ export function RulesRoute() {
 
       <VipRuleFormDialog
         open={isFormOpen}
-        record={selectedRecord}
+        record={editingRecord}
         onOpenChange={setIsFormOpen}
         onSaved={() => void refetch()}
+      />
+
+      <AppDetailsSheet
+        open={Boolean(detailsRecord)}
+        onOpenChange={(open: boolean) => {
+          if (!open) {
+            setDetailsRecord(null)
+          }
+        }}
+        title={detailsRecord ? rulesCopy.actions.details : undefined}
+        description={detailsRecord ? rulesCopy.form.description : undefined}
+        items={detailsRecord ? getRuleDetailItems(detailsRecord) : []}
       />
 
       <AppAlertDialog

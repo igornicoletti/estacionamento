@@ -67,9 +67,10 @@ export function UserMenu() {
       email: auth.profile.email,
       name: auth.profile.name,
     })
+    const resolvedAvatarUrl = avatarPath?.startsWith("data:image/") ? avatarPath : previewUrl
     auth.actions.applyProfilePatch({
       avatarPath,
-      avatarUrl: previewUrl,
+      avatarUrl: resolvedAvatarUrl,
     })
     setIsPhotoDialogOpen(false)
     await auth.actions.refreshProfile()

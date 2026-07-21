@@ -1,3 +1,4 @@
+export { getRuleDetailItems } from "./rules-details"
 export {
   formatNullableDateTime,
   formatRuleBenefit,

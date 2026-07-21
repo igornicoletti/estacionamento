@@ -53,7 +53,16 @@ describe("UserMenu", () => {
 
     expect(await screen.findByRole("heading", { name: "Alterar foto" })).toBeInTheDocument()
 
-    const urlInput = await screen.findByPlaceholderText("https://")
+    const urlTab = screen.getByRole("tab", { name: /URL de imagem/i })
+    urlTab.focus()
+    fireEvent.keyDown(urlTab, { key: "Enter" })
+    fireEvent.click(urlTab)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("https://")).toBeInTheDocument()
+    })
+
+    const urlInput = screen.getByPlaceholderText("https://")
     fireEvent.change(urlInput, { target: { value: "https://cdn.example.com/avatar-1.png" } })
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
 
@@ -77,7 +86,16 @@ describe("UserMenu", () => {
 
     expect(await screen.findByRole("heading", { name: "Alterar foto" })).toBeInTheDocument()
 
-    const urlInput = await screen.findByPlaceholderText("https://")
+    const urlTab = screen.getByRole("tab", { name: /URL de imagem/i })
+    urlTab.focus()
+    fireEvent.keyDown(urlTab, { key: "Enter" })
+    fireEvent.click(urlTab)
+
+    await waitFor(() => {
+      expect(screen.getByPlaceholderText("https://")).toBeInTheDocument()
+    })
+
+    const urlInput = screen.getByPlaceholderText("https://")
     fireEvent.change(urlInput, { target: { value: "http://inseguro.com/avatar.png" } })
     fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
 

@@ -5,6 +5,10 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 import { unitsCopy } from "../constants/units-copy"
 import { type UnitUserStats } from "../model"
 
+export interface UnitUserStatsGateway {
+  listStats: () => Promise<Map<string, UnitUserStats>>
+}
+
 const relatedAppUserSchema = z.object({ role: z.string().nullable(), status: z.string().nullable() })
 const rawUnitUserStatsRowSchema = z.object({
   unit_id: z.union([z.string(), z.number()]).nullable(),
@@ -69,14 +73,36 @@ function buildUnitUserStatsFromRows(rows: readonly RawUnitUserStatsRow[]) {
   return stats
 }
 
-export async function listUnitUserStats(): Promise<Map<string, UnitUserStats>> {
-  const supabase = getSupabaseBrowserClient()
-  if (!supabase) {
-    throw new Error(unitsCopy.errors.unitUsersLoad)
+function createSupabaseUnitUserStatsGateway(): UnitUserStatsGateway {
+  return {
+    async listStats() {
+      const supabase = getSupabaseBrowserClient()
+      if (!supabase) {
+        throw new Error(unitsCopy.errors.unitUsersLoad)
+      }
+      const response: unknown = await supabase
+        .from("app_user_units")
+        .select("unit_id, app_users!inner(role, status)")
+        .eq("app_users.status", "active")
+      return buildUnitUserStatsFromRows(parseUnitUserStatsRows(parseSupabaseResponse(response)))
+    },
   }
-  const response: unknown = await supabase
-    .from("app_user_units")
-    .select("unit_id, app_users!inner(role, status)")
-    .eq("app_users.status", "active")
-  return buildUnitUserStatsFromRows(parseUnitUserStatsRows(parseSupabaseResponse(response)))
+}
+
+let unitUserStatsGateway: UnitUserStatsGateway = createSupabaseUnitUserStatsGateway()
+
+export function getUnitUserStatsGateway() {
+  return unitUserStatsGateway
+}
+
+export function configureUnitUserStatsGateway(gateway: UnitUserStatsGateway) {
+  unitUserStatsGateway = gateway
+}
+
+export function resetUnitUserStatsGateway() {
+  unitUserStatsGateway = createSupabaseUnitUserStatsGateway()
+}
+
+export async function listUnitUserStats(): Promise<Map<string, UnitUserStats>> {
+  return getUnitUserStatsGateway().listStats()
 }

@@ -1,18 +1,13 @@
+export { getPriceTableDetailItems } from "./prices-details"
 export {
   formatCurrency,
   formatIntegerUnit,
-  formatNullableDateTime,
+  formatNullableDateTime
 } from "./prices-formatting"
 export {
   normalizePriceTableRecord,
-  normalizePriceTableRecords,
+  normalizePriceTableRecords
 } from "./prices-normalization"
-export {
-  createEmptyPriceTableFormValues,
-  createPriceTableFormValues,
-  validatePriceTableForm,
-  type PriceTableFormErrors,
-} from "./prices-validation"
 export {
   priceScopeLabels,
   priceScopeValues,
@@ -23,5 +18,11 @@ export {
   type PriceTableFormValues,
   type PriceTableRecord,
   type RawPriceTableRecord,
-  type SavePriceTablePayload,
+  type SavePriceTablePayload
 } from "./prices-types"
+export {
+  createEmptyPriceTableFormValues,
+  createPriceTableFormValues,
+  validatePriceTableForm,
+  type PriceTableFormErrors
+} from "./prices-validation"

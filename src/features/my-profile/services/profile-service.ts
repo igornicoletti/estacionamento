@@ -15,16 +15,6 @@ export class ProfileServiceError extends Error {
   }
 }
 
-function getSupabaseOrThrow() {
-  const supabase = getSupabaseBrowserClient()
-
-  if (!supabase) {
-    throw new ProfileServiceError("Configuração remota indisponível.")
-  }
-
-  return supabase
-}
-
 function getDevPreviewAvatarPath(value: string | null | undefined) {
   const normalized = value?.trim()
 
@@ -196,11 +186,33 @@ export function validateAvatarImageUrl(value: string) {
   return normalized
 }
 
+function readFileAsDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      if (typeof reader.result === "string") {
+        resolve(reader.result)
+      } else {
+        reject(new ProfileServiceError("Não foi possível processar a imagem."))
+      }
+    }
+    reader.onerror = () => {
+      reject(new ProfileServiceError("Não foi possível ler o arquivo."))
+    }
+    reader.readAsDataURL(file)
+  })
+}
+
 export async function uploadProfileAvatarFile(file: File, authUserId: string) {
   validateAvatarFile(file)
   await validateAvatarDimensions(file)
 
-  const supabase = getSupabaseOrThrow()
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    return readFileAsDataUrl(file)
+  }
+
   const extension = getAvatarExtension(file)
   const path = `${authUserId}/avatar-${Date.now()}.${extension}`
   const uploadResponse = await supabase.storage

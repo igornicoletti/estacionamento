@@ -18,13 +18,14 @@ describe("NotificationsRoute", () => {
     expect(
       screen.getByRole("heading", { name: "Notificações" })
     ).toBeInTheDocument()
-    expect(
-      screen.getByRole("button", { name: "Marcar todas como lidas" })
-    ).toBeInTheDocument()
 
     await waitFor(() => {
       expect(screen.getByText("Sincronização concluída")).toBeInTheDocument()
     })
+
+    expect(
+      screen.getByRole("button", { name: "Marcar todas como lidas" })
+    ).toBeInTheDocument()
 
     fireEvent.click(screen.getByRole("button", { name: "Sincronização concluída" }))
 

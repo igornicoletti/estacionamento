@@ -12,10 +12,11 @@ import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { AppPasswordField } from "@/components/shared/app-password-field"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
+import { Spinner } from "@/components/ui/spinner"
 import { newPasswordSchema } from "@/features/auth/validation"
 
 import { AccessRequestDenySummary } from "../components"
-import { accessRequestsCopy, ACCESS_REQUESTS_RECOVERY_TABLE_STATE_KEY } from "../constants"
+import { ACCESS_REQUESTS_RECOVERY_TABLE_STATE_KEY, accessRequestsCopy } from "../constants"
 import { useAccessRequests } from "../hooks"
 import type {
   AccessRecoveryRequestRecord,
@@ -189,7 +190,8 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
         description={
           pendingRecoveryReview ? getRecoveryDialogDescription(pendingRecoveryReview.decision) : undefined
         }
-        footer={
+        footerClassName="grid grid-cols-2 gap-2"
+        footer={(
           <>
             <Button
               type="button"
@@ -204,14 +206,16 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
               type="button"
               size="lg"
               disabled={isReviewing || isApprovalPasswordInvalid}
+              aria-busy={isReviewing}
               onClick={() => {
                 void handleConfirmRecoveryReview()
               }}
             >
+              {isReviewing ? <Spinner data-icon="inline-start" /> : null}
               {accessRequestsCopy.actions.confirmApprove}
             </Button>
           </>
-        }
+        )}
       >
         <AppPasswordField
           id="access-request-temporary-password"
