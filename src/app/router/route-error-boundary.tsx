@@ -46,7 +46,7 @@ function getRouteErrorContent(error: unknown): RouteErrorContent {
       media: routeErrorMediaByStatus[error.status] ?? (
         <AlertTriangleIcon aria-hidden="true" />
       ),
-      title: copy?.title ?? `${error.status} — ${error.statusText || "Erro de rota"}`,
+      title: copy?.title ?? `${error.status} — ${error.statusText || appCopy.routeError.fallbackStatusText}`,
       description: copy?.description ?? appCopy.routeError.unexpected.description,
     }
   }
@@ -96,7 +96,7 @@ export function RouteErrorBoundary() {
         className="mx-auto max-w-xl"
         media={media}
         title={title}
-        description={`${description} Código: ${errorId}.`}
+        description={`${description} ${appCopy.routeError.errorIdPrefix}: ${errorId}.`}
         actions={
           <div className="flex flex-wrap justify-center gap-2">
             <Button

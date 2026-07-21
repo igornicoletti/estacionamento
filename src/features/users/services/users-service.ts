@@ -7,7 +7,6 @@ import {
   getSupabaseBrowserClient,
   isValidPhone,
   onlyDigits,
-  resolveVisibleSensitiveValue,
 } from "@/lib"
 
 import { usersCopy } from "../constants"
@@ -33,11 +32,9 @@ type RawAppUserUnitRow = {
 type RawAppUserRow = {
   id: string
   auth_user_id: string
-  cpf_display?: string | null
   cpf_masked: string
   email: string | null
   name: string
-  phone_display?: string | null
   phone_masked: string
   role: string
   status: string
@@ -190,16 +187,6 @@ function getRelatedUnitId(value: RawAppUserRow["app_user_units"]) {
   return null
 }
 
-function getPostgrestErrorCode(error: unknown) {
-  if (!error || typeof error !== "object" || !("code" in error)) {
-    return ""
-  }
-
-  const code = (error as { code?: unknown }).code
-
-  return typeof code === "string" ? code : ""
-}
-
 function resolveMaskedCpf(value: string | null | undefined) {
   const normalized = value?.trim()
 
@@ -208,10 +195,6 @@ function resolveMaskedCpf(value: string | null | undefined) {
   }
 
   return normalized
-}
-
-function isUndefinedColumnError(error: unknown) {
-  return getPostgrestErrorCode(error) === "42703"
 }
 
 function assertValidUserInput(
@@ -302,43 +285,23 @@ async function listAuthFactorsByAuthUserIdSafe() {
 }
 
 async function listRawAppUsersFromSupabase(supabase: SupabaseClient) {
-  const withDisplayColumns = await supabase
-    .from("app_users")
-    .select(
-      "id, auth_user_id, cpf_display, cpf_masked, email, name, phone_display, phone_masked, role, status, locked_until, created_at, app_user_units(unit_id)"
-    )
-    .order("created_at", { ascending: false })
-
-  const displayResponse = withDisplayColumns as {
-    data: RawAppUserRow[] | null
-    error: unknown
-  }
-
-  if (!displayResponse.error) {
-    return displayResponse.data ?? []
-  }
-
-  if (!isUndefinedColumnError(displayResponse.error)) {
-    throw new Error(usersCopy.errors.load)
-  }
-
-  const legacyColumns = await supabase
+  const response = await supabase
     .from("app_users")
     .select(
       "id, auth_user_id, cpf_masked, email, name, phone_masked, role, status, locked_until, created_at, app_user_units(unit_id)"
     )
     .order("created_at", { ascending: false })
 
-  const legacyResponse = legacyColumns as {
+  const typedResponse = response as {
     data: RawAppUserRow[] | null
     error: unknown
   }
 
-  if (legacyResponse.error) {
+  if (typedResponse.error) {
     throw new Error(usersCopy.errors.load)
   }
 
-  return legacyResponse.data ?? []
+  return typedResponse.data ?? []
 }
 
 async function listUsersFromSupabase(): Promise<UserRecord[]> {
@@ -372,10 +335,7 @@ async function listUsersFromSupabase(): Promise<UserRecord[]> {
         name: appUser.name,
         cpf: resolveMaskedCpf(appUser.cpf_masked),
         email: appUser.email,
-        phoneMasked: resolveVisibleSensitiveValue(
-          appUser.phone_display,
-          appUser.phone_masked
-        ),
+        phoneMasked: appUser.phone_masked?.trim() || null,
         role: appUser.role,
         status: appUser.status,
         lockedUntil: appUser.locked_until ?? null,

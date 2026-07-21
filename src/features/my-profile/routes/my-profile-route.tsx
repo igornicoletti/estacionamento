@@ -1,16 +1,17 @@
-import { AlertTriangleIcon } from "lucide-react"
+import { AlertTriangleIcon, KeyRoundIcon } from "lucide-react"
 import * as React from "react"
 
-import { PageHeader, PageSection } from "@/components/page"
+import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { notify } from "@/components/toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 
-import { getProfileInitials, ProfileFormCard, ProfilePhotoDialog } from "../components"
+import { getProfileInitials, ProfileChangePasswordDialog, ProfileFormCard, ProfilePhotoDialog } from "../components"
 import { useMyProfile } from "../hooks/use-my-profile"
 import { myProfileCopy } from "../my-profile-copy"
+import { changeCurrentPassword } from "../services"
 
 function CenteredState({ children }: { children: React.ReactNode }) {
   return (
@@ -25,6 +26,23 @@ export function MyProfileRoute() {
   const [isSavingProfile, setIsSavingProfile] = React.useState(false)
   const [isSavingPhoto, setIsSavingPhoto] = React.useState(false)
   const [isPhotoDialogOpen, setIsPhotoDialogOpen] = React.useState(false)
+  const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false)
+  const [isChangingPassword, setIsChangingPassword] = React.useState(false)
+
+  async function handleChangePassword(input: { currentPassword: string; newPassword: string }) {
+    if (isChangingPassword) {
+      return
+    }
+
+    setIsChangingPassword(true)
+
+    try {
+      await notify.track(changeCurrentPassword(input), myProfileCopy.feedback.changePassword)
+      setIsPasswordDialogOpen(false)
+    } finally {
+      setIsChangingPassword(false)
+    }
+  }
 
   async function handleSaveProfile(input: Parameters<typeof saveProfile>[0]) {
     if (isSavingProfile) {
@@ -122,7 +140,18 @@ export function MyProfileRoute() {
 
   return (
     <PageSection className="w-full pb-6">
-      <PageHeader title={myProfileCopy.page.title} subtitle={myProfileCopy.page.subtitle} />
+      <PageHeader
+        title={myProfileCopy.page.title}
+        subtitle={myProfileCopy.page.subtitle}
+        actions={(
+          <PageHeaderActions>
+            <Button type="button" variant="secondary" size="lg" onClick={() => setIsPasswordDialogOpen(true)}>
+              <KeyRoundIcon aria-hidden="true" />
+              {myProfileCopy.changePassword.action}
+            </Button>
+          </PageHeaderActions>
+        )}
+      />
 
       <div className="grid gap-4">
         {error ? (
@@ -152,6 +181,13 @@ export function MyProfileRoute() {
           open={isPhotoDialogOpen}
         />
       ) : null}
+
+      <ProfileChangePasswordDialog
+        open={isPasswordDialogOpen}
+        isSaving={isChangingPassword}
+        onOpenChange={setIsPasswordDialogOpen}
+        onSubmit={handleChangePassword}
+      />
     </PageSection>
   )
 }

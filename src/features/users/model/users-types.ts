@@ -19,7 +19,7 @@ export const userRoleValues = [
 export const userRoleLabels: Record<UserRole, string> = {
   admin: "Administrador",
   auditor: "Auditor",
-  manager: "Gerente",
+  manager: "Gestor",
   operator: "Operador",
   owner: "Proprietário",
 }

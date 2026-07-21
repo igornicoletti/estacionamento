@@ -269,3 +269,28 @@ export async function updateCurrentProfile(input: ProfileUpdateInput) {
     requiresPasskeyRegistration: readRequiresPasskeyRegistration(response.data),
   }
 }
+
+const PROFILE_CHANGE_PASSWORD_FUNCTION = "profile-change-password"
+
+export async function changeCurrentPassword(input: {
+  currentPassword: string
+  newPassword: string
+}): Promise<void> {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    throw new ProfileServiceError("Configuração remota indisponível para alterar a senha.")
+  }
+
+  const response = await supabase.functions.invoke(PROFILE_CHANGE_PASSWORD_FUNCTION, {
+    body: {
+      currentPassword: input.currentPassword,
+      newPassword: input.newPassword,
+    },
+  })
+
+  if (response.error) {
+    const message = await readFunctionErrorMessage(response.error)
+    throw new ProfileServiceError(message ?? "Não foi possível alterar a senha.")
+  }
+}

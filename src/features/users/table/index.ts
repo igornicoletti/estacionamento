@@ -1,6 +1,7 @@
 export { createUsersColumns } from "./users-columns"
 export {
+  createUserOnlineFilterOptions,
   createUserRoleFilterOptions,
   createUserStatusFilterOptions,
-  createUserUnitFilterOptions,
+  createUserUnitFilterOptions
 } from "./users-filter-options"

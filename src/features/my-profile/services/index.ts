@@ -1,4 +1,5 @@
 export {
+  changeCurrentPassword,
   ProfileServiceError,
   updateCurrentProfile,
   uploadProfileAvatarFile,

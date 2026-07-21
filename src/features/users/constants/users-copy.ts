@@ -44,6 +44,7 @@ export const usersCopy = {
     role: "Perfis",
     status: "Status",
     unit: "Unidades",
+    online: "Conexão",
     searchPlaceholder: "Buscar usuários...",
   },
   form: {

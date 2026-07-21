@@ -1,4 +1,4 @@
-import { permissionRoleLabels } from "../constants"
+import { permissionRoleLabels, permissionsCopy } from "../constants"
 import {
   permissionRoleValues,
   permissionSourceValues,
@@ -52,7 +52,7 @@ export function formatPermissionRoles(roles: readonly PermissionRole[]) {
 
   return sortedRoles.length > 0
     ? sortedRoles.map((role) => permissionRoleLabels[role]).join(", ")
-    : "Nenhum perfil"
+    : permissionsCopy.labels.noneRole
 }
 
 export function formatPermissionRolesWithoutAccess(
@@ -65,7 +65,7 @@ export function formatPermissionRolesWithoutAccess(
 
   return rolesWithoutAccess.length > 0
     ? rolesWithoutAccess.map((role) => permissionRoleLabels[role]).join(", ")
-    : "Nenhum"
+    : permissionsCopy.labels.noRoleWithoutAccess
 }
 
 function resolveAccessFilters(

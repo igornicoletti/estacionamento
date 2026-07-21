@@ -34,6 +34,7 @@ import {
   type UsersFormValues,
 } from "../model"
 import {
+  createUserOnlineFilterOptions,
   createUserRoleFilterOptions,
   createUserStatusFilterOptions,
   createUserUnitFilterOptions,
@@ -95,6 +96,10 @@ export function UsersRoute() {
   )
   const unitFilterOptions = React.useMemo(
     () => createUserUnitFilterOptions(visibleUsers),
+    [visibleUsers]
+  )
+  const onlineFilterOptions = React.useMemo(
+    () => createUserOnlineFilterOptions(visibleUsers),
     [visibleUsers]
   )
 
@@ -165,6 +170,7 @@ export function UsersRoute() {
       return {
         actionLabel: usersCopy.dialogs.blockConfirm,
         description: interpolateUserCopy(usersCopy.dialogs.blockDescription, userName),
+        feedback: usersCopy.feedback.block,
         onAction: () => usersSnapshot.inactivateUser(pendingAction.user.id),
         title: usersCopy.dialogs.blockTitle,
       }
@@ -174,6 +180,7 @@ export function UsersRoute() {
       return {
         actionLabel: usersCopy.dialogs.resetConfirm,
         description: interpolateUserCopy(usersCopy.dialogs.resetDescription, userName),
+        feedback: usersCopy.feedback.reset,
         onAction: () => usersSnapshot.resetAccess(pendingAction.user.id),
         title: usersCopy.dialogs.resetTitle,
       }
@@ -183,6 +190,7 @@ export function UsersRoute() {
       return {
         actionLabel: usersCopy.dialogs.resetPasskeyConfirm,
         description: interpolateUserCopy(usersCopy.dialogs.resetPasskeyDescription, userName),
+        feedback: usersCopy.feedback.resetPasskey,
         onAction: () => usersSnapshot.resetPasskey(pendingAction.user.id),
         title: usersCopy.dialogs.resetPasskeyTitle,
       }
@@ -201,6 +209,7 @@ export function UsersRoute() {
             : usersCopy.dialogs.clearLockDescription,
           userName
         ),
+        feedback: usersCopy.feedback.clearLock,
         onAction: () => usersSnapshot.clearLock(pendingAction.user.id),
         title: isBlocked ? usersCopy.dialogs.unblockTitle : usersCopy.dialogs.clearLockTitle,
       }
@@ -209,6 +218,7 @@ export function UsersRoute() {
     return {
       actionLabel: usersCopy.dialogs.revokeSessionsConfirm,
       description: interpolateUserCopy(usersCopy.dialogs.revokeSessionsDescription, userName),
+      feedback: usersCopy.feedback.revokeSessions,
       onAction: () => usersSnapshot.revokeSessions(pendingAction.user.id),
       title: usersCopy.dialogs.revokeSessionsTitle,
     }
@@ -260,6 +270,7 @@ export function UsersRoute() {
       <DataTable
         columns={columns}
         data={visibleUsers}
+        defaultColumnVisibility={{ onlineStatus: false }}
         columnVisibilityStorageKey={USERS_TABLE_COLUMN_VISIBILITY_KEY}
         getRowId={(user: UserRecord) => user.id}
         globalSearch={{
@@ -280,6 +291,7 @@ export function UsersRoute() {
           { id: "role", title: usersCopy.filters.role, options: roleOptions },
           { id: "status", title: usersCopy.filters.status, options: statusOptions },
           { id: "unitName", title: usersCopy.filters.unit, options: unitFilterOptions },
+          { id: "onlineStatus", title: usersCopy.filters.online, options: onlineFilterOptions },
         ]}
         emptyAction={emptyAction}
         emptyState={(
@@ -386,7 +398,7 @@ export function UsersRoute() {
             return
           }
 
-          await notify.track(pendingActionConfig.onAction(), usersCopy.feedback.update)
+          await notify.track(pendingActionConfig.onAction(), pendingActionConfig.feedback)
           setPendingAction(null)
         }}
       />

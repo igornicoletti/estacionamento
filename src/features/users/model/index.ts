@@ -2,11 +2,13 @@ export {
   createNextUserId,
   getUserDetailItems,
   interpolateUserCopy,
+  isUserOnline,
   normalizeUnitScope,
   resolveEmailLabel,
   resolveLastAccessLabel,
+  resolveOnlineLabel,
   resolvePasskeyLabel,
-  resolveUnitLabel,
+  resolveUnitLabel
 } from "./users-models"
 export {
   appUserStatusLabels,
@@ -21,11 +23,11 @@ export {
   type UnitCatalogItem,
   type UpdateUserInput,
   type UserRecord,
-  type UserRole,
+  type UserRole
 } from "./users-types"
 export {
   getUsersFormFieldErrors,
   usersFormSchema,
   type UsersFormFieldName,
-  type UsersFormValues,
+  type UsersFormValues
 } from "./users-validation"

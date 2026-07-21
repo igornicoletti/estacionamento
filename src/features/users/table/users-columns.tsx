@@ -13,8 +13,10 @@ import { getBadgeToneClassName } from "@/lib"
 import { usersCopy } from "../constants"
 import {
   appUserStatusLabels,
+  isUserOnline,
   resolveEmailLabel,
   resolveLastAccessLabel,
+  resolveOnlineLabel,
   resolvePasskeyLabel,
   resolveUnitLabel,
   userRoleLabels,
@@ -122,11 +124,22 @@ export function createUsersColumns(
       accessorKey: "name",
       meta: { label: usersCopy.form.fields.name },
       header: usersCopy.form.fields.name,
-      cell: ({ row }) => (
-        <DataTableTextAction onClick={() => options.onViewUserDetails?.(row.original)}>
-          {row.original.name}
-        </DataTableTextAction>
-      ),
+      cell: ({ row }) => {
+        const online = isUserOnline(row.original.lastAccessAt)
+
+        return (
+          <DataTableTextAction onClick={() => options.onViewUserDetails?.(row.original)}>
+            <span className="inline-flex items-center gap-2">
+              <span
+                className={`inline-block size-2 shrink-0 rounded-full ${online ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
+                aria-label={resolveOnlineLabel(row.original.lastAccessAt)}
+                title={resolveOnlineLabel(row.original.lastAccessAt)}
+              />
+              {row.original.name}
+            </span>
+          </DataTableTextAction>
+        )
+      },
     },
     {
       accessorKey: "email",
@@ -208,6 +221,14 @@ export function createUsersColumns(
           secondary={row.original.authUserId ? undefined : usersCopy.details.localUser}
         />
       ),
+    },
+    {
+      id: "onlineStatus",
+      accessorFn: (user) => (isUserOnline(user.lastAccessAt) ? "online" : "offline"),
+      meta: { label: usersCopy.filters.online },
+      header: usersCopy.filters.online,
+      enableHiding: true,
+      enableSorting: false,
     },
     createActionsColumn<UserRecord>((row) => {
       const isActive = row.original.status === "active"

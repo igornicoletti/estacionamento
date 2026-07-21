@@ -5,10 +5,10 @@ import { usersCopy } from "../constants"
 import {
   appUserStatusLabels,
   isGlobalRole,
+  userRoleLabels,
   type CreateUserInput,
   type UnitCatalogItem,
   type UserRecord,
-  userRoleLabels,
 } from "./users-types"
 
 interface NormalizedUnitScope {
@@ -28,6 +28,26 @@ export function resolveUnitLabel(unitName: string | null) {
 
 export function resolveLastAccessLabel(lastAccessAt: string | null) {
   return formatDateTime(lastAccessAt, usersCopy.details.noAccess)
+}
+
+const ONLINE_THRESHOLD_MS = 15 * 60 * 1000
+
+export function isUserOnline(lastAccessAt: string | null) {
+  if (!lastAccessAt) {
+    return false
+  }
+
+  const lastAccess = new Date(lastAccessAt).getTime()
+
+  if (Number.isNaN(lastAccess)) {
+    return false
+  }
+
+  return Date.now() - lastAccess <= ONLINE_THRESHOLD_MS
+}
+
+export function resolveOnlineLabel(lastAccessAt: string | null) {
+  return isUserOnline(lastAccessAt) ? "Online" : "Offline"
 }
 
 export function resolveEmailLabel(email: string | null) {

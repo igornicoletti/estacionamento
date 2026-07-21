@@ -8,8 +8,6 @@ export const appCopy = {
   routeGroups: {
     workspace: "",
     records: "Cadastros",
-    commercial: "",
-    access: "Configurações",
     monitoring: "Monitoramento",
     utilities: "Configurações",
   },
@@ -109,6 +107,8 @@ export const appCopy = {
   routeError: {
     action: "Voltar para o início",
     retry: "Tentar novamente",
+    fallbackStatusText: "Erro de rota",
+    errorIdPrefix: "Código",
     unexpected: {
       title: "Erro inesperado",
       description:

@@ -78,8 +78,6 @@ export const appRouteSegments = {
 export const appRouteGroupIds = {
   workspace: "workspace",
   records: "records",
-  commercial: "commercial",
-  access: "access",
   monitoring: "monitoring",
   utilities: "utilities",
 } as const
@@ -366,16 +364,6 @@ export const navigationGroups = [
     id: appRouteGroupIds.records,
     label: appCopy.routeGroups.records,
     order: 10,
-  },
-  {
-    id: appRouteGroupIds.commercial,
-    label: appCopy.routeGroups.commercial,
-    order: 20,
-  },
-  {
-    id: appRouteGroupIds.access,
-    label: appCopy.routeGroups.access,
-    order: 30,
   },
   {
     id: appRouteGroupIds.monitoring,
