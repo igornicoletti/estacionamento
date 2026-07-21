@@ -24,6 +24,8 @@ Centralizar os relatórios de validação executados por fluxo, com rastreabilid
    - Validação de segurança com erros forçados e comportamento defensivo.
 8. `docs/reports/2026-07-21__flow-forms-tables-filters-audit.md`
    - Auditoria e refatoração de formulários, tabelas, filtros e dialogs de confirmação.
+9. `docs/reports/2026-07-21__flow-dashboard-bento-grid.md`
+   - Refatoração do dashboard em bento grid com charts e dados suportados pelo snapshot atual.
 
 ## Observação
 

@@ -31,6 +31,11 @@ export default defineConfig({
               test: /node_modules[\\/](@supabase|@tanstack)[\\/]/,
             },
             {
+              name: "charts-vendor",
+              priority: 25,
+              test: /node_modules[\\/](recharts|d3-[^\\/]+|victory-vendor)[\\/]/,
+            },
+            {
               name: "forms-vendor",
               priority: 20,
               test: /node_modules[\\/](react-hook-form|@hookform|zod)[\\/]/,

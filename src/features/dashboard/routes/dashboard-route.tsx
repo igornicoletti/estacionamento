@@ -9,9 +9,7 @@ import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 
 import {
-  DashboardChartsBlock,
-  DashboardIndicatorsGrid,
-  DashboardTablesBlock,
+  DashboardBentoGrid,
 } from "../components"
 import { dashboardCopy } from "../constants/dashboard-copy"
 import { useDashboardSnapshot } from "../hooks/use-dashboard-snapshot"
@@ -99,19 +97,11 @@ export function DashboardRoute() {
         actions={<AppUnitSelector />}
       />
 
-      <section className="space-y-3">
-        <DashboardIndicatorsGrid indicators={data.indicators} />
-        <DashboardChartsBlock
-          occupancySeries={data.occupancySeries}
-          revenueSeries={data.revenueSeries}
-        />
-        <DashboardTablesBlock
-          vehicleMovements={data.vehicleMovements}
-          alerts={data.alerts}
-          onOpenMovementDetails={(row) => setDetails({ kind: "movement", row })}
-          onOpenAlertDetails={(row) => setDetails({ kind: "alert", row })}
-        />
-      </section>
+      <DashboardBentoGrid
+        snapshot={data}
+        onOpenMovementDetails={(row) => setDetails({ kind: "movement", row })}
+        onOpenAlertDetails={(row) => setDetails({ kind: "alert", row })}
+      />
 
       <AppDetailsSheet
         open={Boolean(details)}

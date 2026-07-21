@@ -1,4 +1,4 @@
-export { DashboardChartsBlock, DashboardIndicatorsGrid, DashboardTablesBlock } from "./components"
+export { DashboardBentoGrid } from "./components"
 export { dashboardCopy } from "./constants/dashboard-copy"
 export { useDashboardSnapshot } from "./hooks/use-dashboard-snapshot"
 export { getAlertDetailItems, getVehicleMovementDetailItems } from "./model/dashboard-details"
