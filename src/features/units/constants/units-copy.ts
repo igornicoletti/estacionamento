@@ -42,6 +42,7 @@ export const unitsCopy = {
       success: "Sincronização concluída.",
       error: "Não foi possível sincronizar as unidades.",
       inProgress: "Já existe uma sincronização de unidades em andamento.",
+      connectionError: "Não foi possível conectar ao serviço de sincronização. Verifique sua conexão e tente novamente.",
     },
   },
   filters: {
@@ -93,7 +94,6 @@ export const unitsCopy = {
     statusPlaceholder: "Selecione",
     validationInvalidSpots: "Informe uma quantidade de vagas válida.",
     feedback: {
-      loading: "Salvando configuração de pátio...",
       success: "Configuração de pátio atualizada.",
       error: "Não foi possível salvar a configuração de pátio.",
     },

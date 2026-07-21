@@ -6,7 +6,18 @@ function readString(value: unknown) {
 
 function readNumber(value: unknown) {
   const numberValue = typeof value === "number" ? value : Number(value)
+
   return Number.isFinite(numberValue) ? numberValue : 0
+}
+
+function readPositiveInteger(value: unknown) {
+  const numberValue = readNumber(value)
+
+  return numberValue > 0 ? Math.trunc(numberValue) : null
+}
+
+function hasValidUnitIdentity(payload: ErpUnitPayload) {
+  return readPositiveInteger(payload.cod_empresa) !== null
 }
 
 export function sanitizeErpUnitPayload(payload: ErpUnitPayload): Unit {
@@ -28,7 +39,9 @@ export function sanitizeErpUnitPayload(payload: ErpUnitPayload): Unit {
 }
 
 export function sanitizeErpUnitsPayload(payload: readonly ErpUnitPayload[]) {
-  return payload.map(sanitizeErpUnitPayload).filter((unit) => unit.cod_empresa > 0)
+  return payload
+    .filter(hasValidUnitIdentity)
+    .map(sanitizeErpUnitPayload)
 }
 
 export function sanitizeParkingSpots(value: number) {

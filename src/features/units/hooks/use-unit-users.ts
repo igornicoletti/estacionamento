@@ -4,10 +4,21 @@ import { useUsers, type UserRecord } from "@/features/users"
 
 import { resolveUnitUsersSnapshot } from "../model"
 
-export function useUnitUsers(unitId: string, options: { enabled?: boolean } = {}) {
-  const snapshot = useUsers(options)
+interface UseUnitUsersOptions {
+  enabled?: boolean
+}
+
+export function useUnitUsers(unitId: string, options: UseUnitUsersOptions = {}) {
+  const isEnabled = Boolean(unitId) && (options.enabled ?? true)
+  const snapshot = useUsers({ enabled: isEnabled })
   const data = React.useMemo<UserRecord[]>(
-    () => resolveUnitUsersSnapshot(snapshot.data, unitId),
+    () => {
+      if (!unitId) {
+        return []
+      }
+
+      return resolveUnitUsersSnapshot(snapshot.data, unitId)
+    },
     [snapshot.data, unitId]
   )
 

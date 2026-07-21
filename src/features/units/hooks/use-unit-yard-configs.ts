@@ -36,12 +36,13 @@ export function useUnitYardConfigs() {
     initialData: [],
     loadData: listUnitYardConfigs,
   })
+  const { data: snapshotData, refetch } = snapshot
   const [isSaving, setIsSaving] = React.useState(false)
   const [optimisticConfigs, setOptimisticConfigs] = React.useState<ReadonlyMap<string, UnitYardConfig>>(() => new Map())
   const activeSaveRef = React.useRef<Promise<UnitYardConfig> | null>(null)
   const data = React.useMemo(
-    () => mergeConfigs(snapshot.data, optimisticConfigs),
-    [optimisticConfigs, snapshot.data]
+    () => mergeConfigs(snapshotData, optimisticConfigs),
+    [optimisticConfigs, snapshotData]
   )
 
   const saveConfig = React.useCallback(async (input: UpsertUnitYardConfigInput) => {
@@ -71,7 +72,9 @@ export function useUnitYardConfigs() {
         next.set(config.unitId, config)
         return next
       })
-      await snapshot.refetch()
+
+      await refetch()
+
       return config
     })()
 
@@ -81,7 +84,7 @@ export function useUnitYardConfigs() {
       activeSaveRef.current = null
       setIsSaving(false)
     }
-  }, [snapshot])
+  }, [refetch])
 
   return { ...snapshot, data, isSaving, saveConfig }
 }

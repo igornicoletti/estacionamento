@@ -17,6 +17,18 @@ interface CreateUnitUsersColumnsOptions {
   onOpenDetails: (user: UserRecord) => void
 }
 
+function resolveCpfValue(user: UserRecord) {
+  return user.cpf || unitsCopy.details.emptyValue
+}
+
+function resolveEmailValue(user: UserRecord) {
+  return user.email || unitsCopy.table.noEmail
+}
+
+function resolvePhoneValue(user: UserRecord) {
+  return user.phoneMasked || unitsCopy.details.emptyValue
+}
+
 export function createUnitUsersColumns(
   options: CreateUnitUsersColumnsOptions
 ): ColumnDef<UserRecord>[] {
@@ -33,33 +45,47 @@ export function createUnitUsersColumns(
     },
     {
       accessorKey: "cpf",
-      meta: { label: unitsCopy.table.cpf },
+      meta: {
+        label: unitsCopy.table.cpf,
+        exportValue: (_value, row) => resolveCpfValue(row),
+      },
       header: unitsCopy.table.cpf,
-      cell: ({ row }) => row.original.cpf || unitsCopy.details.emptyValue,
+      cell: ({ row }) => resolveCpfValue(row.original),
     },
     {
       accessorKey: "email",
-      meta: { label: unitsCopy.table.email },
+      meta: {
+        label: unitsCopy.table.email,
+        exportValue: (_value, row) => resolveEmailValue(row),
+      },
       header: unitsCopy.table.email,
-      cell: ({ row }) => row.original.email || unitsCopy.table.noEmail,
+      cell: ({ row }) => resolveEmailValue(row.original),
     },
     {
       accessorKey: "phoneMasked",
-      meta: { label: unitsCopy.table.phone },
+      meta: {
+        label: unitsCopy.table.phone,
+        exportValue: (_value, row) => resolvePhoneValue(row),
+      },
       header: unitsCopy.table.phone,
-      cell: ({ row }) => row.original.phoneMasked || unitsCopy.details.emptyValue,
+      cell: ({ row }) => resolvePhoneValue(row.original),
     },
     {
       accessorKey: "role",
-      meta: { label: unitsCopy.table.profile },
+      meta: {
+        label: unitsCopy.table.profile,
+        exportValue: (_value, row) => userRoleLabels[row.role],
+      },
       header: unitsCopy.table.profile,
       cell: ({ row }) => userRoleLabels[row.original.role],
     },
     {
       accessorKey: "status",
-      meta: { label: unitsCopy.table.status },
+      meta: {
+        label: unitsCopy.table.status,
+        exportValue: (_value, row) => appUserStatusLabels[row.status],
+      },
       header: () => <div className="text-center">{unitsCopy.table.status}</div>,
-      enableSorting: false,
       cell: ({ row }) => {
         const isActive = row.original.status === "active"
 
@@ -74,9 +100,11 @@ export function createUnitUsersColumns(
     },
     {
       accessorKey: "passkeyStatus",
-      meta: { label: unitsCopy.table.passkey },
+      meta: {
+        label: unitsCopy.table.passkey,
+        exportValue: (_value, row) => resolvePasskeyLabel(row.passkeyStatus),
+      },
       header: () => <div className="text-center">{unitsCopy.table.passkey}</div>,
-      enableSorting: false,
       cell: ({ row }) => {
         const isActive = row.original.passkeyStatus === "active"
 
@@ -91,7 +119,10 @@ export function createUnitUsersColumns(
     },
     {
       accessorKey: "lastAccessAt",
-      meta: { label: unitsCopy.table.lastAccess },
+      meta: {
+        label: unitsCopy.table.lastAccess,
+        exportValue: (_value, row) => resolveLastAccessLabel(row.lastAccessAt),
+      },
       header: unitsCopy.table.lastAccess,
       cell: ({ row }) => resolveLastAccessLabel(row.original.lastAccessAt),
     },

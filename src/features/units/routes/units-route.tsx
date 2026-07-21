@@ -33,7 +33,6 @@ import {
   getUnitDetailItems,
   parseYardSpotsInput,
   resolveUnitYardConfig,
-  type Unit,
   type UnitUserStats,
   type YardStatusFormValue,
 } from "../model"
@@ -63,8 +62,8 @@ export function UnitsRoute() {
     refetch: refetchSyncHistory,
   } = useUnitSyncHistory()
   const { data: unitYardConfigs, isSaving: isSavingYard, saveConfig } = useUnitYardConfigs()
-  const [selectedUnit, setSelectedUnit] = React.useState<Unit | null>(null)
-  const [configuringUnit, setConfiguringUnit] = React.useState<Unit | null>(null)
+  const [selectedUnitId, setSelectedUnitId] = React.useState<string | null>(null)
+  const [configuringUnitId, setConfiguringUnitId] = React.useState<string | null>(null)
   const [yardStatus, setYardStatus] = React.useState<YardStatusFormValue>("inactive")
   const [yardSpots, setYardSpots] = React.useState("0")
   const [yardError, setYardError] = React.useState<string | null>(null)
@@ -87,33 +86,48 @@ export function UnitsRoute() {
     [units, userStatsByUnitId, yardConfigByUnitId]
   )
   const filterFields = useUnitsTableFilters(unitsTableData)
-  const selectedUnitYardConfig = selectedUnit
-    ? resolveUnitYardConfig(String(selectedUnit.cod_empresa), yardConfigByUnitId)
-    : null
-  const selectedUnitUserStats = selectedUnit
-    ? userStatsByUnitId.get(String(selectedUnit.cod_empresa)) ?? EMPTY_UNIT_USER_STATS
-    : EMPTY_UNIT_USER_STATS
-
-  const columns = React.useMemo(
-    () => createUnitsColumns({
-      onOpenDetails: setSelectedUnit,
-      onSelectUsers: (unit) => {
-        void navigate(`/unidades/${unit.cod_empresa}/usuarios`)
-      },
-      onConfigureYard: canSyncUnits
-        ? (unit) => {
-          const currentConfig = resolveUnitYardConfig(String(unit.cod_empresa), yardConfigByUnitId)
-          setConfiguringUnit(unit)
-          setYardStatus(currentConfig.patioActive ? "active" : "inactive")
-          setYardSpots(String(currentConfig.parkingSpots))
-          setYardError(null)
-        }
-        : undefined,
-    }),
-    [canSyncUnits, navigate, yardConfigByUnitId]
+  const selectedUnit = React.useMemo(
+    () => unitsTableData.find((unit) => String(unit.cod_empresa) === selectedUnitId) ?? null,
+    [selectedUnitId, unitsTableData]
+  )
+  const configuringUnit = React.useMemo(
+    () => unitsTableData.find((unit) => String(unit.cod_empresa) === configuringUnitId) ?? null,
+    [configuringUnitId, unitsTableData]
   )
 
-  async function handleSaveYardSettings() {
+  const handleOpenDetails = React.useCallback((unit: UnitTableRow) => {
+    setSelectedUnitId(String(unit.cod_empresa))
+  }, [])
+
+  const handleSelectUsers = React.useCallback(
+    (unit: UnitTableRow) => {
+      void navigate(`/unidades/${unit.cod_empresa}/usuarios`)
+    },
+    [navigate]
+  )
+
+  const handleConfigureYard = React.useCallback((unit: UnitTableRow) => {
+    setConfiguringUnitId(String(unit.cod_empresa))
+    setYardStatus(unit.yardConfig.patioActive ? "active" : "inactive")
+    setYardSpots(String(unit.yardConfig.parkingSpots))
+    setYardError(null)
+  }, [])
+
+  const columns = React.useMemo(
+    () =>
+      createUnitsColumns({
+        onOpenDetails: handleOpenDetails,
+        onSelectUsers: handleSelectUsers,
+        onConfigureYard: canSyncUnits ? handleConfigureYard : undefined,
+      }),
+    [canSyncUnits, handleConfigureYard, handleOpenDetails, handleSelectUsers]
+  )
+
+  const refreshOperationalSnapshots = React.useCallback(async () => {
+    await Promise.allSettled([refetch(), refetchSyncHistory()])
+  }, [refetch, refetchSyncHistory])
+
+  const handleSaveYardSettings = React.useCallback(async () => {
     if (!configuringUnit || isSavingYard) {
       return
     }
@@ -128,25 +142,27 @@ export function UnitsRoute() {
     try {
       await saveConfig({
         unitId: String(configuringUnit.cod_empresa),
-        unitName: configuringUnit.nom_fantasia,
         patioActive: yardStatus === "active",
         parkingSpots: parsedSpots.value,
       })
-      await Promise.allSettled([refetch(), refetchSyncHistory()])
-      setConfiguringUnit(null)
+      await refreshOperationalSnapshots()
+      setConfiguringUnitId(null)
       setYardError(null)
       notify.success(unitsCopy.yard.feedback.success)
     } catch {
       setYardError(unitsCopy.yard.feedback.error)
       notify.error(unitsCopy.yard.feedback.error)
     }
-  }
+  }, [
+    configuringUnit,
+    isSavingYard,
+    refreshOperationalSnapshots,
+    saveConfig,
+    yardSpots,
+    yardStatus,
+  ])
 
-  async function refreshOperationalSnapshots() {
-    await Promise.allSettled([refetch(), refetchSyncHistory()])
-  }
-
-  async function handleStartSync() {
+  const handleStartSync = React.useCallback(async () => {
     if (isSyncing) {
       return
     }
@@ -171,7 +187,7 @@ export function UnitsRoute() {
     } finally {
       setIsSyncing(false)
     }
-  }
+  }, [isSyncing, refreshOperationalSnapshots])
 
   return (
     <PageSection>
@@ -185,7 +201,15 @@ export function UnitsRoute() {
               {unitsCopy.actions.history}
             </Button>
             {canSyncUnits ? (
-              <Button type="button" variant="secondary" size="lg" disabled={isLoading || isSyncing} onClick={() => { void handleStartSync() }}>
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                disabled={isLoading || isSyncing}
+                onClick={() => {
+                  void handleStartSync()
+                }}
+              >
                 <RefreshCcwIcon aria-hidden="true" />
                 {unitsCopy.actions.sync}
               </Button>
@@ -201,32 +225,63 @@ export function UnitsRoute() {
         columnVisibilityStorageKey={UNITS_TABLE_COLUMN_VISIBILITY_KEY}
         getRowId={(unit: UnitTableRow) => String(unit.cod_empresa)}
         globalSearch={{
-          columnIds: ["cod_empresa", "nom_razao_social", "nom_fantasia", "num_cnpj", "des_bandeira", "nom_cidade", "sgl_estado", "ip_rede"],
+          columnIds: [
+            "cod_empresa",
+            "nom_razao_social",
+            "nom_fantasia",
+            "num_cnpj",
+            "des_bandeira",
+            "nom_cidade",
+            "sgl_estado",
+            "ip_rede",
+          ],
           placeholder: unitsCopy.pages.units.searchPlaceholder,
         }}
         filterFields={filterFields}
-        emptyState={<AppEmptyState media={<DatabaseIcon />} title={unitsCopy.empty.unitsTitle} description={unitsCopy.empty.unitsDescription} />}
-        filteredEmptyState={<AppEmptyState media={<DatabaseIcon />} title={unitsCopy.filteredEmpty.unitsTitle} description={unitsCopy.filteredEmpty.unitsDescription} />}
+        emptyState={(
+          <AppEmptyState
+            media={<DatabaseIcon />}
+            title={unitsCopy.empty.unitsTitle}
+            description={unitsCopy.empty.unitsDescription}
+          />
+        )}
+        filteredEmptyState={(
+          <AppEmptyState
+            media={<DatabaseIcon />}
+            title={unitsCopy.filteredEmpty.unitsTitle}
+            description={unitsCopy.filteredEmpty.unitsDescription}
+          />
+        )}
         isLoading={isLoading}
         error={error}
-        onRetry={() => { void refetch() }}
+        onRetry={() => {
+          void refetch()
+        }}
         enablePagination
         enableViewOptions
       />
 
       <AppDetailsSheet
         open={Boolean(selectedUnit)}
-        onOpenChange={(open: boolean) => { if (!open) setSelectedUnit(null) }}
+        onOpenChange={(open: boolean) => {
+          if (!open) {
+            setSelectedUnitId(null)
+          }
+        }}
         title={selectedUnit?.nom_fantasia}
         description={selectedUnit?.nom_razao_social}
-        items={selectedUnit && selectedUnitYardConfig ? getUnitDetailItems(selectedUnit, selectedUnitYardConfig, selectedUnitUserStats) : []}
+        items={
+          selectedUnit
+            ? getUnitDetailItems(selectedUnit, selectedUnit.yardConfig, selectedUnit.userStats)
+            : []
+        }
       />
 
       <UnitYardConfigDialog
         open={Boolean(configuringUnit)}
         onOpenChange={(open) => {
           if (!open) {
-            setConfiguringUnit(null)
+            setConfiguringUnitId(null)
             setYardError(null)
           }
         }}
@@ -240,7 +295,9 @@ export function UnitsRoute() {
           setYardSpots(value)
           setYardError(null)
         }}
-        onSave={() => { void handleSaveYardSettings() }}
+        onSave={() => {
+          void handleSaveYardSettings()
+        }}
       />
 
       <UnitsSyncHistoryDialog
@@ -249,7 +306,9 @@ export function UnitsRoute() {
         entries={syncHistory}
         isLoading={isLoadingSyncHistory}
         error={syncHistoryError}
-        onRetry={() => { void refetchSyncHistory() }}
+        onRetry={() => {
+          void refetchSyncHistory()
+        }}
       />
 
       <SyncBlockingDialog

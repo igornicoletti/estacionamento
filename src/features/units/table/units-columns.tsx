@@ -25,13 +25,17 @@ export type UnitTableRow = Unit & {
 }
 
 interface CreateUnitsColumnsOptions {
-  onOpenDetails: (unit: Unit) => void
-  onSelectUsers?: (unit: Unit) => void
-  onConfigureYard?: (unit: Unit) => void
+  onOpenDetails: (unit: UnitTableRow) => void
+  onSelectUsers?: (unit: UnitTableRow) => void
+  onConfigureYard?: (unit: UnitTableRow) => void
 }
 
 function getTotalUsers(unit: UnitTableRow) {
   return unit.userStats.managers + unit.userStats.operators
+}
+
+function resolveTextExportValue(value: string) {
+  return value.trim() || unitsCopy.details.emptyValue
 }
 
 export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDef<UnitTableRow>[] {
@@ -82,14 +86,20 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
     {
       id: "cidadeUf",
       accessorFn: (unit) => formatUnitCityState(unit),
-      meta: { label: unitsCopy.table.cityState },
+      meta: {
+        label: unitsCopy.table.cityState,
+        exportValue: (_value, row) => formatUnitCityState(row),
+      },
       header: unitsCopy.table.cityState,
       size: 170,
       cell: ({ row }) => formatUnitCityState(row.original),
     },
     {
       accessorKey: "des_coordenada_empresa",
-      meta: { label: unitsCopy.table.coordinates },
+      meta: {
+        label: unitsCopy.table.coordinates,
+        exportValue: (_value, row) => resolveTextExportValue(row.des_coordenada_empresa),
+      },
       header: unitsCopy.table.coordinates,
       size: 210,
       cell: ({ row }) => {
@@ -109,14 +119,20 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
     },
     {
       accessorKey: "ip_rede",
-      meta: { label: unitsCopy.table.networkIp },
+      meta: {
+        label: unitsCopy.table.networkIp,
+        exportValue: (_value, row) => resolveTextExportValue(row.ip_rede),
+      },
       header: unitsCopy.table.networkIp,
       size: 140,
     },
     {
       id: "unitUsers",
       accessorFn: (unit) => getTotalUsers(unit),
-      meta: { label: unitsCopy.table.users },
+      meta: {
+        label: unitsCopy.table.users,
+        exportValue: (_value, row) => getTotalUsers(row),
+      },
       header: unitsCopy.table.users,
       size: 120,
       cell: ({ row }) => {
@@ -136,10 +152,12 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
     {
       id: "yardStatus",
       accessorFn: (unit) => resolveYardStatusLabel(unit.yardConfig.patioActive),
-      meta: { label: unitsCopy.table.yard },
+      meta: {
+        label: unitsCopy.table.yard,
+        exportValue: (_value, row) => resolveYardStatusLabel(row.yardConfig.patioActive),
+      },
       header: () => <div className="text-center">{unitsCopy.table.yard}</div>,
       size: 110,
-      enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
           <Badge
@@ -154,7 +172,10 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
     {
       id: "yardSpots",
       accessorFn: (unit) => unit.yardConfig.parkingSpots,
-      meta: { label: unitsCopy.table.spots },
+      meta: {
+        label: unitsCopy.table.spots,
+        exportValue: (_value, row) => row.yardConfig.parkingSpots,
+      },
       header: unitsCopy.table.spots,
       size: 90,
       cell: ({ row }) => row.original.yardConfig.parkingSpots,

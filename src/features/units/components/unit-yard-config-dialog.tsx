@@ -61,7 +61,7 @@ export function UnitYardConfigDialog({
             variant="outline"
             size="lg"
             disabled={isSaving}
-            onClick={() => onOpenChange(false)}
+            onClick={() => handleOpenChange(false)}
           >
             {unitsCopy.actions.cancel}
           </Button>

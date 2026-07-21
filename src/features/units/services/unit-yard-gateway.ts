@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 import { isErpCatalogMockEnabled } from "@/features/erp-mock"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
@@ -8,17 +10,35 @@ import {
   type UpsertUnitYardConfigInput,
 } from "../model"
 
-type RawUnitYardConfigRow = {
-  unit_id: string
-  patio_active: boolean
-  parking_spots: number
-  updated_at: string
-}
-
 export interface UnitYardGateway {
   listConfigs: () => Promise<readonly UnitYardConfig[]>
   upsertConfig: (input: UpsertUnitYardConfigInput) => Promise<UnitYardConfig>
 }
+
+const rawUnitYardConfigRowSchema = z.object({
+  unit_id: z.string().trim().min(1),
+  patio_active: z.boolean(),
+  parking_spots: z.number(),
+  updated_at: z.string().trim().min(1),
+})
+
+const storedUnitYardConfigSchema = z.object({
+  unitId: z.string().trim().min(1),
+  patioActive: z.boolean(),
+  parkingSpots: z.number(),
+  updatedAt: z.string().trim().min(1),
+})
+
+const supabaseResponseSchema = z.object({
+  data: z.unknown().nullable(),
+  error: z.unknown().nullable(),
+}).passthrough()
+
+const rawUnitYardConfigRowsSchema = z.array(rawUnitYardConfigRowSchema)
+const storedUnitYardConfigsSchema = z.array(storedUnitYardConfigSchema)
+
+type RawUnitYardConfigRow = z.infer<typeof rawUnitYardConfigRowSchema>
+type StoredUnitYardConfig = z.infer<typeof storedUnitYardConfigSchema>
 
 const mockYardConfigMemoryStore = new Map<string, UnitYardConfig>()
 
@@ -31,8 +51,57 @@ function mapUnitYardConfig(row: RawUnitYardConfigRow): UnitYardConfig {
   })
 }
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
+function mapStoredUnitYardConfig(config: StoredUnitYardConfig): UnitYardConfig {
+  return normalizeUnitYardConfig({
+    unitId: config.unitId,
+    patioActive: config.patioActive,
+    parkingSpots: config.parkingSpots,
+    updatedAt: config.updatedAt,
+  })
+}
+
+function parseSupabaseResponse(value: unknown, errorMessage: string) {
+  const result = supabaseResponseSchema.safeParse(value)
+
+  if (!result.success) {
+    throw new Error(errorMessage, { cause: result.error })
+  }
+
+  if (result.data.error) {
+    throw new Error(errorMessage, { cause: result.data.error })
+  }
+
+  return result.data.data
+}
+
+function parseRawUnitYardConfigRows(value: unknown) {
+  const result = rawUnitYardConfigRowsSchema.safeParse(value ?? [])
+
+  if (!result.success) {
+    throw new Error(unitsCopy.errors.unitYardLoad, { cause: result.error })
+  }
+
+  return result.data.map(mapUnitYardConfig)
+}
+
+function parseRawUnitYardConfigRow(value: unknown) {
+  const result = rawUnitYardConfigRowSchema.safeParse(value)
+
+  if (!result.success) {
+    throw new Error(unitsCopy.errors.unitYardSave, { cause: result.error })
+  }
+
+  return mapUnitYardConfig(result.data)
+}
+
+function parseStoredMockConfigs(value: unknown) {
+  const result = storedUnitYardConfigsSchema.safeParse(value)
+
+  if (!result.success) {
+    return []
+  }
+
+  return result.data.map(mapStoredUnitYardConfig)
 }
 
 function readStoredMockConfigs(): UnitYardConfig[] {
@@ -43,28 +112,7 @@ function readStoredMockConfigs(): UnitYardConfig[] {
   try {
     const parsed: unknown = JSON.parse(window.localStorage.getItem(UNIT_YARD_MOCK_STORAGE_KEY) ?? "[]")
 
-    if (!Array.isArray(parsed)) {
-      return []
-    }
-
-    return parsed.reduce<UnitYardConfig[]>((configs, item) => {
-      if (
-        isRecord(item) &&
-        typeof item.unitId === "string" &&
-        typeof item.patioActive === "boolean" &&
-        typeof item.parkingSpots === "number" &&
-        typeof item.updatedAt === "string"
-      ) {
-        configs.push(normalizeUnitYardConfig({
-          unitId: item.unitId,
-          patioActive: item.patioActive,
-          parkingSpots: item.parkingSpots,
-          updatedAt: item.updatedAt,
-        }))
-      }
-
-      return configs
-    }, [])
+    return parseStoredMockConfigs(parsed)
   } catch {
     return []
   }
@@ -96,12 +144,14 @@ function createMockUnitYardGateway(): UnitYardGateway {
   return {
     async listConfigs() {
       await Promise.resolve()
+
       return readStoredMockConfigs().sort((left, right) =>
         left.unitId.localeCompare(right.unitId, "pt-BR", { numeric: true })
       )
     },
     async upsertConfig(input) {
       await Promise.resolve()
+
       const config = normalizeUnitYardConfig({
         unitId: input.unitId,
         patioActive: input.patioActive,
@@ -115,6 +165,7 @@ function createMockUnitYardGateway(): UnitYardGateway {
       ]
 
       writeStoredMockConfigs(nextConfigs)
+
       return config
     },
   }
@@ -129,17 +180,13 @@ function createSupabaseUnitYardGateway(): UnitYardGateway {
         throw new Error(unitsCopy.errors.unitYardLoad)
       }
 
-      const listResponse = await supabase
+      const response: unknown = await supabase
         .from("unit_yard_configs")
         .select("unit_id, patio_active, parking_spots, updated_at")
-        .order("unit_id", { ascending: true }) as unknown as { data: unknown; error: unknown }
-      const { data, error } = listResponse
+        .order("unit_id", { ascending: true })
+      const data = parseSupabaseResponse(response, unitsCopy.errors.unitYardLoad)
 
-      if (error) {
-        throw new Error(unitsCopy.errors.unitYardLoad, { cause: error })
-      }
-
-      return ((data ?? []) as RawUnitYardConfigRow[]).map(mapUnitYardConfig)
+      return parseRawUnitYardConfigRows(data)
     },
     async upsertConfig(input) {
       const supabase = getSupabaseBrowserClient()
@@ -148,7 +195,7 @@ function createSupabaseUnitYardGateway(): UnitYardGateway {
         throw new Error(unitsCopy.errors.unitYardSave)
       }
 
-      const upsertResponse = await supabase
+      const response: unknown = await supabase
         .from("unit_yard_configs")
         .upsert({
           unit_id: input.unitId,
@@ -157,14 +204,10 @@ function createSupabaseUnitYardGateway(): UnitYardGateway {
           updated_at: new Date().toISOString(),
         }, { onConflict: "unit_id" })
         .select("unit_id, patio_active, parking_spots, updated_at")
-        .single() as unknown as { data: unknown; error: unknown }
-      const { data: upsertData, error: upsertError } = upsertResponse
+        .single()
+      const data = parseSupabaseResponse(response, unitsCopy.errors.unitYardSave)
 
-      if (upsertError || !upsertData) {
-        throw new Error(unitsCopy.errors.unitYardSave, { cause: upsertError })
-      }
-
-      return mapUnitYardConfig(upsertData as RawUnitYardConfigRow)
+      return parseRawUnitYardConfigRow(data)
     },
   }
 }

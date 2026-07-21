@@ -1,3 +1,5 @@
+import { z } from "zod"
+
 import { isErpCatalogMockEnabled, mockErpUnitsPayload } from "@/features/erp-mock"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
@@ -8,7 +10,7 @@ export interface UnitsGateway {
   listUnitsPayload: () => Promise<readonly ErpUnitPayload[]>
 }
 
-const unitPayloadKeys = [
+const unitPayloadColumns = [
   "cod_empresa",
   "nom_razao_social",
   "nom_fantasia",
@@ -24,22 +26,50 @@ const unitPayloadKeys = [
   "nom_banco_dados",
 ] as const
 
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
-}
+const numericPayloadValueSchema = z.union([z.number(), z.string()])
+const nullableNumericPayloadValueSchema = numericPayloadValueSchema.nullable()
+const nullableStringPayloadValueSchema = z.string().nullable()
 
-function hasKeys(value: Record<string, unknown>, keys: readonly string[]) {
-  return keys.every((key) => key in value)
-}
+const erpUnitPayloadSchema = z.object({
+  cod_empresa: numericPayloadValueSchema,
+  nom_razao_social: nullableStringPayloadValueSchema,
+  nom_fantasia: nullableStringPayloadValueSchema,
+  num_cnpj: nullableStringPayloadValueSchema,
+  cod_bandeira: nullableNumericPayloadValueSchema,
+  des_bandeira: nullableStringPayloadValueSchema,
+  cod_cidade: nullableNumericPayloadValueSchema,
+  nom_cidade: nullableStringPayloadValueSchema,
+  nom_estado: nullableStringPayloadValueSchema,
+  sgl_estado: nullableStringPayloadValueSchema,
+  des_coordenada_empresa: nullableStringPayloadValueSchema,
+  ip_rede: nullableStringPayloadValueSchema,
+  nom_banco_dados: nullableStringPayloadValueSchema,
+})
 
-function normalizeErpRows(value: unknown): readonly ErpUnitPayload[] {
-  if (!Array.isArray(value)) {
-    return []
+const erpUnitsPayloadSchema = z.array(erpUnitPayloadSchema)
+
+function parseErpRows(value: unknown): readonly ErpUnitPayload[] {
+  const result = erpUnitsPayloadSchema.safeParse(value ?? [])
+
+  if (!result.success) {
+    throw new Error(unitsCopy.errors.unitsLoad, { cause: result.error })
   }
 
-  return value.filter(
-    (row): row is ErpUnitPayload => isRecord(row) && hasKeys(row, unitPayloadKeys)
-  )
+  return result.data.map((row) => ({
+    cod_empresa: row.cod_empresa,
+    nom_razao_social: row.nom_razao_social ?? "",
+    nom_fantasia: row.nom_fantasia ?? "",
+    num_cnpj: row.num_cnpj ?? "",
+    cod_bandeira: row.cod_bandeira ?? 0,
+    des_bandeira: row.des_bandeira ?? "",
+    cod_cidade: row.cod_cidade ?? 0,
+    nom_cidade: row.nom_cidade ?? "",
+    nom_estado: row.nom_estado ?? "",
+    sgl_estado: row.sgl_estado ?? "",
+    des_coordenada_empresa: row.des_coordenada_empresa ?? "",
+    ip_rede: row.ip_rede ?? "",
+    nom_banco_dados: row.nom_banco_dados ?? "",
+  }))
 }
 
 function createSupabaseUnitsGateway(): UnitsGateway {
@@ -55,17 +85,16 @@ function createSupabaseUnitsGateway(): UnitsGateway {
         throw new Error(unitsCopy.errors.unitsUnavailable)
       }
 
-      const response = await supabase
+      const { data, error } = await supabase
         .from("erp_units")
-        .select(unitPayloadKeys.join(","))
-        .order("cod_empresa", { ascending: true }) as unknown as { data: unknown; error: unknown }
-      const { data, error } = response
+        .select(unitPayloadColumns.join(","))
+        .order("cod_empresa", { ascending: true })
 
       if (error) {
         throw new Error(unitsCopy.errors.unitsLoad, { cause: error })
       }
 
-      return normalizeErpRows(data)
+      return parseErpRows(data)
     },
   }
 }

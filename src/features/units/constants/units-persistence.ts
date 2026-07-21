@@ -10,5 +10,4 @@ export const DEFAULT_UNITS_COLUMN_VISIBILITY = {
   des_coordenada_empresa: false,
   ip_rede: false,
   nom_razao_social: false,
-  sgl_estado: false,
 } as const

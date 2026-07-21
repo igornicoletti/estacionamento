@@ -5,7 +5,6 @@ import { type UpsertUnitYardConfigInput } from "./units-types"
 
 export const unitYardConfigSchema = z.object({
   unitId: z.string({ error: unitsCopy.errors.unitYardInvalidUnit }).trim().min(1, { error: unitsCopy.errors.unitYardInvalidUnit }),
-  unitName: z.string().trim().optional(),
   patioActive: z.boolean({ error: unitsCopy.errors.unitYardSave }),
   parkingSpots: z
     .number({ error: unitsCopy.yard.validationInvalidSpots })

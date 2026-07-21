@@ -39,7 +39,6 @@ export interface UnitYardConfig {
 
 export interface UpsertUnitYardConfigInput {
   unitId: string
-  unitName?: string
   patioActive: boolean
   parkingSpots: number
 }
