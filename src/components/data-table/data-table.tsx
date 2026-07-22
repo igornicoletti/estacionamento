@@ -705,9 +705,9 @@ export function DataTable<TData extends RowData, TValue>({
 
   const tableSurfaceContent = (
     <>
-      <div className="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
+      <div className="flex min-w-0 flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden">
         {shouldRenderInitialSkeleton || visibleRows.length > 0 ? (
-          <DataTableScrollContainer className="min-h-0 w-full max-h-full max-w-full flex-1">
+          <DataTableScrollContainer className="w-full max-w-full lg:min-h-0 lg:max-h-full lg:flex-1">
             <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
               <caption className="sr-only">
                 {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
@@ -795,7 +795,7 @@ export function DataTable<TData extends RowData, TValue>({
 
   return (
     <div
-      className="flex min-h-0 min-w-0 flex-1 flex-col gap-4"
+      className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1"
       aria-busy={isLoading || undefined}
     >
       {hasNonBlockingError ? (
@@ -818,7 +818,7 @@ export function DataTable<TData extends RowData, TValue>({
                   <span className="text-sm leading-snug font-medium text-foreground">
                     {dataTableCopy.toolbar.controlsTitle}
                   </span>
-                  <span className="text-sm text-muted-foreground">
+                  <span className="hidden text-sm text-muted-foreground sm:block">
                     {dataTableCopy.toolbar.controlsDescription}
                   </span>
                 </span>
@@ -857,13 +857,13 @@ export function DataTable<TData extends RowData, TValue>({
       ) : null}
 
       {surface === "card" ? (
-        <Card size="sm" className="min-h-0 flex-1">
-          <CardContent className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+        <Card size="sm" className="overflow-visible lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+          <CardContent className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
             {tableSurfaceContent}
           </CardContent>
         </Card>
       ) : (
-        <div className="flex min-h-0 min-w-0 flex-1 flex-col gap-4">
+        <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
           {tableSurfaceContent}
         </div>
       )}

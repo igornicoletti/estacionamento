@@ -188,7 +188,9 @@ describe("AuditRoute", () => {
     fireEvent.click(trigger)
 
     expect(screen.getByRole("heading", { name: "Detalhes do evento" })).toBeInTheDocument()
-    expect(screen.getByText("Informações registradas na trilha de auditoria.")).toBeInTheDocument()
+    expect(
+      screen.getByText("Consulte as informações registradas para o evento selecionado.")
+    ).toBeInTheDocument()
     expect(screen.getByText("Motivo")).toBeInTheDocument()
     expect(screen.getByText("Perfil")).toBeInTheDocument()
     expect(screen.getByText("Operador")).toBeInTheDocument()

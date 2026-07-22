@@ -43,14 +43,19 @@ export async function getAuthenticatedActor(req: Request) {
       : null
 
   if (sessionId) {
-    const { data: session } = await supabase
-      .schema("auth")
-      .from("sessions")
-      .select("id")
-      .eq("id", sessionId)
-      .maybeSingle()
+    const { data: isActive, error: sessionError } = await supabase.rpc(
+      "is_auth_session_active",
+      { p_session_id: sessionId }
+    )
 
-    if (!session) {
+    if (sessionError) {
+      console.error("auth_session_lookup_failed", {
+        error: sessionError.message,
+      })
+      return null
+    }
+
+    if (isActive !== true) {
       return null
     }
   }
@@ -103,26 +108,6 @@ export async function actorHasPermission(
       role: actor.role,
       error: appPermissionResponse.error.message,
     })
-  }
-
-  const permissionResponse = await supabase
-    .from("permissions")
-    .select("id")
-    .eq("key", permissionKey)
-    .eq("is_active", true)
-    .maybeSingle()
-
-  if (!permissionResponse.error && permissionResponse.data?.id) {
-    const rolePermissionResponse = await supabase
-      .from("role_permissions")
-      .select("id")
-      .eq("permission_id", String(permissionResponse.data.id))
-      .eq("role", actor.role)
-      .limit(1)
-
-    if (!rolePermissionResponse.error && (rolePermissionResponse.data ?? []).length > 0) {
-      return true
-    }
   }
 
   return false

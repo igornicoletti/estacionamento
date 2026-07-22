@@ -172,11 +172,13 @@ export function DataTableFacetedFilter<TData, TValue>({
         ref={anchorRef}
         data-no-drag-scroll="true"
         aria-label={title}
-        className="relative h-9 min-h-9 w-full min-w-40 flex-nowrap overflow-hidden lg:w-44 xl:w-48 2xl:w-56"
+        showClear={selectedOptions.length > 0}
+        showTrigger
+        className="relative h-9 min-h-9 w-full min-w-40 flex-nowrap overflow-hidden pr-1 lg:w-44 xl:w-48 2xl:w-56"
       >
         {selectedOptions.length > 0 ? (
           <ComboboxValue>
-            <span className="pointer-events-none absolute inset-x-2.5 top-1/2 -translate-y-1/2 truncate text-left whitespace-nowrap text-sm">
+            <span className="pointer-events-none absolute top-1/2 right-14 left-2.5 -translate-y-1/2 truncate text-left whitespace-nowrap text-sm">
               {selectedSummary}
             </span>
           </ComboboxValue>

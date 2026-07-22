@@ -40,24 +40,3 @@ export interface PermissionMatrixRow {
 export interface PermissionMatrixResponse {
   permissions: PermissionMatrixRow[]
 }
-
-export interface RawPermissionGroupRow {
-  id: string
-  key: string
-  label: string
-}
-
-export interface RawPermissionRow {
-  id: string
-  key: string
-  label: string
-  description: string | null
-  source: PermissionSource
-  is_critical: boolean
-  group_id: string
-}
-
-export interface RawRolePermissionRow {
-  permission_id: string
-  role: PermissionRole
-}

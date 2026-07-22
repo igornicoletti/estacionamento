@@ -17,6 +17,16 @@ export function getNotificationDetailItems(
 ): readonly AppDetailsSheetItem[] {
   return [
     {
+      id: "title",
+      label: notificationsCopy.details.title,
+      value: notification.title,
+    },
+    {
+      id: "description",
+      label: notificationsCopy.details.description,
+      value: notification.description,
+    },
+    {
       id: "type",
       label: notificationsCopy.details.type,
       value: notificationTypeLabels[notification.type],
@@ -42,11 +52,13 @@ export function getNotificationDetailItems(
 export function resolveNotificationDetailsTitle(
   notification: NotificationRecord | null
 ) {
-  return notification?.title ?? notificationsCopy.details.titleFallback
+  return notification ? notificationsCopy.details.sheetTitle : undefined
 }
 
 export function resolveNotificationDetailsDescription(
   notification: NotificationRecord | null
 ) {
-  return notification?.description
+  return notification
+    ? notificationsCopy.details.sheetDescription
+    : undefined
 }

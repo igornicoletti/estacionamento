@@ -5,6 +5,10 @@ import * as React from "react"
 export function useMediaQuery(query: string, defaultValue = false) {
   const subscribe = React.useCallback(
     (callback: () => void) => {
+      if (typeof window === "undefined" || !window.matchMedia) {
+        return () => undefined
+      }
+
       const mediaQueryList = window.matchMedia(query)
 
       mediaQueryList.addEventListener("change", callback)
@@ -17,8 +21,12 @@ export function useMediaQuery(query: string, defaultValue = false) {
   )
 
   const getSnapshot = React.useCallback(() => {
+    if (typeof window === "undefined" || !window.matchMedia) {
+      return defaultValue
+    }
+
     return window.matchMedia(query).matches
-  }, [query])
+  }, [defaultValue, query])
 
   const getServerSnapshot = React.useCallback(() => {
     return defaultValue

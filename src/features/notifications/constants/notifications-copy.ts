@@ -17,6 +17,9 @@ export const notificationsCopy = {
     viewAll: "Ver todas",
   },
   details: {
+    sheetTitle: "Detalhes da notificação",
+    sheetDescription:
+      "Consulte as informações completas da notificação selecionada.",
     titleFallback: "Notificação",
     title: "Título",
     description: "Descrição",

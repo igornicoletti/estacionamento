@@ -25,6 +25,11 @@ export const permissionsCopy = {
     yes: "Sim",
     no: "Não",
   },
+  details: {
+    title: "Detalhes da permissão",
+    description:
+      "Consulte a classificação e os perfis com acesso à permissão selecionada.",
+  },
   accessibility: {
     withAccess: "Perfil com acesso",
     withoutAccess: "Perfil sem acesso",
@@ -46,6 +51,7 @@ export const permissionsCopy = {
   error: {
     load: "Não foi possível carregar a matriz de permissões.",
     invalidResponse: "A resposta da matriz de permissões é inválida.",
+    sessionRequired: "Sua sessão expirou. Faça login novamente para continuar.",
     unavailable: "O serviço de permissões não está configurado.",
   },
 } as const

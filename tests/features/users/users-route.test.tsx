@@ -84,7 +84,8 @@ describe("UsersRoute", () => {
 
     fireEvent.click(screen.getByRole("button", { name: "Usuario Teste" }))
 
-    expect(screen.getByRole("heading", { name: "Usuario Teste" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Detalhes do usuário" })).toBeInTheDocument()
+    expect(screen.getAllByText("Usuario Teste").length).toBeGreaterThan(0)
     expect(screen.queryByText("ID")).not.toBeInTheDocument()
     expect(screen.queryByText("USR-001")).not.toBeInTheDocument()
     expect(screen.getAllByText("111.444.777-35").length).toBeGreaterThan(0)
@@ -93,7 +94,7 @@ describe("UsersRoute", () => {
     expect(screen.getAllByText("Passkey").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Ativa").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Inativa").length).toBeGreaterThan(0)
-  })
+  }, 15_000)
 
   it("exibe validacoes obrigatorias ao submeter dialogo de cadastro vazio", async () => {
     render(

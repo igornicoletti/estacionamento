@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
 import {
   afterEach,
@@ -73,9 +73,9 @@ describe("ClientsRoute details", () => {
     )
 
     expect(screen.getAllByText("Código do cliente").length).toBeGreaterThan(0)
-    expect(
-      screen.getByRole("heading", { name: "Auto Center Alfa Ltda" })
-    ).toBeInTheDocument()
+    const dialog = screen.getByRole("dialog", { name: "Detalhes do cliente" })
+    expect(dialog).toBeInTheDocument()
+    expect(within(dialog).getByText("Auto Center Alfa Ltda")).toBeInTheDocument()
   })
 
   it("opens details from the row actions menu", async () => {

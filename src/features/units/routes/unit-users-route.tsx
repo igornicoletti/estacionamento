@@ -130,8 +130,12 @@ export function UnitUsersRoute() {
             setSelectedUser(null)
           }
         }}
-        title={selectedUser?.name}
-        description={selectedUser?.email ?? unitsCopy.table.noEmail}
+        title={selectedUser ? "Detalhes do funcionário" : undefined}
+        description={
+          selectedUser
+            ? "Consulte os dados de acesso e vínculo do funcionário selecionado."
+            : undefined
+        }
         items={selectedUser ? getUnitUserDetailItems(selectedUser) : []}
       />
     </PageSection>

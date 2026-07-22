@@ -65,19 +65,19 @@ function ComboboxInput({
         {...props}
       />
       <InputGroupAddon align="inline-end">
+        {showClear && <ComboboxClear disabled={disabled} />}
         {showTrigger && (
           <InputGroupButton
             size="icon-xs"
             variant="ghost"
             asChild
             data-slot="input-group-button"
-            className="group-has-data-[slot=combobox-clear]/input-group:hidden data-pressed:bg-transparent"
+            className="data-pressed:bg-transparent"
             disabled={disabled}
           >
             <ComboboxTrigger />
           </InputGroupButton>
         )}
-        {showClear && <ComboboxClear disabled={disabled} />}
       </InputGroupAddon>
       {children}
     </InputGroup>
@@ -214,9 +214,17 @@ function ComboboxSeparator({
 
 function ComboboxChips({
   className,
+  children,
+  disabled = false,
+  showClear = false,
+  showTrigger = false,
   ...props
 }: React.ComponentPropsWithRef<typeof ComboboxPrimitive.Chips> &
-  ComboboxPrimitive.Chips.Props) {
+  ComboboxPrimitive.Chips.Props & {
+    disabled?: boolean
+    showClear?: boolean
+    showTrigger?: boolean
+  }) {
   return (
     <ComboboxPrimitive.Chips
       data-slot="combobox-chips"
@@ -225,7 +233,36 @@ function ComboboxChips({
         className
       )}
       {...props}
-    />
+    >
+      {children}
+      {showClear || showTrigger ? (
+        <span
+          data-slot="combobox-chips-actions"
+          className="ml-auto flex shrink-0 items-center gap-0.5"
+        >
+          {showClear ? (
+            <ComboboxPrimitive.Clear
+              data-slot="combobox-clear"
+              render={<Button variant="ghost" size="icon-xs" />}
+              disabled={disabled}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <XIcon className="pointer-events-none" />
+            </ComboboxPrimitive.Clear>
+          ) : null}
+          {showTrigger ? (
+            <ComboboxPrimitive.Trigger
+              data-slot="combobox-trigger"
+              render={<Button variant="ghost" size="icon-xs" />}
+              disabled={disabled}
+              className="text-muted-foreground hover:text-foreground data-pressed:bg-transparent"
+            >
+              <ChevronDownIcon className="pointer-events-none" />
+            </ComboboxPrimitive.Trigger>
+          ) : null}
+        </span>
+      ) : null}
+    </ComboboxPrimitive.Chips>
   )
 }
 

@@ -14,6 +14,7 @@ import {
   publicRouteRegistry,
   type AppRouteRegistryItem,
 } from "@/app/router/route-registry"
+import { SelectedUnitProvider } from "@/components/shared/app-unit-selector"
 import { AuthenticatedLayout } from "../layouts/authenticated-layout"
 
 const routeHydrateFallbackElement = <RouteLoadingState />
@@ -96,7 +97,9 @@ export const routes = [
         id: appRouteIds.app,
         element: (
           <PrivateRouteGate>
-            <AuthenticatedLayout />
+            <SelectedUnitProvider>
+              <AuthenticatedLayout />
+            </SelectedUnitProvider>
           </PrivateRouteGate>
         ),
         errorElement: <RouteErrorBoundary />,

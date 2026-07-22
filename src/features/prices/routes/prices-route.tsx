@@ -147,8 +147,12 @@ export function PricesRoute() {
             setDetailsRecord(null)
           }
         }}
-        title={detailsRecord?.name}
-        description={detailsRecord ? pricesCopy.form.description : undefined}
+        title={detailsRecord ? "Detalhes da tabela de preço" : undefined}
+        description={
+          detailsRecord
+            ? "Consulte escopo, valores, vigência e status da tabela selecionada."
+            : undefined
+        }
         items={detailsRecord ? getPriceTableDetailItems(detailsRecord) : []}
       />
 

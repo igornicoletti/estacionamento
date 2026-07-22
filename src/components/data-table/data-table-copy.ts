@@ -84,7 +84,7 @@ export const dataTableCopy = {
     hide: "Ocultar",
   },
   viewOptions: {
-    trigger: "Coluna",
+    trigger: "Colunas",
     tooltip: "Colunas",
   },
 } as const

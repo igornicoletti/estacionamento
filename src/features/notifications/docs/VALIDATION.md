@@ -26,3 +26,5 @@ Checklist no navegador:
 - Busca global, filtros, paginação e colunas funcionam.
 - Ações de lida/não lida não disparam requisições duplicadas.
 - Links externos ou malformados não são renderizados como destino navegável.
+- O destino interno em tabela mantém affordance de link com underline no hover.
+- O popover usa ícones por tipo, sem dot decorativo antes do título.

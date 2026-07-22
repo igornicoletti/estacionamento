@@ -21,6 +21,10 @@ export function getRecoveryRequestDetailItems(
       value: request.id,
     },
     {
+      label: accessRequestsCopy.tables.recovery.columns.requester,
+      value: request.requesterLabel,
+    },
+    {
       label: accessRequestsCopy.details.labels.createdAt,
       value: formatDateTime(request.createdAt),
     },
@@ -61,11 +65,13 @@ export function getRecoveryRequestDetailItems(
 }
 
 export function getAccessRequestDetailsTitle(target: AccessRequestDetailsTarget | null) {
-  return target ? accessRequestsCopy.details.titleFallback : undefined
+  return target ? "Detalhes da solicitação" : undefined
 }
 
 export function getAccessRequestDetailsDescription(target: AccessRequestDetailsTarget | null) {
-  return target ? accessRequestsCopy.details.recoveryDescription : undefined
+  return target
+    ? "Consulte os dados informados e a verificação da solicitação selecionada."
+    : undefined
 }
 
 export function getAccessRequestDetailItems(target: AccessRequestDetailsTarget | null) {

@@ -33,6 +33,12 @@ describe("NotificationsPopover", () => {
     expect(
       screen.getByRole("button", { name: "Marcar todas como lidas" })
     ).toBeInTheDocument()
+    expect(
+      document.querySelector('[data-notification-type-icon="sync"]')
+    ).toBeInTheDocument()
+    expect(
+      document.querySelector('[data-notification-type-icon="security"]')
+    ).toBeInTheDocument()
 
     expect(
       screen.getByRole("link", { name: "Ver todas" })

@@ -9,13 +9,15 @@ Feature responsável por exibir a matriz efetiva de permissões por perfil.
 - `hooks`: composição de carregamento e filtros da tela.
 - `model`: contratos, type guards, normalizadores, parsers e modelo de detalhes.
 - `routes`: composição da página.
-- `services`: fronteira Supabase e fallback direto por tabelas.
+- `services`: fronteira Supabase única via Edge Function protegida.
 - `table`: definição de colunas.
 
 ## Decisões
 
 - A raiz da feature mantém somente `index.ts`.
 - A rota não contém regras de parsing nem montagem de matriz.
-- O service só chama `list-permission-matrix` quando existe JWT de sessão validado; sem sessão validada, usa fallback direto para `app_permissions` e `app_role_permissions` para evitar chamadas protegidas que retornam 401 no browser.
+- O service só lê a matriz via `list-permission-matrix` quando existe JWT de sessão validado; sem sessão validada, retorna erro de sessão em linguagem de usuário.
+- A montagem efetiva da matriz fica no backend para evitar duplicação entre UI, RLS e Edge Function.
+- `list-permission-matrix` permanece com `verify_jwt = true`; a sessão revogada é checada por RPC `is_auth_session_active`, executada com `service_role`, sem consultar `auth.sessions` via REST.
 - Dados desconhecidos entram como `unknown` e são normalizados antes de chegar à UI.
 - Não há schema Zod local porque esta feature não possui formulário nem payload de escrita pelo frontend.

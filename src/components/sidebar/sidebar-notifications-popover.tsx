@@ -18,10 +18,12 @@ import {
   formatNotificationsCounter,
   getRecentUnreadNotifications,
   isInternalNotificationHref,
+  NotificationTypeIcon,
   notificationTypeLabels,
   notificationsCopy,
   useNotifications,
 } from "@/features/notifications"
+import { useIsMobile } from "@/hooks/use-mobile"
 
 import { formatDateTime } from "@/lib"
 
@@ -40,6 +42,7 @@ function resolveNotificationButtonLabel(unreadCount: number) {
 }
 
 export function NotificationsPopover() {
+  const isMobile = useIsMobile()
   const [isOpen, setIsOpen] = React.useState(false)
   const {
     data,
@@ -79,136 +82,151 @@ export function NotificationsPopover() {
     void refetch()
   }, [refetch])
 
-  return (
-    <Popover open={isOpen} onOpenChange={setIsOpen}>
-      <PopoverTrigger asChild>
+  const trigger = (
+    <Button
+      type="button"
+      variant="ghost"
+      size="icon-lg"
+      className="relative"
+      aria-label={resolveNotificationButtonLabel(unreadCount)}
+    >
+      <BellIcon />
+      {unreadBadge ? (
+        <Badge
+          variant="destructive"
+          aria-live="polite"
+          className="absolute -top-1 -right-1 h-5 min-w-5 justify-center bg-destructive px-1 text-[0.625rem] font-bold leading-none text-destructive-foreground"
+        >
+          {unreadBadge}
+        </Badge>
+      ) : null}
+    </Button>
+  )
+
+  const panel = error ? (
+    <AppEmptyState
+      className="min-h-64 rounded-lg border-0 bg-muted/30"
+      media={<RefreshCcw />}
+      title={notificationsCopy.feedback.loadError}
+      actions={(
+        <Button type="button" variant="secondary" onClick={handleRetry}>
+          {notificationsCopy.actions.retry}
+        </Button>
+      )}
+    />
+  ) : recentNotifications.length === 0 ? (
+    <AppEmptyState
+      className="min-h-64 rounded-lg border-0 bg-muted/30"
+      media={<BellIcon />}
+      title={notificationsCopy.empty.unreadTitle}
+      description={notificationsCopy.empty.unreadDescription}
+    />
+  ) : (
+    <div className="flex max-h-[inherit] min-h-0 flex-col gap-2 p-2.5">
+      <PopoverHeader className="flex-row items-start justify-between gap-3 border-b border-border/60 px-1 pb-2">
+        <span className="grid min-w-0 gap-0.5">
+          <PopoverTitle className="text-sm font-semibold text-foreground">
+            {sidebarCopy.notifications.panelTitle}
+          </PopoverTitle>
+          <span className="text-xs text-muted-foreground">
+            {notificationsCopy.page.unreadCounter(unreadCount)}
+          </span>
+        </span>
         <Button
           type="button"
           variant="ghost"
-          size="icon-lg"
-          className="relative"
-          aria-label={resolveNotificationButtonLabel(unreadCount)}
+          size="sm"
+          className="h-7 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
+          disabled={isLoading || isUpdatingBatch || unreadCount === 0}
+          aria-label={sidebarCopy.notifications.markAllRead}
+          onClick={() => {
+            void handleMarkAllAsRead()
+          }}
         >
-          <BellIcon />
-          {unreadBadge ? (
-            <Badge
-              variant="destructive"
-              aria-live="polite"
-              className="absolute -top-1 -right-1 h-5 min-w-5 justify-center bg-destructive px-1 text-[0.625rem] font-bold leading-none text-destructive-foreground"
-            >
-              {unreadBadge}
-            </Badge>
-          ) : null}
+          {isUpdatingBatch
+            ? notificationsCopy.actions.updatingAll
+            : notificationsCopy.actions.markAllAsRead}
         </Button>
-      </PopoverTrigger>
+      </PopoverHeader>
+
+      <div className="min-h-0 flex-1 overflow-y-auto pr-1">
+        <div className="flex flex-col gap-1">
+          {recentNotifications.map((notification) => {
+            const isUpdating = isNotificationUpdating(notification.id)
+
+            return (
+              <Button
+                key={notification.id}
+                asChild
+                variant="ghost"
+                className="h-auto justify-start px-2 py-2 text-left"
+              >
+                <Link
+                  to={resolveNotificationHref(notification.href)}
+                  aria-busy={isUpdating}
+                  onClick={() => {
+                    setIsOpen(false)
+
+                    if (notification.status === "unread" && !isUpdating) {
+                      void updateStatus(notification.id, "read").catch(() => {
+                        notify.error(notificationsCopy.feedback.markAsReadError)
+                      })
+                    }
+                  }}
+                >
+                  <span className="flex min-w-0 flex-1 items-start gap-2">
+                    <NotificationTypeIcon
+                      type={notification.type}
+                      className="mt-0.5"
+                    />
+                    <span className="min-w-0 flex-1">
+                      <span className="flex items-start justify-between gap-2">
+                        <span className="truncate text-sm font-medium">
+                          {notification.title}
+                        </span>
+                        <span className="shrink-0 text-xs text-muted-foreground">
+                          {formatDateTime(notification.occurredAt)}
+                        </span>
+                      </span>
+                      <span className="line-clamp-2 text-xs text-muted-foreground">
+                        {notification.description}
+                      </span>
+                      <span className="text-[0.6875rem] text-muted-foreground">
+                        {notificationTypeLabels[notification.type]}
+                      </span>
+                    </span>
+                  </span>
+                </Link>
+              </Button>
+            )
+          })}
+        </div>
+      </div>
+
+      <Button
+        asChild
+        variant="secondary"
+        className="w-full shrink-0"
+        onClick={() => {
+          setIsOpen(false)
+        }}
+      >
+        <Link to={appRoutePaths.notifications}>{sidebarCopy.notifications.viewAll}</Link>
+      </Button>
+    </div>
+  )
+
+  return (
+    <Popover open={isOpen} onOpenChange={setIsOpen}>
+      <PopoverTrigger asChild>{trigger}</PopoverTrigger>
 
       <PopoverContent
         align="end"
+        alignOffset={isMobile ? 8 : 0}
+        collisionPadding={16}
         className="max-h-[min(32rem,calc(100svh-5rem))] w-[min(24rem,calc(100vw-2rem))] overflow-hidden p-0"
       >
-        {error ? (
-          <AppEmptyState
-            className="min-h-64 rounded-lg border-0 bg-muted/30"
-            media={<RefreshCcw />}
-            title={notificationsCopy.feedback.loadError}
-            actions={(
-              <Button type="button" variant="secondary" onClick={handleRetry}>
-                {notificationsCopy.actions.retry}
-              </Button>
-            )}
-          />
-        ) : recentNotifications.length === 0 ? (
-          <AppEmptyState
-            className="min-h-64 rounded-lg border-0 bg-muted/30"
-            media={<BellIcon />}
-            title={notificationsCopy.empty.unreadTitle}
-            description={notificationsCopy.empty.unreadDescription}
-          />
-        ) : (
-          <div className="flex max-h-[inherit] min-h-0 flex-col gap-2 p-2.5">
-            <PopoverHeader className="flex-row items-center justify-between gap-2">
-              <PopoverTitle>{sidebarCopy.notifications.panelTitle}</PopoverTitle>
-              <Button
-                type="button"
-                variant="ghost"
-                disabled={isLoading || isUpdatingBatch || unreadCount === 0}
-                aria-label={sidebarCopy.notifications.markAllRead}
-                onClick={() => {
-                  void handleMarkAllAsRead()
-                }}
-              >
-                {isUpdatingBatch
-                  ? notificationsCopy.actions.updatingAll
-                  : notificationsCopy.actions.markAllAsRead}
-              </Button>
-            </PopoverHeader>
-
-            <div className="min-h-0 flex-1 overflow-y-auto pr-1">
-              <div className="flex flex-col gap-1">
-                {recentNotifications.map((notification) => {
-                  const isUpdating = isNotificationUpdating(notification.id)
-
-                  return (
-                    <Button
-                      key={notification.id}
-                      asChild
-                      variant="ghost"
-                      className="h-auto justify-start px-2 py-2 text-left"
-                    >
-                      <Link
-                        to={resolveNotificationHref(notification.href)}
-                        aria-busy={isUpdating}
-                        onClick={() => {
-                          setIsOpen(false)
-
-                          if (notification.status === "unread" && !isUpdating) {
-                            void updateStatus(notification.id, "read").catch(() => {
-                              notify.error(notificationsCopy.feedback.markAsReadError)
-                            })
-                          }
-                        }}
-                      >
-                        <span className="flex min-w-0 flex-1 items-start gap-2">
-                          <span
-                            aria-hidden="true"
-                            className="mt-1.5 size-2 shrink-0 rounded-full bg-primary"
-                          />
-                          <span className="min-w-0 flex-1">
-                            <span className="flex items-start justify-between gap-2">
-                              <span className="truncate text-sm font-medium">
-                                {notification.title}
-                              </span>
-                              <span className="shrink-0 text-xs text-muted-foreground">
-                                {formatDateTime(notification.occurredAt)}
-                              </span>
-                            </span>
-                            <span className="line-clamp-2 text-xs text-muted-foreground">
-                              {notification.description}
-                            </span>
-                            <span className="text-[0.6875rem] text-muted-foreground">
-                              {notificationTypeLabels[notification.type]}
-                            </span>
-                          </span>
-                        </span>
-                      </Link>
-                    </Button>
-                  )
-                })}
-              </div>
-            </div>
-
-            <Button
-              asChild
-              variant="secondary"
-              className="w-full shrink-0"
-              onClick={() => {
-                setIsOpen(false)
-              }}
-            >
-              <Link to={appRoutePaths.notifications}>{sidebarCopy.notifications.viewAll}</Link>
-            </Button>
-          </div>
-        )}
+        {panel}
       </PopoverContent>
     </Popover>
   )

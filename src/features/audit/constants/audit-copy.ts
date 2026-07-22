@@ -37,7 +37,7 @@ export const auditCopy = {
     reason: "Motivo",
     emptyValue: "—",
     title: "Detalhes do evento",
-    description: "Informações registradas na trilha de auditoria.",
+    description: "Consulte as informações registradas para o evento selecionado.",
     fallbackDescription: "Sem informações adicionais.",
   },
   labels: {

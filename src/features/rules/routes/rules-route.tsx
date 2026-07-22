@@ -183,8 +183,12 @@ export function RulesRoute() {
             setDetailsRecord(null)
           }
         }}
-        title={detailsRecord ? rulesCopy.actions.details : undefined}
-        description={detailsRecord ? rulesCopy.form.description : undefined}
+        title={detailsRecord ? "Detalhes da regra" : undefined}
+        description={
+          detailsRecord
+            ? "Consulte alvo, condição, benefício e status da regra selecionada."
+            : undefined
+        }
         items={detailsRecord ? getRuleDetailItems(detailsRecord) : []}
       />
 

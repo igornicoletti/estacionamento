@@ -106,5 +106,6 @@ export function getUserDetailItems(user: UserRecord): readonly AppDetailsSheetIt
     { label: usersCopy.form.unitLabel, value: resolveUnitLabel(user.unitName) },
     { label: usersCopy.details.passkeyLabel, value: resolvePasskeyLabel(user.passkeyStatus) },
     { label: usersCopy.details.lastAccessLabel, value: resolveLastAccessLabel(user.lastAccessAt) },
+    { label: usersCopy.filters.online, value: resolveOnlineLabel(user.lastAccessAt) },
   ]
 }

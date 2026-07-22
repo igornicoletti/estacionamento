@@ -6,6 +6,7 @@ import {
   AppSheet,
   type AppSheetProps,
 } from "@/components/shared/app-sheet"
+import { cn } from "@/lib/utils"
 
 export interface AppDetailsSheetItem {
   id?: string
@@ -30,23 +31,35 @@ function renderDetailValue(value: React.ReactNode) {
 export function AppDetailsSheet({
   items,
   emptyContent = null,
+  className,
   ...props
 }: AppDetailsSheetProps) {
   return (
-    <AppSheet {...props}>
+    <AppSheet
+      {...props}
+      className={cn(
+        "data-[side=right]:w-[min(calc(100vw-2rem),28rem)] data-[side=right]:sm:max-w-md",
+        className
+      )}
+    >
       {items.length > 0 ? (
-        <dl className="grid gap-4 px-4 pb-4">
-          {items.map((item, index) => (
-            <div key={item.id ?? index} className="grid gap-1">
-              <dt className="text-sm font-medium text-muted-foreground">
-                {item.label}
-              </dt>
-              <dd className="text-sm text-foreground">
-                {renderDetailValue(item.value)}
-              </dd>
-            </div>
-          ))}
-        </dl>
+        <div className="min-h-0 flex-1 overflow-y-auto px-4 pb-4">
+          <dl className="divide-y rounded-lg border">
+            {items.map((item, index) => (
+              <div
+                key={item.id ?? index}
+                className="grid gap-1 px-3 py-3 sm:grid-cols-[minmax(8rem,11rem)_minmax(0,1fr)] sm:gap-3"
+              >
+                <dt className="text-sm font-medium text-muted-foreground">
+                  {item.label}
+                </dt>
+                <dd className="min-w-0 break-words text-sm text-foreground">
+                  {renderDetailValue(item.value)}
+                </dd>
+              </div>
+            ))}
+          </dl>
+        </div>
       ) : (
         emptyContent
       )}

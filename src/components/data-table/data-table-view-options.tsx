@@ -66,7 +66,8 @@ export function DataTableViewOptions<TData>({
         <DropdownMenuContent
           data-no-drag-scroll="true"
           align="end"
-          className="w-48"
+          collisionPadding={16}
+          className="w-[calc(100vw-2rem)] sm:w-56"
         >
           {hideableColumns.map((column) => (
             <DropdownMenuCheckboxItem

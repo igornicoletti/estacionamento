@@ -271,6 +271,7 @@ export function VipRuleFormDialog({
                     id="rule-client-name"
                     className="h-9 w-full"
                     placeholder={rulesCopy.form.selectPlaceholder}
+                    showClear={Boolean(values.clientId)}
                     aria-label={rulesCopy.form.clientName}
                     aria-invalid={Boolean(errors.clientId)}
                   >

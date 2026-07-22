@@ -24,8 +24,14 @@ export const AUTH_STORAGE_KEYS = {
   inactivityExpired: "rmc.auth.inactivity-expired",
 } as const
 
+export const AUTH_SESSION_TIMEOUTS = {
+  inactivityMinutes: 15,
+  timeboxHours: 24,
+  jwtExpirySeconds: 3600,
+} as const
+
 export const AUTH_INACTIVITY = {
-  timeoutMs: 15 * 60 * 1000,
+  timeoutMs: AUTH_SESSION_TIMEOUTS.inactivityMinutes * 60 * 1000,
   warningMs: 60 * 1000,
   tickMs: 1000,
 } as const

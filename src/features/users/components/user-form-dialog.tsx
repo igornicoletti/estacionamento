@@ -318,6 +318,7 @@ export function UserFormDialog({
                 className="h-9 w-full"
                 placeholder={isGlobalScopeRole ? usersCopy.form.globalUnitPlaceholder : usersCopy.form.unitPlaceholder}
                 disabled={isSaving || isGlobalScopeRole}
+                showClear={!isGlobalScopeRole && Boolean(selectedUnit)}
                 aria-invalid={Boolean(errors.unitId)}
               >
                 <InputGroupAddon>

@@ -12,58 +12,20 @@ const permissionMatrixRow = {
   source: "system",
 }
 
-const rawPermissionRow = {
-  description: null,
-  key: "users.read",
-  label: "Consultar usuários",
-}
-
-const rawRolePermissionRow = {
-  permission_key: "users.read",
-  role_key: "owner",
-}
-
 function createSupabaseMock() {
   const functionsInvoke = vi.fn()
   const getValidatedSupabaseAccessToken = vi.fn()
-  const from = vi.fn((table: string) => {
-    if (table === "app_permissions") {
-      return {
-        select: vi.fn(() => ({
-          order: vi.fn(() =>
-            Promise.resolve({
-              data: [rawPermissionRow],
-              error: null,
-            })
-          ),
-        })),
-      }
-    }
-
-    if (table === "app_role_permissions") {
-      return {
-        select: vi.fn(() =>
-          Promise.resolve({
-            data: [rawRolePermissionRow],
-            error: null,
-          })
-        ),
-      }
-    }
-
-    throw new Error(`Unexpected table ${table}`)
-  })
+  const readResponseErrorMessage = vi.fn()
   const supabase = {
-    from,
     functions: {
       invoke: functionsInvoke,
     },
   }
 
   return {
-    from,
     functionsInvoke,
     getValidatedSupabaseAccessToken,
+    readResponseErrorMessage,
     supabase,
   }
 }
@@ -74,6 +36,7 @@ async function importServiceWithSupabase(
   vi.doMock("@/lib", () => ({
     getSupabaseBrowserClient: () => mock.supabase,
     getValidatedSupabaseAccessToken: mock.getValidatedSupabaseAccessToken,
+    readResponseErrorMessage: mock.readResponseErrorMessage,
   }))
 
   return import("@/features/permissions/services/permissions-service")
@@ -102,22 +65,36 @@ describe("permissions service", () => {
         Authorization: "Bearer session-token",
       },
     })
-    expect(mock.from).not.toHaveBeenCalled()
     expect(permissions).toHaveLength(1)
     expect(permissions[0]?.roleAccess.owner).toBe(true)
   })
 
-  it("does not call the protected Edge Function when no validated session exists", async () => {
+  it("does not query permissions without a validated user session", async () => {
     const mock = createSupabaseMock()
     mock.getValidatedSupabaseAccessToken.mockResolvedValue(null)
     const { listPermissionMatrix } = await importServiceWithSupabase(mock)
 
-    const permissions = await listPermissionMatrix()
+    await expect(listPermissionMatrix()).rejects.toThrow(
+      "Sua sessão expirou. Faça login novamente para continuar."
+    )
 
     expect(mock.functionsInvoke).not.toHaveBeenCalled()
-    expect(mock.from).toHaveBeenCalledWith("app_permissions")
-    expect(mock.from).toHaveBeenCalledWith("app_role_permissions")
-    expect(permissions).toHaveLength(1)
-    expect(permissions[0]?.roleAccess.owner).toBe(true)
+  })
+
+  it("maps protected function failures to user-facing copy", async () => {
+    const mock = createSupabaseMock()
+    mock.getValidatedSupabaseAccessToken.mockResolvedValue("session-token")
+    mock.readResponseErrorMessage.mockResolvedValue(
+      "Não foi possível continuar com os dados informados."
+    )
+    mock.functionsInvoke.mockResolvedValue({
+      data: null,
+      error: new Error("Edge Function returned a non-2xx status code"),
+    })
+    const { listPermissionMatrix } = await importServiceWithSupabase(mock)
+
+    await expect(listPermissionMatrix()).rejects.toThrow(
+      "Não foi possível continuar com os dados informados."
+    )
   })
 })

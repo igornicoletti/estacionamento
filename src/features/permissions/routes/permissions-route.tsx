@@ -88,8 +88,12 @@ export function PermissionsRoute() {
             setSelectedPermission(null)
           }
         }}
-        title={selectedPermission?.label}
-        description={selectedPermission?.description ?? selectedPermission?.key}
+        title={selectedPermission ? permissionsCopy.details.title : undefined}
+        description={
+          selectedPermission
+            ? permissionsCopy.details.description
+            : undefined
+        }
         items={selectedPermission ? getPermissionDetailItems(selectedPermission) : []}
       />
     </PageSection>

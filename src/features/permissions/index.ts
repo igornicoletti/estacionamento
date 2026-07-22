@@ -31,9 +31,6 @@ export {
   type PermissionRole,
   type PermissionRoleAccess,
   type PermissionSource,
-  type RawPermissionGroupRow,
-  type RawPermissionRow,
-  type RawRolePermissionRow,
 } from "./model"
 export { PermissionsRoute } from "./routes"
 export { listPermissionMatrix } from "./services"

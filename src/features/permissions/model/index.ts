@@ -8,9 +8,6 @@ export {
   type PermissionRole,
   type PermissionRoleAccess,
   type PermissionSource,
-  type RawPermissionGroupRow,
-  type RawPermissionRow,
-  type RawRolePermissionRow,
 } from "./permissions-types"
 export {
   createEmptyRoleAccess,
@@ -23,12 +20,7 @@ export {
   sortPermissionRoles,
 } from "./permissions-rules"
 export {
-  assertPermissionRowsAreValid,
-  buildPermissionGroupsFromRows,
-  buildPermissionMatrixFromRows,
   parsePermissionMatrixResponse,
-  parseRawPermission,
-  parseRawRolePermission,
 } from "./permissions-parsers"
 export {
   formatTechnicalPermissionKey,

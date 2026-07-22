@@ -74,11 +74,21 @@ function parseDurationMs(value) {
 function requireAuthInactivityTimeoutAlignment() {
   const authContracts = read("src/features/auth/contracts/auth-contracts.ts")
   const supabaseConfig = read("supabase/config.toml")
-  const frontendMatch = authContracts.match(/timeoutMs:\s*(\d+)\s*\*\s*60\s*\*\s*1000/)
+  const timeoutContractMatch = authContracts.match(/inactivityMinutes:\s*(\d+)/)
+  const frontendExpressionMatch = authContracts.match(
+    /timeoutMs:\s*AUTH_SESSION_TIMEOUTS\.inactivityMinutes\s*\*\s*60\s*\*\s*1000/
+  )
   const configMatch = supabaseConfig.match(/inactivity_timeout\s*=\s*"([^"]+)"/)
 
-  if (!frontendMatch) {
-    errors.push("AUTH_INACTIVITY.timeoutMs must be declared as minutes * 60 * 1000")
+  if (!timeoutContractMatch) {
+    errors.push("AUTH_SESSION_TIMEOUTS.inactivityMinutes must be declared")
+    return
+  }
+
+  if (!frontendExpressionMatch) {
+    errors.push(
+      "AUTH_INACTIVITY.timeoutMs must be derived from AUTH_SESSION_TIMEOUTS.inactivityMinutes * 60 * 1000"
+    )
     return
   }
 
@@ -87,7 +97,7 @@ function requireAuthInactivityTimeoutAlignment() {
     return
   }
 
-  const frontendMs = Number(frontendMatch[1]) * 60 * 1000
+  const frontendMs = Number(timeoutContractMatch[1]) * 60 * 1000
   const configMs = parseDurationMs(configMatch[1])
 
   if (configMs === null) {
@@ -260,12 +270,12 @@ for (const [file, needles] of [
     [
       "sourceRowCount",
       "enableExport",
-      "flex min-h-0 min-w-0 flex-1 flex-col gap-4",
+      "flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1",
       "shouldRenderStatePanel",
       "shouldRenderInitialSkeleton || visibleRows.length > 0",
       "shouldRenderToolbar",
       "surface === \"card\"",
-      "flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden",
+      "flex min-w-0 flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden",
       "DataTableDefaultState",
     ],
   ],

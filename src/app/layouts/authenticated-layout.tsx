@@ -3,7 +3,6 @@ import { Outlet, useMatches } from "react-router"
 
 import { appRoutePaths } from "@/app/router/route-registry"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
-import { SelectedUnitProvider } from "@/components/shared/app-unit-selector"
 import { AppHeader, AppSidebar } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
@@ -38,28 +37,30 @@ export function AuthenticatedLayout() {
     <>
       <SidebarProvider
         className={cn(
-          isContainedScroll ? "h-dvh overflow-hidden" : "min-h-dvh overflow-visible"
+          isContainedScroll
+            ? "min-h-dvh overflow-visible lg:h-dvh lg:overflow-hidden"
+            : "min-h-dvh overflow-visible"
         )}
       >
         <AppSidebar homeHref={appRoutePaths.home} />
         <SidebarInset
           className={cn(
-            isContainedScroll ? "min-h-0 overflow-hidden" : "min-h-dvh overflow-visible"
+            isContainedScroll
+              ? "min-h-dvh overflow-visible lg:min-h-0 lg:overflow-hidden"
+              : "min-h-dvh overflow-visible"
           )}
         >
-          <SelectedUnitProvider>
-            <AppHeader />
-            <main
-              className={cn(
-                "animate-page-in flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4 pb-6 md:p-6",
-                isContainedScroll
-                  ? "overflow-y-auto overscroll-contain"
-                  : "overflow-visible"
-              )}
-            >
-              <Outlet />
-            </main>
-          </SelectedUnitProvider>
+          <AppHeader />
+          <main
+            className={cn(
+              "animate-page-in flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4 pb-6 md:p-6",
+              isContainedScroll
+                ? "overflow-visible lg:overflow-y-auto lg:overscroll-contain"
+                : "overflow-visible"
+            )}
+          >
+            <Outlet />
+          </main>
         </SidebarInset>
       </SidebarProvider>
 

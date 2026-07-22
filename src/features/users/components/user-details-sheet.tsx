@@ -3,7 +3,6 @@ import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { usersCopy } from "../constants"
 import {
   getUserDetailItems,
-  resolveEmailLabel,
   type UserRecord,
 } from "../model"
 
@@ -17,8 +16,12 @@ export function UserDetailsSheet({ user, onOpenChange }: UserDetailsSheetProps) 
     <AppDetailsSheet
       open={Boolean(user)}
       onOpenChange={onOpenChange}
-      title={user?.name ?? usersCopy.details.title}
-      description={user ? resolveEmailLabel(user.email) : undefined}
+      title={user ? usersCopy.details.title : undefined}
+      description={
+        user
+          ? "Consulte os dados de acesso e vínculo do usuário selecionado."
+          : undefined
+      }
       items={user ? getUserDetailItems(user) : []}
     />
   )

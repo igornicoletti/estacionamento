@@ -279,8 +279,12 @@ export function UnitsRoute() {
             setSelectedUnitId(null)
           }
         }}
-        title={selectedUnit?.nom_fantasia}
-        description={selectedUnit?.nom_razao_social}
+        title={selectedUnit ? "Detalhes da unidade" : undefined}
+        description={
+          selectedUnit
+            ? "Consulte os dados cadastrais, operacionais e de pátio da unidade selecionada."
+            : undefined
+        }
         items={
           selectedUnit
             ? getUnitDetailItems(selectedUnit, selectedUnit.yardConfig, selectedUnit.userStats)

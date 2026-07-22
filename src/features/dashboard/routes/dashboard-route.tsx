@@ -84,9 +84,9 @@ export function DashboardRoute() {
 
   const detailsTitle =
     details?.kind === "movement"
-      ? `Veículo ${details.row.plate}`
+      ? "Detalhes da movimentação"
       : details?.kind === "alert"
-        ? details.row.title
+        ? "Detalhes do alerta"
         : undefined
 
   return (
@@ -111,7 +111,11 @@ export function DashboardRoute() {
           }
         }}
         title={detailsTitle}
-        description={details ? "Detalhes complementares do registro selecionado." : undefined}
+        description={
+          details
+            ? "Consulte as informações completas do registro selecionado."
+            : undefined
+        }
         items={detailsItems}
       />
     </PageSection>

@@ -221,8 +221,12 @@ export function ClientVehiclesRoute() {
             setSelectedVehicle(null)
           }
         }}
-        title={selectedVehicle?.num_placa}
-        description={selectedVehicle?.nom_pessoa}
+        title={selectedVehicle ? "Detalhes do veículo" : undefined}
+        description={
+          selectedVehicle
+            ? "Consulte os dados do veículo e do cliente vinculado."
+            : undefined
+        }
         items={selectedVehicle ? getClientVehicleDetailItems(selectedVehicle) : []}
       />
     </PageSection>

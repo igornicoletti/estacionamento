@@ -1,4 +1,8 @@
 export {
+  NotificationTypeIcon,
+  NotificationsEmptyState,
+} from "./components"
+export {
   notificationStatusLabels,
   notificationsCopy,
   notificationTypeLabels,

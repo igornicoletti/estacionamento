@@ -72,7 +72,7 @@ export const usersCopy = {
     },
   },
   details: {
-    title: "Informações do usuário",
+    title: "Detalhes do usuário",
     noEmail: "Sem e-mail",
     noAccess: "Sem acesso",
     globalUnit: "Global",

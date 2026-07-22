@@ -36,8 +36,9 @@ describe("NotificationsRoute", () => {
     fireEvent.click(screen.getByRole("button", { name: "Sincronização concluída" }))
 
     expect(
-      screen.getByRole("heading", { name: "Sincronização concluída" })
+      screen.getByRole("heading", { name: "Detalhes da notificação" })
     ).toBeInTheDocument()
+    expect(screen.getAllByText("Sincronização concluída").length).toBeGreaterThan(0)
     expect(screen.queryByText("ID")).not.toBeInTheDocument()
     expect(screen.queryByText("N-001")).not.toBeInTheDocument()
   })

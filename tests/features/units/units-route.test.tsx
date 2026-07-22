@@ -105,7 +105,8 @@ describe("UnitsRoute", () => {
     fireEvent.click(screen.getByRole("button", { name: "Monte Carlo Centro" }))
 
     expect(screen.getAllByText("Código").length).toBeGreaterThan(0)
-    expect(screen.getByRole("heading", { name: "Monte Carlo Centro" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Detalhes da unidade" })).toBeInTheDocument()
+    expect(screen.getAllByText("Monte Carlo Centro").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Posto Monte Carlo Centro Ltda").length).toBeGreaterThan(0)
 
     fireEvent.keyDown(screen.getByRole("dialog"), { key: "Escape" })
@@ -141,7 +142,7 @@ describe("UnitsRoute", () => {
 
     expect(screen.getByRole("button", { name: "Monte Carlo Centro" })).toBeInTheDocument()
     fireEvent.click(screen.getByRole("button", { name: "Monte Carlo Centro" }))
-    expect(screen.getByRole("heading", { name: "Monte Carlo Centro" })).toBeInTheDocument()
+    expect(screen.getByRole("heading", { name: "Detalhes da unidade" })).toBeInTheDocument()
     expect(screen.getAllByText("42").length).toBeGreaterThan(0)
   }, 15_000)
 

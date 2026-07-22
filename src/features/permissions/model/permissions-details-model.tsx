@@ -53,6 +53,11 @@ export function getPermissionDetailItems(
   permission: PermissionMatrixRow
 ): readonly AppDetailsSheetItem[] {
   return [
+    { label: permissionsCopy.labels.permission, value: permission.label },
+    {
+      label: permissionsCopy.labels.description,
+      value: permission.description || permissionsCopy.labels.emptyValue,
+    },
     {
       label: permissionsCopy.labels.key,
       value: <PermissionKeyValue value={permission.key} />,

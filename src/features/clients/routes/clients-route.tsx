@@ -2,7 +2,7 @@ import { DatabaseIcon, HistoryIcon, RefreshCcwIcon, ShieldAlertIcon } from "luci
 import * as React from "react"
 import { useNavigate } from "react-router"
 
-import { DataTable, DataTableSensitiveValue } from "@/components/data-table"
+import { DataTable } from "@/components/data-table"
 import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
@@ -257,13 +257,12 @@ export function ClientsRoute() {
             setSelectedClient(null)
           }
         }}
-        title={selectedClient?.nom_pessoa}
-        description={(
-          <DataTableSensitiveValue
-            value={selectedClient?.num_cnpj_cpf}
-            kind="cpfCnpj"
-          />
-        )}
+        title={selectedClient ? "Detalhes do cliente" : undefined}
+        description={
+          selectedClient
+            ? "Consulte os dados cadastrais, comerciais e operacionais do cliente selecionado."
+            : undefined
+        }
         items={selectedClient ? getClientDetailItems(selectedClient) : []}
       />
 
