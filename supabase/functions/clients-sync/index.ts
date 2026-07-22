@@ -1,11 +1,12 @@
 import {
   createAdminClient,
-  fetchWithErpRetry,
+  fetchWithErpRetryAndDoH,
   getAuthenticatedActor,
   getCorsHeaders,
   handleCors,
   jsonResponse,
   requirePermissionActor,
+  resolveErpBaseUrl,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
@@ -79,40 +80,6 @@ function requireEnv(name: string) {
   }
 
   return value
-}
-
-function isHostedRuntime() {
-  return Boolean(Deno.env.get("DENO_DEPLOYMENT_ID"))
-}
-
-function resolveErpBaseUrl() {
-  const rawBaseUrl = requireEnv("ERP_BASE_URL").trim()
-
-  let url: URL
-
-  try {
-    url = new URL(rawBaseUrl)
-  } catch {
-    throw new Error("ERP_BASE_URL inválida. Informe uma URL HTTP(S) absoluta.")
-  }
-
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error("ERP_BASE_URL inválida. Apenas HTTP(S) é permitido.")
-  }
-
-  const hostname = url.hostname.toLowerCase()
-
-  if (isHostedRuntime()) {
-    if (url.protocol !== "https:") {
-      throw new Error("ERP_BASE_URL deve usar HTTPS em produção.")
-    }
-
-    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
-      throw new Error("ERP_BASE_URL não pode apontar para localhost em produção.")
-    }
-  }
-
-  return url
 }
 
 function resolveErpTimeoutMs() {
@@ -463,10 +430,7 @@ async function fetchErpResource(options: {
       : `Basic ${btoa(`${username}:${password}`)}`
   }
 
-  const response = await fetchWithErpRetry(
-    (signal) => fetch(url, { method: "GET", headers, signal }),
-    timeoutMs
-  )
+  const response = await fetchWithErpRetryAndDoH(url, headers, timeoutMs)
 
   const data = await response.json()
 
@@ -615,9 +579,10 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
     fetchErpVehicles(mode, state.last_successful_sync_at),
   ])
 
-  const normalizedClients: NormalizedClientRow[] = []
+  const allNormalizedClients: NormalizedClientRow[] = []
   const normalizedVehiclesBase: Array<Omit<NormalizedVehicleRow, "client_is_active_120d">> = []
   const failedItems: Array<Record<string, unknown>> = []
+  let skippedInactiveClients = 0
 
   for (const [index, item] of rawClients.entries()) {
     const normalized = await normalizeClient(item)
@@ -627,8 +592,24 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
       continue
     }
 
-    normalizedClients.push(normalized)
+    allNormalizedClients.push(normalized)
   }
+
+  // Only sync clients that are active with a purchase within the last 120 days.
+  // Inactive/old clients are skipped to reduce storage and keep the dataset
+  // relevant for operations. Vehicles are also filtered downstream to match.
+  const normalizedClients = allNormalizedClients.filter((client) => {
+    if (client.is_active_120d) {
+      return true
+    }
+
+    skippedInactiveClients += 1
+
+    return false
+  })
+
+  // Build a set of active client IDs for vehicle filtering
+  const activeClientCodPessoas = new Set(normalizedClients.map((c) => c.cod_pessoa))
 
   for (const [index, item] of rawVehicles.entries()) {
     const normalized = await normalizeVehicle(item)
@@ -674,33 +655,39 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
     }
   }
 
+  // Only sync vehicles belonging to active 120d clients.
+  // Uses the freshly synced client set first, then falls back to DB lookup
+  // for vehicles whose clients arrived in a prior sync.
   const vehicleClientIds = Array.from(new Set(normalizedVehiclesBase.map((row) => row.cod_pessoa)))
-  const { data: vehicleClientRows } = vehicleClientIds.length
+  const missingFromBatch = vehicleClientIds.filter((id) => !activeClientCodPessoas.has(id))
+
+  const { data: vehicleClientRows } = missingFromBatch.length
     ? await supabase
       .from("erp_clients")
       .select("cod_pessoa, is_active_120d")
-      .in("cod_pessoa", vehicleClientIds)
+      .in("cod_pessoa", missingFromBatch)
+      .eq("is_active_120d", true)
     : { data: [] as Array<{ cod_pessoa: number; is_active_120d: boolean }> }
 
-  const activeClientById = new Map(
-    (vehicleClientRows ?? []).map((row) => [Number(row.cod_pessoa), Boolean(row.is_active_120d)])
-  )
+  // Merge: clients synced in this batch + active clients already in DB
+  const allActiveClientIds = new Set(activeClientCodPessoas)
+
+  for (const row of vehicleClientRows ?? []) {
+    allActiveClientIds.add(Number(row.cod_pessoa))
+  }
 
   const normalizedVehicles: NormalizedVehicleRow[] = []
+  let skippedInactiveVehicles = 0
 
   for (const vehicle of normalizedVehiclesBase) {
-    if (!activeClientById.has(vehicle.cod_pessoa)) {
-      failedItems.push({
-        entity: "vehicle",
-        code: vehicle.cod_veiculo,
-        reason: "missing_client",
-      })
+    if (!allActiveClientIds.has(vehicle.cod_pessoa)) {
+      skippedInactiveVehicles += 1
       continue
     }
 
     normalizedVehicles.push({
       ...vehicle,
-      client_is_active_120d: activeClientById.get(vehicle.cod_pessoa) ?? false,
+      client_is_active_120d: true,
     })
   }
 
@@ -777,11 +764,13 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
       counters_clients_updated: clientCounters.updated,
       counters_clients_unchanged: clientCounters.unchanged,
       counters_clients_failed: failedItems.filter((item) => item.entity === "client").length,
+      counters_clients_skipped_inactive: skippedInactiveClients,
       counters_vehicles_received: rawVehicles.length,
       counters_vehicles_created: vehicleCounters.created,
       counters_vehicles_updated: vehicleCounters.updated,
       counters_vehicles_unchanged: vehicleCounters.unchanged,
       counters_vehicles_failed: failedItems.filter((item) => item.entity === "vehicle").length,
+      counters_vehicles_skipped_inactive: skippedInactiveVehicles,
       consecutive_failures: nextConsecutiveFailures,
       requested_by: requestedBy,
       error_details: failedItems,
@@ -813,10 +802,12 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
       clientsCreated: clientCounters.created,
       clientsUpdated: clientCounters.updated,
       clientsUnchanged: clientCounters.unchanged,
+      clientsSkippedInactive: skippedInactiveClients,
       vehiclesReceived: rawVehicles.length,
       vehiclesCreated: vehicleCounters.created,
       vehiclesUpdated: vehicleCounters.updated,
       vehiclesUnchanged: vehicleCounters.unchanged,
+      vehiclesSkippedInactive: skippedInactiveVehicles,
       failed: failedItems.length,
     },
   }).catch((e) => console.error("[audit-fail]", e))

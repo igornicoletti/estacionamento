@@ -2,9 +2,7 @@ export {
   configureUnitSyncHistoryGateway,
   getUnitSyncHistoryGateway,
   listUnitSyncHistory,
-  recordMockUnitSyncHistoryRun,
   resetUnitSyncHistoryGateway,
-  type RecordMockUnitSyncHistoryRunInput,
   type UnitSyncHistoryGateway
 } from "./unit-sync-history-service"
 export { executeUnitSyncWithRefresh } from "./unit-sync-runner"

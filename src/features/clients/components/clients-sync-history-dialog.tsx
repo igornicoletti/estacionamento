@@ -178,12 +178,11 @@ export function ClientsSyncHistoryDialog({
 
         {!isLoading && errorMessage ? (
           <AppEmptyState
-            className="min-h-32 rounded-md border border-solid p-4"
             media={<AlertTriangleIcon />}
             title={clientsCopy.sync.history.loadErrorTitle}
             description={errorMessage}
             actions={onRetry ? (
-              <Button type="button" variant="outline" size="lg" onClick={onRetry}>
+              <Button type="button" variant="secondary" size="lg" onClick={onRetry}>
                 <RefreshCcwIcon aria-hidden="true" />
                 {clientsCopy.sync.retryLabel}
               </Button>
@@ -193,14 +192,13 @@ export function ClientsSyncHistoryDialog({
 
         {!isLoading && !errorMessage && entries.length === 0 ? (
           <AppEmptyState
-            className="min-h-32 rounded-md border border-solid p-4"
             media={<HistoryIcon />}
             title={clientsCopy.sync.history.emptyTitle}
             description={clientsCopy.sync.history.emptyDescription}
             actions={onSync ? (
               <Button
                 type="button"
-                variant="outline"
+                variant="secondary"
                 size="lg"
                 disabled={isSyncing}
                 onClick={onSync}
@@ -242,7 +240,7 @@ export function ClientsSyncHistoryDialog({
                               {formatClientDateTime(entry.startedAt, clientsCopy.shared.emptyValue)}
                             </p>
                             <Badge
-                              variant="outline"
+                              variant="secondary"
                               className={cn(
                                 "inline-flex shrink-0 items-center gap-1 text-[0.625rem]",
                                 statusBadgeClassNameByType[entry.status]

@@ -1,6 +1,5 @@
 import { z } from "zod"
 
-import { isErpCatalogMockEnabled, mockErpUnitsPayload } from "@/features/erp-mock"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import { unitsCopy } from "../constants/units-copy"
@@ -83,9 +82,6 @@ function parseErpRows(value: unknown): readonly ErpUnitPayload[] {
 function createSupabaseUnitsGateway(): UnitsGateway {
   return {
     async listUnitsPayload() {
-      if (isErpCatalogMockEnabled()) {
-        return mockErpUnitsPayload
-      }
       const supabase = getSupabaseBrowserClient()
       if (!supabase) {
         throw new Error(unitsCopy.errors.unitsUnavailable)

@@ -10,7 +10,18 @@
  * failures (4xx auth/validation errors, invalid payloads) fail fast on the
  * first attempt so real configuration problems surface immediately instead
  * of being masked by retries.
+ *
+ * When all retry attempts fail with DNS errors the caller can opt into a
+ * DNS-over-HTTPS (DoH) fallback via `fetchWithErpRetryAndDoH`, which
+ * resolves the hostname through Cloudflare 1.1.1.1 and retries over the
+ * resolved IP (HTTP only — HTTPS+IP requires SNI override).
  */
+
+import {
+  buildDoHFallbackRequest,
+  isDnsError,
+  resolveIPv4ViaDoH,
+} from "./erp-url.ts"
 
 const defaultMaxAttempts = 3
 const defaultBaseDelayMs = 300
@@ -142,4 +153,80 @@ export async function fetchWithErpRetry(
   }
 
   throw lastError
+}
+
+/**
+ * Like `fetchWithErpRetry` but with an automatic DNS-over-HTTPS (DoH)
+ * fallback phase when all normal attempts fail with DNS errors.
+ *
+ * Phase 1: normal retry (same as `fetchWithErpRetry`).
+ * Phase 2: if Phase 1 failed with a DNS error, resolve the hostname via
+ *          Cloudflare DoH, rebuild the request URL with the resolved IP
+ *          and retry once. Only works for plain HTTP — HTTPS requests
+ *          skip this phase because Deno fetch cannot override SNI.
+ *
+ * Use this variant in sync functions where the ERP hostname has historically
+ * unstable DNS resolution.
+ */
+export async function fetchWithErpRetryAndDoH(
+  originalUrl: URL,
+  headers: Record<string, string>,
+  timeoutMs: number
+): Promise<Response> {
+  try {
+    return await fetchWithErpRetry(
+      (signal) => fetch(originalUrl.toString(), { method: "GET", headers, signal }),
+      timeoutMs
+    )
+  } catch (primaryError) {
+    if (!isDnsError(primaryError)) {
+      throw primaryError
+    }
+
+    // DoH fallback only makes sense for HTTP — HTTPS needs SNI = hostname
+    if (originalUrl.protocol === "https:") {
+      console.warn(
+        "[erp-fetch-retry] DNS failed for HTTPS URL; DoH fallback skipped (SNI limitation)"
+      )
+      throw primaryError
+    }
+
+    console.warn(
+      `[erp-fetch-retry] DNS persistently failing for ${originalUrl.hostname}; trying DoH Cloudflare…`
+    )
+
+    let ip: string
+
+    try {
+      ip = await resolveIPv4ViaDoH(originalUrl.hostname)
+      console.warn(`[erp-fetch-retry] DoH resolved ${originalUrl.hostname} → ${ip}`)
+    } catch (dohError) {
+      console.error("[erp-fetch-retry] DoH also failed", dohError)
+      throw primaryError
+    }
+
+    const fallback = buildDoHFallbackRequest(originalUrl, ip, headers)
+    const controller = new AbortController()
+    const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+    try {
+      const response = await fetch(fallback.url, {
+        method: "GET",
+        headers: fallback.headers,
+        signal: controller.signal,
+      })
+
+      if (!response.ok) {
+        throw new Error(`erp_http_${response.status}`)
+      }
+
+      return response
+    } catch (error) {
+      throw new Error("[erp-fetch-retry] DoH fallback request failed", {
+        cause: error instanceof Error ? error : primaryError,
+      })
+    } finally {
+      clearTimeout(timeout)
+    }
+  }
 }

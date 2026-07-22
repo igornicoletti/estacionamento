@@ -1,8 +1,6 @@
 export const UNIT_SYNC_FETCH_ERROR_MESSAGE = "Failed to fetch"
 export const UNIT_SYNC_FUNCTION_NAME = "units-sync"
-export const UNIT_SYNC_HISTORY_MOCK_STORAGE_SUFFIX = "mock"
 export const UNIT_SYNC_IN_PROGRESS_ERROR_CODE = "sync_in_progress"
-export const UNIT_SYNC_MOCK_RUN_ID_PREFIX = "mock-units-sync"
 
 export const UNIT_SYNC_RUN_MODES = ["full", "incremental"] as const
 export const UNIT_SYNC_TRIGGERS = ["automatic", "manual"] as const

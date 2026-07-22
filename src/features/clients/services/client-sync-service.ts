@@ -1,4 +1,3 @@
-import { isErpCatalogMockEnabled } from "@/features/erp-mock"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import { clientsCopy } from "../constants/clients-copy"
@@ -8,8 +7,6 @@ import {
   CLIENT_SYNC_FUNCTION_NAME,
   CLIENT_SYNC_IN_PROGRESS_ERROR_CODE,
   CLIENT_SYNC_MANUAL_TRIGGER,
-  CLIENT_SYNC_MOCK_RUN_ID_PREFIX,
-  CLIENT_SYNC_SUCCESS_STATUS,
 } from "../constants/clients-sync"
 import {
   isRecord,
@@ -18,7 +15,6 @@ import {
   type ClientSyncMode,
   type TriggerClientsSyncResult,
 } from "../model"
-import { recordMockClientSyncHistoryRun } from "./client-sync-history-service"
 
 interface FunctionInvokeResult {
   data: unknown
@@ -26,7 +22,6 @@ interface FunctionInvokeResult {
 }
 
 let activeClientSyncPromise: Promise<TriggerClientsSyncResult> | null = null
-let mockSyncRunSequence = 0
 
 function readErrorMessage(error: unknown) {
   if (error instanceof Error && error.message.trim()) {
@@ -73,16 +68,6 @@ function parseFunctionInvokeResponse(value: unknown): FunctionInvokeResult {
   }
 }
 
-function createMockSyncResult(mode: ClientSyncMode): TriggerClientsSyncResult {
-  mockSyncRunSequence += 1
-
-  return {
-    message: clientsCopy.sync.feedback.success,
-    runId: `${CLIENT_SYNC_MOCK_RUN_ID_PREFIX}-${mode}-${mockSyncRunSequence}`,
-    status: CLIENT_SYNC_SUCCESS_STATUS,
-  }
-}
-
 export function isClientSyncInProgressError(error: unknown) {
   return error instanceof Error && error.message === CLIENT_SYNC_IN_PROGRESS_ERROR_CODE
 }
@@ -105,20 +90,6 @@ export async function triggerClientsSync(
 }
 
 async function executeClientSync(mode: ClientSyncMode): Promise<TriggerClientsSyncResult> {
-  if (isErpCatalogMockEnabled()) {
-    await Promise.resolve()
-
-    const result = createMockSyncResult(mode)
-
-    await recordMockClientSyncHistoryRun({
-      mode,
-      trigger: CLIENT_SYNC_MANUAL_TRIGGER,
-      result,
-    })
-
-    return result
-  }
-
   const supabase = getSupabaseBrowserClient()
 
   if (!supabase) {

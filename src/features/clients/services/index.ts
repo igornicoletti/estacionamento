@@ -8,10 +8,8 @@ export {
   configureClientSyncHistoryGateway,
   getClientSyncHistoryGateway,
   listClientSyncHistory,
-  recordMockClientSyncHistoryRun,
   resetClientSyncHistoryGateway,
   type ClientSyncHistoryGateway,
-  type RecordMockClientSyncHistoryRunInput,
 } from "./client-sync-history-service"
 export {
   isClientSyncInProgressError,

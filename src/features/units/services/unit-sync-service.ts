@@ -1,4 +1,3 @@
-import { isErpCatalogMockEnabled } from "@/features/erp-mock"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import { unitsCopy } from "../constants/units-copy"
@@ -8,11 +7,9 @@ import {
   UNIT_SYNC_FUNCTION_NAME,
   UNIT_SYNC_IN_PROGRESS_ERROR_CODE,
   UNIT_SYNC_MANUAL_TRIGGER,
-  UNIT_SYNC_MOCK_RUN_ID_PREFIX,
   UNIT_SYNC_SUCCESS_STATUS,
 } from "../constants/units-sync"
 import { type TriggerUnitsSyncResult, type UnitSyncRunMode, type UnitSyncRunStatus } from "../model"
-import { recordMockUnitSyncHistoryRun } from "./unit-sync-history-service"
 
 interface FunctionInvokeResult {
   data: unknown
@@ -20,7 +17,6 @@ interface FunctionInvokeResult {
 }
 
 let activeUnitSyncPromise: Promise<TriggerUnitsSyncResult> | null = null
-let mockSyncRunSequence = 0
 
 function asRecord(value: unknown): Record<string, unknown> | null {
   return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : null
@@ -75,11 +71,6 @@ function parseSyncResponse(value: unknown): TriggerUnitsSyncResult {
   return { runId, status: isUnitSyncRunStatus(record.status) ? record.status : UNIT_SYNC_SUCCESS_STATUS, message }
 }
 
-function createMockSyncResult(mode: UnitSyncRunMode): TriggerUnitsSyncResult {
-  mockSyncRunSequence += 1
-  return { runId: `${UNIT_SYNC_MOCK_RUN_ID_PREFIX}-${mode}-${mockSyncRunSequence}`, status: UNIT_SYNC_SUCCESS_STATUS, message: unitsCopy.sync.feedback.success }
-}
-
 export function isUnitSyncInProgressError(error: unknown) {
   return error instanceof Error && error.message === UNIT_SYNC_IN_PROGRESS_ERROR_CODE
 }
@@ -98,12 +89,6 @@ export async function triggerUnitsSync(mode: UnitSyncRunMode = UNIT_SYNC_DEFAULT
 }
 
 async function executeUnitSync(mode: UnitSyncRunMode): Promise<TriggerUnitsSyncResult> {
-  if (isErpCatalogMockEnabled()) {
-    await Promise.resolve()
-    const result = createMockSyncResult(mode)
-    await recordMockUnitSyncHistoryRun({ mode, trigger: UNIT_SYNC_MANUAL_TRIGGER, result })
-    return result
-  }
   const supabase = getSupabaseBrowserClient()
   if (!supabase) {
     throw new Error(unitsCopy.sync.feedback.error)

@@ -1,11 +1,12 @@
 import {
   createAdminClient,
-  fetchWithErpRetry,
+  fetchWithErpRetryAndDoH,
   getAuthenticatedActor,
   getCorsHeaders,
   handleCors,
   jsonResponse,
   requirePermissionActor,
+  resolveErpBaseUrl,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
@@ -63,40 +64,6 @@ function requireEnv(name: string) {
   }
 
   return value
-}
-
-function isHostedRuntime() {
-  return Boolean(Deno.env.get("DENO_DEPLOYMENT_ID"))
-}
-
-function resolveErpBaseUrl() {
-  const rawBaseUrl = requireEnv("ERP_BASE_URL").trim()
-
-  let url: URL
-
-  try {
-    url = new URL(rawBaseUrl)
-  } catch {
-    throw new Error("ERP_BASE_URL inválida. Informe uma URL HTTP(S) absoluta.")
-  }
-
-  if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new Error("ERP_BASE_URL inválida. Apenas HTTP(S) é permitido.")
-  }
-
-  const hostname = url.hostname.toLowerCase()
-
-  if (isHostedRuntime()) {
-    if (url.protocol !== "https:") {
-      throw new Error("ERP_BASE_URL deve usar HTTPS em produção.")
-    }
-
-    if (hostname === "localhost" || hostname === "127.0.0.1" || hostname === "::1") {
-      throw new Error("ERP_BASE_URL não pode apontar para localhost em produção.")
-    }
-  }
-
-  return url
 }
 
 function resolveErpTimeoutMs() {
@@ -347,10 +314,7 @@ async function fetchErpUnits(mode: SyncMode, lastSuccessfulSyncAt: string | null
       : `Basic ${btoa(`${username}:${password}`)}`
   }
 
-  const response = await fetchWithErpRetry(
-    (signal) => fetch(url, { method: "GET", headers, signal }),
-    timeoutMs
-  )
+  const response = await fetchWithErpRetryAndDoH(url, headers, timeoutMs)
 
   const data = await response.json()
 

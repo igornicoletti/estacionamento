@@ -25,7 +25,7 @@ export const AUTH_STORAGE_KEYS = {
 } as const
 
 export const AUTH_SESSION_TIMEOUTS = {
-  inactivityMinutes: 15,
+  inactivityMinutes: 45,
   timeboxHours: 24,
   jwtExpirySeconds: 3600,
 } as const

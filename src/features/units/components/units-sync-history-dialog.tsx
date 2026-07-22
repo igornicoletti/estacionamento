@@ -159,12 +159,11 @@ export function UnitsSyncHistoryDialog({
 
         {!isLoading && errorMessage ? (
           <AppEmptyState
-            className="min-h-32 rounded-md border border-solid p-4"
             media={<AlertTriangleIcon />}
             title={unitsCopy.sync.history.loadErrorTitle}
             description={errorMessage}
             actions={onRetry ? (
-              <Button type="button" variant="outline" size="lg" onClick={onRetry}>
+              <Button type="button" variant="secondary" size="lg" onClick={onRetry}>
                 <RefreshCcwIcon aria-hidden="true" />
                 {unitsCopy.sync.retryLabel}
               </Button>

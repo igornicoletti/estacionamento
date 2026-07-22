@@ -16,10 +16,8 @@ export {
   CLIENT_SYNC_FAILED_STATUS,
   CLIENT_SYNC_FETCH_ERROR_MESSAGE,
   CLIENT_SYNC_FUNCTION_NAME,
-  CLIENT_SYNC_HISTORY_MOCK_STORAGE_SUFFIX,
   CLIENT_SYNC_IN_PROGRESS_ERROR_CODE,
   CLIENT_SYNC_MANUAL_TRIGGER,
-  CLIENT_SYNC_MOCK_RUN_ID_PREFIX,
   CLIENT_SYNC_RUN_MODES,
   CLIENT_SYNC_STATUSES,
   CLIENT_SYNC_SUCCESS_STATUS,
@@ -84,7 +82,6 @@ export {
   listClientsSnapshot,
   listClientSyncHistory,
   listClientVehicles,
-  recordMockClientSyncHistoryRun,
   resetClientSyncHistoryGateway,
   resetClientsGateway,
   toggleClientVipRule,
@@ -92,7 +89,6 @@ export {
   triggerClientsSync,
   type ClientSyncHistoryGateway,
   type ClientsGateway,
-  type RecordMockClientSyncHistoryRunInput,
 } from "./services"
 export {
   createClientsColumns,

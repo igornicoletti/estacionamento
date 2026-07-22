@@ -26,7 +26,8 @@ export {
   genericAuthMessage,
   jsonResponse,
 } from "./auth-responses.ts"
-export { fetchWithErpRetry } from "./erp-fetch-retry.ts"
+export { fetchWithErpRetry, fetchWithErpRetryAndDoH } from "./erp-fetch-retry.ts"
+export { resolveErpBaseUrl } from "./erp-url.ts"
 export {
   createAdminClient,
   createPasswordAuthClient

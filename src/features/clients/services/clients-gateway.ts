@@ -1,10 +1,5 @@
 import { z } from "zod"
 
-import {
-  isErpCatalogMockEnabled,
-  mockErpClientVehiclesPayload,
-  mockErpClientsPayload,
-} from "@/features/erp-mock"
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import {
@@ -183,10 +178,6 @@ function getSupabaseOrThrow() {
 function createSupabaseClientsGateway(): ClientsGateway {
   return {
     async listClientsPayload() {
-      if (isErpCatalogMockEnabled()) {
-        return parseClientRows(mockErpClientsPayload)
-      }
-
       const supabase = getSupabaseOrThrow()
 
       return fetchAllBatches<ErpClientPayload>(async (from, to) => {
@@ -202,10 +193,6 @@ function createSupabaseClientsGateway(): ClientsGateway {
       })
     },
     async listClientPayloadById(clientId) {
-      if (isErpCatalogMockEnabled()) {
-        return parseClientRows(mockErpClientsPayload).find((client) => Number(client.cod_pessoa) === clientId) ?? null
-      }
-
       const supabase = getSupabaseOrThrow()
       const response: unknown = await supabase
         .from("erp_clients")
@@ -222,10 +209,6 @@ function createSupabaseClientsGateway(): ClientsGateway {
       return parseClientRows([data])[0] ?? null
     },
     async listClientVehiclesPayload() {
-      if (isErpCatalogMockEnabled()) {
-        return parseClientVehicleRows(mockErpClientVehiclesPayload)
-      }
-
       const supabase = getSupabaseOrThrow()
 
       return fetchAllBatches<ErpClientVehiclePayload>(async (from, to) => {
@@ -241,12 +224,6 @@ function createSupabaseClientsGateway(): ClientsGateway {
       })
     },
     async listClientVehiclesPayloadByClientId(clientId) {
-      if (isErpCatalogMockEnabled()) {
-        return parseClientVehicleRows(
-          mockErpClientVehiclesPayload.filter((vehicle) => Number(vehicle.cod_pessoa) === clientId)
-        )
-      }
-
       const supabase = getSupabaseOrThrow()
       const response: unknown = await supabase
         .from("erp_client_vehicles")

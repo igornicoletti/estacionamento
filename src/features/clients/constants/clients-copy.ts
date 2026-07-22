@@ -41,7 +41,7 @@ export const clientsCopy = {
   sync: {
     historyLoadError: "Não foi possível carregar o histórico de sincronização.",
     runningTitle: "Sincronização em andamento",
-    runningDescription: "A tela será liberada automaticamente ao finalizar.",
+    runningDescription: "Aguarde enquanto os clientes e veículos são sincronizados com o ERP.",
     retryLabel: "Recarregar histórico",
     history: {
       title: "Histórico de sincronização",

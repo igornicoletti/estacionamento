@@ -65,8 +65,8 @@ describe("units-service", () => {
             des_coordenada_empresa: "",
             ip_rede: "",
             nom_banco_dados: "",
-          },
-        ]
+          } as const,
+        ] as const
       },
     })
 
