@@ -1,15 +1,60 @@
-export function formatSelectedRows(selectedRowCount: number, rowCount: number) {
-  return `${selectedRowCount} de ${rowCount} linha(s) selecionada(s).`
+const PT_BR_LOCALE = "pt-BR"
+
+const integerFormatter = new Intl.NumberFormat(PT_BR_LOCALE, {
+  maximumFractionDigits: 0,
+})
+
+const pluralRules = new Intl.PluralRules(PT_BR_LOCALE, {
+  type: "cardinal",
+})
+
+function normalizeCount(value: number): number {
+  if (!Number.isFinite(value) || value <= 0) {
+    return 0
+  }
+
+  return Math.trunc(value)
 }
 
-export function formatDisplayedRows(displayedRowCount: number, rowCount: number) {
-  const itemLabel = rowCount === 1 ? "item" : "itens"
-
-  return `Exibindo ${displayedRowCount} de ${rowCount} ${itemLabel}.`
+function formatInteger(value: number): string {
+  return integerFormatter.format(normalizeCount(value))
 }
 
-export function formatPageOf(currentPage: number, pageCountLabel: string) {
-  return `Página ${currentPage} de ${pageCountLabel}`
+function isSingular(value: number): boolean {
+  return pluralRules.select(normalizeCount(value)) === "one"
+}
+
+export function formatSelectedRows(
+  selectedRowCount: number,
+  rowCount: number
+): string {
+  const normalizedSelectedRowCount = normalizeCount(selectedRowCount)
+  const selectedRowsLabel = isSingular(normalizedSelectedRowCount)
+    ? "linha selecionada"
+    : "linhas selecionadas"
+
+  return `${formatInteger(normalizedSelectedRowCount)} ${selectedRowsLabel} de ${formatInteger(rowCount)}.`
+}
+
+export function formatDisplayedRows(
+  displayedRowCount: number,
+  rowCount: number
+): string {
+  const rowLabel = isSingular(rowCount) ? "linha" : "linhas"
+
+  return `Exibindo ${formatInteger(displayedRowCount)} de ${formatInteger(rowCount)} ${rowLabel}.`
+}
+
+export function formatPageOf(
+  currentPage: number,
+  pageCountLabel: string | number
+): string {
+  const formattedPageCount =
+    typeof pageCountLabel === "number"
+      ? formatInteger(pageCountLabel)
+      : pageCountLabel
+
+  return `Página ${formatInteger(currentPage)} de ${formattedPageCount}`
 }
 
 export const dataTableCopy = {
@@ -34,20 +79,23 @@ export const dataTableCopy = {
     controlsTitle: "Filtros e ações",
     controlsDescription: "Busca, filtros, colunas e exportação da listagem.",
     export: "Exportar",
-    exportAriaLabel: "Exportar dados da tabela para Excel",
-    exportTooltip: "Exportar",
+    exportAriaLabel: "Abrir menu de exportação",
+    exportTooltip: "Exportar dados da tabela",
     search: "Buscar",
-    searchPlaceholder: "Buscar...",
-    filterPlaceholderPrefix: "Filtrar",
+    searchPlaceholder: "Buscar registros",
+    filterPlaceholderPrefix: "Filtrar por",
   },
   exportMenu: {
-    title: "Opções de exportação",
-    currentView: "Página atual",
-    currentViewDescription: "Linhas visíveis agora e colunas visíveis.",
-    filteredRows: "Dados filtrados",
-    filteredRowsDescription: "Todos os resultados filtrados e colunas visíveis.",
-    loadedRows: "Dados carregados",
-    loadedRowsDescription: "Todos os registros carregados e colunas exportáveis.",
+    title: "Exportar dados",
+    currentView: "Exportar página atual",
+    currentViewDescription:
+      "Exportar as linhas exibidas na página atual e as colunas visíveis.",
+    filteredRows: "Exportar resultados filtrados",
+    filteredRowsDescription:
+      "Exportar todas as linhas correspondentes aos filtros e as colunas visíveis.",
+    loadedRows: "Exportar registros carregados",
+    loadedRowsDescription:
+      "Exportar todos os registros carregados na tabela e as colunas marcadas como exportáveis.",
   },
   facetedFilter: {
     noResults: "Nenhum resultado encontrado.",
@@ -57,11 +105,10 @@ export const dataTableCopy = {
   fallback: {
     errorTitle: "Não foi possível carregar os dados",
     errorDescription:
-      "A tabela não pôde carregar os registros com segurança. Recarregue os dados e tente novamente.",
-    errorAction: "Recarregar",
-    emptyTitle: "Nenhum registro cadastrado",
-    emptyDescription: "Ainda não há registros disponíveis para esta tabela.",
-    emptyAction: "Adicionar registro",
+      "A tabela não pôde carregar os registros. Verifique sua conexão e tente novamente.",
+    errorAction: "Tentar novamente",
+    emptyTitle: "Nenhum registro encontrado",
+    emptyDescription: "Não há registros para exibir nesta tabela.",
     filteredEmptyTitle: "Nenhum resultado encontrado",
     filteredEmptyDescription:
       "Nenhum registro corresponde aos filtros aplicados. Limpe os filtros para voltar à listagem completa.",
@@ -85,6 +132,6 @@ export const dataTableCopy = {
   },
   viewOptions: {
     trigger: "Colunas",
-    tooltip: "Colunas",
+    tooltip: "Gerenciar colunas visíveis",
   },
 } as const

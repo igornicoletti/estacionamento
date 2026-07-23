@@ -23,12 +23,10 @@ export function SyncBlockingDialog({
     <AlertDialog open={open} onOpenChange={() => undefined}>
       <AlertDialogContent
         aria-describedby={undefined}
-        className="max-w-sm rounded-xl p-0"
         onEscapeKeyDown={preventDismiss}
       >
         <AppEmptyState
           aria-live="assertive"
-          className="min-h-48 p-6 text-center"
           media={<Spinner className="size-5" />}
           title={title}
           description={description}

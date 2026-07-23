@@ -91,7 +91,6 @@ export function AuthenticatedHomeRoute() {
     <CenteredRouteState>
       <AppEmptyState
         media={<ShieldIcon aria-hidden="true" />}
-        className="mx-auto max-w-xl"
         title={copy.title}
         description={copy.description}
       />
@@ -105,7 +104,6 @@ export function RouteAccessDenied() {
   return (
     <CenteredRouteState>
       <AppEmptyState
-        className="mx-auto max-w-xl"
         media={<ShieldAlertIcon aria-hidden="true" />}
         title={copy.title}
         description={copy.description}
@@ -127,7 +125,6 @@ export function RouteNotFound() {
   return (
     <section className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
       <AppEmptyState
-        className="mx-auto max-w-xl"
         media={<FileQuestionIcon aria-hidden="true" />}
         title={copy.title}
         description={copy.description}

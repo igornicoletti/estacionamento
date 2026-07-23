@@ -6,31 +6,51 @@ import {
   type DataTableRowAction,
 } from "./data-table-row-actions"
 
+const ACTIONS_COLUMN_ID = "actions"
+const ACTIONS_COLUMN_SIZE = 48
+
+export type DataTableRowActionsSource<TData> =
+  | readonly DataTableRowAction<TData>[]
+  | ((row: Row<TData>) => readonly DataTableRowAction<TData>[])
+
+function resolveRowActions<TData>(
+  source: DataTableRowActionsSource<TData>,
+  row: Row<TData>
+): readonly DataTableRowAction<TData>[] {
+  return typeof source === "function" ? source(row) : source
+}
+
 export function createActionsColumn<TData>(
-  actions:
-    | readonly DataTableRowAction<TData>[]
-    | ((row: Row<TData>) => readonly DataTableRowAction<TData>[])
+  actions: DataTableRowActionsSource<TData>
 ): ColumnDef<TData> {
   return {
-    id: "actions",
+    id: ACTIONS_COLUMN_ID,
     header: () => (
       <span className="sr-only">
         {dataTableCopy.accessibility.actionsColumn}
       </span>
     ),
-    cell: ({ row }) => (
-      <div className="flex justify-end">
-        <DataTableRowActions
-          row={row}
-          actions={typeof actions === "function" ? actions(row) : actions}
-        />
-      </div>
-    ),
+    cell: ({ row }) => {
+      const rowActions = resolveRowActions(actions, row)
+
+      if (rowActions.length === 0) {
+        return null
+      }
+
+      return (
+        <div className="flex w-full justify-end">
+          <DataTableRowActions row={row} actions={rowActions} />
+        </div>
+      )
+    },
     enableSorting: false,
     enableHiding: false,
+    enableResizing: false,
     meta: {
       enableExport: false,
     },
-    size: 48,
+    size: ACTIONS_COLUMN_SIZE,
+    minSize: ACTIONS_COLUMN_SIZE,
+    maxSize: ACTIONS_COLUMN_SIZE,
   }
 }

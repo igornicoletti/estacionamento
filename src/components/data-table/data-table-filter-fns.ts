@@ -1,54 +1,108 @@
-import { type Row } from "@tanstack/react-table"
+import {
+  type FilterFn,
+  type Row,
+  type RowData,
+} from "@tanstack/react-table"
 
-function stringifyFilterValue(value: unknown) {
-  if (
-    typeof value === "string" ||
-    typeof value === "number" ||
-    typeof value === "boolean" ||
-    typeof value === "bigint"
-  ) {
-    return String(value)
+import {
+  DATA_TABLE_EMPTY_FILTER_VALUE,
+  normalizeDataTableFilterValue,
+} from "./data-table-filter-options"
+
+function normalizeSelectedFilterValues(
+  value: unknown
+): string[] {
+  const candidateValues = Array.isArray(value)
+    ? value
+    : value === null || value === undefined
+      ? []
+      : [value]
+
+  const normalizedValues = new Set<string>()
+
+  for (const candidateValue of candidateValues) {
+    const normalizedValue =
+      normalizeDataTableFilterValue(
+        candidateValue
+      )
+
+    if (normalizedValue !== null) {
+      normalizedValues.add(normalizedValue)
+    }
   }
 
-  if (value instanceof Date) {
-    return value.toISOString()
-  }
-
-  return ""
+  return Array.from(normalizedValues)
 }
 
-function normalizeSelectedFilterValues(value: unknown) {
-  if (!Array.isArray(value) || value.length === 0) {
-    return []
+function normalizeRowFilterValues(
+  value: unknown
+): string[] {
+  const candidateValues = Array.isArray(value)
+    ? value.length > 0
+      ? value
+      : [null]
+    : [value]
+
+  const normalizedValues = new Set<string>()
+
+  for (const candidateValue of candidateValues) {
+    const normalizedValue =
+      normalizeDataTableFilterValue(
+        candidateValue,
+        DATA_TABLE_EMPTY_FILTER_VALUE
+      )
+
+    if (normalizedValue !== null) {
+      normalizedValues.add(normalizedValue)
+    }
   }
 
-  return value.map(stringifyFilterValue).filter(Boolean)
+  return Array.from(normalizedValues)
 }
 
-function normalizeRowFilterValues(value: unknown) {
-  if (Array.isArray(value)) {
-    return value.map(stringifyFilterValue).filter(Boolean)
-  }
-
-  if (value === null || value === undefined || value === "") {
-    return []
-  }
-
-  return [stringifyFilterValue(value)].filter(Boolean)
-}
-
-export function includesSelectedValue<TData>(
+function includesSelectedValueFilter<
+  TData extends RowData,
+>(
   row: Row<TData>,
   columnId: string,
-  value: unknown
-) {
-  const selectedValues = normalizeSelectedFilterValues(value)
+  filterValue: unknown
+): boolean {
+  const selectedValues =
+    normalizeSelectedFilterValues(filterValue)
 
-  if (!selectedValues.length) {
+  if (selectedValues.length === 0) {
     return true
   }
 
-  const rowValues = normalizeRowFilterValues(row.getValue(columnId))
+  const rowValues =
+    normalizeRowFilterValues(
+      row.getValue(columnId)
+    )
 
-  return selectedValues.some((selectedValue) => rowValues.includes(selectedValue))
+  if (rowValues.length === 0) {
+    return false
+  }
+
+  const selectedValueSet =
+    new Set(selectedValues)
+
+  return rowValues.some((rowValue) =>
+    selectedValueSet.has(rowValue)
+  )
 }
+
+export const includesSelectedValue =
+  Object.assign(
+    includesSelectedValueFilter,
+    {
+      resolveFilterValue: (
+        value: unknown
+      ): string[] =>
+        normalizeSelectedFilterValues(value),
+
+      autoRemove: (value: unknown): boolean =>
+        normalizeSelectedFilterValues(
+          value
+        ).length === 0,
+    }
+  ) satisfies FilterFn<RowData>

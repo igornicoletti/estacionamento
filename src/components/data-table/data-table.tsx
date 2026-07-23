@@ -29,8 +29,6 @@ import {
 } from "lucide-react"
 import * as React from "react"
 
-import { AppEmptyState } from "@/components/shared/app-empty-state"
-import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import {
   Collapsible,
@@ -45,15 +43,16 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
-
 import { cn } from "@/lib/utils"
+
 import { DataTableColumnHeader } from "./data-table-column-header"
 import {
   DATA_TABLE_INITIAL_PAGE_SIZE,
   DATA_TABLE_PAGE_SIZE_OPTIONS,
-  DATA_TABLE_SKELETON,
+  resolveDataTableSkeletonRowCount,
 } from "./data-table-constants"
 import { dataTableCopy } from "./data-table-copy"
+import { DataTableEmptyState } from "./data-table-empty-state"
 import { includesSelectedValue } from "./data-table-filter-fns"
 import {
   dedupeFilterFields,
@@ -62,47 +61,114 @@ import {
   dedupeStrings,
   isEmptyFilterValue,
   normalizeFilterText,
-  normalizeSearchValue,
 } from "./data-table-filter-utils"
 import { DataTableLoadingSkeleton } from "./data-table-loading-skeleton"
 import { DataTablePagination } from "./data-table-pagination"
 import { DataTableScrollContainer } from "./data-table-scroll-container"
 import {
-  dataTableColumnFiltersStateAdapter,
   dataTableColumnVisibilityStateAdapter,
-  dataTableGlobalFilterStateAdapter,
   dataTablePaginationStateAdapter,
-  dataTableRowSelectionStateAdapter,
   dataTableSortingStateAdapter,
   useControllableDataTableState,
 } from "./data-table-state"
 import { DataTableToolbar } from "./data-table-toolbar"
 import {
-  type DataTableColumnId,
   type DataTableFilterField,
   type DataTableGlobalSearch,
   type DataTableSearchField,
   type DataTableStateAction,
 } from "./data-table-types"
 
+const DEFAULT_TABLE_ARIA_LABEL = "Tabela de dados"
 
-function normalizePositiveInteger(value: number, fallback: number) {
-  return Number.isInteger(value) && value > 0 ? value : fallback
-}
+type DataTableSurface = "card" | "plain"
+type DataTableStateKind = "empty" | "error" | "loading"
 
-function resolveInitialSkeletonRowCount(pageSize: number) {
-  const safePageSize = normalizePositiveInteger(
-    pageSize,
-    DATA_TABLE_SKELETON.fallbackRows
-  )
-
-  return Math.max(
-    DATA_TABLE_SKELETON.minRows,
-    Math.min(safePageSize, DATA_TABLE_SKELETON.maxRows)
+function isPositiveSafeInteger(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value > 0
   )
 }
 
-function getHeaderAriaSort<TData, TValue>(header: Header<TData, TValue>) {
+function isNonNegativeSafeInteger(value: unknown): value is number {
+  return (
+    typeof value === "number" &&
+    Number.isSafeInteger(value) &&
+    value >= 0
+  )
+}
+
+function normalizeVisibleText(value: string | undefined): string {
+  return (
+    value
+      ?.trim()
+      .replace(/\s+/gu, " ")
+      .normalize("NFC") ?? ""
+  )
+}
+
+function resolveInitialPageSize(
+  initialPageSize: number,
+  pageSizeOptions: readonly number[]
+): number {
+  if (isPositiveSafeInteger(initialPageSize)) {
+    return initialPageSize
+  }
+
+  return (
+    pageSizeOptions.find(isPositiveSafeInteger) ??
+    DATA_TABLE_INITIAL_PAGE_SIZE
+  )
+}
+
+function normalizePageSizeOptions(
+  pageSizeOptions: readonly number[],
+  initialPageSize: number
+): number[] {
+  const options = new Set<number>()
+
+  for (const pageSize of [initialPageSize, ...pageSizeOptions]) {
+    if (isPositiveSafeInteger(pageSize)) {
+      options.add(pageSize)
+    }
+  }
+
+  if (options.size === 0) {
+    options.add(DATA_TABLE_INITIAL_PAGE_SIZE)
+  }
+
+  return Array.from(options).sort((left, right) => left - right)
+}
+
+function normalizePaginationState(
+  pagination: PaginationState,
+  pageSizeOptions: readonly number[],
+  fallbackPageSize: number
+): PaginationState {
+  return {
+    pageIndex: isNonNegativeSafeInteger(pagination.pageIndex)
+      ? pagination.pageIndex
+      : 0,
+    pageSize:
+      isPositiveSafeInteger(pagination.pageSize) &&
+        pageSizeOptions.includes(pagination.pageSize)
+        ? pagination.pageSize
+        : fallbackPageSize,
+  }
+}
+
+function normalizeOptionalRowCount(
+  value: number | undefined,
+  fallback: number
+): number {
+  return isNonNegativeSafeInteger(value) ? value : fallback
+}
+
+function getHeaderAriaSort<TData, TValue>(
+  header: Header<TData, TValue>
+) {
   const sortState = header.column.getIsSorted()
 
   if (sortState === "asc") {
@@ -116,39 +182,154 @@ function getHeaderAriaSort<TData, TValue>(header: Header<TData, TValue>) {
   return undefined
 }
 
+function resolveColumnDefinitionId<TData, TValue>(
+  column: ColumnDef<TData, TValue>
+): string | null {
+  if ("id" in column && typeof column.id === "string") {
+    return column.id
+  }
+
+  if (
+    "accessorKey" in column &&
+    typeof column.accessorKey === "string"
+  ) {
+    return column.accessorKey
+  }
+
+  return null
+}
+
+function applyFacetedFilterFunctions<TData, TValue>(
+  columns: readonly ColumnDef<TData, TValue>[],
+  filterFieldIds: ReadonlySet<string>
+): ColumnDef<TData, TValue>[] {
+  return columns.map((column) => {
+    const columnId = resolveColumnDefinitionId(column)
+
+    if (
+      !columnId ||
+      !filterFieldIds.has(columnId) ||
+      column.filterFn
+    ) {
+      return column
+    }
+
+    return {
+      ...column,
+      filterFn: includesSelectedValue,
+    }
+  })
+}
+
+function createAllowedFacetedValues<TData>(
+  filterFields: readonly DataTableFilterField<TData>[]
+): ReadonlyMap<string, ReadonlySet<string>> {
+  return new Map(
+    filterFields.map((field) => {
+      const optionValues = [
+        ...field.options.map((option) => option.value),
+        ...(field.groups?.flatMap((group) =>
+          group.options.map((option) => option.value)
+        ) ?? []),
+      ]
+
+      return [String(field.id), new Set(optionValues)] as const
+    })
+  )
+}
+
+function sanitizeColumnFiltersState(
+  filters: ColumnFiltersState,
+  searchFieldIds: ReadonlySet<string>,
+  allowedFacetedValues: ReadonlyMap<string, ReadonlySet<string>>
+): ColumnFiltersState {
+  return filters.flatMap((filter) => {
+    if (searchFieldIds.has(filter.id)) {
+      if (
+        typeof filter.value !== "string" ||
+        normalizeFilterText(filter.value).length === 0
+      ) {
+        return []
+      }
+
+      return [filter]
+    }
+
+    const allowedValues = allowedFacetedValues.get(filter.id)
+
+    if (allowedValues) {
+      if (!Array.isArray(filter.value)) {
+        return []
+      }
+
+      const selectedValues = dedupeStrings(
+        filter.value.filter(
+          (value): value is string => typeof value === "string"
+        )
+      ).filter((value) => allowedValues.has(value))
+
+      return selectedValues.length > 0
+        ? [{ ...filter, value: selectedValues }]
+        : []
+    }
+
+    return isEmptyFilterValue(filter.value) ? [] : [filter]
+  })
+}
+
+function normalizedGlobalFilter<TData extends RowData>(
+  row: Row<TData>,
+  columnId: string,
+  filterValue: unknown
+): boolean {
+  const query = normalizeFilterText(filterValue)
+
+  if (query.length === 0) {
+    return true
+  }
+
+  return normalizeFilterText(row.getValue(columnId)).includes(query)
+}
+
+function resolveStateActionProps(action: DataTableStateAction | undefined) {
+  return action
+    ? {
+      actionLabel: action.label,
+      actionIcon: action.icon,
+      onAction: action.onClick,
+    }
+    : {}
+}
+
 function DataTableStatePanel({
   children,
   kind,
-  separated = false,
 }: {
   children: React.ReactNode
-  kind: "empty" | "error" | "loading"
-  separated?: boolean
+  kind: DataTableStateKind
 }) {
   const isLiveRegion = kind === "loading" || kind === "error"
 
   return (
     <div
-      role={kind === "error" ? "alert" : kind === "loading" ? "status" : undefined}
-      aria-live={
-        isLiveRegion ? (kind === "error" ? "assertive" : "polite") : undefined
+      role={
+        kind === "error"
+          ? "alert"
+          : kind === "loading"
+            ? "status"
+            : undefined
       }
-      className={cn(
-        "flex min-h-48 flex-1 items-center justify-center px-3 py-8 sm:min-h-64 sm:px-4 sm:py-10",
-        separated && "border-t"
-      )}
+      aria-live={
+        isLiveRegion
+          ? kind === "error"
+            ? "assertive"
+            : "polite"
+          : undefined
+      }
+      className="flex min-h-48 flex-1 items-center justify-center px-3 py-8 sm:min-h-64 sm:px-4 sm:py-10"
     >
       <div className="w-full max-w-sm sm:max-w-md">{children}</div>
     </div>
-  )
-}
-
-function DataTableActionButton({ action }: { action: DataTableStateAction }) {
-  return (
-    <Button type="button" variant="secondary" size="lg" onClick={action.onClick}>
-      {action.icon}
-      {action.label}
-    </Button>
   )
 }
 
@@ -164,11 +345,11 @@ function DataTableDefaultState({
   action?: DataTableStateAction
 }) {
   return (
-    <AppEmptyState
-      media={icon}
+    <DataTableEmptyState
       title={title}
       description={description}
-      actions={action ? <DataTableActionButton action={action} /> : null}
+      icon={icon}
+      {...resolveStateActionProps(action)}
     />
   )
 }
@@ -176,8 +357,13 @@ function DataTableDefaultState({
 export interface DataTableProps<TData extends RowData, TValue> {
   columns: readonly ColumnDef<TData, TValue>[]
   data: readonly TData[]
-  surface?: "card" | "plain"
-  getRowId?: (originalRow: TData, index: number, parent?: Row<TData>) => string
+  surface?: DataTableSurface
+  ariaLabel?: string
+  getRowId?: (
+    originalRow: TData,
+    index: number,
+    parent?: Row<TData>
+  ) => string
   globalSearch?: DataTableGlobalSearch<TData>
   searchFields?: readonly DataTableSearchField<TData>[]
   filterFields?: readonly DataTableFilterField<TData>[]
@@ -199,8 +385,11 @@ export interface DataTableProps<TData extends RowData, TValue> {
   pageSizeOptions?: readonly number[]
   enablePagination?: boolean
   enableExport?: boolean
+  canExport?: boolean
+  allowExportWhileLoading?: boolean
   enableRowSelection?: boolean
   enableViewOptions?: boolean
+  isExternallyFiltered?: boolean
   manualFiltering?: boolean
   manualPagination?: boolean
   manualSorting?: boolean
@@ -208,6 +397,9 @@ export interface DataTableProps<TData extends RowData, TValue> {
   rowCount?: number
   sourceRowCount?: number
   selectedRowCount?: number
+  selectionRowCount?: number
+  canPreviousPage?: boolean
+  canNextPage?: boolean
   rowSelection?: RowSelectionState
   columnVisibility?: VisibilityState
   defaultColumnVisibility?: VisibilityState
@@ -229,6 +421,7 @@ export function DataTable<TData extends RowData, TValue>({
   columns,
   data,
   surface = "card",
+  ariaLabel,
   getRowId,
   globalSearch,
   searchFields,
@@ -250,9 +443,12 @@ export function DataTable<TData extends RowData, TValue>({
   initialPageSize = DATA_TABLE_INITIAL_PAGE_SIZE,
   pageSizeOptions = DATA_TABLE_PAGE_SIZE_OPTIONS,
   enablePagination = true,
-  enableExport = true,
+  enableExport = false,
+  canExport,
+  allowExportWhileLoading = false,
   enableRowSelection = false,
   enableViewOptions = true,
+  isExternallyFiltered = false,
   manualFiltering = false,
   manualPagination = false,
   manualSorting = false,
@@ -260,6 +456,9 @@ export function DataTable<TData extends RowData, TValue>({
   rowCount,
   sourceRowCount,
   selectedRowCount: controlledSelectedRowCount,
+  selectionRowCount,
+  canPreviousPage,
+  canNextPage,
   rowSelection: controlledRowSelection,
   columnVisibility: controlledColumnVisibility,
   defaultColumnVisibility,
@@ -276,87 +475,96 @@ export function DataTable<TData extends RowData, TValue>({
   onPaginationChange,
   onGlobalFilterChange,
 }: DataTableProps<TData, TValue>) {
-  const safeInitialPageSize = normalizePositiveInteger(
+  const resolvedAriaLabel =
+    normalizeVisibleText(ariaLabel) || DEFAULT_TABLE_ARIA_LABEL
+
+  const safeInitialPageSize = resolveInitialPageSize(
     initialPageSize,
-    DATA_TABLE_PAGE_SIZE_OPTIONS[0]
+    pageSizeOptions
   )
-  const [rowSelection, setRowSelection] = useControllableDataTableState<RowSelectionState>({
-    controlledValue: controlledRowSelection,
-    defaultValue: {},
-    onChange: onRowSelectionChange,
-    storageKey: tableStateStorageKey,
-    storageAdapter: dataTableRowSelectionStateAdapter,
-  })
-  const [columnVisibility, setColumnVisibility] = useControllableDataTableState<VisibilityState>({
-    controlledValue: controlledColumnVisibility,
-    defaultValue: defaultColumnVisibility ?? {},
-    onChange: onColumnVisibilityChange,
-    storageKey: tableStateStorageKey ?? columnVisibilityStorageKey,
-    storageAdapter: tableStateStorageKey || columnVisibilityStorageKey
-      ? dataTableColumnVisibilityStateAdapter
-      : undefined,
-  })
-  const [columnFilters, setColumnFilters] = useControllableDataTableState<ColumnFiltersState>({
-    controlledValue: controlledColumnFilters,
-    defaultValue: [],
-    onChange: onColumnFiltersChange,
-    storageKey: tableStateStorageKey,
-    storageAdapter: dataTableColumnFiltersStateAdapter,
-  })
-  const [sorting, setSorting] = useControllableDataTableState<SortingState>({
-    controlledValue: controlledSorting,
-    defaultValue: [],
-    onChange: onSortingChange,
-    storageKey: tableStateStorageKey,
-    storageAdapter: dataTableSortingStateAdapter,
-  })
-  const [globalFilter, setGlobalFilter] = useControllableDataTableState<string>({
-    controlledValue: globalFilterValue,
-    defaultValue: "",
-    onChange: onGlobalFilterChange,
-    storageKey: tableStateStorageKey,
-    storageAdapter: dataTableGlobalFilterStateAdapter,
-  })
-  const [pagination, setPagination] = useControllableDataTableState<PaginationState>({
-    controlledValue: controlledPagination,
-    defaultValue: {
-      pageIndex: 0,
-      pageSize: safeInitialPageSize,
-    },
-    onChange: onPaginationChange,
-    storageKey: tableStateStorageKey,
-    storageAdapter: dataTablePaginationStateAdapter,
-  })
 
-  const normalizedData = React.useMemo(() => [...data], [data])
-  const normalizedColumns = React.useMemo(() => [...columns], [columns])
-  const normalizedPageSizeOptions = React.useMemo(() => {
-    const options = new Set(
-      [safeInitialPageSize, ...pageSizeOptions].filter(
-        (value) => Number.isInteger(value) && value > 0
-      )
-    )
+  const normalizedPageSizeOptions = React.useMemo(
+    () => normalizePageSizeOptions(pageSizeOptions, safeInitialPageSize),
+    [pageSizeOptions, safeInitialPageSize]
+  )
 
-    return Array.from(options).sort((a, b) => a - b)
-  }, [pageSizeOptions, safeInitialPageSize])
-  const normalizedPagination = React.useMemo<PaginationState>(() => {
-    const pageSize = normalizedPageSizeOptions.includes(pagination.pageSize)
-      ? pagination.pageSize
-      : safeInitialPageSize
-    const pageIndex =
-      Number.isInteger(pagination.pageIndex) && pagination.pageIndex >= 0
-        ? pagination.pageIndex
-        : 0
+  const [rowSelection, setRowSelection] =
+    useControllableDataTableState<RowSelectionState>({
+      controlledValue: controlledRowSelection,
+      defaultValue: {},
+      onChange: onRowSelectionChange,
+    })
 
-    return {
-      pageIndex,
-      pageSize,
-    }
-  }, [normalizedPageSizeOptions, pagination, safeInitialPageSize])
+  const [columnVisibility, setColumnVisibility] =
+    useControllableDataTableState<VisibilityState>({
+      controlledValue: controlledColumnVisibility,
+      defaultValue: defaultColumnVisibility ?? {},
+      onChange: onColumnVisibilityChange,
+      storageKey: tableStateStorageKey ?? columnVisibilityStorageKey,
+      storageAdapter:
+        tableStateStorageKey || columnVisibilityStorageKey
+          ? dataTableColumnVisibilityStateAdapter
+          : undefined,
+    })
+
+  const [columnFilters, setColumnFilters] =
+    useControllableDataTableState<ColumnFiltersState>({
+      controlledValue: controlledColumnFilters,
+      defaultValue: [],
+      onChange: onColumnFiltersChange,
+    })
+
+  const [sorting, setSorting] =
+    useControllableDataTableState<SortingState>({
+      controlledValue: controlledSorting,
+      defaultValue: [],
+      onChange: onSortingChange,
+      storageKey: tableStateStorageKey,
+      storageAdapter: dataTableSortingStateAdapter,
+    })
+
+  const [globalFilter, setGlobalFilter] =
+    useControllableDataTableState<string>({
+      controlledValue: globalFilterValue,
+      defaultValue: "",
+      onChange: onGlobalFilterChange,
+    })
+
+  const [pagination, setPagination] =
+    useControllableDataTableState<PaginationState>({
+      controlledValue: controlledPagination,
+      defaultValue: {
+        pageIndex: 0,
+        pageSize: safeInitialPageSize,
+      },
+      onChange: onPaginationChange,
+      storageKey: tableStateStorageKey,
+      storageAdapter: dataTablePaginationStateAdapter,
+    })
+
+  const normalizedPagination = React.useMemo(
+    () =>
+      normalizePaginationState(
+        pagination,
+        normalizedPageSizeOptions,
+        safeInitialPageSize
+      ),
+    [normalizedPageSizeOptions, pagination, safeInitialPageSize]
+  )
+
+  const tableData = React.useMemo(() => Array.from(data), [data])
+  const baseColumns = React.useMemo(() => Array.from(columns), [columns])
+
   const searchableColumnIds = React.useMemo(
     () => dedupeGlobalSearchColumnIds(globalSearch),
     [globalSearch]
   )
+
+  const searchableColumnIdSet = React.useMemo(
+    () => new Set(searchableColumnIds.map(String)),
+    [searchableColumnIds]
+  )
+
   const normalizedGlobalSearch = React.useMemo(
     () =>
       globalSearch && searchableColumnIds.length > 0
@@ -367,195 +575,184 @@ export function DataTable<TData extends RowData, TValue>({
         : undefined,
     [globalSearch, searchableColumnIds]
   )
+
   const normalizedSearchFields = React.useMemo(
-    () => normalizedGlobalSearch ? [] : dedupeSearchFields(searchFields),
-    [normalizedGlobalSearch, searchFields]
+    () => dedupeSearchFields(searchFields),
+    [searchFields]
   )
+
   const normalizedFilterFields = React.useMemo(
     () => dedupeFilterFields(filterFields),
     [filterFields]
   )
+
   const filterFieldIds = React.useMemo(
-    () => new Set(normalizedFilterFields.map((field) => String(field.id))),
+    () =>
+      new Set(
+        normalizedFilterFields.map((field) => String(field.id))
+      ),
     [normalizedFilterFields]
   )
-  const enhancedColumns = React.useMemo(
-    () =>
-      normalizedColumns.map((column) => {
-        const columnId =
-          "id" in column && typeof column.id === "string"
-            ? column.id
-            : "accessorKey" in column && typeof column.accessorKey === "string"
-              ? column.accessorKey
-              : ""
 
-        if (!columnId || !filterFieldIds.has(columnId) || column.filterFn) {
-          return column
-        }
-
-        return {
-          ...column,
-          filterFn: includesSelectedValue,
-        }
-      }),
-    [filterFieldIds, normalizedColumns]
+  const tableColumns = React.useMemo(
+    () => applyFacetedFilterFunctions(baseColumns, filterFieldIds),
+    [baseColumns, filterFieldIds]
   )
+
   const searchFieldIds = React.useMemo(
-    () => new Set(normalizedSearchFields.map((field) => field.id)),
+    () =>
+      new Set(
+        normalizedSearchFields.map((field) => String(field.id))
+      ),
     [normalizedSearchFields]
   )
-  const facetedFilterOptions = React.useMemo(() => {
-    return new Map(
-      normalizedFilterFields.map((field) => [
-        field.id,
-        new Set(field.options.map((option) => option.value)),
-      ])
-    )
-  }, [normalizedFilterFields])
-  const sanitizeColumnFilters = React.useCallback(
-    (filters: ColumnFiltersState): ColumnFiltersState => {
-      return filters.flatMap((filter) => {
-        if (searchFieldIds.has(filter.id)) {
-          const value =
-            typeof filter.value === "string"
-              ? normalizeSearchValue(filter.value)
-              : ""
 
-          return value ? [{ ...filter, value }] : []
-        }
-
-        const allowedValues = facetedFilterOptions.get(filter.id)
-
-        if (allowedValues) {
-          const values = Array.isArray(filter.value)
-            ? dedupeStrings(filter.value.map(String)).filter((value) =>
-              allowedValues.has(value)
-            )
-            : []
-
-          return values.length ? [{ ...filter, value: values }] : []
-        }
-
-        return isEmptyFilterValue(filter.value) ? [] : [filter]
-      })
-    },
-    [facetedFilterOptions, searchFieldIds]
+  const allowedFacetedValues = React.useMemo(
+    () => createAllowedFacetedValues(normalizedFilterFields),
+    [normalizedFilterFields]
   )
+
+  const sanitizeColumnFilters = React.useCallback(
+    (filters: ColumnFiltersState) =>
+      sanitizeColumnFiltersState(
+        filters,
+        searchFieldIds,
+        allowedFacetedValues
+      ),
+    [allowedFacetedValues, searchFieldIds]
+  )
+
   const sanitizedColumnFilters = React.useMemo(
     () => sanitizeColumnFilters(columnFilters),
     [columnFilters, sanitizeColumnFilters]
   )
+
   const isColumnFiltered = sanitizedColumnFilters.length > 0
-  const isGlobalFiltered = normalizeSearchValue(globalFilter).length > 0
-  const isFiltered = isColumnFiltered || isGlobalFiltered
-  const tableData = React.useMemo(() => {
-    const query = normalizeFilterText(globalFilter)
+  const isGlobalFiltered = normalizeFilterText(globalFilter).length > 0
+  const isFiltered =
+    isColumnFiltered || isGlobalFiltered || isExternallyFiltered
 
-    if (manualFiltering || !query || searchableColumnIds.length === 0) {
-      return normalizedData
-    }
-
-    return normalizedData.filter((row) =>
-      searchableColumnIds.some((columnId) => {
-        const value = (row as Record<DataTableColumnId<TData>, unknown>)[
-          columnId
-        ]
-
-        return normalizeFilterText(value).includes(query)
-      })
-    )
-  }, [globalFilter, manualFiltering, normalizedData, searchableColumnIds])
-  const handlePaginationChange = React.useCallback<OnChangeFn<PaginationState>>(
+  const handlePaginationChange = React.useCallback<
+    OnChangeFn<PaginationState>
+  >(
     (updater) => {
       setPagination(updater)
     },
     [setPagination]
   )
-  const resetPageIndex = React.useCallback(() => {
-    handlePaginationChange((previous) => {
-      if (previous.pageIndex === 0) {
-        return previous
-      }
 
-      return { ...previous, pageIndex: 0 }
-    })
+  const resetPageIndex = React.useCallback(() => {
+    handlePaginationChange((previous) =>
+      previous.pageIndex === 0
+        ? previous
+        : {
+          ...previous,
+          pageIndex: 0,
+        }
+    )
   }, [handlePaginationChange])
+
   const handleSortingChange = React.useCallback<OnChangeFn<SortingState>>(
     (updater) => {
       setSorting(updater)
-      resetPageIndex()
-    },
-    [resetPageIndex, setSorting]
-  )
-  const handleColumnFiltersChange =
-    React.useCallback<OnChangeFn<ColumnFiltersState>>(
-      (updater) => {
-        const sanitizedUpdater = (
-          previous: ColumnFiltersState
-        ): ColumnFiltersState => {
-          const nextFilters =
-            typeof updater === "function" ? updater(previous) : updater
 
-          return sanitizeColumnFilters(nextFilters)
-        }
-
-        setColumnFilters(sanitizedUpdater)
+      if (manualPagination) {
         resetPageIndex()
-      },
-      [resetPageIndex, sanitizeColumnFilters, setColumnFilters]
-    )
+      }
+    },
+    [manualPagination, resetPageIndex, setSorting]
+  )
+
+  const handleColumnFiltersChange = React.useCallback<
+    OnChangeFn<ColumnFiltersState>
+  >(
+    (updater) => {
+      setColumnFilters((previous) => {
+        const nextFilters =
+          typeof updater === "function" ? updater(previous) : updater
+
+        return sanitizeColumnFilters(nextFilters)
+      })
+
+      if (manualPagination) {
+        resetPageIndex()
+      }
+    },
+    [manualPagination, resetPageIndex, sanitizeColumnFilters, setColumnFilters]
+  )
+
   const handleGlobalFilterChange = React.useCallback<OnChangeFn<string>>(
     (updater) => {
-      setGlobalFilter((previous) =>
-        typeof updater === "function" ? updater(previous) : updater
-      )
-      resetPageIndex()
+      setGlobalFilter(updater)
+
+      if (manualPagination) {
+        resetPageIndex()
+      }
     },
-    [resetPageIndex, setGlobalFilter]
+    [manualPagination, resetPageIndex, setGlobalFilter]
   )
-  const handleRowSelectionChange =
-    React.useCallback<OnChangeFn<RowSelectionState>>(
-      (updater) => {
-        setRowSelection(updater)
-      },
-      [setRowSelection]
-    )
-  const handleColumnVisibilityChange =
-    React.useCallback<OnChangeFn<VisibilityState>>(
-      (updater) => {
-        setColumnVisibility(updater)
-      },
-      [setColumnVisibility]
-    )
-  const manualPaginationMeta = manualPagination
-    ? pageCount !== undefined
-      ? { pageCount }
-      : rowCount !== undefined
-        ? { rowCount }
-        : {}
-    : {}
+
+  const handleClearFilters = React.useCallback(() => {
+    setColumnFilters([])
+    setGlobalFilter("")
+    resetPageIndex()
+  }, [resetPageIndex, setColumnFilters, setGlobalFilter])
+
+  const manualPaginationMeta = React.useMemo(() => {
+    if (!manualPagination) {
+      return {}
+    }
+
+    if (
+      typeof pageCount === "number" &&
+      Number.isSafeInteger(pageCount) &&
+      pageCount >= -1
+    ) {
+      return { pageCount }
+    }
+
+    if (isNonNegativeSafeInteger(rowCount)) {
+      return { rowCount }
+    }
+
+    return {}
+  }, [manualPagination, pageCount, rowCount])
 
   const table = useReactTable<TData>({
     data: tableData,
-    columns: enhancedColumns,
+    columns: tableColumns,
     getRowId,
+    initialState: {
+      columnVisibility: defaultColumnVisibility ?? {},
+      pagination: {
+        pageIndex: 0,
+        pageSize: safeInitialPageSize,
+      },
+    },
     state: {
       sorting,
       columnVisibility,
       rowSelection,
       columnFilters: sanitizedColumnFilters,
       pagination: normalizedPagination,
+      globalFilter,
     },
     enableRowSelection,
+    enableGlobalFilter: searchableColumnIds.length > 0,
+    getColumnCanGlobalFilter: (column) =>
+      searchableColumnIdSet.has(column.id),
+    globalFilterFn: normalizedGlobalFilter,
     manualFiltering,
     manualPagination,
     manualSorting,
+    autoResetPageIndex: !manualPagination,
     ...manualPaginationMeta,
-    onRowSelectionChange: handleRowSelectionChange,
+    onRowSelectionChange: setRowSelection,
     onSortingChange: handleSortingChange,
     onColumnFiltersChange: handleColumnFiltersChange,
-    onColumnVisibilityChange: handleColumnVisibilityChange,
+    onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: handlePaginationChange,
+    onGlobalFilterChange: handleGlobalFilterChange,
     getCoreRowModel: getCoreRowModel(),
     ...(!manualFiltering
       ? {
@@ -564,61 +761,74 @@ export function DataTable<TData extends RowData, TValue>({
         getFacetedUniqueValues: getFacetedUniqueValues(),
       }
       : {}),
-    ...(!manualSorting ? { getSortedRowModel: getSortedRowModel() } : {}),
+    ...(!manualSorting
+      ? {
+        getSortedRowModel: getSortedRowModel(),
+      }
+      : {}),
     ...(enablePagination && !manualPagination
-      ? { getPaginationRowModel: getPaginationRowModel() }
+      ? {
+        getPaginationRowModel: getPaginationRowModel(),
+      }
       : {}),
   })
 
-  const tableRows = table.getRowModel().rows
-  const datasetRowCount = manualPagination
-    ? rowCount ?? normalizedData.length
-    : sourceRowCount ?? normalizedData.length
-  const hasDatasetRows = datasetRowCount > 0
-  const hasVisibleRows = tableRows.length > 0
+  const visibleRows = table.getRowModel().rows
+  const hasVisibleRows = visibleRows.length > 0
+
+  const sourceTotalRowCount = normalizeOptionalRowCount(
+    sourceRowCount,
+    tableData.length
+  )
+
+  const currentRowCount = manualPagination
+    ? normalizeOptionalRowCount(rowCount, tableData.length)
+    : manualFiltering
+      ? normalizeOptionalRowCount(rowCount, tableData.length)
+      : table.getFilteredRowModel().rows.length
+
+  const hasKnownRows =
+    sourceTotalRowCount > 0 || currentRowCount > 0 || hasVisibleRows
+
   const hasError = Boolean(error)
   const hasBlockingError = hasError && !isLoading && !hasVisibleRows
   const hasNonBlockingError = hasError && !isLoading && hasVisibleRows
-  const isInitialLoading = isLoading && !hasVisibleRows && !hasDatasetRows
+  const isInitialLoading = isLoading && !hasVisibleRows
   const shouldRenderInitialSkeleton =
-    isLoading && !loadingState && !hasVisibleRows
+    isInitialLoading && loadingState === undefined
+
   const hasToolbarSearch =
     Boolean(normalizedGlobalSearch) || normalizedSearchFields.length > 0
   const hasToolbarFilters = normalizedFilterFields.length > 0
-  const hasToolbarActions = Boolean(toolbarActions)
+  const hasToolbarActions = React.Children.toArray(toolbarActions).length > 0
   const hasToolbarUtilities = enableViewOptions || enableExport
   const hasToolbarSurface =
     hasToolbarSearch ||
     hasToolbarFilters ||
     hasToolbarActions ||
     hasToolbarUtilities
-  const canRenderResolvedTable =
-    !hasBlockingError && !isInitialLoading && hasDatasetRows
-  const shouldRenderToolbar = canRenderResolvedTable && hasToolbarSurface
-  const shouldRenderPagination =
-    enablePagination && canRenderResolvedTable && hasVisibleRows
-  const handleClearFilters = React.useCallback(() => {
-    table.resetColumnFilters()
-    handleGlobalFilterChange("")
-  }, [handleGlobalFilterChange, table])
-  const handleRetry = React.useCallback(() => {
-    if (onRetry) {
-      onRetry()
-      return
-    }
 
-    if (typeof window !== "undefined") {
-      window.location.reload()
-    }
-  }, [onRetry])
-  const errorAction = React.useMemo<DataTableStateAction>(
-    () => ({
-      label: dataTableCopy.fallback.errorAction,
-      icon: <RefreshCcwIcon aria-hidden="true" />,
-      onClick: handleRetry,
-    }),
-    [handleRetry]
+  const shouldRenderToolbar =
+    !hasBlockingError &&
+    !isInitialLoading &&
+    hasToolbarSurface &&
+    (hasKnownRows || isFiltered)
+
+  const shouldRenderPagination =
+    enablePagination && !hasBlockingError && hasVisibleRows
+
+  const errorAction = React.useMemo<DataTableStateAction | undefined>(
+    () =>
+      onRetry
+        ? {
+          label: dataTableCopy.fallback.errorAction,
+          icon: <RefreshCcwIcon aria-hidden="true" />,
+          onClick: onRetry,
+        }
+        : undefined,
+    [onRetry]
   )
+
   const filteredAction = React.useMemo<DataTableStateAction>(
     () => ({
       label: dataTableCopy.fallback.filteredEmptyAction,
@@ -627,7 +837,10 @@ export function DataTable<TData extends RowData, TValue>({
     }),
     [handleClearFilters]
   )
-  const resolvedEmptyAction = React.useMemo<DataTableStateAction | undefined>(() => {
+
+  const resolvedEmptyAction = React.useMemo<
+    DataTableStateAction | undefined
+  >(() => {
     if (emptyAction) {
       return emptyAction
     }
@@ -647,43 +860,42 @@ export function DataTable<TData extends RowData, TValue>({
     <DataTableDefaultState
       title={dataTableCopy.fallback.errorTitle}
       description={dataTableCopy.fallback.errorDescription}
-      icon={<RefreshCcwIcon />}
+      icon={<RefreshCcwIcon aria-hidden="true" />}
       action={errorAction}
     />
   )
+
   const defaultEmptyState = (
     <DataTableDefaultState
       title={dataTableCopy.fallback.emptyTitle}
       description={dataTableCopy.fallback.emptyDescription}
-      icon={<DatabaseIcon />}
+      icon={<DatabaseIcon aria-hidden="true" />}
       action={resolvedEmptyAction}
     />
   )
+
   const defaultFilteredEmptyState = (
     <DataTableDefaultState
       title={dataTableCopy.fallback.filteredEmptyTitle}
       description={dataTableCopy.fallback.filteredEmptyDescription}
-      icon={<SearchXIcon />}
+      icon={<SearchXIcon aria-hidden="true" />}
       action={filteredAction}
     />
   )
-  const visibleRows = hasBlockingError ? [] : tableRows
+
   const visibleLeafColumns = table.getVisibleLeafColumns()
-  const visibleColumnCount = Math.max(visibleLeafColumns.length, 1)
+  const visibleColumnCount = visibleLeafColumns.length
+  const skeletonColumnCount = Math.max(visibleColumnCount, 1)
+
   const skeletonColumnSizes = React.useMemo(
     () => visibleLeafColumns.map((column) => column.getSize()),
     [visibleLeafColumns]
   )
-  const paginationPageSize = table.getState().pagination.pageSize
-  const skeletonRowCount = React.useMemo(
-    () => resolveInitialSkeletonRowCount(paginationPageSize),
-    [paginationPageSize]
+
+  const skeletonRowCount = resolveDataTableSkeletonRowCount(
+    table.getState().pagination.pageSize
   )
-  const currentRowCount = manualPagination
-    ? rowCount ?? tableData.length
-    : manualFiltering
-      ? normalizedData.length
-      : table.getFilteredRowModel().rows.length
+
   const selectedRowCount =
     controlledSelectedRowCount ??
     (enableRowSelection
@@ -691,37 +903,62 @@ export function DataTable<TData extends RowData, TValue>({
         ? table.getSelectedRowModel().rows.length
         : table.getFilteredSelectedRowModel().rows.length
       : 0)
+
   const shouldRenderStatePanel =
-    !shouldRenderInitialSkeleton &&
-    !visibleRows.length
-  const stateKind = hasBlockingError ? "error" : isLoading ? "loading" : "empty"
+    !shouldRenderInitialSkeleton && !hasVisibleRows
+
+  const stateKind: DataTableStateKind = hasBlockingError
+    ? "error"
+    : isLoading
+      ? "loading"
+      : "empty"
+
   const stateContent = hasBlockingError
     ? errorState ?? defaultErrorState
     : isLoading
       ? loadingState
-      : hasDatasetRows && isFiltered
+      : isFiltered
         ? filteredEmptyState ?? defaultFilteredEmptyState
         : emptyState ?? defaultEmptyState
+
+  const headerSurfaceClassName =
+    surface === "card" ? "bg-card" : "bg-background"
+
+  const caption = `${resolvedAriaLabel}. ${currentRowCount} ${currentRowCount === 1 ? "registro" : "registros"
+    }${isFiltered ? " filtrados" : ""}.`
 
   const tableSurfaceContent = (
     <>
       <div className="flex min-w-0 flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden">
-        {shouldRenderInitialSkeleton || visibleRows.length > 0 ? (
-          <DataTableScrollContainer className="w-full max-w-full lg:min-h-0 lg:max-h-full lg:flex-1">
-            <Table className="min-w-max" aria-rowcount={currentRowCount} aria-colcount={visibleColumnCount}>
-              <caption className="sr-only">
-                {currentRowCount} {currentRowCount === 1 ? "registro" : "registros"}
-                {isFiltered ? " (filtrado)" : ""}
-              </caption>
-              <TableHeader className="sticky top-0 z-20 bg-card">
+        {shouldRenderInitialSkeleton || hasVisibleRows ? (
+          <DataTableScrollContainer
+            aria-label={resolvedAriaLabel}
+            className="w-full max-w-full lg:min-h-0 lg:max-h-full lg:flex-1"
+          >
+            <Table
+              className="min-w-max"
+              aria-rowcount={currentRowCount}
+              aria-colcount={visibleColumnCount}
+            >
+              <caption className="sr-only">{caption}</caption>
+
+              <TableHeader
+                className={cn(
+                  "sticky top-0 z-20",
+                  headerSurfaceClassName
+                )}
+              >
                 {table.getHeaderGroups().map((headerGroup) => (
-                  <TableRow key={headerGroup.id} className="bg-card">
+                  <TableRow
+                    key={headerGroup.id}
+                    className={headerSurfaceClassName}
+                  >
                     {headerGroup.headers.map((header) => (
                       <TableHead
                         key={header.id}
                         colSpan={header.colSpan}
                         style={{ width: header.getSize() }}
-                        className="bg-card"
+                        className={headerSurfaceClassName}
                         aria-sort={getHeaderAriaSort(header)}
                       >
                         {header.isPlaceholder
@@ -742,14 +979,15 @@ export function DataTable<TData extends RowData, TValue>({
                   </TableRow>
                 ))}
               </TableHeader>
+
               <TableBody>
                 {shouldRenderInitialSkeleton ? (
                   <DataTableLoadingSkeleton
-                    columnCount={visibleColumnCount}
+                    columnCount={skeletonColumnCount}
                     rowCount={skeletonRowCount}
                     columnSizes={skeletonColumnSizes}
                   />
-                ) : visibleRows.length > 0 ? (
+                ) : (
                   visibleRows.map((row) => (
                     <TableRow
                       key={row.id}
@@ -766,8 +1004,6 @@ export function DataTable<TData extends RowData, TValue>({
                       ))}
                     </TableRow>
                   ))
-                ) : (
-                  null
                 )}
               </TableBody>
             </Table>
@@ -787,7 +1023,10 @@ export function DataTable<TData extends RowData, TValue>({
           pageSizeOptions={normalizedPageSizeOptions}
           rowCount={currentRowCount}
           selectedRowCount={selectedRowCount}
+          selectionRowCount={selectionRowCount}
           showSelectedCount={enableRowSelection}
+          canPreviousPage={canPreviousPage}
+          canNextPage={canNextPage}
         />
       ) : null}
     </>
@@ -811,33 +1050,55 @@ export function DataTable<TData extends RowData, TValue>({
       {shouldRenderToolbar ? (
         <Card size="sm">
           <Collapsible defaultOpen className="group/data-table-controls">
-            <CollapsibleTrigger type="button" className="flex w-full items-center justify-between gap-3 rounded-t-xl px-(--card-spacing) text-left outline-none transition-colors hover:bg-muted/40 focus-visible:ring-[3px] focus-visible:ring-ring/50 focus-visible:outline-none">
+            <CollapsibleTrigger
+              type="button"
+              className="flex w-full items-center justify-between gap-3 rounded-t-xl px-(--card-spacing) text-left outline-none transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
+            >
               <span className="flex min-w-0 items-start gap-2">
-                <SlidersHorizontalIcon aria-hidden="true" className="mt-0.5 size-4 shrink-0 text-muted-foreground" />
+                <SlidersHorizontalIcon
+                  aria-hidden="true"
+                  focusable="false"
+                  className="mt-0.5 size-4 shrink-0 text-muted-foreground"
+                />
+
                 <span className="grid min-w-0 gap-1">
                   <span className="text-sm leading-snug font-medium text-foreground">
                     {dataTableCopy.toolbar.controlsTitle}
                   </span>
+
                   <span className="hidden text-sm text-muted-foreground sm:block">
                     {dataTableCopy.toolbar.controlsDescription}
                   </span>
                 </span>
               </span>
-              <ChevronDownIcon aria-hidden="true" className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]/data-table-controls:rotate-180" />
+
+              <ChevronDownIcon
+                aria-hidden="true"
+                focusable="false"
+                className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]/data-table-controls:rotate-180"
+              />
             </CollapsibleTrigger>
+
             <CollapsibleContent className="pt-3">
               <CardContent>
                 <DataTableToolbar
                   table={table}
                   globalSearch={normalizedGlobalSearch}
+                  globalSearchAriaLabel={
+                    normalizedGlobalSearch?.ariaLabel
+                  }
                   searchFields={normalizedSearchFields}
                   filterFields={normalizedFilterFields}
                   actions={toolbarActions}
                   enableViewOptions={enableViewOptions}
                   enableExport={enableExport}
-                  canExport={visibleRows.length > 0}
+                  canExport={
+                    (canExport ?? true) && hasVisibleRows
+                  }
                   manualFiltering={manualFiltering}
                   isLoading={isLoading}
+                  allowExportWhileLoading={allowExportWhileLoading}
+                  isExternallyFiltered={isExternallyFiltered}
                   globalFilterValue={globalFilter}
                   onGlobalFilterChange={handleGlobalFilterChange}
                   onClearFilters={handleClearFilters}
@@ -848,7 +1109,7 @@ export function DataTable<TData extends RowData, TValue>({
         </Card>
       ) : null}
 
-      {isLoading && !loadingState ? (
+      {isLoading && loadingState === undefined ? (
         <span className="sr-only" role="status" aria-live="polite">
           {shouldRenderInitialSkeleton
             ? loadingAnnouncement
@@ -857,7 +1118,10 @@ export function DataTable<TData extends RowData, TValue>({
       ) : null}
 
       {surface === "card" ? (
-        <Card size="sm" className="overflow-visible lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+        <Card
+          size="sm"
+          className="overflow-visible lg:min-h-0 lg:flex-1 lg:overflow-hidden"
+        >
           <CardContent className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
             {tableSurfaceContent}
           </CardContent>

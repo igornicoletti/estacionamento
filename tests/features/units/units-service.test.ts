@@ -31,8 +31,8 @@ describe("units-service", () => {
             des_coordenada_empresa: "",
             ip_rede: "",
             nom_banco_dados: "erp_teste",
-          },
-        ]
+          } as const,
+        ] as const
       },
     })
 
@@ -86,7 +86,7 @@ describe("units-service", () => {
 
   it("normalizes the real ERP units mock without exposing raw uppercase display values", async () => {
     configureUnitsGateway({
-      async listUnitsPayload() {
+      async listUnitsPayload(): Promise<typeof mockErpUnitsPayload> {
         await Promise.resolve()
         return mockErpUnitsPayload
       },

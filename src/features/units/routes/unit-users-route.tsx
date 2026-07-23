@@ -136,7 +136,10 @@ export function UnitUsersRoute() {
             ? "Consulte os dados de acesso e vínculo do funcionário selecionado."
             : undefined
         }
-        items={selectedUser ? getUnitUserDetailItems(selectedUser) : []}
+        items={selectedUser
+          ? getUnitUserDetailItems(selectedUser)
+          : []
+        }
       />
     </PageSection>
   )

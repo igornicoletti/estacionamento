@@ -173,60 +173,76 @@ export async function fetchWithErpRetryAndDoH(
   headers: Record<string, string>,
   timeoutMs: number
 ): Promise<Response> {
+  let primaryError: unknown
+
+  // Phase 1: Normal retry
   try {
     return await fetchWithErpRetry(
       (signal) => fetch(originalUrl.toString(), { method: "GET", headers, signal }),
       timeoutMs
     )
-  } catch (primaryError) {
+  } catch (error) {
+    primaryError = error
+
     if (!isDnsError(primaryError)) {
-      throw primaryError
-    }
-
-    // DoH fallback only makes sense for HTTP — HTTPS needs SNI = hostname
-    if (originalUrl.protocol === "https:") {
-      console.warn(
-        "[erp-fetch-retry] DNS failed for HTTPS URL; DoH fallback skipped (SNI limitation)"
-      )
-      throw primaryError
-    }
-
-    console.warn(
-      `[erp-fetch-retry] DNS persistently failing for ${originalUrl.hostname}; trying DoH Cloudflare…`
-    )
-
-    let ip: string
-
-    try {
-      ip = await resolveIPv4ViaDoH(originalUrl.hostname)
-      console.warn(`[erp-fetch-retry] DoH resolved ${originalUrl.hostname} → ${ip}`)
-    } catch (dohError) {
-      console.error("[erp-fetch-retry] DoH also failed", dohError)
-      throw primaryError
-    }
-
-    const fallback = buildDoHFallbackRequest(originalUrl, ip, headers)
-    const controller = new AbortController()
-    const timeout = setTimeout(() => controller.abort(), timeoutMs)
-
-    try {
-      const response = await fetch(fallback.url, {
-        method: "GET",
-        headers: fallback.headers,
-        signal: controller.signal,
+      const cause = primaryError instanceof Error ? primaryError : new Error(String(primaryError))
+      throw new Error("[erp-fetch-retry] Non-DNS error", {
+        cause,
       })
-
-      if (!response.ok) {
-        throw new Error(`erp_http_${response.status}`)
-      }
-
-      return response
-    } catch (error) {
-      throw new Error("[erp-fetch-retry] DoH fallback request failed", {
-        cause: error instanceof Error ? error : primaryError,
-      })
-    } finally {
-      clearTimeout(timeout)
     }
   }
+
+  // Phase 2: DoH fallback
+  if (originalUrl.protocol === "https:") {
+    console.warn(
+      "[erp-fetch-retry] DNS failed for HTTPS URL; DoH fallback skipped (SNI limitation)"
+    )
+    throw new Error("[erp-fetch-retry] DNS error with HTTPS protocol", {
+      cause: primaryError,
+    })
+  }
+
+  console.warn(
+    `[erp-fetch-retry] DNS persistently failing for ${originalUrl.hostname}; trying DoH Cloudflare…`
+  )
+
+  let ip: string
+
+  try {
+    ip = await resolveIPv4ViaDoH(originalUrl.hostname)
+    console.warn(`[erp-fetch-retry] DoH resolved ${originalUrl.hostname} → ${ip}`)
+  } catch (dohError) {
+    console.error("[erp-fetch-retry] DoH also failed", dohError)
+    throw new Error("[erp-fetch-retry] DoH resolution failed", {
+      cause: dohError,
+    })
+  }
+
+  const fallback = buildDoHFallbackRequest(originalUrl, ip, headers)
+  const controller = new AbortController()
+  const timeout = setTimeout(() => controller.abort(), timeoutMs)
+
+  let fallbackOutcome: Response | Error
+
+  try {
+    const response = await fetch(fallback.url, {
+      method: "GET",
+      headers: fallback.headers,
+      signal: controller.signal,
+    })
+
+    if (response.ok) {
+      return response
+    }
+
+    fallbackOutcome = new Error(`erp_http_${response.status}`)
+  } catch (error) {
+    fallbackOutcome = error instanceof Error ? error : new Error("erp_fallback_fetch_failed")
+  } finally {
+    clearTimeout(timeout)
+  }
+
+  throw new Error("[erp-fetch-retry] DoH fallback request failed", {
+    cause: fallbackOutcome,
+  })
 }

@@ -171,7 +171,6 @@ export function ClientsSyncHistoryDialog({
       title={clientsCopy.sync.history.title}
       description={clientsCopy.sync.history.description}
       side="right"
-      className="gap-0 sm:max-w-md"
     >
       <div className="no-scrollbar min-h-0 flex-1 overflow-y-auto px-4 pb-4">
         {isLoading ? <ClientSyncHistorySkeleton /> : null}

@@ -60,8 +60,8 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
-import { cn } from "@/lib/utils"
 import { formatParkingAlertSeverity } from "@/features/operations/model/parking-movement-formatters"
+import { cn } from "@/lib/utils"
 
 import {
   formatDashboardIndicatorValue,
@@ -198,10 +198,10 @@ function DashboardCapacityCard({
           Ocupação atual sobre a capacidade configurada.
         </CardDescription>
       </CardHeader>
-      <CardContent className="grid min-h-[24rem] content-between gap-4">
+      <CardContent className="grid min-h-96 content-between gap-4">
         <ChartContainer
           config={capacityChartConfig}
-          className="mx-auto aspect-square h-[15rem] max-h-[260px] w-full"
+          className="mx-auto aspect-square h-60 max-h-65 w-full"
           role="img"
           aria-label="Gráfico radial de vagas ocupadas"
         >
@@ -337,7 +337,7 @@ function DashboardBarChartCard({
       <CardContent>
         <ChartContainer
           config={chartConfig}
-          className="aspect-auto h-[18rem] w-full"
+          className="aspect-auto h-72 w-full"
           role="img"
           aria-label="Gráfico de barras do dashboard"
         >
@@ -456,7 +456,7 @@ function DashboardMovementStatusCard({
         ) : (
           <ChartContainer
             config={statusChartConfig}
-            className="mx-auto aspect-square h-[17rem] w-full"
+            className="mx-auto aspect-square h-auto w-full"
             role="img"
             aria-label="Gráfico de status das movimentações"
           >
@@ -648,7 +648,7 @@ function DashboardAlertsCard({
             description="A unidade não possui alertas recentes."
           />
         ) : (
-          <ScrollArea className="max-h-[25rem] pr-1">
+          <ScrollArea className="max-h-100 pr-1">
             <ItemGroup className="gap-1">
               {limitedAlerts.map((alert) => (
                 <Item key={alert.id} asChild className="px-0">

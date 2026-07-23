@@ -19,7 +19,6 @@ export function YardRoute() {
       />
       <div className="flex flex-1 items-center justify-center">
         <AppEmptyState
-          className="mx-auto max-w-md"
           media={<ParkingCircleIcon />}
           title={yardCopy.empty.title}
           description={yardCopy.empty.description}

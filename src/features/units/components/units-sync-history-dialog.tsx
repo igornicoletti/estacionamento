@@ -173,7 +173,6 @@ export function UnitsSyncHistoryDialog({
 
         {!isLoading && !errorMessage && entries.length === 0 ? (
           <AppEmptyState
-            className="min-h-32 rounded-md border border-solid p-4"
             media={<HistoryIcon />}
             title={unitsCopy.sync.history.emptyTitle}
             description={unitsCopy.sync.history.emptyDescription}

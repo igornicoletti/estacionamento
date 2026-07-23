@@ -60,7 +60,6 @@ export function DashboardRoute() {
 
         <div className="flex flex-1 items-center justify-center">
           <AppEmptyState
-            className="mx-auto max-w-md"
             media={<LayoutDashboardIcon />}
             title="Não foi possível carregar o dashboard"
             description="Tente novamente para recarregar os indicadores da unidade selecionada."

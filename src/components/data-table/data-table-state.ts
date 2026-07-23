@@ -9,6 +9,13 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table"
 
+const DATA_TABLE_STORAGE_VERSION = 2 as const
+
+type DataTableStorageOperation =
+  | "read"
+  | "write"
+  | "remove"
+
 export interface DataTableStateSnapshot {
   columnFilters?: ColumnFiltersState
   columnVisibility?: VisibilityState
@@ -19,61 +26,34 @@ export interface DataTableStateSnapshot {
 }
 
 interface StoredDataTableStatePayload {
-  version: 1
+  version: typeof DATA_TABLE_STORAGE_VERSION
   state: DataTableStateSnapshot
 }
 
+export interface DataTableStorageErrorContext {
+  operation: DataTableStorageOperation
+  storageKey: string
+  error: unknown
+}
+
+export type DataTableStorageErrorHandler = (
+  context: DataTableStorageErrorContext
+) => void
+
 export interface DataTableStateStorageAdapter<TState> {
-  read: (snapshot: DataTableStateSnapshot) => TState | undefined
-  write: (snapshot: DataTableStateSnapshot, value: TState) => DataTableStateSnapshot
-}
+  /**
+   * false mantém a fatia somente em memória.
+   */
+  persist?: boolean
 
-export const dataTableColumnVisibilityStateAdapter: DataTableStateStorageAdapter<VisibilityState> = {
-  read: (snapshot) => snapshot.columnVisibility,
-  write: (snapshot, value) => ({
-    ...snapshot,
-    columnVisibility: value,
-  }),
-}
+  read: (
+    snapshot: DataTableStateSnapshot
+  ) => TState | undefined
 
-export const dataTableColumnFiltersStateAdapter: DataTableStateStorageAdapter<ColumnFiltersState> = {
-  read: (snapshot) => snapshot.columnFilters,
-  write: (snapshot, value) => ({
-    ...snapshot,
-    columnFilters: value,
-  }),
-}
-
-export const dataTableSortingStateAdapter: DataTableStateStorageAdapter<SortingState> = {
-  read: (snapshot) => snapshot.sorting,
-  write: (snapshot, value) => ({
-    ...snapshot,
-    sorting: value,
-  }),
-}
-
-export const dataTablePaginationStateAdapter: DataTableStateStorageAdapter<PaginationState> = {
-  read: (snapshot) => snapshot.pagination,
-  write: (snapshot, value) => ({
-    ...snapshot,
-    pagination: value,
-  }),
-}
-
-export const dataTableRowSelectionStateAdapter: DataTableStateStorageAdapter<RowSelectionState> = {
-  read: (snapshot) => snapshot.rowSelection,
-  write: (snapshot, value) => ({
-    ...snapshot,
-    rowSelection: value,
-  }),
-}
-
-export const dataTableGlobalFilterStateAdapter: DataTableStateStorageAdapter<string> = {
-  read: (snapshot) => snapshot.globalFilter,
-  write: (snapshot, value) => ({
-    ...snapshot,
-    globalFilter: value,
-  }),
+  write: (
+    snapshot: DataTableStateSnapshot,
+    value: TState
+  ) => DataTableStateSnapshot
 }
 
 export interface UseControllableStateOptions<TState> {
@@ -82,87 +62,527 @@ export interface UseControllableStateOptions<TState> {
   onChange?: OnChangeFn<TState>
   storageKey?: string
   storageAdapter?: DataTableStateStorageAdapter<TState>
+  onStorageError?: DataTableStorageErrorHandler
 }
 
-type DataTableStateUpdater<TState> = TState | ((previous: TState) => TState)
-
-function isDataTableStateUpdaterFunction<TState>(
-  value: DataTableStateUpdater<TState>
-): value is (previous: TState) => TState {
-  return typeof value === "function"
+export interface CreateDataTableStorageKeyOptions {
+  scope: string
+  tableId: string
+  application?: string
 }
 
-function canUseStorage() {
-  return typeof window !== "undefined" && typeof window.localStorage !== "undefined"
-}
+type DataTableStateUpdater<TState> =
+  | TState
+  | ((previous: TState) => TState)
 
-function isVersionedSnapshot(value: unknown): value is StoredDataTableStatePayload {
-  return Boolean(
-    value &&
+function isPlainRecord(
+  value: unknown
+): value is Record<string, unknown> {
+  return (
     typeof value === "object" &&
-    (value as StoredDataTableStatePayload).version === 1 &&
-    typeof (value as StoredDataTableStatePayload).state === "object"
+    value !== null &&
+    !Array.isArray(value)
   )
 }
 
-function isBooleanMap(value: unknown) {
-  if (!value || typeof value !== "object") {
+function normalizeStorageKey(
+  value: string | undefined
+): string | null {
+  const normalizedValue = value?.trim() ?? ""
+
+  return normalizedValue.length > 0
+    ? normalizedValue
+    : null
+}
+
+function normalizeStorageKeySegment(
+  value: string,
+  field: string
+): string {
+  const normalizedValue = value.trim()
+
+  if (normalizedValue.length === 0) {
+    throw new TypeError(
+      `createDataTableStateStorageKey: ${field} deve conter texto.`
+    )
+  }
+
+  return encodeURIComponent(normalizedValue)
+}
+
+export function createDataTableStateStorageKey({
+  scope,
+  tableId,
+  application = "app",
+}: CreateDataTableStorageKeyOptions): string {
+  return [
+    normalizeStorageKeySegment(
+      application,
+      "application"
+    ),
+    "data-table",
+    normalizeStorageKeySegment(scope, "scope"),
+    normalizeStorageKeySegment(
+      tableId,
+      "tableId"
+    ),
+    `v${DATA_TABLE_STORAGE_VERSION}`,
+  ].join(":")
+}
+
+function isBooleanMap(
+  value: unknown
+): value is Record<string, boolean> {
+  if (!isPlainRecord(value)) {
     return false
   }
 
-  return Object.values(value as Record<string, unknown>).every(
-    (entry) => typeof entry === "boolean"
+  return Object.entries(value).every(
+    ([key, entry]) =>
+      key.trim().length > 0 &&
+      typeof entry === "boolean"
   )
 }
 
-export function readDataTableSnapshot(storageKey: string): DataTableStateSnapshot {
-  if (!canUseStorage()) {
+function sanitizeVisibilityState(
+  value: unknown
+): VisibilityState | undefined {
+  if (!isBooleanMap(value)) {
+    return undefined
+  }
+
+  return { ...value }
+}
+
+function sanitizeSortingState(
+  value: unknown
+): SortingState | undefined {
+  if (!Array.isArray(value)) {
+    return undefined
+  }
+
+  const sorting: SortingState = []
+  const seenColumnIds = new Set<string>()
+
+  for (const item of value) {
+    if (!isPlainRecord(item)) {
+      continue
+    }
+
+    const id =
+      typeof item.id === "string"
+        ? item.id.trim()
+        : ""
+
+    if (
+      id.length === 0 ||
+      typeof item.desc !== "boolean" ||
+      seenColumnIds.has(id)
+    ) {
+      continue
+    }
+
+    seenColumnIds.add(id)
+
+    sorting.push({
+      id,
+      desc: item.desc,
+    })
+  }
+
+  return sorting
+}
+
+function sanitizePaginationState(
+  value: unknown
+): PaginationState | undefined {
+  if (!isPlainRecord(value)) {
+    return undefined
+  }
+
+  const { pageIndex, pageSize } = value
+
+  if (
+    typeof pageIndex !== "number" ||
+    !Number.isSafeInteger(pageIndex) ||
+    pageIndex < 0 ||
+    typeof pageSize !== "number" ||
+    !Number.isSafeInteger(pageSize) ||
+    pageSize <= 0
+  ) {
+    return undefined
+  }
+
+  return {
+    // O índice da página não é restaurado entre
+    // sessões para evitar páginas vazias.
+    pageIndex: 0,
+    pageSize,
+  }
+}
+
+function sanitizePersistedSnapshot(
+  value: unknown
+): DataTableStateSnapshot {
+  if (!isPlainRecord(value)) {
     return {}
   }
 
-  const raw = window.localStorage.getItem(storageKey)
+  const snapshot: DataTableStateSnapshot = {}
 
-  if (!raw) {
-    return {}
+  const columnVisibility =
+    sanitizeVisibilityState(
+      value.columnVisibility
+    )
+
+  if (columnVisibility !== undefined) {
+    snapshot.columnVisibility =
+      columnVisibility
+  }
+
+  const sorting = sanitizeSortingState(
+    value.sorting
+  )
+
+  if (sorting !== undefined) {
+    snapshot.sorting = sorting
+  }
+
+  const pagination =
+    sanitizePaginationState(
+      value.pagination
+    )
+
+  if (pagination !== undefined) {
+    snapshot.pagination = pagination
+  }
+
+  return snapshot
+}
+
+function reportStorageError(
+  onError:
+    | DataTableStorageErrorHandler
+    | undefined,
+  operation: DataTableStorageOperation,
+  storageKey: string,
+  error: unknown
+) {
+  onError?.({
+    operation,
+    storageKey,
+    error,
+  })
+}
+
+function getLocalStorage(
+  storageKey: string,
+  operation: DataTableStorageOperation,
+  onError?: DataTableStorageErrorHandler
+): Storage | null {
+  if (typeof window === "undefined") {
+    return null
   }
 
   try {
-    const parsed: unknown = JSON.parse(raw)
+    return window.localStorage
+  } catch (error) {
+    reportStorageError(
+      onError,
+      operation,
+      storageKey,
+      error
+    )
 
-    if (isVersionedSnapshot(parsed)) {
-      return parsed.state
-    }
+    return null
+  }
+}
 
-    if (isBooleanMap(parsed)) {
-      return {
-        columnVisibility: parsed as VisibilityState,
-      }
+function parseStoredSnapshot(
+  value: unknown
+): DataTableStateSnapshot {
+  if (
+    isPlainRecord(value) &&
+    (value.version === 1 ||
+      value.version ===
+      DATA_TABLE_STORAGE_VERSION) &&
+    isPlainRecord(value.state)
+  ) {
+    return sanitizePersistedSnapshot(
+      value.state
+    )
+  }
+
+  /*
+   * Migração do formato legado que armazenava
+   * diretamente VisibilityState.
+   */
+  const legacyVisibility =
+    sanitizeVisibilityState(value)
+
+  if (legacyVisibility !== undefined) {
+    return {
+      columnVisibility:
+        legacyVisibility,
     }
-  } catch {
-    return {}
   }
 
   return {}
 }
 
-export function writeDataTableSnapshot(
+export function readDataTableSnapshot(
   storageKey: string,
-  snapshot: DataTableStateSnapshot
-) {
-  if (!canUseStorage()) {
-    return
+  onError?: DataTableStorageErrorHandler
+): DataTableStateSnapshot {
+  const normalizedStorageKey =
+    normalizeStorageKey(storageKey)
+
+  if (!normalizedStorageKey) {
+    return {}
   }
 
-  const payload: StoredDataTableStatePayload = {
-    version: 1,
-    state: snapshot,
+  const storage = getLocalStorage(
+    normalizedStorageKey,
+    "read",
+    onError
+  )
+
+  if (!storage) {
+    return {}
   }
 
   try {
-    window.localStorage.setItem(storageKey, JSON.stringify(payload))
-  } catch {
-    return
+    const raw = storage.getItem(
+      normalizedStorageKey
+    )
+
+    if (!raw) {
+      return {}
+    }
+
+    const parsed: unknown = JSON.parse(raw)
+
+    return parseStoredSnapshot(parsed)
+  } catch (error) {
+    reportStorageError(
+      onError,
+      "read",
+      normalizedStorageKey,
+      error
+    )
+
+    return {}
   }
+}
+
+export function writeDataTableSnapshot(
+  storageKey: string,
+  snapshot: DataTableStateSnapshot,
+  onError?: DataTableStorageErrorHandler
+): boolean {
+  const normalizedStorageKey =
+    normalizeStorageKey(storageKey)
+
+  if (!normalizedStorageKey) {
+    return false
+  }
+
+  const storage = getLocalStorage(
+    normalizedStorageKey,
+    "write",
+    onError
+  )
+
+  if (!storage) {
+    return false
+  }
+
+  const payload: StoredDataTableStatePayload =
+  {
+    version:
+      DATA_TABLE_STORAGE_VERSION,
+
+    /*
+     * Remove filtros, busca global,
+     * seleção e pageIndex antes de gravar.
+     */
+    state:
+      sanitizePersistedSnapshot(
+        snapshot
+      ),
+  }
+
+  try {
+    storage.setItem(
+      normalizedStorageKey,
+      JSON.stringify(payload)
+    )
+
+    return true
+  } catch (error) {
+    reportStorageError(
+      onError,
+      "write",
+      normalizedStorageKey,
+      error
+    )
+
+    return false
+  }
+}
+
+export function clearDataTableSnapshot(
+  storageKey: string,
+  onError?: DataTableStorageErrorHandler
+): boolean {
+  const normalizedStorageKey =
+    normalizeStorageKey(storageKey)
+
+  if (!normalizedStorageKey) {
+    return false
+  }
+
+  const storage = getLocalStorage(
+    normalizedStorageKey,
+    "remove",
+    onError
+  )
+
+  if (!storage) {
+    return false
+  }
+
+  try {
+    storage.removeItem(
+      normalizedStorageKey
+    )
+
+    return true
+  } catch (error) {
+    reportStorageError(
+      onError,
+      "remove",
+      normalizedStorageKey,
+      error
+    )
+
+    return false
+  }
+}
+
+function isUpdaterFunction<TState>(
+  updater: DataTableStateUpdater<TState>
+): updater is (
+  previous: TState
+) => TState {
+  return typeof updater === "function"
+}
+
+function resolveUpdater<TState>(
+  updater: DataTableStateUpdater<TState>,
+  previous: TState
+): TState {
+  return isUpdaterFunction(updater)
+    ? updater(previous)
+    : updater
+}
+
+function shouldPersistState<TState>(
+  storageKey: string | null,
+  storageAdapter:
+    | DataTableStateStorageAdapter<TState>
+    | undefined
+): storageAdapter is DataTableStateStorageAdapter<TState> {
+  return (
+    storageKey !== null &&
+    storageAdapter !== undefined &&
+    storageAdapter.persist !== false
+  )
+}
+
+export const dataTableColumnVisibilityStateAdapter: DataTableStateStorageAdapter<VisibilityState> =
+{
+  persist: true,
+
+  read: (snapshot) =>
+    snapshot.columnVisibility,
+
+  write: (snapshot, value) => ({
+    ...snapshot,
+    columnVisibility: value,
+  }),
+}
+
+export const dataTableSortingStateAdapter: DataTableStateStorageAdapter<SortingState> =
+{
+  persist: true,
+
+  read: (snapshot) =>
+    snapshot.sorting,
+
+  write: (snapshot, value) => ({
+    ...snapshot,
+    sorting: value,
+  }),
+}
+
+export const dataTablePaginationStateAdapter: DataTableStateStorageAdapter<PaginationState> =
+{
+  persist: true,
+
+  read: (snapshot) =>
+    snapshot.pagination,
+
+  write: (snapshot, value) => ({
+    ...snapshot,
+    pagination: {
+      pageIndex: 0,
+      pageSize: value.pageSize,
+    },
+  }),
+}
+
+/*
+ * Estados abaixo continuam controláveis pelo hook,
+ * porém não são persistidos no localStorage.
+ */
+export const dataTableColumnFiltersStateAdapter: DataTableStateStorageAdapter<ColumnFiltersState> =
+{
+  persist: false,
+
+  read: (snapshot) =>
+    snapshot.columnFilters,
+
+  write: (snapshot, value) => ({
+    ...snapshot,
+    columnFilters: value,
+  }),
+}
+
+export const dataTableRowSelectionStateAdapter: DataTableStateStorageAdapter<RowSelectionState> =
+{
+  persist: false,
+
+  read: (snapshot) =>
+    snapshot.rowSelection,
+
+  write: (snapshot, value) => ({
+    ...snapshot,
+    rowSelection: value,
+  }),
+}
+
+export const dataTableGlobalFilterStateAdapter: DataTableStateStorageAdapter<string> =
+{
+  persist: false,
+
+  read: (snapshot) =>
+    snapshot.globalFilter,
+
+  write: (snapshot, value) => ({
+    ...snapshot,
+    globalFilter: value,
+  }),
 }
 
 export function useControllableDataTableState<TState>({
@@ -171,48 +591,232 @@ export function useControllableDataTableState<TState>({
   onChange,
   storageKey,
   storageAdapter,
+  onStorageError,
 }: UseControllableStateOptions<TState>) {
-  const [internalValue, setInternalValue] = React.useState<TState>(() => {
-    if (controlledValue !== undefined) {
-      return controlledValue
+  const normalizedStorageKey =
+    normalizeStorageKey(storageKey)
+
+  const isControlled =
+    controlledValue !== undefined
+
+  const defaultValueRef =
+    React.useRef(defaultValue)
+
+  defaultValueRef.current = defaultValue
+
+  const shouldPersist =
+    shouldPersistState(
+      normalizedStorageKey,
+      storageAdapter
+    )
+
+  const [internalValue, setInternalValue] =
+    React.useState<TState>(() => {
+      if (isControlled) {
+        return controlledValue
+      }
+
+      if (
+        !shouldPersist ||
+        !normalizedStorageKey
+      ) {
+        return defaultValue
+      }
+
+      const snapshot =
+        readDataTableSnapshot(
+          normalizedStorageKey,
+          onStorageError
+        )
+
+      return (
+        storageAdapter.read(snapshot) ??
+        defaultValue
+      )
+    })
+
+  const previousStorageConfigRef =
+    React.useRef({
+      storageKey: normalizedStorageKey,
+      storageAdapter,
+    })
+
+  const skipNextPersistenceRef =
+    React.useRef(false)
+
+  /*
+   * Reidrata quando usuário, tenant,
+   * tabela ou adapter mudarem.
+   */
+  React.useEffect(() => {
+    const previousConfig =
+      previousStorageConfigRef.current
+
+    const storageConfigChanged =
+      previousConfig.storageKey !==
+      normalizedStorageKey ||
+      previousConfig.storageAdapter !==
+      storageAdapter
+
+    previousStorageConfigRef.current = {
+      storageKey: normalizedStorageKey,
+      storageAdapter,
     }
 
-    if (!storageKey || !storageAdapter) {
-      return defaultValue
+    if (
+      isControlled ||
+      !storageConfigChanged
+    ) {
+      return
     }
 
-    const snapshot = readDataTableSnapshot(storageKey)
-    return storageAdapter.read(snapshot) ?? defaultValue
-  })
+    const nextValue =
+      shouldPersist &&
+        normalizedStorageKey &&
+        storageAdapter
+        ? storageAdapter.read(
+          readDataTableSnapshot(
+            normalizedStorageKey,
+            onStorageError
+          )
+        ) ?? defaultValueRef.current
+        : defaultValueRef.current
 
-  const setValue = React.useCallback(
-    (updater: DataTableStateUpdater<TState>) => {
-      if (onChange) {
-        onChange(updater)
+    skipNextPersistenceRef.current = true
+    setInternalValue(nextValue)
+  }, [
+    isControlled,
+    normalizedStorageKey,
+    onStorageError,
+    shouldPersist,
+    storageAdapter,
+  ])
+
+  const resolvedValue = isControlled
+    ? controlledValue
+    : internalValue
+
+  /*
+   * Persiste o estado já resolvido.
+   * Não há efeito colateral dentro do updater React.
+   */
+  React.useEffect(() => {
+    if (
+      !shouldPersist ||
+      !normalizedStorageKey ||
+      !storageAdapter
+    ) {
+      return
+    }
+
+    if (skipNextPersistenceRef.current) {
+      skipNextPersistenceRef.current =
+        false
+
+      return
+    }
+
+    const currentSnapshot =
+      readDataTableSnapshot(
+        normalizedStorageKey,
+        onStorageError
+      )
+
+    const nextSnapshot =
+      storageAdapter.write(
+        currentSnapshot,
+        resolvedValue
+      )
+
+    writeDataTableSnapshot(
+      normalizedStorageKey,
+      nextSnapshot,
+      onStorageError
+    )
+  }, [
+    normalizedStorageKey,
+    onStorageError,
+    resolvedValue,
+    shouldPersist,
+    storageAdapter,
+  ])
+
+  /*
+   * Sincronização com outras abas da mesma origem.
+   */
+  React.useEffect(() => {
+    if (
+      isControlled ||
+      !shouldPersist ||
+      !normalizedStorageKey ||
+      !storageAdapter ||
+      typeof window === "undefined"
+    ) {
+      return
+    }
+
+    function handleStorage(
+      event: StorageEvent
+    ) {
+      if (
+        event.key !==
+        normalizedStorageKey
+      ) {
         return
       }
 
-      if (controlledValue !== undefined) {
-        return
-      }
+      const nextValue =
+        storageAdapter.read(
+          readDataTableSnapshot(
+            normalizedStorageKey,
+            onStorageError
+          )
+        ) ?? defaultValueRef.current
 
-      setInternalValue((current) => {
-        const nextValue = isDataTableStateUpdaterFunction(updater)
-          ? updater(current)
-          : updater
+      skipNextPersistenceRef.current =
+        true
 
-        if (storageKey && storageAdapter) {
-          writeDataTableSnapshot(
-            storageKey,
-            storageAdapter.write(readDataTableSnapshot(storageKey), nextValue)
+      setInternalValue(nextValue)
+    }
+
+    window.addEventListener(
+      "storage",
+      handleStorage
+    )
+
+    return () => {
+      window.removeEventListener(
+        "storage",
+        handleStorage
+      )
+    }
+  }, [
+    isControlled,
+    normalizedStorageKey,
+    onStorageError,
+    shouldPersist,
+    storageAdapter,
+  ])
+
+  const setValue =
+    React.useCallback<OnChangeFn<TState>>(
+      (updater) => {
+        if (!isControlled) {
+          setInternalValue((previous) =>
+            resolveUpdater(
+              updater,
+              previous
+            )
           )
         }
 
-        return nextValue
-      })
-    },
-    [controlledValue, onChange, storageAdapter, storageKey]
-  )
+        onChange?.(updater)
+      },
+      [isControlled, onChange]
+    )
 
-  return [controlledValue ?? internalValue, setValue] as const
+  return [
+    resolvedValue,
+    setValue,
+  ] as const
 }

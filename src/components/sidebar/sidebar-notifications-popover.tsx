@@ -18,9 +18,9 @@ import {
   formatNotificationsCounter,
   getRecentUnreadNotifications,
   isInternalNotificationHref,
+  notificationsCopy,
   NotificationTypeIcon,
   notificationTypeLabels,
-  notificationsCopy,
   useNotifications,
 } from "@/features/notifications"
 import { useIsMobile } from "@/hooks/use-mobile"
@@ -105,7 +105,6 @@ export function NotificationsPopover() {
 
   const panel = error ? (
     <AppEmptyState
-      className="min-h-64 rounded-lg border-0 bg-muted/30"
       media={<RefreshCcw />}
       title={notificationsCopy.feedback.loadError}
       actions={(
@@ -116,7 +115,6 @@ export function NotificationsPopover() {
     />
   ) : recentNotifications.length === 0 ? (
     <AppEmptyState
-      className="min-h-64 rounded-lg border-0 bg-muted/30"
       media={<BellIcon />}
       title={notificationsCopy.empty.unreadTitle}
       description={notificationsCopy.empty.unreadDescription}
@@ -136,7 +134,6 @@ export function NotificationsPopover() {
           type="button"
           variant="ghost"
           size="sm"
-          className="h-7 px-2 text-xs font-medium text-muted-foreground hover:text-foreground"
           disabled={isLoading || isUpdatingBatch || unreadCount === 0}
           aria-label={sidebarCopy.notifications.markAllRead}
           onClick={() => {
@@ -159,7 +156,6 @@ export function NotificationsPopover() {
                 key={notification.id}
                 asChild
                 variant="ghost"
-                className="h-auto justify-start px-2 py-2 text-left"
               >
                 <Link
                   to={resolveNotificationHref(notification.href)}

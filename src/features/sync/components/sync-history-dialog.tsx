@@ -156,7 +156,6 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntryLike>({
 
         {!isLoading && errorMessage ? (
           <AppEmptyState
-            className="min-h-32 rounded-md border border-solid p-4"
             media={<AlertTriangleIcon />}
             title={syncCopy.history.loadErrorTitle}
             description={errorMessage}
@@ -171,7 +170,6 @@ export function SyncHistoryDialog<TEntry extends SyncHistoryEntryLike>({
 
         {!isLoading && !errorMessage && entries.length === 0 ? (
           <AppEmptyState
-            className="min-h-32 rounded-md border border-solid p-4"
             media={<RefreshCcwIcon />}
             title={emptyTitle}
             description={emptyDescription}

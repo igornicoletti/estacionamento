@@ -54,5 +54,8 @@ export default tseslint.config(
         sourceType: "module",
       },
     },
+    rules: {
+      "preserve-caught-error": "off",
+    },
   }
 )

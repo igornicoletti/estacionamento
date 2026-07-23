@@ -109,7 +109,8 @@ export function RouteErrorBoundary() {
             </Button>
             <Button asChild variant="link" size="lg">
               <a href={appRoutePaths.home}>
-                {appCopy.routeError.action} <ArrowUpRightIcon aria-hidden="true" />
+                {appCopy.routeError.action}
+                <ArrowUpRightIcon aria-hidden="true" />
               </a>
             </Button>
           </div>
