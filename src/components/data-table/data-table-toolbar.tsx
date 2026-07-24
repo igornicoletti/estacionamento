@@ -85,7 +85,7 @@ function resolveTableGlobalFilterValue<TData>(
   providedValue: string | undefined
 ): string {
   if (providedValue !== undefined) return providedValue
-  const value = table.getState().globalFilter
+  const value: unknown = table.getState().globalFilter
   return typeof value === "string" ? value : ""
 }
 

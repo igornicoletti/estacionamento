@@ -3,7 +3,7 @@ import { type ColumnDef } from "@tanstack/react-table"
 import { createDataTableColumnHeader } from "./data-table-column-header"
 import {
   type DataTableAccessorKey,
-  type DataTableCustomColumnId,
+  type DataTableColumnId,
 } from "./data-table-types"
 
 interface DataTableDateTimeColumnCommonConfig {
@@ -19,10 +19,10 @@ interface DataTableDateTimeColumnCommonConfig {
 type DataTableDateTimeColumnSource<TData> =
   | {
       accessorKey: DataTableAccessorKey<TData>
-      getValue?: (row: TData) => unknown
+      getValue?: never
     }
   | {
-      accessorKey: DataTableCustomColumnId
+      accessorKey: DataTableColumnId<TData>
       getValue: (row: TData) => unknown
     }
 
@@ -41,53 +41,73 @@ function toValidDate(value: unknown): Date | null {
   }
 
   if (typeof value === "number") {
-    if (!Number.isFinite(value)) return null
+    if (!Number.isFinite(value)) {
+      return null
+    }
+
     const date = new Date(value)
+
     return Number.isFinite(date.getTime()) ? date : null
   }
 
   if (typeof value === "string") {
     const normalized = value.trim()
-    if (!normalized) return null
+
+    if (normalized.length === 0) {
+      return null
+    }
+
     const date = new Date(normalized)
+
     return Number.isFinite(date.getTime()) ? date : null
   }
 
   return null
 }
 
-export function createDateTimeColumn<TData>({
-  accessorKey,
-  title,
-  getValue,
-  dateTimeFormat = DEFAULT_DATE_TIME_FORMAT,
-  locale = "pt-BR",
-  fallback = "—",
-  enableHiding = true,
-  enableSorting = true,
-  sortDescFirst,
-}: DataTableDateTimeColumnConfig<TData>): ColumnDef<TData> {
+function resolveRawDateTimeValue<TData>(
+  row: TData,
+  source: DataTableDateTimeColumnSource<TData>
+): unknown {
+  if (source.getValue) {
+    return source.getValue(row)
+  }
+
+  return row[source.accessorKey]
+}
+
+export function createDateTimeColumn<TData>(
+  config: DataTableDateTimeColumnConfig<TData>
+): ColumnDef<TData> {
+  const {
+    accessorKey,
+    title,
+    dateTimeFormat = DEFAULT_DATE_TIME_FORMAT,
+    locale = "pt-BR",
+    fallback = "—",
+    enableHiding = true,
+    enableSorting = true,
+    sortDescFirst,
+  } = config
+
   const formatter = new Intl.DateTimeFormat(locale, dateTimeFormat)
   const columnId = String(accessorKey)
 
   return {
     id: columnId,
-    accessorFn: (row) => {
-      const rawValue = getValue
-        ? getValue(row)
-        : Reflect.get(row as object, accessorKey)
-      return toValidDate(rawValue)
-    },
+    accessorFn: (row) => toValidDate(resolveRawDateTimeValue(row, config)),
     meta: {
       label: title,
       exportValue: (value) => {
         const date = toValidDate(value)
+
         return date ? date.toISOString() : null
       },
     },
     header: createDataTableColumnHeader<TData, Date | null>(title),
     cell: ({ getValue }) => {
       const date = toValidDate(getValue())
+
       return date ? (
         <time dateTime={date.toISOString()}>{formatter.format(date)}</time>
       ) : (

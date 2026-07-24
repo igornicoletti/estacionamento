@@ -1,4 +1,4 @@
-import * as React from "react"
+import type * as React from "react"
 
 import { Spinner } from "@/components/ui/spinner"
 import { cn } from "@/lib/utils"

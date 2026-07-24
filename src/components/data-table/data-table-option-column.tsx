@@ -84,7 +84,17 @@ function createOptionLabelSortingFn<TData>(
     if (left === right) return 0
     if (left === null) return 1
     if (right === null) return -1
-    return Math.sign(optionLabelCollator.compare(left, right)) as -1 | 0 | 1
+    const comparison = optionLabelCollator.compare(left, right)
+
+    if (comparison < 0) {
+      return -1
+    }
+
+    if (comparison > 0) {
+      return 1
+    }
+
+    return 0
   }
 }
 

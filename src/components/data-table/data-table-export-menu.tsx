@@ -91,9 +91,28 @@ const exportOptions = [
   },
 ] as const satisfies readonly DataTableExportOption[]
 
-const INVALID_FILENAME_CHARACTERS = /[<>:"/\\|?*\u0000-\u001F]/gu
-const INVALID_SHEET_NAME_CHARACTERS = /[\u0000-\u001F[\]:*?/\\]/gu
-const INVALID_XML_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/gu
+const INVALID_FILENAME_CHARACTERS = new Set([
+  "<",
+  ">",
+  ":",
+  '"',
+  "/",
+  "\\",
+  "|",
+  "?",
+  "*",
+])
+
+const INVALID_SHEET_NAME_CHARACTERS = new Set([
+  "[",
+  "]",
+  ":",
+  "*",
+  "?",
+  "/",
+  "\\",
+])
+
 const MAX_EXCEL_CELL_CHARACTERS = 32_767
 
 class DataTableExportError extends Error {
@@ -111,10 +130,63 @@ function toError(error: unknown): Error {
       )
 }
 
+function replaceRestrictedCharacters(
+  value: string,
+  restrictedCharacters: ReadonlySet<string>,
+  replacement: string
+): string {
+  let normalizedValue = ""
+
+  for (const character of value) {
+    const codePoint = character.codePointAt(0)
+
+    if (
+      codePoint === undefined ||
+      codePoint <= 0x1f ||
+      restrictedCharacters.has(character)
+    ) {
+      normalizedValue += replacement
+      continue
+    }
+
+    normalizedValue += character
+  }
+
+  return normalizedValue
+}
+
+function isValidXmlCodePoint(codePoint: number): boolean {
+  return (
+    codePoint === 0x09 ||
+    codePoint === 0x0a ||
+    codePoint === 0x0d ||
+    (codePoint >= 0x20 && codePoint <= 0xd7ff) ||
+    (codePoint >= 0xe000 && codePoint <= 0xfffd) ||
+    (codePoint >= 0x10000 && codePoint <= 0x10ffff)
+  )
+}
+
+function removeInvalidXmlCharacters(value: string): string {
+  let sanitizedValue = ""
+
+  for (const character of value) {
+    const codePoint = character.codePointAt(0)
+
+    if (codePoint !== undefined && isValidXmlCodePoint(codePoint)) {
+      sanitizedValue += character
+    }
+  }
+
+  return sanitizedValue
+}
+
 function normalizeFilename(filename: string): string {
   return (
-    filename
-      .replace(INVALID_FILENAME_CHARACTERS, "-")
+    replaceRestrictedCharacters(
+      filename,
+      INVALID_FILENAME_CHARACTERS,
+      "-"
+    )
       .replace(/\s+/gu, " ")
       .trim() || "tabela"
   )
@@ -122,8 +194,11 @@ function normalizeFilename(filename: string): string {
 
 function normalizeSheetName(sheetName: string): string {
   return (
-    sheetName
-      .replace(INVALID_SHEET_NAME_CHARACTERS, " ")
+    replaceRestrictedCharacters(
+      sheetName,
+      INVALID_SHEET_NAME_CHARACTERS,
+      " "
+    )
       .replace(/\s+/gu, " ")
       .trim()
       .slice(0, 31) || "Dados"
@@ -131,9 +206,13 @@ function normalizeSheetName(sheetName: string): string {
 }
 
 function normalizeExportText(value: string): string | null {
-  const sanitized = value.replace(INVALID_XML_CHARACTERS, "")
-  if (!sanitized.trim()) return null
-  return sanitized.slice(0, MAX_EXCEL_CELL_CHARACTERS)
+  const sanitizedValue = removeInvalidXmlCharacters(value)
+
+  if (sanitizedValue.trim().length === 0) {
+    return null
+  }
+
+  return sanitizedValue.slice(0, MAX_EXCEL_CELL_CHARACTERS)
 }
 
 function humanizeColumnId(columnId: string): string {

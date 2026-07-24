@@ -323,7 +323,10 @@ export function useControllableDataTableState<TState>({
   const normalizedStorageKey = normalizeStorageKey(storageKey)
   const isControlled = controlledValue !== undefined
   const defaultValueRef = React.useRef(defaultValue)
-  defaultValueRef.current = defaultValue
+
+  React.useEffect(() => {
+    defaultValueRef.current = defaultValue
+  }, [defaultValue])
 
   const shouldPersist = shouldPersistState(
     normalizedStorageKey,

@@ -1,5 +1,5 @@
 import { type ColumnDef, type Row } from "@tanstack/react-table"
-import * as React from "react"
+import type * as React from "react"
 
 import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"

@@ -163,21 +163,11 @@ export function DataTableSensitiveValue({
   onReveal,
 }: DataTableSensitiveValueProps) {
   const normalizedValue = value?.trim() ?? ""
-  const [isRevealed, setIsRevealed] = React.useState(false)
   const descriptionId = React.useId()
   const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
-
-  const clearAutoHideTimeout = React.useCallback(() => {
-    if (timeoutRef.current !== null) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-  }, [])
-
-  const hideValue = React.useCallback(() => {
-    clearAutoHideTimeout()
-    setIsRevealed(false)
-  }, [clearAutoHideTimeout])
+  const [revealedContextKey, setRevealedContextKey] = React.useState<
+    string | null
+  >(null)
 
   const resolvedValueState = resolveValueState(
     normalizedValue,
@@ -185,16 +175,25 @@ export function DataTableSensitiveValue({
     valueState
   )
 
-  React.useEffect(() => hideValue(), [
-    canReveal,
-    hideValue,
+  const revealContextKey = [
+    canReveal ? "revealable" : "protected",
     kind,
-    normalizedValue,
     resolvedValueState,
-  ])
-  React.useEffect(() => clearAutoHideTimeout, [clearAutoHideTimeout])
+    normalizedValue,
+  ].join(":")
 
-  if (!normalizedValue) return fallback
+  React.useEffect(() => {
+    return () => {
+      if (timeoutRef.current !== null) {
+        clearTimeout(timeoutRef.current)
+        timeoutRef.current = null
+      }
+    }
+  }, [revealContextKey])
+
+  if (!normalizedValue) {
+    return fallback
+  }
 
   const displayValue =
     resolvedValueState === "masked"
@@ -213,6 +212,8 @@ export function DataTableSensitiveValue({
     canReveal &&
     resolvedValueState === "raw" &&
     displayValue !== maskedValue
+  const isRevealed =
+    canInteract && revealedContextKey === revealContextKey
   const baseClassName = cn("tabular-nums", className)
 
   if (!canInteract) {
@@ -228,12 +229,25 @@ export function DataTableSensitiveValue({
     ? `${sensitiveValueLabels[kind]} completo visível: ${currentValue}.`
     : `${sensitiveValueLabels[kind]} mascarado: ${currentValue}.`
 
+  function clearAutoHideTimeout() {
+    if (timeoutRef.current !== null) {
+      clearTimeout(timeoutRef.current)
+      timeoutRef.current = null
+    }
+  }
+
+  function hideValue() {
+    clearAutoHideTimeout()
+    setRevealedContextKey(null)
+  }
+
   function revealValue() {
     clearAutoHideTimeout()
-    setIsRevealed(true)
+    setRevealedContextKey(revealContextKey)
     onReveal?.({ kind })
+
     timeoutRef.current = setTimeout(() => {
-      setIsRevealed(false)
+      setRevealedContextKey(null)
       timeoutRef.current = null
     }, normalizeAutoHideMs(autoHideMs))
   }
