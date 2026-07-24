@@ -22,11 +22,10 @@ import {
 import { dataTableCopy } from "./data-table-copy"
 import { dedupeFilterOptions } from "./data-table-filter-utils"
 import {
+  type DataTableFacetCountSource,
   type DataTableFilterOption,
   type DataTableFilterOptionGroup,
 } from "./data-table-types"
-
-type DataTableFacetCountSource = "column" | "options"
 
 interface DataTableFacetedFilterProps<TData, TValue> {
   column: Column<TData, TValue>
@@ -40,90 +39,52 @@ interface DataTableFacetedFilterProps<TData, TValue> {
   maxVisibleChips?: number
 }
 
+interface ResolvedFilterOptionGroup {
+  key: string
+  label: string
+  options: readonly DataTableFilterOption[]
+}
+
 interface ResolvedFilterOptionLayout {
-  groups: readonly DataTableFilterOptionGroup[]
+  groups: readonly ResolvedFilterOptionGroup[]
   ungroupedOptions: readonly DataTableFilterOption[]
 }
 
 const DEFAULT_MAX_VISIBLE_CHIPS = 3
 
 function normalizeMaxVisibleChips(value: number): number {
-  if (!Number.isFinite(value)) {
-    return DEFAULT_MAX_VISIBLE_CHIPS
-  }
-
-  return Math.max(1, Math.trunc(value))
+  return Number.isFinite(value)
+    ? Math.max(1, Math.trunc(value))
+    : DEFAULT_MAX_VISIBLE_CHIPS
 }
 
 function normalizeFacetCount(value: unknown): number | undefined {
-  if (
-    typeof value !== "number" ||
-    !Number.isFinite(value) ||
-    value < 0
-  ) {
-    return undefined
-  }
-
-  return Math.trunc(value)
+  return typeof value === "number" && Number.isFinite(value) && value >= 0
+    ? Math.trunc(value)
+    : undefined
 }
 
 function normalizeSelectedFilterValues(
-  rawFilterValue: unknown,
-  validOptionValues: ReadonlySet<string>
+  rawValue: unknown,
+  validValues: ReadonlySet<string>
 ): string[] {
-  if (!Array.isArray(rawFilterValue)) {
-    return []
-  }
+  if (!Array.isArray(rawValue)) return []
 
-  const uniqueValues = new Set<string>()
-  const normalizedValues: string[] = []
-
-  for (const value of rawFilterValue) {
-    if (
-      typeof value !== "string" ||
-      !validOptionValues.has(value) ||
-      uniqueValues.has(value)
-    ) {
-      continue
-    }
-
-    uniqueValues.add(value)
-    normalizedValues.push(value)
-  }
-
-  return normalizedValues
-}
-
-function resolveSelectedOptions(
-  selectedValues: readonly string[],
-  optionsByValue: ReadonlyMap<string, DataTableFilterOption>
-): DataTableFilterOption[] {
-  const selectedOptions: DataTableFilterOption[] = []
-
-  for (const value of selectedValues) {
-    const option = optionsByValue.get(value)
-
-    if (option) {
-      selectedOptions.push(option)
+  const unique = new Set<string>()
+  for (const value of rawValue) {
+    if (typeof value === "string" && validValues.has(value)) {
+      unique.add(value)
     }
   }
-
-  return selectedOptions
+  return Array.from(unique)
 }
 
 function resolveNextFilterValue(
   value: DataTableFilterOption | DataTableFilterOption[] | null
 ): string[] | undefined {
-  const selectedOptions = Array.isArray(value)
-    ? value
-    : value
-      ? [value]
-      : []
-  const nextValues = Array.from(
-    new Set(selectedOptions.map((option) => option.value))
-  )
-
-  return nextValues.length > 0 ? nextValues : undefined
+  const options = Array.isArray(value) ? value : value ? [value] : []
+  const values = Array.from(new Set(options.map((option) => option.value)))
+  return values.length ? values : undefined
 }
 
 function resolveColumnFacetCounts({
@@ -143,14 +104,13 @@ function resolveColumnFacetCounts({
       : typeof rawValue === "string"
         ? rawValue
         : null
-
-    if (optionValue === null || !validOptionValues.has(optionValue)) {
-      return
-    }
-
     const count = normalizeFacetCount(rawCount)
 
-    if (count === undefined) {
+    if (
+      optionValue === null ||
+      !validOptionValues.has(optionValue) ||
+      count === undefined
+    ) {
       return
     }
 
@@ -164,49 +124,36 @@ function resolveFilterOptionLayout(
   options: readonly DataTableFilterOption[],
   groups: readonly DataTableFilterOptionGroup[]
 ): ResolvedFilterOptionLayout {
-  const optionsByValue = new Map(
-    options.map((option) => [option.value, option])
-  )
-  const assignedOptionValues = new Set<string>()
-  const mergedGroups = new Map<string, DataTableFilterOption[]>()
+  const optionsByValue = new Map(options.map((option) => [option.value, option]))
+  const assignedValues = new Set<string>()
+  const resolvedGroups: ResolvedFilterOptionGroup[] = []
+  const seenGroupKeys = new Set<string>()
 
   for (const group of groups) {
-    const groupLabel = group.label.trim()
+    const label = group.label.trim().replace(/\s+/gu, " ")
+    const explicitId = group.id?.trim() ?? ""
+    const key = explicitId || label
+    if (!label || !key || seenGroupKeys.has(key)) continue
 
-    if (groupLabel.length === 0) {
-      continue
+    const groupOptions: DataTableFilterOption[] = []
+    for (const candidate of dedupeFilterOptions(group.options)) {
+      const canonical = optionsByValue.get(candidate.value)
+      if (!canonical || assignedValues.has(canonical.value)) continue
+      assignedValues.add(canonical.value)
+      groupOptions.push(canonical)
     }
 
-    const resolvedOptions = mergedGroups.get(groupLabel) ?? []
-
-    for (const candidateOption of dedupeFilterOptions(group.options)) {
-      const canonicalOption = optionsByValue.get(candidateOption.value)
-
-      if (
-        !canonicalOption ||
-        assignedOptionValues.has(canonicalOption.value)
-      ) {
-        continue
-      }
-
-      assignedOptionValues.add(canonicalOption.value)
-      resolvedOptions.push(canonicalOption)
+    if (groupOptions.length) {
+      seenGroupKeys.add(key)
+      resolvedGroups.push({ key, label, options: groupOptions })
     }
-
-    mergedGroups.set(groupLabel, resolvedOptions)
   }
-
-  const resolvedGroups = Array.from(mergedGroups, ([label, groupOptions]) => ({
-    label,
-    options: groupOptions,
-  })).filter((group) => group.options.length > 0)
-  const ungroupedOptions = options.filter(
-    (option) => !assignedOptionValues.has(option.value)
-  )
 
   return {
     groups: resolvedGroups,
-    ungroupedOptions,
+    ungroupedOptions: options.filter(
+      (option) => !assignedValues.has(option.value)
+    ),
   }
 }
 
@@ -221,21 +168,10 @@ function resolveOptionCount({
   facetCountSource: DataTableFacetCountSource
   columnFacetCounts?: ReadonlyMap<string, number>
 }): number | undefined {
-  if (!showCounts) {
-    return undefined
-  }
-
-  const providedCount = normalizeFacetCount(option.count)
-
-  if (providedCount !== undefined) {
-    return providedCount
-  }
-
-  if (facetCountSource === "options") {
-    return undefined
-  }
-
-  return columnFacetCounts?.get(option.value)
+  if (!showCounts) return undefined
+  return facetCountSource === "options"
+    ? normalizeFacetCount(option.count)
+    : columnFacetCounts?.get(option.value)
 }
 
 function DataTableFacetedFilterItem({
@@ -273,39 +209,36 @@ export function DataTableFacetedFilter<TData, TValue>({
     [options]
   )
   const optionsByValue = React.useMemo(
-    () =>
-      new Map(
-        uniqueOptions.map((option) => [option.value, option])
-      ),
+    () => new Map(uniqueOptions.map((option) => [option.value, option])),
     [uniqueOptions]
   )
   const validOptionValues = React.useMemo(
     () => new Set(optionsByValue.keys()),
     [optionsByValue]
   )
-  const rawFilterValue = column.getFilterValue()
   const selectedValues = React.useMemo(
     () =>
       normalizeSelectedFilterValues(
-        rawFilterValue,
+        column.getFilterValue(),
         validOptionValues
       ),
-    [rawFilterValue, validOptionValues]
+    [column, validOptionValues]
   )
   const selectedOptions = React.useMemo(
-    () => resolveSelectedOptions(selectedValues, optionsByValue),
+    () =>
+      selectedValues.flatMap((value) => {
+        const option = optionsByValue.get(value)
+        return option ? [option] : []
+      }),
     [optionsByValue, selectedValues]
   )
   const optionLayout = React.useMemo(
     () => resolveFilterOptionLayout(uniqueOptions, groups),
     [groups, uniqueOptions]
   )
-  const normalizedMaxVisibleChips = normalizeMaxVisibleChips(
-    maxVisibleChips
-  )
   const visibleSelectedOptions = selectedOptions.slice(
     0,
-    normalizedMaxVisibleChips
+    normalizeMaxVisibleChips(maxVisibleChips)
   )
   const hiddenSelectedOptionCount =
     selectedOptions.length - visibleSelectedOptions.length
@@ -320,33 +253,29 @@ export function DataTableFacetedFilter<TData, TValue>({
     () =>
       facets
         ? resolveColumnFacetCounts({
-          facets,
-          validOptionValues,
-          facetValueToOptionValue,
-        })
+            facets,
+            validOptionValues,
+            facetValueToOptionValue,
+          })
         : undefined,
     [facets, facetValueToOptionValue, validOptionValues]
   )
   const anchorRef = useComboboxAnchor()
 
-  if (uniqueOptions.length === 0) {
-    return null
-  }
+  if (!uniqueOptions.length) return null
 
-  function renderOption(option: DataTableFilterOption) {
-    return (
-      <DataTableFacetedFilterItem
-        key={option.value}
-        option={option}
-        count={resolveOptionCount({
-          option,
-          showCounts,
-          facetCountSource,
-          columnFacetCounts,
-        })}
-      />
-    )
-  }
+  const renderOption = (option: DataTableFilterOption) => (
+    <DataTableFacetedFilterItem
+      key={option.value}
+      option={option}
+      count={resolveOptionCount({
+        option,
+        showCounts,
+        facetCountSource,
+        columnFacetCounts,
+      })}
+    />
+  )
 
   return (
     <Combobox
@@ -355,9 +284,7 @@ export function DataTableFacetedFilter<TData, TValue>({
       value={selectedOptions}
       onValueChange={(
         value: DataTableFilterOption | DataTableFilterOption[] | null
-      ) => {
-        column.setFilterValue(resolveNextFilterValue(value))
-      }}
+      ) => column.setFilterValue(resolveNextFilterValue(value))}
       itemToStringValue={(option: DataTableFilterOption) => option.label}
     >
       <ComboboxChips
@@ -381,16 +308,14 @@ export function DataTableFacetedFilter<TData, TValue>({
                 size="icon-xs"
                 className="-mr-1 -ml-0.5 opacity-60 hover:opacity-100"
                 aria-label={`Remover ${option.label}`}
-                onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+                onClick={(event) => {
                   event.preventDefault()
                   event.stopPropagation()
-
                   const nextValues = selectedValues.filter(
                     (value) => value !== option.value
                   )
-
                   column.setFilterValue(
-                    nextValues.length > 0 ? nextValues : undefined
+                    nextValues.length ? nextValues : undefined
                   )
                 }}
               >
@@ -415,9 +340,9 @@ export function DataTableFacetedFilter<TData, TValue>({
         <ComboboxChipsInput
           aria-label={filterLabel}
           className="min-w-8 flex-1 text-left"
-          placeholder={selectedOptions.length > 0 ? "" : filterLabel}
+          placeholder={selectedOptions.length ? "" : filterLabel}
         />
-        {selectedOptions.length > 0 ? (
+        {selectedOptions.length ? (
           <Button
             data-no-drag-scroll="true"
             type="button"
@@ -425,7 +350,7 @@ export function DataTableFacetedFilter<TData, TValue>({
             size="icon-xs"
             className="shrink-0 text-muted-foreground hover:text-foreground"
             aria-label={dataTableCopy.facetedFilter.clearFilters}
-            onClick={(event: React.MouseEvent<HTMLButtonElement>) => {
+            onClick={(event) => {
               event.preventDefault()
               event.stopPropagation()
               column.setFilterValue(undefined)
@@ -435,36 +360,28 @@ export function DataTableFacetedFilter<TData, TValue>({
           </Button>
         ) : null}
       </ComboboxChips>
+
       <ComboboxContent
         anchor={anchorRef}
         data-no-drag-scroll="true"
         className="w-(--anchor-width) min-w-(--anchor-width)"
       >
-        <ComboboxEmpty>
-          {dataTableCopy.facetedFilter.noResults}
-        </ComboboxEmpty>
+        <ComboboxEmpty>{dataTableCopy.facetedFilter.noResults}</ComboboxEmpty>
         <ComboboxList>
-          {optionLayout.groups.length > 0 ? (
+          {optionLayout.groups.length ? (
             <>
               {optionLayout.groups.map((group) => (
-                <ComboboxGroup key={group.label} items={group.options}>
+                <ComboboxGroup key={group.key} items={group.options}>
                   <ComboboxLabel>{group.label}</ComboboxLabel>
                   <ComboboxCollection>
-                    {(option: DataTableFilterOption) =>
-                      renderOption(option)
-                    }
+                    {(option: DataTableFilterOption) => renderOption(option)}
                   </ComboboxCollection>
                 </ComboboxGroup>
               ))}
-              {optionLayout.ungroupedOptions.length > 0 ? (
-                <ComboboxGroup
-                  key="__ungrouped-options"
-                  items={optionLayout.ungroupedOptions}
-                >
+              {optionLayout.ungroupedOptions.length ? (
+                <ComboboxGroup items={optionLayout.ungroupedOptions}>
                   <ComboboxCollection>
-                    {(option: DataTableFilterOption) =>
-                      renderOption(option)
-                    }
+                    {(option: DataTableFilterOption) => renderOption(option)}
                   </ComboboxCollection>
                 </ComboboxGroup>
               ) : null}

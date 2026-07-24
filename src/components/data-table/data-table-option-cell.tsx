@@ -23,9 +23,7 @@ export interface DataTableOptionCellFallbackContext {
 
 type DataTableOptionCellFallback =
   | React.ReactNode
-  | ((
-    context: DataTableOptionCellFallbackContext
-  ) => React.ReactNode)
+  | ((context: DataTableOptionCellFallbackContext) => React.ReactNode)
 
 interface DataTableOptionCellProps {
   options: readonly DataTableFilterOption[]
@@ -38,112 +36,54 @@ function isEmptyOptionValue(value: unknown): boolean {
   return (
     value === null ||
     value === undefined ||
-    (typeof value === "string" &&
-      value.trim().length === 0)
+    (typeof value === "string" && value.trim().length === 0)
   )
 }
 
-function normalizeOptionLabel(
-  label: string
-): string | null {
-  const normalizedLabel = label
-    .trim()
-    .replace(/\s+/gu, " ")
-    .normalize("NFC")
-
-  return normalizedLabel.length > 0
-    ? normalizedLabel
-    : null
+function normalizeOptionLabel(label: string): string | null {
+  const normalized = label.trim().replace(/\s+/gu, " ").normalize("NFC")
+  return normalized ? normalized : null
 }
 
-function normalizeOptionValue(
-  value: unknown
-): string | null {
-  return normalizeDataTableFilterValue(
-    value,
-    DATA_TABLE_EMPTY_FILTER_VALUE
-  )
+function normalizeOptionValue(value: unknown): string | null {
+  return normalizeDataTableFilterValue(value, DATA_TABLE_EMPTY_FILTER_VALUE)
 }
 
 export function findDataTableFilterOption(
   options: readonly DataTableFilterOption[],
   value: unknown
 ): DataTableFilterOption | null {
-  const normalizedValue =
-    normalizeOptionValue(value)
-
-  if (normalizedValue === null) {
-    return null
-  }
-
-  return (
-    options.find(
-      (option) =>
-        option.value === normalizedValue
-    ) ?? null
-  )
+  const normalizedValue = normalizeOptionValue(value)
+  return normalizedValue === null
+    ? null
+    : options.find((option) => option.value === normalizedValue) ?? null
 }
 
-function resolveFallbackReason({
-  value,
-  normalizedValue,
-  option,
-}: {
-  value: unknown
-  normalizedValue: string | null
+function resolveFallbackReason(
+  value: unknown,
+  normalizedValue: string | null,
   option: DataTableFilterOption | null
-}): DataTableOptionCellFallbackReason {
-  if (isEmptyOptionValue(value)) {
-    return "empty-value"
-  }
-
-  if (normalizedValue === null) {
-    return "unsupported-value"
-  }
-
-  if (!option) {
-    return "unknown-option"
-  }
-
+): DataTableOptionCellFallbackReason {
+  if (isEmptyOptionValue(value)) return "empty-value"
+  if (normalizedValue === null) return "unsupported-value"
+  if (!option) return "unknown-option"
   return "empty-label"
 }
 
-function resolveDefaultFallback({
-  normalizedValue,
-}: DataTableOptionCellFallbackContext): React.ReactNode {
-  if (
-    normalizedValue !== null &&
-    normalizedValue !==
-    DATA_TABLE_EMPTY_FILTER_VALUE
-  ) {
-    return normalizedValue
-  }
-
-  return "—"
-}
-
-function resolveFallback(
-  fallback: DataTableOptionCellFallback | undefined,
+function resolveDefaultFallback(
   context: DataTableOptionCellFallbackContext
 ): React.ReactNode {
-  if (fallback === undefined) {
-    return resolveDefaultFallback(context)
-  }
-
-  return typeof fallback === "function"
-    ? fallback(context)
-    : fallback
+  return context.normalizedValue !== null &&
+    context.normalizedValue !== DATA_TABLE_EMPTY_FILTER_VALUE
+    ? context.normalizedValue
+    : "—"
 }
 
 function renderCellContent(
   content: React.ReactNode,
   className: string | undefined
 ): React.ReactNode {
-  if (
-    content === null ||
-    content === undefined ||
-    typeof content === "boolean"
-  ) {
+  if (content === null || content === undefined || typeof content === "boolean") {
     return null
   }
 
@@ -152,16 +92,7 @@ function renderCellContent(
     typeof content === "number" ||
     typeof content === "bigint"
   ) {
-    return (
-      <span
-        className={cn(
-          "font-medium",
-          className
-        )}
-      >
-        {content}
-      </span>
-    )
+    return <span className={cn("font-medium", className)}>{content}</span>
   }
 
   return content
@@ -173,48 +104,29 @@ export function DataTableOptionCell({
   className,
   fallback,
 }: DataTableOptionCellProps) {
-  const normalizedValue =
-    normalizeOptionValue(value)
-
+  const normalizedValue = normalizeOptionValue(value)
   const option =
     normalizedValue === null
       ? null
-      : options.find(
-        (candidate) =>
-          candidate.value === normalizedValue
-      ) ?? null
-
-  const normalizedLabel = option
-    ? normalizeOptionLabel(option.label)
-    : null
+      : options.find((candidate) => candidate.value === normalizedValue) ?? null
+  const normalizedLabel = option ? normalizeOptionLabel(option.label) : null
 
   if (option && normalizedLabel) {
-    return (
-      <span
-        className={cn(
-          "font-medium",
-          className
-        )}
-      >
-        {normalizedLabel}
-      </span>
-    )
+    return <span className={cn("font-medium", className)}>{normalizedLabel}</span>
   }
 
-  const context: DataTableOptionCellFallbackContext =
-  {
-    reason: resolveFallbackReason({
-      value,
-      normalizedValue,
-      option,
-    }),
+  const context: DataTableOptionCellFallbackContext = {
+    reason: resolveFallbackReason(value, normalizedValue, option),
     value,
     normalizedValue,
     option,
   }
+  const resolvedFallback =
+    fallback === undefined
+      ? resolveDefaultFallback(context)
+      : typeof fallback === "function"
+        ? fallback(context)
+        : fallback
 
-  return renderCellContent(
-    resolveFallback(fallback, context),
-    className
-  )
+  return renderCellContent(resolvedFallback, className)
 }

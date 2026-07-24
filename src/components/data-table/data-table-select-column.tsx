@@ -1,9 +1,4 @@
-import {
-  type ColumnDef,
-  type Row,
-} from "@tanstack/react-table"
-import * as React from "react"
-
+import { type ColumnDef, type Row } from "@tanstack/react-table"
 import { Checkbox } from "@/components/ui/checkbox"
 
 import { dataTableCopy } from "./data-table-copy"
@@ -13,172 +8,41 @@ type DataTableSelectColumnRowLabel<TData> =
   | ((row: Row<TData>) => string)
 
 export interface DataTableSelectColumnConfig<TData> {
-  /**
-   * Largura fixa da coluna operacional.
-   */
   size?: number
-
-  /**
-   * Bloqueia temporariamente todos os controles
-   * visuais de seleção.
-   *
-   * A regra definitiva de seleção das linhas deve
-   * continuar em table.options.enableRowSelection.
-   */
   disabled?: boolean
-
-  /**
-   * Explicação geral usada quando disabled=true.
-   */
   disabledReason?: string
-
-  /**
-   * Nome acessível do checkbox do cabeçalho.
-   */
   headerLabel?: string
-
-  /**
-   * Nome acessível do checkbox de cada linha.
-   *
-   * Prefira uma função contextual, por exemplo:
-   * "Selecionar cliente Empresa X".
-   */
   rowLabel?: DataTableSelectColumnRowLabel<TData>
-
-  /**
-   * Explicação específica quando a linha não pode
-   * ser selecionada.
-   */
-  getRowDisabledReason?: (
-    row: Row<TData>
-  ) => string | undefined
-}
-
-interface DataTableRowSelectionCheckboxProps<TData> {
-  row: Row<TData>
-  label: string
-  disabled: boolean
-  disabledReason?: string
+  getRowDisabledReason?: (row: Row<TData>) => string | undefined
 }
 
 const DEFAULT_SELECT_COLUMN_SIZE = 48
 
-function normalizeVisibleText(
-  value: string | undefined
-): string {
-  return (
-    value
-      ?.trim()
-      .replace(/\s+/gu, " ") ?? ""
-  )
+function normalizeVisibleText(value: string | undefined): string {
+  return value?.trim().replace(/\s+/gu, " ") ?? ""
 }
 
-function normalizeColumnSize(
-  value: number | undefined
-): number {
-  return (
-    typeof value === "number" &&
-    Number.isSafeInteger(value) &&
-    value > 0
-  )
+function normalizeColumnSize(value: number | undefined): number {
+  return typeof value === "number" && Number.isSafeInteger(value) && value > 0
     ? value
     : DEFAULT_SELECT_COLUMN_SIZE
 }
 
 function resolveCheckboxState(
-  isAllSelected: boolean,
-  isSomeSelected: boolean
+  allSelected: boolean,
+  someSelected: boolean
 ): boolean | "indeterminate" {
-  if (isAllSelected) {
-    return true
-  }
-
-  if (isSomeSelected) {
-    return "indeterminate"
-  }
-
+  if (allSelected) return true
+  if (someSelected) return "indeterminate"
   return false
 }
 
 function resolveRowLabel<TData>(
   row: Row<TData>,
-  rowLabel:
-    | DataTableSelectColumnRowLabel<TData>
-    | undefined
+  rowLabel: DataTableSelectColumnRowLabel<TData> | undefined
 ): string {
-  const resolvedLabel =
-    typeof rowLabel === "function"
-      ? rowLabel(row)
-      : rowLabel
-
-  return (
-    normalizeVisibleText(resolvedLabel) ||
-    dataTableCopy.accessibility.selectRow
-  )
-}
-
-function DataTableRowSelectionCheckbox<TData>({
-  row,
-  label,
-  disabled,
-  disabledReason,
-}: DataTableRowSelectionCheckboxProps<TData>) {
-  const descriptionId = React.useId()
-
-  const normalizedDisabledReason =
-    normalizeVisibleText(disabledReason)
-
-  const checked = resolveCheckboxState(
-    row.getIsSelected(),
-    row.getIsSomeSelected()
-  )
-
-  return (
-    <div
-      className="flex w-full items-center justify-center"
-      title={
-        disabled &&
-          normalizedDisabledReason
-          ? normalizedDisabledReason
-          : undefined
-      }
-    >
-      <Checkbox
-        data-no-drag-scroll="true"
-        checked={checked}
-        disabled={disabled}
-        aria-label={label}
-        aria-describedby={
-          disabled &&
-            normalizedDisabledReason
-            ? descriptionId
-            : undefined
-        }
-        onCheckedChange={(value) => {
-          if (disabled) {
-            return
-          }
-
-          row.toggleSelected(
-            value === true
-          )
-        }}
-        onClick={(event) => {
-          event.stopPropagation()
-        }}
-      />
-
-      {disabled &&
-        normalizedDisabledReason ? (
-        <span
-          id={descriptionId}
-          className="sr-only"
-        >
-          {normalizedDisabledReason}
-        </span>
-      ) : null}
-    </div>
-  )
+  const label = typeof rowLabel === "function" ? rowLabel(row) : rowLabel
+  return normalizeVisibleText(label) || dataTableCopy.accessibility.selectRow
 }
 
 export function createSelectColumn<TData>({
@@ -189,113 +53,86 @@ export function createSelectColumn<TData>({
   rowLabel,
   getRowDisabledReason,
 }: DataTableSelectColumnConfig<TData> = {}): ColumnDef<TData> {
-  const resolvedSize =
-    normalizeColumnSize(size)
-
+  const resolvedSize = normalizeColumnSize(size)
   const resolvedHeaderLabel =
     normalizeVisibleText(headerLabel) ||
-    dataTableCopy.accessibility
-      .selectPageRows
-
-  const normalizedGlobalDisabledReason =
-    normalizeVisibleText(disabledReason)
+    dataTableCopy.accessibility.selectPageRows
+  const globalDisabledReason = normalizeVisibleText(disabledReason)
 
   return {
     id: "select",
-
     header: ({ table }) => {
-      const hasSelectablePageRows =
-        table
-          .getPaginationRowModel()
-          .flatRows
-          .some((row) =>
-            row.getCanSelect()
-          )
-
-      const isDisabled =
-        disabled ||
-        !hasSelectablePageRows
-
-      const checked =
-        resolveCheckboxState(
-          table.getIsAllPageRowsSelected(),
-          table.getIsSomePageRowsSelected()
-        )
+      const hasSelectablePageRows = table
+        .getPaginationRowModel()
+        .flatRows.some((row) => row.getCanSelect())
+      const isDisabled = disabled || !hasSelectablePageRows
 
       return (
         <div
           className="flex w-full items-center justify-center"
           title={
-            isDisabled &&
-              normalizedGlobalDisabledReason
-              ? normalizedGlobalDisabledReason
+            isDisabled && globalDisabledReason
+              ? globalDisabledReason
               : undefined
           }
         >
           <Checkbox
             data-no-drag-scroll="true"
-            checked={checked}
+            checked={resolveCheckboxState(
+              table.getIsAllPageRowsSelected(),
+              table.getIsSomePageRowsSelected()
+            )}
             disabled={isDisabled}
-            aria-label={
-              resolvedHeaderLabel
-            }
+            aria-label={resolvedHeaderLabel}
             onCheckedChange={(value) => {
-              if (isDisabled) {
-                return
-              }
-
-              table.toggleAllPageRowsSelected(
-                value === true
-              )
+              if (!isDisabled) table.toggleAllPageRowsSelected(value === true)
             }}
-            onClick={(event) => {
-              event.stopPropagation()
-            }}
+            onClick={(event) => event.stopPropagation()}
           />
         </div>
       )
     },
-
     cell: ({ row }) => {
-      const canSelect =
-        row.getCanSelect()
-
-      const isDisabled =
-        disabled || !canSelect
-
-      const specificDisabledReason =
-        getRowDisabledReason?.(row)
-
-      const resolvedDisabledReason =
-        normalizeVisibleText(
-          specificDisabledReason
-        ) ||
-        normalizedGlobalDisabledReason ||
+      const isDisabled = disabled || !row.getCanSelect()
+      const reason =
+        normalizeVisibleText(getRowDisabledReason?.(row)) ||
+        globalDisabledReason ||
         undefined
+      const descriptionId = `${row.id}-selection-disabled-reason`
 
       return (
-        <DataTableRowSelectionCheckbox
-          row={row}
-          label={resolveRowLabel(
-            row,
-            rowLabel
-          )}
-          disabled={isDisabled}
-          disabledReason={
-            resolvedDisabledReason
-          }
-        />
+        <div
+          className="flex w-full items-center justify-center"
+          title={isDisabled ? reason : undefined}
+        >
+          <Checkbox
+            data-no-drag-scroll="true"
+            checked={resolveCheckboxState(
+              row.getIsSelected(),
+              row.getIsSomeSelected()
+            )}
+            disabled={isDisabled}
+            aria-label={resolveRowLabel(row, rowLabel)}
+            aria-describedby={isDisabled && reason ? descriptionId : undefined}
+            onCheckedChange={(value) => {
+              if (!isDisabled) row.toggleSelected(value === true)
+            }}
+            onClick={(event) => event.stopPropagation()}
+          />
+          {isDisabled && reason ? (
+            <span id={descriptionId} className="sr-only">
+              {reason}
+            </span>
+          ) : null}
+        </div>
       )
     },
-
+    enableColumnFilter: false,
+    enableGlobalFilter: false,
     enableSorting: false,
     enableHiding: false,
     enableResizing: false,
-
-    meta: {
-      enableExport: false,
-    },
-
+    meta: { enableExport: false },
     size: resolvedSize,
     minSize: resolvedSize,
     maxSize: resolvedSize,

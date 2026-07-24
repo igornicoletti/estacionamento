@@ -1,106 +1,77 @@
-import {
-  AUTH_PERMISSION,
-  AUTH_PERMISSION_WILDCARD,
-  AUTH_ROLE_KEY,
-  type AuthPermission,
-  type AuthRoleKey,
-} from "../contracts"
+import type { AuthCapability } from "./auth-capabilities"
+import type { UserRole } from "./auth-roles"
 
-const rolePriority: Record<AuthRoleKey, number> = {
-  [AUTH_ROLE_KEY.operator]: 0,
-  [AUTH_ROLE_KEY.manager]: 1,
-  [AUTH_ROLE_KEY.auditor]: 2,
-  [AUTH_ROLE_KEY.admin]: 3,
-  [AUTH_ROLE_KEY.owner]: 4,
-}
+const selfServiceCapabilities = [
+  "profile.readSelf",
+  "profile.updateSelf",
 
-export const allRoles: readonly AuthRoleKey[] = [
-  AUTH_ROLE_KEY.operator,
-  AUTH_ROLE_KEY.manager,
-  AUTH_ROLE_KEY.auditor,
-  AUTH_ROLE_KEY.admin,
-  AUTH_ROLE_KEY.owner,
-]
+  "sessions.readSelf",
+  "sessions.revokeSelf",
 
-const operatorPermissions: readonly AuthPermission[] = [
-  AUTH_PERMISSION.profileReadSelf,
-  AUTH_PERMISSION.settingsReadSelf,
-  AUTH_PERMISSION.notificationsRead,
-  AUTH_PERMISSION.unitsRead,
-  AUTH_PERMISSION.clientsRead,
-  AUTH_PERMISSION.clientVehiclesRead,
-  AUTH_PERMISSION.pricesRead,
-  AUTH_PERMISSION.rulesRead,
-]
+  "passkeys.readSelf",
+  "passkeys.manageSelf",
+] as const satisfies readonly AuthCapability[]
 
-const managerPermissions: readonly AuthPermission[] = [
-  ...operatorPermissions,
-  AUTH_PERMISSION.usersRead,
-]
+const adminReadCapabilities = [
+  "admin.clients.read",
+  "admin.vehicles.read",
+  "admin.units.read",
+  "admin.users.read",
+] as const satisfies readonly AuthCapability[]
 
-const auditorPermissions: readonly AuthPermission[] = [
-  ...managerPermissions,
-  AUTH_PERMISSION.accessRequestsRead,
-  AUTH_PERMISSION.permissionsRead,
-  AUTH_PERMISSION.auditRead,
-]
+const adminManageCapabilities = [
+  "admin.clients.manage",
+  "admin.vehicles.manage",
+  "admin.units.manage",
+  "admin.users.create",
+  "admin.users.update",
+  "admin.users.disable",
+  "admin.users.resetAccess",
+] as const satisfies readonly AuthCapability[]
 
-const adminPermissions: readonly AuthPermission[] = [
-  ...auditorPermissions,
-  AUTH_PERMISSION.pricesManage,
-  AUTH_PERMISSION.rulesManage,
-  AUTH_PERMISSION.usersManage,
-  AUTH_PERMISSION.accessRequestsReview,
-  AUTH_PERMISSION.syncExecute,
-]
+export const roleCapabilities = {
+  owner: [
+    "audit.read",
+    "security.permissions.read",
+    ...adminReadCapabilities,
+    ...adminManageCapabilities,
+    ...selfServiceCapabilities,
+  ],
 
-export const permissionsByRole: Record<AuthRoleKey, readonly AuthPermission[]> = {
-  [AUTH_ROLE_KEY.operator]: operatorPermissions,
-  [AUTH_ROLE_KEY.manager]: managerPermissions,
-  [AUTH_ROLE_KEY.auditor]: auditorPermissions,
-  [AUTH_ROLE_KEY.admin]: adminPermissions,
-  [AUTH_ROLE_KEY.owner]: [AUTH_PERMISSION_WILDCARD],
-}
+  admin: [
+    "audit.read",
+    "security.permissions.read",
+    ...adminReadCapabilities,
+    ...adminManageCapabilities,
+    ...selfServiceCapabilities,
+  ],
 
-export const unitScopedRoles: ReadonlySet<AuthRoleKey> = new Set([
-  AUTH_ROLE_KEY.operator,
-  AUTH_ROLE_KEY.manager,
-])
+  auditor: [
+    "audit.read",
+    "security.permissions.read",
+    ...adminReadCapabilities,
+    ...selfServiceCapabilities,
+  ],
 
-export function canManageRole(actor: AuthRoleKey, target: AuthRoleKey) {
-  return rolePriority[actor] > rolePriority[target]
-}
+  manager: [
+    ...selfServiceCapabilities,
+  ],
 
-export function isRoleSuperior(actor: AuthRoleKey, target: AuthRoleKey) {
-  return rolePriority[actor] > rolePriority[target]
-}
+  operator: [
+    ...selfServiceCapabilities,
+  ],
+} as const satisfies Record<UserRole, readonly AuthCapability[]>
 
-export function getAssignableRoles(actorRole: AuthRoleKey): readonly AuthRoleKey[] {
-  return allRoles.filter((role) => rolePriority[role] < rolePriority[actorRole])
-}
+export const routeCapabilities = {
+  audit: ["audit.read"],
+  clients: ["admin.clients.read"],
+  clientVehicles: ["admin.vehicles.read"],
+  notifications: ["profile.readSelf"],
+  permissions: ["security.permissions.read"],
+  profile: ["profile.readSelf"],
+  settings: ["profile.readSelf"],
+  units: ["admin.units.read"],
+  users: ["admin.users.read"],
+} as const satisfies Record<string, readonly AuthCapability[]>
 
-export function hasAllPermissions(
-  userPermissions: readonly string[],
-  required: readonly string[]
-): boolean {
-  if (required.length === 0 || userPermissions.includes(AUTH_PERMISSION_WILDCARD)) {
-    return true
-  }
-
-  return required.every((permission) => userPermissions.includes(permission))
-}
-
-export function hasAnyPermission(
-  userPermissions: readonly string[],
-  required: readonly string[]
-): boolean {
-  if (required.length === 0 || userPermissions.includes(AUTH_PERMISSION_WILDCARD)) {
-    return true
-  }
-
-  return required.some((permission) => userPermissions.includes(permission))
-}
-
-export function isGlobalRole(role: AuthRoleKey) {
-  return !unitScopedRoles.has(role)
-}
+export type AuthorizedRouteId = keyof typeof routeCapabilities

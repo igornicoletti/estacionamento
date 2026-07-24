@@ -1,7 +1,4 @@
-import {
-  type ColumnDef,
-  type SortingFn,
-} from "@tanstack/react-table"
+import { type ColumnDef, type SortingFn } from "@tanstack/react-table"
 import { type ComponentProps } from "react"
 
 import { createDataTableColumnHeader } from "./data-table-column-header"
@@ -13,17 +10,16 @@ import {
 import { normalizeSearchValue } from "./data-table-filter-utils"
 import { DataTableOptionCell } from "./data-table-option-cell"
 import {
-  type DataTableColumnId,
+  type DataTableAccessorKey,
   type DataTableFilterOption,
 } from "./data-table-types"
 
-type DataTableOptionCellFallback =
-  ComponentProps<
-    typeof DataTableOptionCell
-  >["fallback"]
+type DataTableOptionCellFallback = ComponentProps<
+  typeof DataTableOptionCell
+>["fallback"]
 
 interface DataTableOptionColumnConfig<TData> {
-  accessorKey: DataTableColumnId<TData>
+  accessorKey: DataTableAccessorKey<TData>
   title: string
   options: readonly DataTableFilterOption[]
   className?: string
@@ -36,120 +32,59 @@ interface DataTableOptionColumnConfig<TData> {
   sortUndefined?: ColumnDef<TData>["sortUndefined"]
 }
 
-const optionLabelCollator = new Intl.Collator(
-  "pt-BR",
-  {
-    numeric: true,
-    sensitivity: "base",
-  }
-)
+const optionLabelCollator = new Intl.Collator("pt-BR", {
+  numeric: true,
+  sensitivity: "base",
+})
 
 function createOptionIndex(
   options: readonly DataTableFilterOption[]
 ): ReadonlyMap<string, DataTableFilterOption> {
-  const optionsByValue = new Map<
-    string,
-    DataTableFilterOption
-  >()
-
+  const index = new Map<string, DataTableFilterOption>()
   for (const option of options) {
-    if (!optionsByValue.has(option.value)) {
-      optionsByValue.set(
-        option.value,
-        option
-      )
-    }
+    if (!index.has(option.value)) index.set(option.value, option)
   }
-
-  return optionsByValue
+  return index
 }
 
 function resolveOptionDisplayValue(
   value: unknown,
-  optionsByValue: ReadonlyMap<
-    string,
-    DataTableFilterOption
-  >
+  optionsByValue: ReadonlyMap<string, DataTableFilterOption>
 ): string | null {
-  const normalizedValue =
-    normalizeDataTableFilterValue(
-      value,
-      DATA_TABLE_EMPTY_FILTER_VALUE
-    )
-
-  if (normalizedValue === null) {
-    return null
-  }
-
-  const option =
-    optionsByValue.get(normalizedValue)
-
-  if (option) {
-    const normalizedLabel =
-      normalizeSearchValue(option.label)
-
-    if (normalizedLabel.length > 0) {
-      return normalizedLabel
-    }
-  }
-
-  return normalizedValue ===
+  const normalizedValue = normalizeDataTableFilterValue(
+    value,
     DATA_TABLE_EMPTY_FILTER_VALUE
+  )
+  if (normalizedValue === null) return null
+
+  const option = optionsByValue.get(normalizedValue)
+  if (option) {
+    const normalizedLabel = normalizeSearchValue(option.label)
+    if (normalizedLabel) return normalizedLabel
+  }
+
+  return normalizedValue === DATA_TABLE_EMPTY_FILTER_VALUE
     ? null
     : normalizedValue
 }
 
-function normalizeSortingResult(
-  result: number
-): -1 | 0 | 1 {
-  if (result < 0) {
-    return -1
-  }
-
-  if (result > 0) {
-    return 1
-  }
-
-  return 0
-}
-
 function createOptionLabelSortingFn<TData>(
-  optionsByValue: ReadonlyMap<
-    string,
-    DataTableFilterOption
-  >
+  optionsByValue: ReadonlyMap<string, DataTableFilterOption>
 ): SortingFn<TData> {
   return (rowA, rowB, columnId) => {
-    const leftValue =
-      resolveOptionDisplayValue(
-        rowA.getValue(columnId),
-        optionsByValue
-      )
-
-    const rightValue =
-      resolveOptionDisplayValue(
-        rowB.getValue(columnId),
-        optionsByValue
-      )
-
-    if (leftValue === rightValue) {
-      return 0
-    }
-
-    if (leftValue === null) {
-      return 1
-    }
-
-    if (rightValue === null) {
-      return -1
-    }
-
-    return normalizeSortingResult(
-      optionLabelCollator.compare(
-        leftValue,
-        rightValue
-      )
+    const left = resolveOptionDisplayValue(
+      rowA.getValue(columnId),
+      optionsByValue
     )
+    const right = resolveOptionDisplayValue(
+      rowB.getValue(columnId),
+      optionsByValue
+    )
+
+    if (left === right) return 0
+    if (left === null) return 1
+    if (right === null) return -1
+    return Math.sign(optionLabelCollator.compare(left, right)) as -1 | 0 | 1
   }
 }
 
@@ -166,34 +101,17 @@ export function createOptionColumn<TData>({
   sortDescFirst,
   sortUndefined = "last",
 }: DataTableOptionColumnConfig<TData>): ColumnDef<TData> {
-  const optionsByValue =
-    createOptionIndex(options)
-
-  const optionLabelSortingFn =
-    createOptionLabelSortingFn<TData>(
-      optionsByValue
-    )
+  const optionsByValue = createOptionIndex(options)
 
   return {
     accessorKey,
-
     meta: {
       label: title,
       enableExport,
-
       exportValue: (value) =>
-        resolveOptionDisplayValue(
-          value,
-          optionsByValue
-        ),
+        resolveOptionDisplayValue(value, optionsByValue),
     },
-
-    header:
-      createDataTableColumnHeader<
-        TData,
-        unknown
-      >(title),
-
+    header: createDataTableColumnHeader<TData, unknown>(title),
     cell: ({ getValue }) => (
       <DataTableOptionCell
         options={options}
@@ -202,16 +120,10 @@ export function createOptionColumn<TData>({
         fallback={cellFallback}
       />
     ),
-
     filterFn: includesSelectedValue,
-
     enableHiding,
     enableSorting,
-
-    sortingFn:
-      sortingFn ??
-      optionLabelSortingFn,
-
+    sortingFn: sortingFn ?? createOptionLabelSortingFn<TData>(optionsByValue),
     sortDescFirst,
     sortUndefined,
   }

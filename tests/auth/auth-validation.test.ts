@@ -1,59 +1,39 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  AUTH_PERMISSION,
   authCpfSchema,
   authLoginSchema,
   authRecoverySchema,
-  isAuthPermission,
-  requiredPasswordSchema,
-  resolveAuthProfilePermissions,
+  isGlobalRole,
+  requiresSingleUnit,
+  routeCapabilities,
 } from "@/features/auth"
-import { isGlobalRole, requiresSingleUnit } from "@/features/users/types/users-types"
 
-describe("auth validation and authorization contracts", () => {
-  it("validates CPF before allowing the password flow", () => {
-    expect(authCpfSchema.safeParse("123.456.789-09").success).toBe(true)
+describe("auth validation", () => {
+  it("validates CPF before allowing the progressive auth flow", () => {
+    expect(authCpfSchema.safeParse("529.982.247-25").success).toBe(true)
     expect(authCpfSchema.safeParse("111.111.111-11").success).toBe(false)
   })
 
-  it("requires current credentials and a strong matching replacement password", () => {
-    expect(authLoginSchema.safeParse({
-      cpf: "123.456.789-09",
-      password: "temporary",
-    }).success).toBe(true)
-    expect(requiredPasswordSchema.safeParse({
-      confirmPassword: "StrongPass#123",
+  it("requires matching strong new password values", () => {
+    const result = authLoginSchema.safeParse({
+      confirmNewPassword: "StrongPass#123",
+      cpf: "529.982.247-25",
       newPassword: "StrongPass#123",
-    }).success).toBe(true)
+      password: "temporary",
+    })
+
+    expect(result.success).toBe(true)
   })
 
-  it("keeps recovery request inputs generic and validated", () => {
+  it("keeps recovery request response inputs generic and validated", () => {
     const result = authRecoverySchema.safeParse({
-      cpf: "123.456.789-09",
-      description: "",
-      email: "",
+      cpf: "529.982.247-25",
       phone: "11987654321",
       reason: "lost_phone",
     })
 
     expect(result.success).toBe(true)
-
-    expect(authRecoverySchema.safeParse({
-      cpf: "123.456.789-09",
-      description: "",
-      email: "",
-      phone: "11987654321",
-      reason: "other",
-    }).success).toBe(false)
-
-    expect(authRecoverySchema.safeParse({
-      cpf: "123.456.789-09",
-      description: "Meu motivo não está na lista.",
-      email: "",
-      phone: "11987654321",
-      reason: "other",
-    }).success).toBe(true)
   })
 
   it("enforces unit scope for managers and operators", () => {
@@ -62,16 +42,8 @@ describe("auth validation and authorization contracts", () => {
     expect(isGlobalRole("admin")).toBe(true)
   })
 
-  it("accepts only known permissions and does not fall back after invalid explicit permissions", () => {
-    expect(isAuthPermission(AUTH_PERMISSION.auditRead)).toBe(true)
-    expect(isAuthPermission("admin.users.disable")).toBe(false)
-    expect(resolveAuthProfilePermissions({
-      permissions: ["admin.users.disable"],
-      roleKey: "owner",
-    })).toEqual([])
-    expect(resolveAuthProfilePermissions({
-      permissions: null,
-      roleKey: "owner",
-    })).toEqual([AUTH_PERMISSION.all])
+  it("defines protected capabilities for clients and units routes", () => {
+    expect(routeCapabilities.clients).toEqual(["admin.clients.read"])
+    expect(routeCapabilities.units).toEqual(["admin.units.read"])
   })
 })

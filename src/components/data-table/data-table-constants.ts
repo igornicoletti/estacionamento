@@ -3,8 +3,7 @@ export const DATA_TABLE_PAGE_SIZE_OPTIONS = [10, 25, 50, 100] as const
 export type DataTablePageSize =
   (typeof DATA_TABLE_PAGE_SIZE_OPTIONS)[number]
 
-export const DATA_TABLE_INITIAL_PAGE_SIZE =
-  25 satisfies DataTablePageSize
+export const DATA_TABLE_INITIAL_PAGE_SIZE = 25 satisfies DataTablePageSize
 
 interface DataTableSkeletonConfig {
   readonly minRows: number

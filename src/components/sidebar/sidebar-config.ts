@@ -1,44 +1,34 @@
 import {
-  BadgeDollarSignIcon,
   BellIcon,
   Building2Icon,
-  ClipboardListIcon,
-  FileClockIcon,
-  LayoutDashboardIcon,
-  ParkingCircleIcon,
+  ContactRoundIcon,
   ScrollTextIcon,
-  ShieldEllipsisIcon,
-  ShieldQuestionIcon,
-  TruckIcon,
-  UserRoundIcon,
-  UsersIcon,
+  SettingsIcon,
+  ShieldCheckIcon,
   type LucideIcon,
+  UsersIcon,
 } from "lucide-react"
 
-import {
-  appRouteIds,
-  authenticatedRouteRegistry,
-  navigationGroups as routeNavigationGroups,
-  type AppRouteGroupId,
-  type AppRouteId,
-  type AppRoutePath,
-  type AppRouteRegistryItem,
-} from "@/app/router/route-registry"
 import montecarloLogo from "@/assets/brand/montecarlo-logo.webp"
 import montecarloSymbol from "@/assets/brand/montecarlo-symbol.svg"
-import type { AuthPermission } from "@/features/auth"
 
-import { sidebarCopy } from "./sidebar-copy"
+import {
+  appRouteDefinitions,
+  appSecurityRouteDefinitions,
+  appUtilityRouteDefinitions,
+  type SearchableRouteDefinition,
+} from "@/app/router/route-definitions"
+import type { AuthCapability } from "@/features/auth"
 
 export interface SidebarNavigationItem {
-  id: AppRouteId
-  href: AppRoutePath
+  id: string
+  href: `/${string}`
   label: string
-  requiredPermissions?: readonly AuthPermission[]
+  requiredCapabilities?: readonly AuthCapability[]
 }
 
 export interface SidebarNavigationGroup {
-  id: AppRouteGroupId
+  id: string
   label: string
   items: readonly SidebarNavigationItem[]
 }
@@ -48,87 +38,53 @@ export interface SidebarNotification {
   title: string
   description: string
   occurredAt: string
-  href?: AppRoutePath
+  href?: `/${string}`
+}
+
+function toSidebarNavigationItem(
+  route: SearchableRouteDefinition
+): SidebarNavigationItem {
+  return {
+    href: route.href,
+    id: route.id,
+    label: route.label,
+    requiredCapabilities: route.requiredCapabilities,
+  }
 }
 
 export const sidebarBrand = {
-  shortName: sidebarCopy.brand.shortName,
-  name: sidebarCopy.brand.name,
+  shortName: "RMC",
+  name: "Rede Monte Carlo",
   sidebarLogoUrl: montecarloLogo,
   symbolLogoUrl: montecarloSymbol,
 }
 
-export const routeIconById = {
-  [appRouteIds.home]: LayoutDashboardIcon,
-  [appRouteIds.yard]: ParkingCircleIcon,
-  [appRouteIds.reports]: ScrollTextIcon,
-  [appRouteIds.units]: Building2Icon,
-  [appRouteIds.clients]: TruckIcon,
-  [appRouteIds.prices]: BadgeDollarSignIcon,
-  [appRouteIds.rules]: ClipboardListIcon,
-  [appRouteIds.users]: UsersIcon,
-  [appRouteIds.permissions]: ShieldEllipsisIcon,
-  [appRouteIds.audit]: FileClockIcon,
-  [appRouteIds.notifications]: BellIcon,
-  [appRouteIds.profile]: UserRoundIcon,
-  [appRouteIds.security]: ShieldQuestionIcon,
-} as const satisfies Partial<Record<AppRouteId, LucideIcon>>
-
-interface SidebarNavigationItemWithGroup extends SidebarNavigationItem {
-  group: AppRouteGroupId
-  order: number
+export const routeIconById: Partial<Record<string, LucideIcon>> = {
+  audit: ScrollTextIcon,
+  clients: ContactRoundIcon,
+  notifications: BellIcon,
+  permissions: ShieldCheckIcon,
+  settings: SettingsIcon,
+  units: Building2Icon,
+  users: UsersIcon,
 }
 
-interface NavigableRoute extends AppRouteRegistryItem {
-  href: AppRoutePath
-  navigation: {
-    group: AppRouteGroupId
-    order: number
-  }
-}
-
-function isNavigableRoute(route: AppRouteRegistryItem): route is NavigableRoute {
-  return Boolean(route.href && route.navigation)
-}
-
-const navigationItems: readonly SidebarNavigationItemWithGroup[] =
-  authenticatedRouteRegistry.flatMap((route) => {
-    if (!isNavigableRoute(route)) {
-      return []
-    }
-
-    return [
-      {
-        id: route.id,
-        href: route.href,
-        label: route.label,
-        requiredPermissions: route.requiredPermissions,
-        group: route.navigation.group,
-        order: route.navigation.order,
-      },
-    ]
-  })
-
-function toSidebarNavigationItem(
-  item: SidebarNavigationItemWithGroup
-): SidebarNavigationItem {
-  return {
-    id: item.id,
-    href: item.href,
-    label: item.label,
-    requiredPermissions: item.requiredPermissions,
-  }
-}
-
-export const navigationGroups = routeNavigationGroups
-  .map((group) => ({
-    id: group.id,
-    label: group.label,
-    items: navigationItems
-      .filter((item) => item.group === group.id)
-      .sort((left, right) => left.order - right.order)
-      .map(toSidebarNavigationItem),
-  }))
-  .filter((group) => group.items.length > 0) satisfies readonly SidebarNavigationGroup[]
+export const navigationGroups = [
+  {
+    id: "records",
+    label: "Cadastros",
+    items: appRouteDefinitions.map(toSidebarNavigationItem),
+  },
+  {
+    id: "security",
+    label: "Segurança",
+    items: appSecurityRouteDefinitions.map(toSidebarNavigationItem),
+  },
+  {
+    id: "utilities",
+    label: "Utilitários",
+    items: appUtilityRouteDefinitions.map(toSidebarNavigationItem),
+  },
+] as const satisfies readonly SidebarNavigationGroup[]
 
 export const notifications: readonly SidebarNotification[] = []

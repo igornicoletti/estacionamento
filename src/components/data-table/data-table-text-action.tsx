@@ -39,29 +39,16 @@ export function DataTableTextAction({
   "aria-busy": externalAriaBusy,
   ...props
 }: DataTableTextActionProps) {
-  const isDisabled =
-    disabled === true || isPending
-
   return (
     <button
       {...props}
       data-no-drag-scroll="true"
       type={type}
-      disabled={isDisabled}
-      aria-busy={
-        isPending
-          ? true
-          : externalAriaBusy
-      }
-      className={cn(
-        dataTableTextActionClassName,
-        className
-      )}
+      disabled={disabled === true || isPending}
+      aria-busy={isPending ? true : externalAriaBusy}
+      className={cn(dataTableTextActionClassName, className)}
       onClick={(event) => {
-        if (stopPropagation) {
-          event.stopPropagation()
-        }
-
+        if (stopPropagation) event.stopPropagation()
         onClick?.(event)
       }}
     >
@@ -75,11 +62,7 @@ export function DataTableTextAction({
           className="size-3.5"
         />
       ) : null}
-
-      {isPending &&
-        pendingLabel !== undefined
-        ? pendingLabel
-        : children}
+      {isPending && pendingLabel !== undefined ? pendingLabel : children}
     </button>
   )
 }
@@ -97,15 +80,9 @@ export function DataTableTextLink({
       {...props}
       data-no-drag-scroll="true"
       href={href}
-      className={cn(
-        dataTableTextActionClassName,
-        className
-      )}
+      className={cn(dataTableTextActionClassName, className)}
       onClick={(event) => {
-        if (stopPropagation) {
-          event.stopPropagation()
-        }
-
+        if (stopPropagation) event.stopPropagation()
         onClick?.(event)
       }}
     >

@@ -1,8 +1,4 @@
-import {
-  type Column,
-  type Row,
-  type Table,
-} from "@tanstack/react-table"
+import { type Column, type Row, type Table } from "@tanstack/react-table"
 import { DownloadIcon } from "lucide-react"
 import * as React from "react"
 
@@ -23,9 +19,8 @@ import { dataTableCopy } from "./data-table-copy"
 
 type ExportColumnScope = "visible" | "all"
 type ExportRowScope = "current" | "filtered" | "loaded"
-type DataTableColumnExportPolicy = "opt-out" | "opt-in"
-
-type DataTableExportOptionId =
+export type DataTableColumnExportPolicy = "opt-out" | "opt-in"
+export type DataTableExportOptionId =
   | "current-view"
   | "filtered"
   | "loaded"
@@ -45,7 +40,7 @@ export interface DataTableFilteredExportContext<TData> {
   sheetName: string
 }
 
-interface DataTableExportMenuProps<TData> {
+export interface DataTableExportMenuProps<TData> {
   table: Table<TData>
   manualFiltering?: boolean
   filename?: string
@@ -59,10 +54,10 @@ interface DataTableExportMenuProps<TData> {
   onExportError?: (error: Error) => void
 }
 
-interface ExportValueContext {
-  columnId: string
-  rowId: string
-}
+export type DataTableExportConfig<TData> = Omit<
+  DataTableExportMenuProps<TData>,
+  "table" | "manualFiltering"
+>
 
 interface ExportOptionState<TData> {
   option: DataTableExportOption
@@ -96,8 +91,10 @@ const exportOptions = [
   },
 ] as const satisfies readonly DataTableExportOption[]
 
-const INVALID_FILENAME_CHARACTERS = /[<>:"/\\|?*\u0000-\u001F]/g
-const INVALID_SHEET_NAME_CHARACTERS = /[\u0000-\u001F[\]:*?/\\]/g
+const INVALID_FILENAME_CHARACTERS = /[<>:"/\\|?*\u0000-\u001F]/gu
+const INVALID_SHEET_NAME_CHARACTERS = /[\u0000-\u001F[\]:*?/\\]/gu
+const INVALID_XML_CHARACTERS = /[\u0000-\u0008\u000B\u000C\u000E-\u001F\uFFFE\uFFFF]/gu
+const MAX_EXCEL_CELL_CHARACTERS = 32_767
 
 class DataTableExportError extends Error {
   constructor(message: string) {
@@ -107,108 +104,86 @@ class DataTableExportError extends Error {
 }
 
 function toError(error: unknown): Error {
-  if (error instanceof Error) {
-    return error
-  }
-
-  return new DataTableExportError(
-    "Ocorreu um erro desconhecido durante a exportação."
-  )
+  return error instanceof Error
+    ? error
+    : new DataTableExportError(
+        "Ocorreu um erro desconhecido durante a exportação."
+      )
 }
 
 function normalizeFilename(filename: string): string {
-  const normalizedFilename = filename
-    .replace(INVALID_FILENAME_CHARACTERS, "-")
-    .replace(/\s+/g, " ")
-    .trim()
-
-  return normalizedFilename || "tabela"
+  return (
+    filename
+      .replace(INVALID_FILENAME_CHARACTERS, "-")
+      .replace(/\s+/gu, " ")
+      .trim() || "tabela"
+  )
 }
 
 function normalizeSheetName(sheetName: string): string {
-  const normalizedSheetName = sheetName
-    .replace(INVALID_SHEET_NAME_CHARACTERS, " ")
-    .replace(/\s+/g, " ")
-    .trim()
-    .slice(0, 31)
+  return (
+    sheetName
+      .replace(INVALID_SHEET_NAME_CHARACTERS, " ")
+      .replace(/\s+/gu, " ")
+      .trim()
+      .slice(0, 31) || "Dados"
+  )
+}
 
-  return normalizedSheetName || "Dados"
+function normalizeExportText(value: string): string | null {
+  const sanitized = value.replace(INVALID_XML_CHARACTERS, "")
+  if (!sanitized.trim()) return null
+  return sanitized.slice(0, MAX_EXCEL_CELL_CHARACTERS)
 }
 
 function humanizeColumnId(columnId: string): string {
   return columnId
-    .replace(/([a-z0-9])([A-Z])/g, "$1 $2")
-    .replace(/[-_]+/g, " ")
-    .replace(/\s+/g, " ")
+    .replace(/([a-z0-9])([A-Z])/gu, "$1 $2")
+    .replace(/[-_]+/gu, " ")
+    .replace(/\s+/gu, " ")
     .trim()
 }
 
 function getValueType(value: unknown): string {
-  if (Array.isArray(value)) {
-    return "array"
-  }
-
-  if (value instanceof Date) {
-    return "Date"
-  }
-
-  if (value === null) {
-    return "null"
-  }
-
+  if (Array.isArray(value)) return "array"
+  if (value instanceof Date) return "Date"
+  if (value === null) return "null"
   return typeof value
 }
 
 function normalizeExportCellValue(
   value: unknown,
-  context: ExportValueContext
+  context: { columnId: string; rowId: string }
 ): XlsxCellValue {
-  if (value === null || value === undefined) {
-    return null
-  }
-
-  if (typeof value === "string") {
-    return value.trim().length > 0 ? value : null
-  }
-
+  if (value === null || value === undefined) return null
+  if (typeof value === "string") return normalizeExportText(value)
   if (typeof value === "number") {
     if (!Number.isFinite(value)) {
       throw new DataTableExportError(
         `A coluna "${context.columnId}" contém um número não finito na linha "${context.rowId}".`
       )
     }
-
     return value
   }
-
-  if (typeof value === "boolean") {
-    return value
-  }
-
-  if (typeof value === "bigint") {
-    return value.toString()
-  }
-
+  if (typeof value === "boolean") return value
+  if (typeof value === "bigint") return value.toString()
   if (value instanceof Date) {
     if (!Number.isFinite(value.getTime())) {
       throw new DataTableExportError(
         `A coluna "${context.columnId}" contém uma data inválida na linha "${context.rowId}".`
       )
     }
-
     return value.toISOString()
   }
-
   if (Array.isArray(value)) {
-    const normalizedItems = value
+    const items = value
       .map((item) => normalizeExportCellValue(item, context))
       .filter(
         (item): item is Exclude<XlsxCellValue, null | undefined> =>
           item !== null && item !== undefined
       )
       .map(String)
-
-    return normalizedItems.length > 0 ? normalizedItems.join(", ") : null
+    return items.length ? normalizeExportText(items.join(", ")) : null
   }
 
   throw new DataTableExportError(
@@ -220,18 +195,13 @@ function getExportColumnHeader<TData>(
   column: Column<TData, unknown>
 ): string {
   const label = column.columnDef.meta?.label
-
-  if (typeof label === "string" && label.trim().length > 0) {
-    return label.trim()
-  }
-
+  if (typeof label === "string" && label.trim()) return label.trim()
   if (
     typeof column.columnDef.header === "string" &&
-    column.columnDef.header.trim().length > 0
+    column.columnDef.header.trim()
   ) {
     return column.columnDef.header.trim()
   }
-
   return humanizeColumnId(column.id)
 }
 
@@ -240,17 +210,6 @@ function hasExportAccessor<TData>(column: Column<TData, unknown>): boolean {
     typeof column.accessorFn === "function" ||
     typeof column.columnDef.meta?.exportValue === "function"
   )
-}
-
-function isColumnEnabledForExport<TData>(
-  column: Column<TData, unknown>,
-  policy: DataTableColumnExportPolicy
-): boolean {
-  const enableExport = column.columnDef.meta?.enableExport
-
-  return policy === "opt-in"
-    ? enableExport === true
-    : enableExport !== false
 }
 
 function getExportColumns<TData>({
@@ -270,30 +229,24 @@ function getExportColumns<TData>({
       : table.getAllLeafColumns()
 
   return columns.filter((column) => {
-    if (!isColumnEnabledForExport(column, policy)) {
-      return false
-    }
-
-    if (!hasExportAccessor(column)) {
-      return false
-    }
-
-    return canExportColumn ? canExportColumn(column) : true
+    const enabled =
+      policy === "opt-in"
+        ? column.columnDef.meta?.enableExport === true
+        : column.columnDef.meta?.enableExport !== false
+    return (
+      enabled &&
+      hasExportAccessor(column) &&
+      (canExportColumn ? canExportColumn(column) : true)
+    )
   })
 }
 
 function getExportRows<TData>(
   table: Table<TData>,
-  rowScope: ExportRowScope
+  scope: ExportRowScope
 ): readonly Row<TData>[] {
-  if (rowScope === "current") {
-    return table.getRowModel().rows
-  }
-
-  if (rowScope === "filtered") {
-    return table.getPrePaginationRowModel().rows
-  }
-
+  if (scope === "current") return table.getRowModel().rows
+  if (scope === "filtered") return table.getPrePaginationRowModel().rows
   return table.getCoreRowModel().rows
 }
 
@@ -301,33 +254,17 @@ function resolveExportCellValue<TData>(
   column: Column<TData, unknown>,
   row: Row<TData>
 ): XlsxCellValue {
-  const exportValue = column.columnDef.meta?.exportValue
   const rawValue =
     typeof column.accessorFn === "function"
       ? row.getValue(column.id)
       : undefined
-  const resolvedValue = exportValue
-    ? exportValue(rawValue, row.original)
+  const resolvedValue = column.columnDef.meta?.exportValue
+    ? column.columnDef.meta.exportValue(rawValue, row.original)
     : rawValue
 
   return normalizeExportCellValue(resolvedValue, {
     columnId: column.id,
     rowId: row.id,
-  })
-}
-
-function createNormalizedExportRows<TData>(
-  rows: readonly Row<TData>[],
-  columns: readonly Column<TData, unknown>[]
-): Array<Record<string, XlsxCellValue>> {
-  return rows.map((row) => {
-    const exportRow: Record<string, XlsxCellValue> = {}
-
-    for (const column of columns) {
-      exportRow[column.id] = resolveExportCellValue(column, row)
-    }
-
-    return exportRow
   })
 }
 
@@ -342,19 +279,24 @@ function exportLocalTableRows<TData>({
   filename: string
   sheetName: string
 }): Blob {
-  if (columns.length === 0) {
+  if (!columns.length) {
     throw new DataTableExportError(
       "Nenhuma coluna exportável está disponível."
     )
   }
-
-  if (rows.length === 0) {
+  if (!rows.length) {
     throw new DataTableExportError(
       "Nenhuma linha está disponível para exportação."
     )
   }
 
-  const normalizedRows = createNormalizedExportRows(rows, columns)
+  const normalizedRows = rows.map((row) => {
+    const exportRow: Record<string, XlsxCellValue> = {}
+    for (const column of columns) {
+      exportRow[column.id] = resolveExportCellValue(column, row)
+    }
+    return exportRow
+  })
 
   return exportRowsToXlsx({
     filename,
@@ -378,19 +320,15 @@ function getAvailableExportOptions({
   hasRemoteFilteredExport: boolean
 }): readonly DataTableExportOption[] {
   if (usesManualPagination) {
-    return exportOptions.filter((option) => {
-      if (option.rowScope === "current") {
-        return true
-      }
-
-      return option.rowScope === "filtered" && hasRemoteFilteredExport
-    })
+    return exportOptions.filter(
+      (option) =>
+        option.rowScope === "current" ||
+        (option.rowScope === "filtered" && hasRemoteFilteredExport)
+    )
   }
-
   if (usesManualFiltering) {
     return exportOptions.filter((option) => option.rowScope !== "loaded")
   }
-
   return exportOptions
 }
 
@@ -405,7 +343,7 @@ export function DataTableExportMenu<TData>({
   onExportSuccess,
   onExportError,
 }: DataTableExportMenuProps<TData>) {
-  const [activeExportOptionId, setActiveExportOptionId] =
+  const [activeOptionId, setActiveOptionId] =
     React.useState<DataTableExportOptionId | null>(null)
   const exportInProgressRef = React.useRef(false)
   const usesManualFiltering =
@@ -413,13 +351,13 @@ export function DataTableExportMenu<TData>({
   const usesManualPagination = table.options.manualPagination === true
   const normalizedFilename = normalizeFilename(filename)
   const normalizedSheetName = normalizeSheetName(sheetName)
-  const availableOptions = getAvailableExportOptions({
+  const options = getAvailableExportOptions({
     usesManualFiltering,
     usesManualPagination,
     hasRemoteFilteredExport: typeof onExportFilteredRows === "function",
   })
-  const optionStates: readonly ExportOptionState<TData>[] =
-    availableOptions.map((option) => {
+  const optionStates: readonly ExportOptionState<TData>[] = options.map(
+    (option) => {
       const columns = getExportColumns({
         table,
         scope: option.columnScope,
@@ -431,7 +369,6 @@ export function DataTableExportMenu<TData>({
       const hasRows = isRemote
         ? true
         : getExportRows(table, option.rowScope).length > 0
-
       return {
         option,
         columns,
@@ -439,55 +376,45 @@ export function DataTableExportMenu<TData>({
         isRemote,
         canExport: columns.length > 0 && hasRows,
       }
-    })
-  const isExporting = activeExportOptionId !== null
-  const hasAvailableExport = optionStates.some(
-    (optionState) => optionState.canExport
-  )
-
-  async function handleExport(optionState: ExportOptionState<TData>) {
-    if (exportInProgressRef.current || !optionState.canExport) {
-      return
     }
+  )
+  const isExporting = activeOptionId !== null
+  const hasAvailableExport = optionStates.some((state) => state.canExport)
+
+  async function handleExport(state: ExportOptionState<TData>) {
+    if (exportInProgressRef.current || !state.canExport) return
 
     exportInProgressRef.current = true
-    setActiveExportOptionId(optionState.option.id)
-
+    setActiveOptionId(state.option.id)
     try {
-      if (optionState.isRemote) {
+      if (state.isRemote) {
         if (!onExportFilteredRows) {
           throw new DataTableExportError(
             "A exportação remota dos resultados filtrados não foi configurada."
           )
         }
-
         await onExportFilteredRows({
           table,
-          columns: optionState.columns,
+          columns: state.columns,
           filename: normalizedFilename,
           sheetName: normalizedSheetName,
         })
       } else {
         exportLocalTableRows({
-          rows: getExportRows(table, optionState.option.rowScope),
-          columns: optionState.columns,
+          rows: getExportRows(table, state.option.rowScope),
+          columns: state.columns,
           filename: normalizedFilename,
           sheetName: normalizedSheetName,
         })
       }
-
-      onExportSuccess?.(optionState.option.id)
+      onExportSuccess?.(state.option.id)
     } catch (error) {
       const resolvedError = toError(error)
-
-      if (onExportError) {
-        onExportError(resolvedError)
-      } else {
-        notify.error(resolvedError.message)
-      }
+      if (onExportError) onExportError(resolvedError)
+      else notify.error(resolvedError.message)
     } finally {
       exportInProgressRef.current = false
-      setActiveExportOptionId(null)
+      setActiveOptionId(null)
     }
   }
 
@@ -507,6 +434,8 @@ export function DataTableExportMenu<TData>({
           {isExporting ? (
             <Spinner
               data-icon="inline-start"
+              role={undefined}
+              aria-label={undefined}
               aria-hidden="true"
               focusable="false"
             />
@@ -527,17 +456,13 @@ export function DataTableExportMenu<TData>({
         align="end"
         className="w-72"
       >
-        <DropdownMenuLabel>
-          {dataTableCopy.exportMenu.title}
-        </DropdownMenuLabel>
+        <DropdownMenuLabel>{dataTableCopy.exportMenu.title}</DropdownMenuLabel>
         <DropdownMenuSeparator />
-        {optionStates.map((optionState) => (
+        {optionStates.map((state) => (
           <DropdownMenuItem
-            key={optionState.option.id}
-            disabled={!optionState.canExport || isExporting}
-            onSelect={() => {
-              void handleExport(optionState)
-            }}
+            key={state.option.id}
+            disabled={!state.canExport || isExporting}
+            onSelect={() => void handleExport(state)}
             className="items-start gap-2 py-2"
           >
             <DownloadIcon
@@ -546,11 +471,9 @@ export function DataTableExportMenu<TData>({
               className="mt-0.5 size-4 shrink-0"
             />
             <span className="grid min-w-0 gap-0.5">
-              <span className="font-medium">
-                {optionState.option.label}
-              </span>
+              <span className="font-medium">{state.option.label}</span>
               <span className="text-xs text-muted-foreground">
-                {optionState.option.description}
+                {state.option.description}
               </span>
             </span>
           </DropdownMenuItem>

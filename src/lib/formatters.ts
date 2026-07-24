@@ -1,7 +1,5 @@
-import { normalizeOptionalText } from "./normalize"
-
 export function formatNullableText(value: string | null | undefined) {
-  const normalized = normalizeOptionalText(value)
+  const normalized = value?.trim()
 
   return normalized ? normalized : "-"
 }

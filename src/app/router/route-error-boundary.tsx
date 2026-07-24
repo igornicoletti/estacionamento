@@ -1,121 +1,88 @@
+import { AlertTriangleIcon } from "lucide-react"
 import {
-  AlertCircleIcon,
-  AlertTriangleIcon,
-  ArrowUpRightIcon,
-  FileQuestionIcon,
-  LockKeyholeIcon,
-  RotateCcwIcon,
-  ServerCrashIcon,
-  ShieldAlertIcon,
-} from "lucide-react"
-import type { ReactNode } from "react"
-import * as React from "react"
-import {
+  Link,
   isRouteErrorResponse,
   useRouteError,
 } from "react-router"
 
-import { appRoutePaths } from "@/app/router/route-registry"
-import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { Button } from "@/components/ui/button"
-import { appCopy } from "../constants/app-copy"
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty"
+import { useAuthSession } from "@/features/auth/hooks"
+
+import { getAuthProfileRole } from "./route-auth-utils"
+import { getDefaultRouteHrefForRole } from "./route-home-utils"
 
 type RouteErrorContent = {
-  media: ReactNode
   title: string
   description: string
 }
 
-const routeErrorMediaByStatus: Record<number, ReactNode> = {
-  400: <AlertCircleIcon aria-hidden="true" />,
-  401: <LockKeyholeIcon aria-hidden="true" />,
-  403: <ShieldAlertIcon aria-hidden="true" />,
-  404: <FileQuestionIcon aria-hidden="true" />,
-  500: <ServerCrashIcon aria-hidden="true" />,
-}
-
 function getRouteErrorContent(error: unknown): RouteErrorContent {
   if (isRouteErrorResponse(error)) {
-    const copy = appCopy.routeError.byStatus[
-      error.status as keyof typeof appCopy.routeError.byStatus
-    ]
+    const statusText = error.statusText || "Erro de rota"
+    const data =
+      typeof error.data === "string" && error.data.trim()
+        ? error.data
+        : "Não foi possível concluir a navegação solicitada."
 
     return {
-      media: routeErrorMediaByStatus[error.status] ?? (
-        <AlertTriangleIcon aria-hidden="true" />
-      ),
-      title: copy?.title ?? `${error.status} — ${error.statusText || appCopy.routeError.fallbackStatusText}`,
-      description: copy?.description ?? appCopy.routeError.unexpected.description,
+      title: `${error.status} - ${statusText}`,
+      description: data,
+    }
+  }
+
+  if (error instanceof Error) {
+    return {
+      title: "Erro inesperado",
+      description:
+        "A aplicação encontrou um erro ao renderizar esta rota. Tente novamente ou retorne para a página inicial.",
     }
   }
 
   return {
-    media: <AlertTriangleIcon aria-hidden="true" />,
-    title: appCopy.routeError.unexpected.title,
-    description: appCopy.routeError.unexpected.description,
+    title: "Erro desconhecido",
+    description:
+      "A aplicação recebeu uma falha inesperada e não conseguiu renderizar esta rota.",
   }
-}
-
-function createRouteErrorId() {
-  if (typeof crypto !== "undefined" && "randomUUID" in crypto) {
-    return crypto.randomUUID()
-  }
-
-  return `route-error-${Date.now().toString(36)}`
-}
-
-function getRouteErrorStatus(error: unknown) {
-  return isRouteErrorResponse(error) ? error.status : "unexpected"
 }
 
 export function RouteErrorBoundary() {
   const error = useRouteError()
-  const errorId = React.useMemo(() => createRouteErrorId(), [])
-  const { media, title, description } = getRouteErrorContent(error)
+  const { profile } = useAuthSession()
+  const { title, description } = getRouteErrorContent(error)
+  const homeHref = getDefaultRouteHrefForRole(
+    getAuthProfileRole(profile)
+  )
 
-  React.useEffect(() => {
-    const status = getRouteErrorStatus(error)
-
-    if (import.meta.env.DEV) {
-      console.error(`[route-error:${errorId}]`, error)
-      return
-    }
-
-    console.error("[route-error]", { errorId, status })
-  }, [error, errorId])
+  if (import.meta.env.DEV) {
+    console.error(error)
+  }
 
   return (
-    <section
-      role="alert"
-      className="flex min-h-64 flex-1 items-center justify-center bg-background p-6 text-foreground"
-    >
-      <AppEmptyState
-        className="mx-auto max-w-xl"
-        media={media}
-        title={title}
-        description={`${description} ${appCopy.routeError.errorIdPrefix}: ${errorId}.`}
-        actions={
-          <div className="flex flex-wrap justify-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              onClick={() => {
-                window.location.reload()
-              }}
-            >
-              <RotateCcwIcon aria-hidden="true" />
-              {appCopy.routeError.retry}
-            </Button>
-            <Button asChild variant="link" size="lg">
-              <a href={appRoutePaths.home}>
-                {appCopy.routeError.action}
-                <ArrowUpRightIcon aria-hidden="true" />
-              </a>
-            </Button>
-          </div>
-        }
-      />
-    </section>
+    <main className="grid min-h-full place-items-center p-6">
+      <Empty>
+        <EmptyHeader>
+          <EmptyMedia variant="icon">
+            <AlertTriangleIcon />
+          </EmptyMedia>
+          <EmptyTitle>{title}</EmptyTitle>
+          <EmptyDescription>{description}</EmptyDescription>
+        </EmptyHeader>
+        <EmptyContent>
+          <Button asChild variant="link">
+            <Link to={homeHref} replace>
+              Voltar para o início
+            </Link>
+          </Button>
+        </EmptyContent>
+      </Empty>
+    </main>
   )
 }

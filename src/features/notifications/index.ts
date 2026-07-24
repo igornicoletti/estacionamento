@@ -1,49 +1,17 @@
-export {
-  NotificationTypeIcon,
-  NotificationsEmptyState,
-} from "./components"
-export {
-  notificationStatusLabels,
-  notificationsCopy,
-  notificationTypeLabels,
-} from "./constants"
-export {
-  NotificationsProvider,
-  useNotifications,
-  type NotificationsContextValue,
-} from "./context"
-export { useNotificationsTableFilters } from "./hooks"
-export {
-  formatNotificationsCounter,
-  getNotificationDetailItems,
-  getRecentUnreadNotifications,
-  getUnreadNotifications,
-  getUnreadNotificationsCount,
-  isInternalNotificationHref,
-  isUnreadNotification,
-  notificationStatusValues,
-  notificationTypeValues,
-  resolveNotificationDetailsDescription,
-  resolveNotificationDetailsTitle,
-  type NotificationRecord,
-  type NotificationsGateway,
-  type NotificationStatus,
-  type NotificationType,
-  type SetNotificationsStatusBatchResult,
-} from "./model"
-export { NotificationsRoute } from "./routes"
+export { NotificationsRoute } from "./routes/notifications-route"
+export { useNotifications } from "./hooks/use-notifications"
 export {
   countUnreadNotifications,
   listNotifications,
-  markAllNotificationsAsRead,
-  resetNotificationsGateway,
   setNotificationStatus,
-  setNotificationsGateway,
-  setNotificationsStatus,
   subscribeNotifications,
-} from "./services"
+} from "./services/notifications-service"
 export {
-  createNotificationsColumns,
-  createNotificationStatusOptions,
-  createNotificationTypeOptions,
-} from "./table"
+  notificationStatusLabels,
+  notificationStatusValues,
+  notificationTypeLabels,
+  notificationTypeValues,
+  type NotificationRecord,
+  type NotificationStatus,
+  type NotificationType,
+} from "./types/notifications-types"

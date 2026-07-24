@@ -1,276 +1,540 @@
-import { DatabaseIcon, PlusIcon, ShieldAlertIcon } from "lucide-react"
+import { zodResolver } from "@hookform/resolvers/zod"
+import {
+  PlusIcon,
+  SearchIcon,
+} from "lucide-react"
 import * as React from "react"
-import { useSearchParams } from "react-router"
+import { Controller, useForm } from "react-hook-form"
 
-import { DataTable, type DataTableStateAction } from "@/components/data-table"
-import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
-import { AppTabs } from "@/components/shared"
-import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
-import { AppEmptyState } from "@/components/shared/app-empty-state"
+import {
+  appUserStatusLabels,
+  AuthCpfField,
+  AuthPasswordField,
+  isGlobalRole,
+  userRoleLabels,
+  userRoleValues,
+} from "@/features/auth"
+import {
+  formatPhone,
+  onlyDigits,
+} from "@/lib"
+
+import {
+  createDataTableFilterOptions,
+  DataTable,
+} from "@/components/data-table"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
-import { shouldBypassAuthInDev } from "@/config"
-import { AccessRequestsPanel, accessRequestsCopy } from "@/features/access-requests"
-import { AUTH_PERMISSION, AUTH_ROLE_KEY, useAuth } from "@/features/auth"
-import { useUnits } from "@/features/units"
-import { getSupabaseBrowserClient } from "@/lib"
+import {
+  Combobox,
+  ComboboxCollection,
+  ComboboxContent,
+  ComboboxEmpty,
+  ComboboxInput,
+  ComboboxItem,
+  ComboboxList,
+} from "@/components/ui/combobox"
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import {
+  Field,
+  FieldError,
+  FieldGroup,
+  FieldLabel,
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { InputGroupAddon } from "@/components/ui/input-group"
+import { DestructiveConfirmDialog } from "@/components/ui/destructive-confirm-dialog"
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select"
 
+import { createUsersColumns } from "../columns/users-columns"
+import { useUsers } from "../hooks/use-users"
 import {
-  UserDetailsSheet,
-  UserFormDialog,
-  type UserFormUnitOption,
-} from "../components"
-import {
-  ACCESS_REQUESTS_TAB_VALUE,
-  USERS_TABLE_COLUMN_VISIBILITY_KEY,
-  USERS_TAB_VALUE,
-  usersCopy,
-} from "../constants"
-import { useUsers } from "../hooks"
-import {
-  interpolateUserCopy,
-  userRoleValues,
-  type UserRecord,
+  usersFormSchema,
   type UsersFormValues,
-} from "../model"
-import {
-  createUserOnlineFilterOptions,
-  createUserRoleFilterOptions,
-  createUserStatusFilterOptions,
-  createUserUnitFilterOptions,
-  createUsersColumns,
-} from "../table"
+} from "../schemas/users-form-schema"
+import { type UserRecord } from "../types/users-types"
+
+const availableUnitOptions = [
+  "Centro",
+  "Zona Sul",
+  "Zona Norte",
+  "Leste",
+  "Oeste",
+] as const
+
+function createDefaultFormValues(): UsersFormValues {
+  return {
+    cpf: "",
+    email: "",
+    firstAccessPassword: "",
+    id: undefined,
+    mode: "create",
+    name: "",
+    phone: "",
+    role: "operator",
+    unitName: "",
+  }
+}
+
+function mapUserToFormValues(user: UserRecord): UsersFormValues {
+  return {
+    cpf: user.cpf,
+    email: user.email || "",
+    firstAccessPassword: "",
+    id: user.id,
+    mode: "edit",
+    name: user.name,
+    phone: user.phoneMasked || "",
+    role: user.role,
+    unitName: user.unitName || "",
+  }
+}
+
+function getPasswordDescription() {
+  return "A senha de primeiro acesso é utilizada apenas na primeira vez que o usuário acessar o sistema. Após o primeiro acesso, o usuário será solicitado a criar uma nova senha."
+}
 
 export function UsersRoute() {
-  const auth = useAuth()
-  const [searchParams] = useSearchParams()
-  const remoteMode = Boolean(getSupabaseBrowserClient()) && !shouldBypassAuthInDev()
-  const canReadUsers = auth.access.hasPermission(AUTH_PERMISSION.usersRead)
-  const canManageUsers = auth.access.hasPermission(AUTH_PERMISSION.usersManage)
-  const canExportUsers = canReadUsers
-  const canReadAccessRequests = auth.access.hasPermission(AUTH_PERMISSION.accessRequestsRead)
-  const canReviewAccessRequests = auth.access.hasPermission(AUTH_PERMISSION.accessRequestsReview)
-  const canAssignOwnerRole =
-    auth.profile?.role?.key === AUTH_ROLE_KEY.owner ||
-    auth.access.hasPermission(AUTH_PERMISSION.all)
-  const usersSnapshot = useUsers({ enabled: canReadUsers })
-  const unitsSnapshot = useUnits()
+  const {
+    data,
+    error,
+    isLoading,
+    isSaving,
+    addUser,
+    editUser,
+    inactivateUser,
+    refetch,
+    resetAccess,
+  } = useUsers()
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [editingUser, setEditingUser] = React.useState<UserRecord | null>(null)
-  const [detailsUser, setDetailsUser] = React.useState<UserRecord | null>(null)
-  const [pendingAction, setPendingAction] = React.useState<{
-    type: "block" | "reset" | "resetPasskey" | "clearLock" | "revokeSessions"
-    user: UserRecord
-  } | null>(null)
-  const assignableRoleValues = React.useMemo(
-    () =>
-      canAssignOwnerRole
-        ? userRoleValues
-        : userRoleValues.filter((role) => role !== AUTH_ROLE_KEY.owner),
-    [canAssignOwnerRole]
-  )
+  const [blockingUser, setBlockingUser] = React.useState<UserRecord | null>(null)
 
-  const visibleUsers = React.useMemo(
-    () => usersSnapshot.data.filter((user) => canAssignOwnerRole || user.role !== AUTH_ROLE_KEY.owner),
-    [canAssignOwnerRole, usersSnapshot.data]
-  )
+  const form = useForm<UsersFormValues>({
+    resolver: zodResolver(usersFormSchema),
+    mode: "onSubmit",
+    defaultValues: createDefaultFormValues(),
+  })
 
-  const defaultUsersTab = searchParams.get("tab") === ACCESS_REQUESTS_TAB_VALUE
-    ? ACCESS_REQUESTS_TAB_VALUE
-    : USERS_TAB_VALUE
-
-  const unitOptions = React.useMemo<UserFormUnitOption[]>(() => {
-    return unitsSnapshot.data.map((unit) => ({
-      label: unit.nom_fantasia,
-      value: String(unit.cod_empresa),
-    }))
-  }, [unitsSnapshot.data])
+  const isEditMode = editingUser !== null
+  const selectedRole = form.watch("role")
+  const isGlobalScopeRole = isGlobalRole(selectedRole)
 
   const roleOptions = React.useMemo(
-    () => createUserRoleFilterOptions(visibleUsers),
-    [visibleUsers]
+    () =>
+      createDataTableFilterOptions(
+        data,
+        (user) => user.role,
+        (user) => userRoleLabels[user.role]
+      ),
+    [data]
   )
+
   const statusOptions = React.useMemo(
-    () => createUserStatusFilterOptions(visibleUsers),
-    [visibleUsers]
+    () =>
+      createDataTableFilterOptions(
+        data,
+        (user) => user.status,
+        (user) => appUserStatusLabels[user.status]
+      ),
+    [data]
   )
-  const unitFilterOptions = React.useMemo(
-    () => createUserUnitFilterOptions(visibleUsers),
-    [visibleUsers]
-  )
-  const onlineFilterOptions = React.useMemo(
-    () => createUserOnlineFilterOptions(visibleUsers),
-    [visibleUsers]
-  )
+
+  const unitOptions = React.useMemo(() => {
+    const dynamicUnits = data
+      .map((user) => user.unitName)
+      .filter((unitName): unitName is string => Boolean(unitName))
+
+    return Array.from(new Set([...availableUnitOptions, ...dynamicUnits]))
+  }, [data])
+
+  const handleDialogOpenChange = React.useCallback((open: boolean) => {
+    setIsDialogOpen(open)
+
+    if (!open) {
+      setEditingUser(null)
+      form.reset(createDefaultFormValues())
+    }
+  }, [form])
 
   const handleOpenCreateDialog = React.useCallback(() => {
     setEditingUser(null)
+    form.reset(createDefaultFormValues())
     setIsDialogOpen(true)
-  }, [])
+  }, [form])
 
   const handleOpenEditDialog = React.useCallback((user: UserRecord) => {
     setEditingUser(user)
+    form.reset(mapUserToFormValues(user))
     setIsDialogOpen(true)
-  }, [])
+  }, [form])
 
-  async function refreshAuthProfileWhenCurrentUser(user: UserRecord) {
-    if (user.authUserId && user.authUserId === auth.profile?.authUserId) {
-      auth.actions.applyProfilePatch({
-        email: user.email,
-        name: user.name,
-        phoneMasked: user.phoneMasked ?? undefined,
-      })
-      await auth.actions.refreshProfile()
-    }
-  }
+  const handleBlockUser = React.useCallback((user: UserRecord) => {
+    void notify.promise(inactivateUser(user.id), {
+      loading: "Bloqueando usuário...",
+      success: "Usuário bloqueado.",
+      error: (caughtError) =>
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Não foi possível bloquear o usuário.",
+    })
+  }, [inactivateUser])
 
-  async function handleFormSubmit(values: UsersFormValues) {
-    if (values.mode === "edit" && values.id) {
-      const updatedUser = await notify.track(
-        usersSnapshot.editUser({
-          cpf: values.cpf,
-          email: values.email,
-          firstAccessPassword: values.firstAccessPassword,
-          id: values.id,
-          name: values.name,
-          phone: values.phone,
-          role: values.role,
-          unitId: values.unitId,
-          unitName: values.unitName,
-        }),
-        usersCopy.feedback.update
-      )
-      await refreshAuthProfileWhenCurrentUser(updatedUser)
-      return
-    }
-
-    await notify.track(
-      usersSnapshot.addUser({
-        cpf: values.cpf,
-        email: values.email,
-        firstAccessPassword: values.firstAccessPassword,
-        name: values.name,
-        phone: values.phone,
-        role: values.role,
-        unitId: values.unitId,
-        unitName: values.unitName,
-      }),
-      usersCopy.feedback.create
-    )
-  }
-
-  const pendingActionConfig = React.useMemo(() => {
-    if (!pendingAction) {
-      return null
-    }
-
-    const userName = { name: pendingAction.user.name }
-
-    if (pendingAction.type === "block") {
-      return {
-        actionLabel: usersCopy.actions.continue,
-        description: interpolateUserCopy(usersCopy.dialogs.blockDescription, userName),
-        feedback: usersCopy.feedback.block,
-        onAction: () => usersSnapshot.inactivateUser(pendingAction.user.id),
-        title: usersCopy.dialogs.blockTitle,
-      }
-    }
-
-    if (pendingAction.type === "reset") {
-      return {
-        actionLabel: usersCopy.actions.continue,
-        description: interpolateUserCopy(usersCopy.dialogs.resetDescription, userName),
-        feedback: usersCopy.feedback.reset,
-        onAction: () => usersSnapshot.resetAccess(pendingAction.user.id),
-        title: usersCopy.dialogs.resetTitle,
-      }
-    }
-
-    if (pendingAction.type === "resetPasskey") {
-      return {
-        actionLabel: usersCopy.actions.continue,
-        description: interpolateUserCopy(usersCopy.dialogs.resetPasskeyDescription, userName),
-        feedback: usersCopy.feedback.resetPasskey,
-        onAction: () => usersSnapshot.resetPasskey(pendingAction.user.id),
-        title: usersCopy.dialogs.resetPasskeyTitle,
-      }
-    }
-
-    if (pendingAction.type === "clearLock") {
-      const isBlocked = pendingAction.user.status === "inactive"
-
-      return {
-        actionLabel: usersCopy.actions.continue,
-        description: interpolateUserCopy(
-          isBlocked
-            ? usersCopy.dialogs.unblockDescription
-            : usersCopy.dialogs.clearLockDescription,
-          userName
-        ),
-        feedback: usersCopy.feedback.clearLock,
-        onAction: () => usersSnapshot.clearLock(pendingAction.user.id),
-        title: isBlocked ? usersCopy.dialogs.unblockTitle : usersCopy.dialogs.clearLockTitle,
-      }
-    }
-
-    return {
-      actionLabel: usersCopy.actions.continue,
-      description: interpolateUserCopy(usersCopy.dialogs.revokeSessionsDescription, userName),
-      feedback: usersCopy.feedback.revokeSessions,
-      onAction: () => usersSnapshot.revokeSessions(pendingAction.user.id),
-      title: usersCopy.dialogs.revokeSessionsTitle,
-    }
-  }, [pendingAction, usersSnapshot])
+  const handleResetAccess = React.useCallback((user: UserRecord) => {
+    void notify.promise(resetAccess(user.id), {
+      loading: "Resetando autenticação...",
+      success: "Autenticação resetada.",
+      error: (caughtError) =>
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Não foi possível resetar a autenticação.",
+    })
+  }, [resetAccess])
 
   const columns = React.useMemo(
     () =>
       createUsersColumns({
-        canBlockUser: canManageUsers,
-        canClearLock: canManageUsers,
-        canEditUser: canManageUsers,
-        canManageOwnerUser: canAssignOwnerRole,
-        canResetPasskey: canManageUsers,
-        canResetPassword: canManageUsers,
-        canRevokeSessions: canManageUsers,
-        currentAuthUserId: auth.profile?.authUserId ?? null,
-        onBlockUser: (user) => setPendingAction({ type: "block", user }),
-        onClearLock: (user) => setPendingAction({ type: "clearLock", user }),
+        onBlockUser: (user) => {
+          setBlockingUser(user)
+        },
         onEditUser: handleOpenEditDialog,
-        onResetAccess: (user) => setPendingAction({ type: "reset", user }),
-        onResetPasskey: (user) => setPendingAction({ type: "resetPasskey", user }),
-        onRevokeSessions: (user) => setPendingAction({ type: "revokeSessions", user }),
-        onViewUserDetails: setDetailsUser,
-        remoteMode,
+        onResetAccess: handleResetAccess,
       }),
-    [
-      auth.profile?.authUserId,
-      canAssignOwnerRole,
-      canManageUsers,
-      handleOpenEditDialog,
-      remoteMode,
-    ]
+    [handleOpenEditDialog, handleResetAccess]
   )
 
-  const emptyAction = React.useMemo<DataTableStateAction | undefined>(() => {
-    if (!canManageUsers) {
-      return undefined
+  async function handleSubmit(values: UsersFormValues) {
+    const parseResult = usersFormSchema.safeParse(values)
+
+    if (!parseResult.success) {
+      parseResult.error.issues.forEach((issue) => {
+        const fieldName = issue.path[0]
+
+        if (typeof fieldName === "string") {
+          form.setError(fieldName as keyof UsersFormValues, {
+            message: issue.message,
+            type: "validate",
+          })
+        }
+      })
+
+      return
     }
 
-    return {
-      icon: <PlusIcon aria-hidden="true" />,
-      label: usersCopy.table.emptyAction,
-      onClick: handleOpenCreateDialog,
-    }
-  }, [canManageUsers, handleOpenCreateDialog])
+    try {
+      if (parseResult.data.mode === "edit" && parseResult.data.id) {
+        await editUser({
+          cpf: parseResult.data.cpf,
+          email: parseResult.data.email,
+          firstAccessPassword: parseResult.data.firstAccessPassword,
+          id: parseResult.data.id,
+          name: parseResult.data.name,
+          phone: parseResult.data.phone,
+          role: parseResult.data.role,
+          unitName: parseResult.data.unitName,
+        })
 
-  const usersTable = (
-    <div className="min-w-0 w-full max-w-full overflow-x-hidden">
+        notify.success("Usuário atualizado.")
+      } else {
+        await addUser({
+          cpf: parseResult.data.cpf,
+          email: parseResult.data.email,
+          firstAccessPassword: parseResult.data.firstAccessPassword,
+          name: parseResult.data.name,
+          phone: parseResult.data.phone,
+          role: parseResult.data.role,
+          unitName: parseResult.data.unitName,
+        })
+
+        notify.success("Usuário cadastrado.")
+      }
+
+      handleDialogOpenChange(false)
+    } catch (caughtError) {
+      notify.error(
+        caughtError instanceof Error
+          ? caughtError.message
+          : "Não foi possível salvar o usuário."
+      )
+    }
+  }
+
+  return (
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Gerencie os usuários com acesso ao sistema.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={handleOpenCreateDialog}
+          >
+            <PlusIcon aria-hidden="true" />
+            Cadastrar
+          </Button>
+        </div>
+      </header>
+
+      <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>
+              {isEditMode ? "Editar usuário" : "Novo usuário"}
+            </DialogTitle>
+            <DialogDescription>
+              {isEditMode
+                ? "Atualize os dados de acesso do usuário."
+                : "Cadastre um novo usuário para acesso ao sistema."}
+            </DialogDescription>
+          </DialogHeader>
+
+          <form
+            onSubmit={(event) => {
+              void form.handleSubmit(handleSubmit)(event)
+            }}
+          >
+            <FieldGroup>
+              <Controller
+                control={form.control}
+                name="name"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={Boolean(fieldState.error)}>
+                    <FieldLabel htmlFor="user-name">
+                      Nome <span className="text-destructive">*</span>
+                    </FieldLabel>
+                    <Input
+                      id="user-name"
+                      className="w-full"
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isSaving}
+                      aria-invalid={Boolean(fieldState.error)}
+                    />
+                    {fieldState.error ? (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    ) : null}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="cpf"
+                render={({ field, fieldState }) => (
+                  <AuthCpfField
+                    id="user-cpf"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    disabled={isSaving}
+                    error={fieldState.error?.message}
+                  />
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="email"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={Boolean(fieldState.error)}>
+                    <FieldLabel htmlFor="user-email">Email</FieldLabel>
+                    <Input
+                      id="user-email"
+                      type="email"
+                      className="w-full"
+                      value={field.value}
+                      onChange={field.onChange}
+                      disabled={isSaving}
+                      aria-invalid={Boolean(fieldState.error)}
+                    />
+                    {fieldState.error ? (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    ) : null}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="phone"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={Boolean(fieldState.error)}>
+                    <FieldLabel htmlFor="user-phone">Telefone</FieldLabel>
+                    <Input
+                      id="user-phone"
+                      className="w-full"
+                      value={field.value}
+                      onChange={(event) => {
+                        field.onChange(formatPhone(onlyDigits(event.target.value)))
+                      }}
+                      disabled={isSaving}
+                      aria-invalid={Boolean(fieldState.error)}
+                    />
+                    {fieldState.error ? (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    ) : null}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="role"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={Boolean(fieldState.error)}>
+                    <FieldLabel>
+                      Perfil <span className="text-destructive">*</span>
+                    </FieldLabel>
+                    <Select
+                      value={field.value}
+                      onValueChange={(value) => {
+                        field.onChange(value)
+
+                        if (isGlobalRole(value as UserRecord["role"])) {
+                          form.setValue("unitName", "", {
+                            shouldDirty: true,
+                            shouldValidate: false,
+                          })
+                        }
+                      }}
+                      disabled={isSaving}
+                    >
+                      <SelectTrigger
+                        className="w-full"
+                        aria-invalid={Boolean(fieldState.error)}
+                      >
+                        <SelectValue placeholder="Selecione" />
+                      </SelectTrigger>
+                      <SelectContent position="popper">
+                        {userRoleValues.map((role) => (
+                          <SelectItem key={role} value={role}>
+                            {userRoleLabels[role]}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                    {fieldState.error ? (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    ) : null}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="unitName"
+                render={({ field, fieldState }) => (
+                  <Field data-invalid={Boolean(fieldState.error)}>
+                    <FieldLabel htmlFor="user-unit">
+                      Unidade
+                      {!isGlobalScopeRole ? (
+                        <span className="text-destructive"> *</span>
+                      ) : null}
+                    </FieldLabel>
+                    <Combobox<string>
+                      items={unitOptions}
+                      value={isGlobalScopeRole ? null : field.value || null}
+                      onValueChange={(value) => field.onChange(value || "")}
+                      itemToStringLabel={(unit) => unit}
+                      itemToStringValue={(unit) => unit}
+                      disabled={isSaving || isGlobalScopeRole}
+                    >
+                      <ComboboxInput
+                        id="user-unit"
+                        className="w-full"
+                        placeholder={
+                          isGlobalScopeRole
+                            ? "Global (todas as unidades)"
+                            : "Buscar unidade..."
+                        }
+                        disabled={isSaving || isGlobalScopeRole}
+                        aria-invalid={Boolean(fieldState.error)}
+                      >
+                        <InputGroupAddon>
+                          <SearchIcon />
+                        </InputGroupAddon>
+                      </ComboboxInput>
+                      <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
+                        <ComboboxEmpty>Nenhuma unidade encontrada.</ComboboxEmpty>
+                        <ComboboxList>
+                          <ComboboxCollection>
+                            {(unit: string) => (
+                              <ComboboxItem key={unit} value={unit}>
+                                {unit}
+                              </ComboboxItem>
+                            )}
+                          </ComboboxCollection>
+                        </ComboboxList>
+                      </ComboboxContent>
+                    </Combobox>
+                    {isGlobalScopeRole ? (
+                      <p className="text-xs text-muted-foreground">
+                        Este perfil possui escopo global.
+                      </p>
+                    ) : null}
+                    {fieldState.error ? (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    ) : null}
+                  </Field>
+                )}
+              />
+
+              <Controller
+                control={form.control}
+                name="firstAccessPassword"
+                render={({ field, fieldState }) => (
+                  <AuthPasswordField
+                    id="user-password"
+                    label="Senha de primeiro acesso"
+                    value={field.value}
+                    onValueChange={field.onChange}
+                    error={fieldState.error?.message}
+                    disabled={isSaving}
+                    autoComplete="new-password"
+                    description={getPasswordDescription()}
+                    required={!isEditMode}
+                  />
+                )}
+              />
+            </FieldGroup>
+
+            <DialogFooter className="grid grid-cols-2 sm:grid-cols-2">
+              <DialogClose asChild>
+                <Button type="button" variant="outline" className="w-full">
+                  Cancelar
+                </Button>
+              </DialogClose>
+              <Button type="submit" className="w-full" disabled={isSaving}>
+                {isEditMode ? "Salvar" : "Cadastrar"}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+
       <DataTable
         columns={columns}
-        data={visibleUsers}
-        defaultColumnVisibility={{ onlineStatus: false }}
-        columnVisibilityStorageKey={USERS_TABLE_COLUMN_VISIBILITY_KEY}
-        getRowId={(user: UserRecord) => user.id}
+        data={data}
+        getRowId={(user) => user.id}
         globalSearch={{
           columnIds: [
             "id",
@@ -281,126 +545,52 @@ export function UsersRoute() {
             "role",
             "status",
             "unitName",
-            "passkeyStatus",
           ],
-          placeholder: usersCopy.filters.searchPlaceholder,
+          placeholder: "Buscar usuários...",
         }}
         filterFields={[
-          { id: "role", title: usersCopy.filters.role, options: roleOptions },
-          { id: "status", title: usersCopy.filters.status, options: statusOptions },
-          { id: "unitName", title: usersCopy.filters.unit, options: unitFilterOptions },
-          { id: "onlineStatus", title: usersCopy.filters.online, options: onlineFilterOptions },
+          {
+            id: "role",
+            title: "Perfis",
+            options: roleOptions,
+          },
+          {
+            id: "status",
+            title: "Status",
+            options: statusOptions,
+          },
         ]}
-        emptyAction={emptyAction}
-        emptyState={(
-          <AppEmptyState
-            media={<DatabaseIcon />}
-            title={usersCopy.empty.title}
-            description={usersCopy.empty.description}
-          />
-        )}
-        filteredEmptyState={(
-          <AppEmptyState
-            media={<DatabaseIcon />}
-            title={usersCopy.filteredEmpty.title}
-            description={usersCopy.filteredEmpty.description}
-          />
-        )}
-        isLoading={usersSnapshot.isLoading}
-        error={usersSnapshot.error}
-        onRetry={() => { void usersSnapshot.refetch() }}
+        isLoading={isLoading}
+        error={error}
+        onRetry={() => {
+          void refetch()
+        }}
         enablePagination
-        enableExport={canExportUsers}
         enableViewOptions
       />
-    </div>
-  )
 
-  return (
-    <PageSection>
-      <PageHeader
-        title={usersCopy.page.title}
-        subtitle={usersCopy.page.subtitle}
-        actions={
-          canManageUsers ? (
-            <PageHeaderActions>
-              <Button type="button" variant="secondary" size="lg" onClick={handleOpenCreateDialog}>
-                <PlusIcon aria-hidden="true" />
-                {usersCopy.actions.create}
-              </Button>
-            </PageHeaderActions>
-          ) : null
-        }
-      />
-
-      <UserFormDialog
-        key={editingUser?.id ?? "create"}
-        assignableRoleValues={assignableRoleValues}
-        editingUser={editingUser}
-        isSaving={usersSnapshot.isSaving}
-        onOpenChange={(open: boolean) => {
-          setIsDialogOpen(open)
-
+      <DestructiveConfirmDialog
+        size='sm'
+        open={Boolean(blockingUser)}
+        onOpenChange={(open) => {
           if (!open) {
-            setEditingUser(null)
+            setBlockingUser(null)
           }
         }}
-        onSubmit={handleFormSubmit}
-        open={isDialogOpen}
-        unitOptions={unitOptions}
-      />
-
-      {canReadAccessRequests ? (
-        <AppTabs
-          className="min-h-0 min-w-0 w-full"
-          defaultValue={defaultUsersTab}
-          items={[
-            {
-              value: USERS_TAB_VALUE,
-              label: usersCopy.page.title,
-              content: usersTable,
-            },
-            {
-              value: ACCESS_REQUESTS_TAB_VALUE,
-              label: accessRequestsCopy.page.title,
-              content: <AccessRequestsPanel canReview={canReviewAccessRequests} showHeader={false} />,
-            },
-          ]}
-        />
-      ) : (
-        usersTable
-      )}
-
-      <UserDetailsSheet
-        user={detailsUser}
-        onOpenChange={(open: boolean) => {
-          if (!open) {
-            setDetailsUser(null)
-          }
-        }}
-      />
-
-      <AppAlertDialog
-        open={Boolean(pendingAction)}
-        onOpenChange={(open: boolean) => {
-          if (!open) {
-            setPendingAction(null)
-          }
-        }}
-        media={<ShieldAlertIcon />}
-        title={pendingActionConfig?.title ?? ""}
-        description={pendingActionConfig?.description ?? ""}
-        cancelLabel={usersCopy.dialogs.cancel}
-        actionLabel={pendingActionConfig?.actionLabel}
-        onAction={async () => {
-          if (!pendingActionConfig) {
+        title="Bloquear usuário"
+        description={blockingUser
+          ? `Tem certeza que deseja bloquear ${blockingUser.name}? O acesso ao sistema será interrompido imediatamente.`
+          : "Tem certeza que deseja bloquear este usuário?"}
+        confirmLabel="Bloquear"
+        onConfirm={() => {
+          if (!blockingUser) {
             return
           }
 
-          await notify.track(pendingActionConfig.onAction(), pendingActionConfig.feedback)
-          setPendingAction(null)
+          handleBlockUser(blockingUser)
+          setBlockingUser(null)
         }}
       />
-    </PageSection>
+    </div>
   )
 }

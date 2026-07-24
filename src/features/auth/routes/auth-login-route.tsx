@@ -1,325 +1,304 @@
-import { KeyRoundIcon, LogOutIcon } from "lucide-react"
-import * as React from "react"
-import { Link } from "react-router"
+import { zodResolver } from "@hookform/resolvers/zod"
+import { Controller, useForm } from "react-hook-form"
+import { Link, useLocation, useNavigate } from "react-router"
 
-import { appRoutePaths } from "@/app/router/route-registry"
-import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
-import { AppDialog } from "@/components/shared/app-dialog"
-import { AppPasswordField } from "@/components/shared/app-password-field"
+import { getAuthProfileRole } from "@/app/router/route-auth-utils"
+import { getDefaultRouteHrefForRole } from "@/app/router/route-home-utils"
+import montecarloLogo from "@/assets/brand/montecarlo-logo.webp"
 import { notify } from "@/components/toast"
-import { AlertDialogAction } from "@/components/ui/alert-dialog"
 import { Button } from "@/components/ui/button"
-import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { Spinner } from "@/components/ui/spinner"
-import { AUTH_NEXT_ACTION, useAuth } from "@/features/auth"
-import { AuthPageCard } from "@/features/auth/components"
-import { authCopy } from "@/features/auth/constants"
+import { FieldGroup } from "@/components/ui/field"
+import { isValidCpf } from "@/lib"
+
+import { authCopy } from "../auth-copy"
+import {
+  AuthCard,
+  AuthCpfField,
+  AuthNewPasswordFields,
+  AuthPasskeyAction,
+  AuthPasswordField,
+  AuthSubmitButton,
+} from "../components"
+import { useAuthFlow, useAuthSession, usePasskey } from "../hooks"
 import {
   authLoginSchema,
-  formatCpfInput,
-  getFirstIssueByPath,
-  requiredPasswordSchema,
-  type FieldErrors,
-  type RequiredPasswordValues,
-} from "@/features/auth/validation"
+  authPasswordSchema,
+  newPasswordSchema,
+  type AuthLoginFormValues,
+} from "../schemas"
+import { submitPasswordCredentials } from "../services"
 
-function RequiredMark() {
-  return <span className="text-destructive">*</span>
+interface LocationState {
+  from?: {
+    pathname?: string
+  }
 }
 
 export function AuthLoginRoute() {
-  const auth = useAuth()
-  const copy = authCopy.login
-  const requiredPasswordCopy = authCopy.requiredPassword
-  const [cpf, setCpf] = React.useState("")
-  const [password, setPassword] = React.useState("")
-  const [newPassword, setNewPassword] = React.useState("")
-  const [confirmPassword, setConfirmPassword] = React.useState("")
-  const [loginErrors, setLoginErrors] =
-    React.useState<FieldErrors<{ cpf: string; password: string }>>({})
-  const [passwordErrors, setPasswordErrors] =
-    React.useState<FieldErrors<RequiredPasswordValues>>({})
-  const [isExpiredDialogOpen, setIsExpiredDialogOpen] = React.useState(() =>
-    auth.inactivity.consumeExpired()
-  )
-  const [submitMode, setSubmitMode] = React.useState<
-    "password" | "passkey" | "register-passkey" | null
-  >(null)
-  const submitModeRef = React.useRef<typeof submitMode>(null)
-  const isPasswordSubmitting =
-    auth.isSubmitting &&
-    (submitMode === "password" || submitMode === "register-passkey")
-  const isPasskeySubmitting = auth.isSubmitting && submitMode === "passkey"
+  const flow = useAuthFlow()
+  const passkey = usePasskey()
+  const navigate = useNavigate()
+  const location = useLocation()
+  const { profile, refresh } = useAuthSession()
 
-  async function handlePasskeyRegistration(flowId: string | null, cpfValue: string) {
-    submitModeRef.current = "register-passkey"
-    setSubmitMode("register-passkey")
+  const form = useForm<AuthLoginFormValues>({
+    resolver: zodResolver(authLoginSchema),
+    mode: "onSubmit",
+    defaultValues: {
+      confirmNewPassword: "",
+      cpf: "",
+      newPassword: "",
+      password: "",
+    },
+  })
 
-    try {
-      await notify.track(
-        auth.actions.registerRequiredPasskey({
-          cpf: cpfValue,
-          flowId,
-        }),
-        {
-          loading: authCopy.passkeyRegistration.loading,
-          success: authCopy.passkeyRegistration.success,
-          error: (caughtError: unknown) =>
-            caughtError instanceof Error
-              ? caughtError.message
-              : authCopy.errors.passkeyRegistrationFailed,
-        }
-      )
-      setPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
-    } finally {
-      submitModeRef.current = null
-      setSubmitMode(null)
-    }
+  const locationState = location.state as LocationState | null
+  const redirectTo =
+    locationState?.from?.pathname ??
+    getDefaultRouteHrefForRole(getAuthProfileRole(profile))
+  const cpf = form.watch("cpf")
+  const newPassword = form.watch("newPassword") ?? ""
+  const confirmNewPassword = form.watch("confirmNewPassword") ?? ""
+  const cpfIsValid = isValidCpf(cpf)
+  const isBusy = form.formState.isSubmitting || passkey.isPending
+  const shouldShowNewPassword = cpfIsValid && flow.step === "new_password"
+  const shouldShowPasskeyRegistration =
+    cpfIsValid && flow.step === "passkey_registration"
+
+  async function handleAuthenticatedRedirect() {
+    await refresh()
+    void navigate(redirectTo, { replace: true })
   }
 
-  async function handleLoginSubmit(event: React.FormEvent<HTMLFormElement>) {
-    event.preventDefault()
-
-    if (submitModeRef.current || auth.isSubmitting) {
+  async function handleCredentialsSubmit(values: AuthLoginFormValues) {
+    if (!isValidCpf(values.cpf)) {
+      form.setError("cpf", {
+        message: authCopy.login.cpfInvalid,
+        type: "validate",
+      })
       return
     }
 
-    const parsed = authLoginSchema.safeParse({ cpf, password })
-
-    if (!parsed.success) {
-      setLoginErrors(getFirstIssueByPath(parsed.error.issues))
+    if (!values.password) {
+      form.setError("password", {
+        message: authCopy.login.passwordRequired,
+        type: "required",
+      })
       return
     }
 
-    setLoginErrors({})
-    submitModeRef.current = "password"
-    setSubmitMode("password")
+    if (flow.step === "new_password") {
+      const newPasswordResult = newPasswordSchema.safeParse(values.newPassword)
 
-    try {
-      const response = await auth.actions.signInWithPassword(parsed.data)
-
-      if (response.nextAction === AUTH_NEXT_ACTION.registerPasskey) {
-        await handlePasskeyRegistration(response.flowId, parsed.data.cpf)
+      if (!newPasswordResult.success) {
+        form.setError("newPassword", {
+          message: newPasswordResult.error.issues[0]?.message,
+          type: "validate",
+        })
         return
       }
 
-      if (
-        response.nextAction !== AUTH_NEXT_ACTION.authenticated &&
-        response.nextAction !== AUTH_NEXT_ACTION.setNewPassword
-      ) {
-        notify.warning(response.message || authCopy.errors.unsupportedNextAction)
+      if (values.newPassword !== values.confirmNewPassword) {
+        form.setError("confirmNewPassword", {
+          message: "As senhas não conferem.",
+          type: "validate",
+        })
+        return
       }
-    } catch (caughtError) {
-      notify.error(
-        caughtError instanceof Error
-          ? caughtError.message
-          : authCopy.errors.invalidCredentials
-      )
-    } finally {
-      submitModeRef.current = null
-      setSubmitMode(null)
+    }
+
+    const passwordResult = authPasswordSchema.safeParse(values.password)
+
+    if (!passwordResult.success) {
+      form.setError("password", {
+        message: passwordResult.error.issues[0]?.message,
+        type: "validate",
+      })
+      return
+    }
+
+    try {
+      const response = await submitPasswordCredentials({
+        cpf: values.cpf,
+        flowId: flow.flowId ?? undefined,
+        newPassword:
+          flow.step === "new_password" ? values.newPassword : undefined,
+        password: values.password,
+      })
+
+      flow.setFlowId(response.flowId)
+
+      if (response.nextAction === "use_passkey") {
+        flow.setStep("passkey")
+        return
+      }
+
+      if (response.nextAction === "set_new_password") {
+        flow.setStep("new_password")
+        return
+      }
+
+      if (response.nextAction === "register_passkey") {
+        flow.setStep("passkey_registration")
+        return
+      }
+
+      flow.setStep("authenticated")
+      await handleAuthenticatedRedirect()
+    } catch {
+      notify.error(authCopy.feedback.genericAuthError)
     }
   }
 
   async function handlePasskeyLogin() {
-    if (submitModeRef.current || auth.isSubmitting) {
-      return
-    }
-
-    submitModeRef.current = "passkey"
-    setSubmitMode("passkey")
-
     try {
-      await auth.actions.signInWithPasskey()
-    } catch (caughtError) {
-      notify.error(
-        caughtError instanceof Error
-          ? caughtError.message
-          : authCopy.errors.passkeyLoginFailed
-      )
-    } finally {
-      submitModeRef.current = null
-      setSubmitMode(null)
+      await passkey.authenticate()
+      await handleAuthenticatedRedirect()
+    } catch {
+      notify.error(authCopy.feedback.passkeyAuthError)
     }
   }
 
-  async function handleRequiredPasswordSubmit(
-    event: React.FormEvent<HTMLFormElement>
-  ) {
-    event.preventDefault()
-
-    if (submitModeRef.current || auth.isSubmitting) {
-      return
-    }
-
-    const parsed = requiredPasswordSchema.safeParse({
-      newPassword,
-      confirmPassword,
-    })
-
-    if (!parsed.success) {
-      setPasswordErrors(getFirstIssueByPath(parsed.error.issues))
-      return
-    }
-
-    setPasswordErrors({})
-    submitModeRef.current = "password"
-    setSubmitMode("password")
-
+  async function handlePasskeyRegistration() {
     try {
-      const response = await auth.actions.completeRequiredPassword(
-        parsed.data.newPassword
-      )
-
-      setPassword("")
-      setNewPassword("")
-      setConfirmPassword("")
-
-      if (response.nextAction === AUTH_NEXT_ACTION.registerPasskey) {
-        await handlePasskeyRegistration(response.flowId, cpf)
-        return
-      }
-
-      notify.success(requiredPasswordCopy.success)
-    } catch (caughtError) {
-      notify.error(
-        caughtError instanceof Error
-          ? caughtError.message
-          : authCopy.errors.invalidCredentials
-      )
-    } finally {
-      submitModeRef.current = null
-      setSubmitMode(null)
+      await passkey.createPasskey()
+      await handleAuthenticatedRedirect()
+    } catch {
+      notify.error(authCopy.feedback.passkeyAuthError)
     }
   }
 
   return (
-    <main className="flex min-h-svh items-center justify-center bg-background p-6 text-foreground">
-      <AuthPageCard title={copy.title} description={copy.description}>
-        <form
-          onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
-            void handleLoginSubmit(event)
-          }}
-          noValidate
-        >
-          <FieldGroup>
-            <Field data-invalid={Boolean(loginErrors.cpf)}>
-              <FieldLabel htmlFor="auth-cpf">
-                {copy.cpfLabel}
-                <RequiredMark />
-              </FieldLabel>
-              <Input
-                id="auth-cpf"
-                value={cpf}
-                onChange={(event: React.ChangeEvent<HTMLInputElement>) => setCpf(formatCpfInput(event.target.value))}
-                placeholder={copy.cpfPlaceholder}
-                inputMode="numeric"
-                autoComplete="username"
-                className="h-9"
-                aria-invalid={Boolean(loginErrors.cpf)}
-              />
-              {loginErrors.cpf ? <FieldError>{loginErrors.cpf}</FieldError> : null}
-            </Field>
-
-            <AppPasswordField
-              id="auth-password"
-              label={copy.passwordLabel}
-              value={password}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setPassword(event.target.value)}
-              placeholder={copy.passwordPlaceholder}
-              error={loginErrors.password}
-              labelAction={
-                <Button asChild variant="link" size="lg" className="h-0 p-0">
-                  <Link to={appRoutePaths.recovery}>{copy.recoveryAction}</Link>
-                </Button>
-              }
-            />
-
-            <Button type="submit" size="lg" disabled={auth.isSubmitting}>
-              {isPasswordSubmitting ? <Spinner data-icon="inline-start" /> : null}
-              {isPasswordSubmitting ? copy.submitting : copy.submit}
-            </Button>
-
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              disabled={auth.isSubmitting}
-              onClick={() => {
-                void handlePasskeyLogin()
-              }}
-            >
-              {isPasskeySubmitting ? (
-                <Spinner data-icon="inline-start" />
-              ) : (
-                <KeyRoundIcon aria-hidden="true" />
-              )}
-              {isPasskeySubmitting ? copy.passkeySubmitting : copy.passkeySubmit}
-            </Button>
-          </FieldGroup>
-        </form>
-      </AuthPageCard>
-
-      <AppDialog
-        open={auth.passwordChange.required}
-        onOpenChange={(open: boolean) => {
-          if (!open) {
-            auth.actions.clearRequiredPasswordChallenge()
-          }
+    <AuthCard
+      title={
+        <img
+          src={montecarloLogo}
+          alt="Rede Monte Carlo"
+          className="mx-auto h-20 w-auto"
+        />
+      }
+      description={<span className="sr-only">{authCopy.login.title}</span>}
+    >
+      <form
+        onSubmit={(event) => {
+          void form.handleSubmit(handleCredentialsSubmit)(event)
         }}
-        title={requiredPasswordCopy.title}
-        description={requiredPasswordCopy.description}
       >
-        <form
-          onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
-            void handleRequiredPasswordSubmit(event)
-          }}
-          noValidate
-        >
-          <FieldGroup>
-            <AppPasswordField
-              id="auth-new-password"
-              label={requiredPasswordCopy.newPasswordLabel}
-              value={newPassword}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setNewPassword(event.target.value)}
-              autoComplete="new-password"
-              error={passwordErrors.newPassword}
-            />
-            <AppPasswordField
-              id="auth-confirm-password"
-              label={requiredPasswordCopy.confirmPasswordLabel}
-              value={confirmPassword}
-              onChange={(event: React.ChangeEvent<HTMLInputElement>) => setConfirmPassword(event.target.value)}
-              autoComplete="new-password"
-              error={passwordErrors.confirmPassword}
-            />
-            <Button type="submit" size="lg" disabled={auth.isSubmitting}>
-              {isPasswordSubmitting ? <Spinner data-icon="inline-start" /> : null}
-              {isPasswordSubmitting
-                ? requiredPasswordCopy.submitting
-                : requiredPasswordCopy.submit}
-            </Button>
-          </FieldGroup>
-        </form>
-      </AppDialog>
+        <FieldGroup>
+          <Controller
+            control={form.control}
+            name="cpf"
+            render={({ field, fieldState }) => (
+              <AuthCpfField
+                id="auth-cpf"
+                value={field.value}
+                onValueChange={(value) => {
+                  field.onChange(value)
 
-      <AppAlertDialog
-        open={isExpiredDialogOpen}
-        onOpenChange={setIsExpiredDialogOpen}
-        media={<LogOutIcon />}
-        title={authCopy.inactivity.expiredTitle}
-        description={authCopy.inactivity.expiredDescription}
-        footer={(
-          <AlertDialogAction size="lg">
-            {authCopy.inactivity.expiredAction}
-          </AlertDialogAction>
-        )}
-      />
-    </main>
+                  if (flow.step !== "credentials") {
+                    flow.reset()
+                    form.setValue("password", "", {
+                      shouldDirty: false,
+                      shouldValidate: false,
+                    })
+                    form.setValue("newPassword", "", {
+                      shouldDirty: false,
+                      shouldValidate: false,
+                    })
+                    form.setValue("confirmNewPassword", "", {
+                      shouldDirty: false,
+                      shouldValidate: false,
+                    })
+                  }
+                }}
+                disabled={isBusy}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          <Controller
+            control={form.control}
+            name="password"
+            render={({ field, fieldState }) => (
+              <AuthPasswordField
+                id="auth-password"
+                label={authCopy.login.passwordLabel}
+                labelAction={
+                  <Button
+                    type="button"
+                    variant="link"
+                    size="sm"
+                    className="h-auto p-0 text-sm"
+                    asChild
+                  >
+                    <Link to="/recuperar-acesso">
+                      {authCopy.login.recoveryLink}
+                    </Link>
+                  </Button>
+                }
+                value={field.value ?? ""}
+                onValueChange={field.onChange}
+                disabled={isBusy}
+                error={fieldState.error?.message}
+              />
+            )}
+          />
+
+          {shouldShowNewPassword ? (
+            <AuthNewPasswordFields
+              passwordValue={newPassword}
+              confirmValue={confirmNewPassword}
+              onPasswordValueChange={(value) =>
+                form.setValue("newPassword", value, {
+                  shouldDirty: true,
+                  shouldValidate: false,
+                })
+              }
+              onConfirmValueChange={(value) =>
+                form.setValue("confirmNewPassword", value, {
+                  shouldDirty: true,
+                  shouldValidate: false,
+                })
+              }
+              passwordError={form.formState.errors.newPassword?.message}
+              confirmError={form.formState.errors.confirmNewPassword?.message}
+              disabled={isBusy}
+              description={authCopy.login.newPasswordDescription}
+            />
+          ) : null}
+
+          {shouldShowPasskeyRegistration ? (
+            <AuthPasskeyAction
+              label={authCopy.login.passkeyRegistration}
+              isLoading={passkey.isPending}
+              disabled={form.formState.isSubmitting}
+              onClick={() => {
+                void handlePasskeyRegistration()
+              }}
+            />
+          ) : (
+            <>
+              <AuthSubmitButton
+                isLoading={form.formState.isSubmitting}
+                disabled={isBusy}
+              >
+                {authCopy.login.submit}
+              </AuthSubmitButton>
+
+              <AuthPasskeyAction
+                label={authCopy.login.passkeyLogin}
+                variant="secondary"
+                isLoading={passkey.isPending}
+                disabled={form.formState.isSubmitting}
+                onClick={() => {
+                  void handlePasskeyLogin()
+                }}
+              />
+            </>
+          )}
+        </FieldGroup>
+      </form>
+    </AuthCard>
   )
 }
-
-export default AuthLoginRoute

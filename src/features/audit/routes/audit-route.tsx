@@ -1,62 +1,151 @@
+import { DownloadIcon } from "lucide-react"
 import * as React from "react"
 
-import { DataTable } from "@/components/data-table"
-import { PageHeader, PageSection } from "@/components/page"
-import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { formatDateTime } from "@/lib"
+import { exportRowsToXlsx, type XlsxColumn } from "@/lib/export"
 
 import {
-  AUDIT_TABLE_COLUMN_VISIBILITY_KEY,
-  AUDIT_TABLE_STATE_KEY,
-  auditCopy,
-} from "../constants"
-import { useAudit, useAuditTableState } from "../hooks"
-import { getAuditEventDetails, type AuditEvent } from "../model"
+  createDataTableFilterOptions,
+  DataTable,
+} from "@/components/data-table"
+import { notify } from "@/components/toast"
+import { Button } from "@/components/ui/button"
+
+import {
+  createAuditColumns,
+  getAuditActorRoleLabel,
+} from "../columns/audit-columns"
+import { useAudit } from "../hooks/use-audit"
+import {
+  auditActionLabels,
+  auditOutcomeLabels,
+  type AuditEvent,
+} from "../types/audit-types"
+
+const auditExportColumns: readonly XlsxColumn<AuditEvent>[] = [
+  { header: "Data/hora", accessor: (event) => formatDateTime(event.occurredAt) },
+  { header: "Responsável", accessor: (event) => event.actorName },
+  { header: "Perfil", accessor: (event) => getAuditActorRoleLabel(event) },
+  { header: "Ação", accessor: (event) => auditActionLabels[event.action] },
+  { header: "Resultado", accessor: (event) => auditOutcomeLabels[event.outcome] },
+  { header: "Entidade", accessor: (event) => event.entity },
+  { header: "Identificador", accessor: (event) => event.entityId },
+  { header: "Unidade", accessor: (event) => event.unitName ?? "—" },
+  { header: "Endereço IP", accessor: (event) => event.ipAddress },
+  { header: "Dispositivo", accessor: (event) => event.userAgent },
+  { header: "Descrição", accessor: (event) => event.description },
+]
 
 export function AuditRoute() {
-  const { data: events, error, isLoading, isTruncated, limit, refetch } = useAudit()
-  const [selectedEvent, setSelectedEvent] = React.useState<AuditEvent | null>(null)
-  const {
-    columnFilters,
-    columns,
-    filteredEvents,
-    filterFields,
-    globalFilter,
-    setColumnFilters,
-    setGlobalFilter,
-    setSorting,
-    sorting,
-  } = useAuditTableState(events, setSelectedEvent)
+  const { data: events, error, isLoading, refetch } = useAudit()
+  const columns = React.useMemo(() => createAuditColumns(), [])
+
+  const actionOptions = React.useMemo(
+    () =>
+      createDataTableFilterOptions(
+        events,
+        (event) => event.action,
+        (event) => auditActionLabels[event.action]
+      ),
+    [events]
+  )
+
+  const outcomeOptions = React.useMemo(
+    () =>
+      createDataTableFilterOptions(
+        events,
+        (event) => event.outcome,
+        (event) => auditOutcomeLabels[event.outcome]
+      ),
+    [events]
+  )
+
+  const roleOptions = React.useMemo(
+    () =>
+      createDataTableFilterOptions(
+        events,
+        (event) => event.actorRole ?? "",
+        (event) => getAuditActorRoleLabel(event)
+      ),
+    [events]
+  )
+
+  const handleExport = React.useCallback(() => {
+    if (events.length === 0) {
+      notify.error("Não há eventos de auditoria para exportar.")
+      return
+    }
+
+    try {
+      exportRowsToXlsx({
+        filename: "auditoria",
+        sheetName: "Auditoria",
+        columns: auditExportColumns,
+        rows: events,
+      })
+
+      notify.success("Exportação de auditoria gerada.")
+    } catch {
+      notify.error("Não foi possível exportar a auditoria.")
+    }
+  }, [events])
 
   return (
-    <PageSection>
-      <PageHeader
-        title={auditCopy.page.title}
-        subtitle={
-          isTruncated
-            ? auditCopy.page.truncatedSubtitle(limit)
-            : auditCopy.page.subtitle
-        }
-      />
+    <div className="flex flex-col gap-6">
+      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
+        <div className="max-w-2xl">
+          <h1 className="text-2xl font-semibold tracking-tight">Auditoria</h1>
+          <p className="mt-2 text-sm text-muted-foreground">
+            Acompanhe os eventos de segurança e as ações realizadas no sistema.
+          </p>
+        </div>
+
+        <div className="flex items-center justify-end">
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isLoading || events.length === 0}
+            onClick={handleExport}
+          >
+            <DownloadIcon aria-hidden="true" />
+            Exportar
+          </Button>
+        </div>
+      </header>
 
       <DataTable
         columns={columns}
-        data={filteredEvents}
-        sourceRowCount={events.length}
-        columnVisibilityStorageKey={AUDIT_TABLE_COLUMN_VISIBILITY_KEY}
-        tableStateStorageKey={AUDIT_TABLE_STATE_KEY}
+        data={events}
         getRowId={(event) => event.id}
-        manualFiltering
         globalSearch={{
-          columnIds: ["actorName", "event", "target"],
-          placeholder: auditCopy.page.searchPlaceholder,
+          columnIds: [
+            "actorName",
+            "entity",
+            "entityId",
+            "unitName",
+            "ipAddress",
+            "userAgent",
+            "description",
+          ],
+          placeholder: "Buscar na auditoria...",
         }}
-        globalFilterValue={globalFilter}
-        onGlobalFilterChange={setGlobalFilter}
-        columnFilters={columnFilters}
-        onColumnFiltersChange={setColumnFilters}
-        sorting={sorting}
-        onSortingChange={setSorting}
-        filterFields={filterFields}
+        filterFields={[
+          {
+            id: "action",
+            title: "Ações",
+            options: actionOptions,
+          },
+          {
+            id: "outcome",
+            title: "Resultados",
+            options: outcomeOptions,
+          },
+          {
+            id: "actorRole",
+            title: "Perfis",
+            options: roleOptions,
+          },
+        ]}
         isLoading={isLoading}
         error={error}
         onRetry={() => {
@@ -65,18 +154,6 @@ export function AuditRoute() {
         enablePagination
         enableViewOptions
       />
-
-      <AppDetailsSheet
-        open={Boolean(selectedEvent)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setSelectedEvent(null)
-          }
-        }}
-        title={selectedEvent ? auditCopy.details.title : undefined}
-        description={selectedEvent ? auditCopy.details.description : undefined}
-        items={selectedEvent ? getAuditEventDetails(selectedEvent) : []}
-      />
-    </PageSection>
+    </div>
   )
 }

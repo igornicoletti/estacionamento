@@ -9,11 +9,7 @@ const pluralRules = new Intl.PluralRules(PT_BR_LOCALE, {
 })
 
 function normalizeCount(value: number): number {
-  if (!Number.isFinite(value) || value <= 0) {
-    return 0
-  }
-
-  return Math.trunc(value)
+  return Number.isFinite(value) && value > 0 ? Math.trunc(value) : 0
 }
 
 function formatInteger(value: number): string {
@@ -28,21 +24,21 @@ export function formatSelectedRows(
   selectedRowCount: number,
   rowCount: number
 ): string {
-  const normalizedSelectedRowCount = normalizeCount(selectedRowCount)
-  const selectedRowsLabel = isSingular(normalizedSelectedRowCount)
+  const selected = normalizeCount(selectedRowCount)
+  const label = isSingular(selected)
     ? "linha selecionada"
     : "linhas selecionadas"
 
-  return `${formatInteger(normalizedSelectedRowCount)} ${selectedRowsLabel} de ${formatInteger(rowCount)}.`
+  return `${formatInteger(selected)} ${label} de ${formatInteger(rowCount)}.`
 }
 
 export function formatDisplayedRows(
   displayedRowCount: number,
   rowCount: number
 ): string {
-  const rowLabel = isSingular(rowCount) ? "linha" : "linhas"
+  const label = isSingular(rowCount) ? "linha" : "linhas"
 
-  return `Exibindo ${formatInteger(displayedRowCount)} de ${formatInteger(rowCount)} ${rowLabel}.`
+  return `Exibindo ${formatInteger(displayedRowCount)} de ${formatInteger(rowCount)} ${label}.`
 }
 
 export function formatPageOf(

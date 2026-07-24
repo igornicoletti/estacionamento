@@ -11,18 +11,10 @@ export interface DataTableStackedCellProps {
   secondaryClassName?: string
 }
 
-function hasRenderableValue(
-  value: React.ReactNode
-): boolean {
-  const nodes = React.Children.toArray(value)
-
-  return nodes.some((node) => {
-    if (typeof node === "string") {
-      return node.trim().length > 0
-    }
-
-    return true
-  })
+function hasRenderableValue(value: React.ReactNode): boolean {
+  return React.Children.toArray(value).some((node) =>
+    typeof node === "string" ? node.trim().length > 0 : true
+  )
 }
 
 export function DataTableStackedCell({
@@ -33,38 +25,19 @@ export function DataTableStackedCell({
   primaryClassName,
   secondaryClassName,
 }: DataTableStackedCellProps) {
-  const resolvedPrimary = hasRenderableValue(primary)
-    ? primary
-    : primaryFallback
+  const resolvedPrimary = hasRenderableValue(primary) ? primary : primaryFallback
+  const hasPrimary = hasRenderableValue(resolvedPrimary)
+  const hasSecondary = hasRenderableValue(secondary)
 
-  const hasPrimary =
-    hasRenderableValue(resolvedPrimary)
-
-  const hasSecondary =
-    hasRenderableValue(secondary)
-
-  if (!hasPrimary && !hasSecondary) {
-    return null
-  }
+  if (!hasPrimary && !hasSecondary) return null
 
   return (
-    <div
-      className={cn(
-        "flex min-w-0 flex-col gap-1",
-        className
-      )}
-    >
+    <div className={cn("flex min-w-0 flex-col gap-1", className)}>
       {hasPrimary ? (
-        <div
-          className={cn(
-            "min-w-0 font-medium",
-            primaryClassName
-          )}
-        >
+        <div className={cn("min-w-0 font-medium", primaryClassName)}>
           {resolvedPrimary}
         </div>
       ) : null}
-
       {hasSecondary ? (
         <div
           className={cn(

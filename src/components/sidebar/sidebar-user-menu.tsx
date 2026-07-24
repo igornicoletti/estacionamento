@@ -1,32 +1,36 @@
-import { BellIcon, ImageUpIcon, LogOutIcon, UserRoundIcon } from "lucide-react"
-import * as React from "react"
-import { Link } from "react-router"
+import {
+  BellIcon,
+  LogOutIcon,
+  SettingsIcon,
+  UserIcon,
+} from "lucide-react"
+import { useState } from "react"
+import { Link, useNavigate } from "react-router"
 
-import { appRoutePaths } from "@/app/router/route-registry"
-import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
-import { notify } from "@/components/toast"
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
+import { shouldBypassAuthInDev } from "@/config"
+import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
+import { DestructiveConfirmDialog } from "@/components/ui/destructive-confirm-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuGroup,
   DropdownMenuItem,
+  DropdownMenuLabel,
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import { useAuth, type AuthProfile } from "@/features/auth"
 import {
-  getProfileInitials,
-  ProfilePhotoDialog,
-} from "@/features/my-profile/components"
-import { myProfileCopy } from "@/features/my-profile/my-profile-copy"
-import {
-  updateCurrentProfile,
-  uploadProfileAvatarFile,
-} from "@/features/my-profile/services/profile-service"
+  isUserRole,
+  userRoleLabels,
+} from "@/features/auth"
+import { useAuthSession } from "@/features/auth/hooks"
 
-import { sidebarCopy } from "./sidebar-copy"
+type UnknownRecord = Record<PropertyKey, unknown>
+
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null
+}
 
 function getFallback(name: string) {
   return (
@@ -39,107 +43,79 @@ function getFallback(name: string) {
   )
 }
 
-function getDisplayName(profile: AuthProfile | null) {
-  return profile?.name?.trim() || sidebarCopy.profile.fallbackName
+function getProfileName(profile: unknown) {
+  if (!isRecord(profile) || typeof profile.name !== "string") {
+    return "Usuário"
+  }
+
+  return profile.name.trim() || "Usuário"
 }
 
-function getDisplayMeta(profile: AuthProfile | null) {
-  return profile?.role?.label ?? profile?.email ?? sidebarCopy.profile.fallbackRole
+function getProfileMeta(profile: unknown) {
+  if (!isRecord(profile)) {
+    return shouldBypassAuthInDev() ? "Modo desenvolvimento" : "Perfil"
+  }
+
+  return isUserRole(profile.role) ? userRoleLabels[profile.role] : "Perfil"
 }
 
 export function UserMenu() {
-  const auth = useAuth()
-  const [isSignOutDialogOpen, setIsSignOutDialogOpen] = React.useState(false)
-  const [isPhotoDialogOpen, setIsPhotoDialogOpen] = React.useState(false)
-  const [isSavingPhoto, setIsSavingPhoto] = React.useState(false)
-  const displayName = getDisplayName(auth.profile)
-  const displayMeta = getDisplayMeta(auth.profile)
-  const fallback = getProfileInitials(displayName) || getFallback(displayName)
+  const { profile, signOut } = useAuthSession()
+  const navigate = useNavigate()
+  const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false)
+  const displayName = getProfileName(profile)
+  const displayMeta = getProfileMeta(profile)
+  const fallback = getFallback(displayName)
 
-  async function saveAvatar(avatarPath: string | null) {
-    if (!auth.profile) {
-      return
-    }
-
-    await updateCurrentProfile({
-      avatarPath,
-      email: auth.profile.email,
-      name: auth.profile.name,
-    })
-    auth.actions.applyProfilePatch({
-      avatarPath,
-      ...(avatarPath?.startsWith("data:image/") ? { avatarUrl: avatarPath } : {}),
-    })
-    setIsPhotoDialogOpen(false)
-    await auth.actions.refreshProfile()
-  }
-
-  async function handleSaveFile(payload: { file: File; previewUrl: string }) {
-    const profile = auth.profile
-
-    if (!profile) {
-      return
-    }
-
-    setIsSavingPhoto(true)
-
-    try {
-      await notify.track((async () => {
-        const avatarPath = await uploadProfileAvatarFile(payload.file, profile.authUserId)
-        await saveAvatar(avatarPath)
-      })(), myProfileCopy.feedback.profile)
-    } finally {
-      setIsSavingPhoto(false)
-    }
+  async function handleSignOut() {
+    await signOut()
+    void navigate("/login", { replace: true })
   }
 
   return (
     <>
-      <DropdownMenu modal={false}>
+      <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button
-            type="button"
-            variant="ghost"
-            className="h-10 gap-2 px-2"
-            aria-label={sidebarCopy.menu.openUserMenu(displayName)}
-          >
+          <Button variant="ghost" className="h-10 gap-2 px-2">
             <Avatar>
-              {auth.profile?.avatarUrl ? (
-                <AvatarImage src={auth.profile.avatarUrl} alt="" />
-              ) : null}
               <AvatarFallback>{fallback}</AvatarFallback>
             </Avatar>
-            <span className="hidden flex-col items-center text-center md:flex">
-              <span className="text-sm font-medium leading-none">{displayName}</span>
+            <span className="hidden flex-col items-center md:flex">
+              <span className="text-sm font-medium">{displayName}</span>
               <span className="text-xs text-muted-foreground">{displayMeta}</span>
             </span>
           </Button>
         </DropdownMenuTrigger>
         <DropdownMenuContent
           align="end"
-          collisionPadding={8}
-          className="w-64 max-w-[calc(100vw-1rem)]"
+          className="w-[calc(100vw-2rem)] sm:w-64"
         >
+          <DropdownMenuLabel className="p-0 font-normal">
+            <div className="grid px-1 py-1.5 text-left text-sm leading-tight">
+              <span className="truncate font-medium">{displayName}</span>
+              <span className="truncate text-xs text-muted-foreground">
+                {displayMeta}
+              </span>
+            </div>
+          </DropdownMenuLabel>
+          <DropdownMenuSeparator />
           <DropdownMenuGroup>
             <DropdownMenuItem asChild>
-              <Link to={appRoutePaths.profile}>
-                <UserRoundIcon />
-                {sidebarCopy.menu.myProfile}
+              <Link to="/perfil">
+                <UserIcon />
+                Meu perfil
               </Link>
             </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={(event) => {
-                event.preventDefault()
-                setIsPhotoDialogOpen(true)
-              }}
-            >
-              <ImageUpIcon />
-              {sidebarCopy.menu.changePhoto}
+            <DropdownMenuItem asChild>
+              <Link to="/configuracoes">
+                <SettingsIcon />
+                Configurações
+              </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to={appRoutePaths.notifications}>
+              <Link to="/notificacoes">
                 <BellIcon />
-                {sidebarCopy.menu.notifications}
+                Notificações
               </Link>
             </DropdownMenuItem>
             <DropdownMenuSeparator />
@@ -151,32 +127,22 @@ export function UserMenu() {
               }}
             >
               <LogOutIcon />
-              {sidebarCopy.menu.signOut}
+              Sair
             </DropdownMenuItem>
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
 
-      <AppAlertDialog
+      <DestructiveConfirmDialog
         open={isSignOutDialogOpen}
         onOpenChange={setIsSignOutDialogOpen}
-        title={sidebarCopy.dialog.signOutTitle}
-        description={sidebarCopy.dialog.signOutDescription}
-        cancelLabel={sidebarCopy.dialog.signOutCancel}
-        actionLabel={sidebarCopy.dialog.signOutConfirm}
-        onAction={auth.actions.logoutAsync}
+        title="Encerrar sessão"
+        description="Deseja realmente sair agora? Você precisará fazer login novamente para continuar."
+        confirmLabel="Sair"
+        onConfirm={async () => {
+          await handleSignOut()
+        }}
       />
-
-      {isPhotoDialogOpen ? (
-        <ProfilePhotoDialog
-          avatarUrl={auth.profile?.avatarUrl ?? null}
-          fallback={fallback}
-          isSaving={isSavingPhoto}
-          onOpenChange={setIsPhotoDialogOpen}
-          onSaveFile={handleSaveFile}
-          open={isPhotoDialogOpen}
-        />
-      ) : null}
     </>
   )
 }

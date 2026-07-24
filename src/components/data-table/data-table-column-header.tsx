@@ -8,7 +8,6 @@ import { cn } from "@/lib/utils"
 import { dataTableCopy } from "./data-table-copy"
 
 export type DataTableColumnHeaderAlignment = "start" | "center" | "end"
-
 type DataTableSortDirection = false | "asc" | "desc"
 
 const alignmentClassNames: Record<DataTableColumnHeaderAlignment, string> = {
@@ -18,10 +17,7 @@ const alignmentClassNames: Record<DataTableColumnHeaderAlignment, string> = {
 }
 
 interface DataTableColumnHeaderProps<TData, TValue>
-  extends Omit<
-    React.HTMLAttributes<HTMLDivElement>,
-    "children" | "title"
-  > {
+  extends Omit<React.HTMLAttributes<HTMLDivElement>, "children" | "title"> {
   column: Column<TData, TValue>
   title: string
   align?: DataTableColumnHeaderAlignment
@@ -41,11 +37,9 @@ function getSortButtonLabel(
   if (nextSortDirection === "asc") {
     return `${dataTableCopy.accessibility.sortAscending}: ${title}`
   }
-
   if (nextSortDirection === "desc") {
     return `${dataTableCopy.accessibility.sortDescending}: ${title}`
   }
-
   return `${dataTableCopy.accessibility.clearSorting}: ${title}`
 }
 

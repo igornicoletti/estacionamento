@@ -1,59 +1,48 @@
 import { LogOutIcon } from "lucide-react"
-import * as React from "react"
+import { useNavigate } from "react-router"
 
-import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { Button } from "@/components/ui/button"
+import { DestructiveConfirmDialog } from "@/components/ui/destructive-confirm-dialog"
 import { SidebarTrigger } from "@/components/ui/sidebar"
-import { useAuth } from "@/features/auth"
+import { useAuthSession } from "@/features/auth/hooks"
 
-import { sidebarBrand } from "./sidebar-config"
-import { sidebarCopy } from "./sidebar-copy"
 import { NotificationsPopover } from "./sidebar-notifications-popover"
 import { UserMenu } from "./sidebar-user-menu"
 
 export function AppHeader() {
-  const auth = useAuth()
-  const [isSignOutDialogOpen, setIsSignOutDialogOpen] = React.useState(false)
+  const { signOut } = useAuthSession()
+  const navigate = useNavigate()
+
+  async function handleSignOut() {
+    await signOut()
+    void navigate("/login", { replace: true })
+  }
 
   return (
-    <>
-      <header className="sticky top-0 z-10 flex h-16 shrink-0 items-center gap-2 border-b border-border/60 bg-background/95 px-4 backdrop-blur-sm">
-        <img
-          src={sidebarBrand.symbolLogoUrl}
-          alt={sidebarBrand.shortName}
-          className="h-8 w-8 shrink-0 object-contain md:hidden"
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
+      <SidebarTrigger className="lg:hidden" />
+      <div className="ml-auto flex items-center gap-2">
+        <NotificationsPopover />
+        <UserMenu />
+        <DestructiveConfirmDialog
+          title="Encerrar sessão"
+          description="Deseja realmente sair agora? Você precisará fazer login novamente para continuar."
+          confirmLabel="Sair"
+          onConfirm={async () => {
+            await handleSignOut()
+          }}
+          trigger={
+            <Button
+              type="button"
+              variant="destructive"
+              className="hidden bg-destructive text-destructive-foreground md:inline-flex hover:bg-destructive/90"
+            >
+              <LogOutIcon />
+              Sair
+            </Button>
+          }
         />
-        <SidebarTrigger
-          className="md:hidden"
-          aria-label={sidebarCopy.header.openNavigation}
-        />
-        <div className="ml-auto flex items-center gap-4">
-          <NotificationsPopover />
-          <UserMenu />
-          <Button
-            type="button"
-            variant="destructive"
-            className="hidden md:inline-flex"
-            onClick={() => setIsSignOutDialogOpen(true)}
-          >
-            <LogOutIcon aria-hidden="true" />
-            {sidebarCopy.menu.signOut}
-          </Button>
-        </div>
-      </header>
-
-      <AppAlertDialog
-        open={isSignOutDialogOpen}
-        onOpenChange={setIsSignOutDialogOpen}
-        media={<LogOutIcon />}
-        title={sidebarCopy.dialog.signOutTitle}
-        description={sidebarCopy.dialog.signOutDescription}
-        cancelLabel={sidebarCopy.dialog.signOutCancel}
-        actionLabel={sidebarCopy.dialog.signOutConfirm}
-        onAction={() => {
-          void auth.actions.logoutAsync()
-        }}
-      />
-    </>
+      </div>
+    </header>
   )
 }

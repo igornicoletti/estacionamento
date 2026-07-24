@@ -24,6 +24,17 @@ vi.mock("react-router", async () => {
   }
 })
 
+vi.mock("@/features/auth/hooks", () => {
+  return {
+    useAuthSession: () => ({
+      profile: {
+        role: "admin",
+        status: "active",
+      },
+    }),
+  }
+})
+
 describe("RouteErrorBoundary", () => {
   const mockedUseRouteError = vi.mocked(useRouteError)
 
@@ -31,7 +42,7 @@ describe("RouteErrorBoundary", () => {
     mockedUseRouteError.mockReset()
   })
 
-  it("renders unexpected error using Empty layout with hard navigation actions", () => {
+  it("renders unexpected error using Empty layout with a link action", () => {
     mockedUseRouteError.mockReturnValue(new Error("boom"))
 
     const { container } = render(
@@ -42,14 +53,15 @@ describe("RouteErrorBoundary", () => {
 
     expect(screen.getByText("Erro inesperado")).toBeInTheDocument()
     expect(
-      screen.getByText(/A aplicação encontrou uma falha inesperada ao renderizar esta rota\. Código:/)
+      screen.getByText(
+        "A aplicação encontrou um erro ao renderizar esta rota. Tente novamente ou retorne para a página inicial."
+      )
     ).toBeInTheDocument()
 
     const empty = container.querySelector('[data-slot="empty"]')
     expect(empty).not.toBeNull()
 
     const backLink = screen.getByRole("link", { name: "Voltar para o início" })
-    expect(backLink).toHaveAttribute("href", "/")
-    expect(screen.getByRole("button", { name: "Tentar novamente" })).toBeInTheDocument()
+    expect(backLink).toHaveAttribute("href", "/clientes")
   })
 })

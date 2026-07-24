@@ -5,28 +5,25 @@ import { Badge } from "@/components/ui/badge"
 import { cn } from "@/lib/utils"
 
 import { createDataTableColumnHeader } from "./data-table-column-header"
-import { type DataTableColumnId } from "./data-table-types"
+import { type DataTableAccessorKey } from "./data-table-types"
 
 export type DataTableBadgeValue = string | number
 
 type DataTableBadgeVariant = NonNullable<
   React.ComponentProps<typeof Badge>["variant"]
 >
-
 type DataTableBadgeFallback<TData> =
   | React.ReactNode
   | ((row: Row<TData>) => React.ReactNode)
-
 type DataTableBadgeVariantResolver<TData> =
   | DataTableBadgeVariant
   | ((value: DataTableBadgeValue, row: Row<TData>) => DataTableBadgeVariant)
-
 type DataTableBadgeClassNameResolver<TData> =
   | string
   | ((value: DataTableBadgeValue, row: Row<TData>) => string | undefined)
 
 interface DataTableBadgeColumnConfig<TData> {
-  accessorKey: DataTableColumnId<TData>
+  accessorKey: DataTableAccessorKey<TData>
   title: string
   fallback?: DataTableBadgeFallback<TData>
   formatValue?: (
@@ -41,15 +38,10 @@ interface DataTableBadgeColumnConfig<TData> {
 
 function normalizeBadgeValue(value: unknown): DataTableBadgeValue | null {
   if (typeof value === "string") {
-    const normalizedValue = value.trim()
-
-    return normalizedValue.length > 0 ? normalizedValue : null
+    const normalized = value.trim()
+    return normalized ? normalized : null
   }
-
-  if (typeof value === "number") {
-    return Number.isFinite(value) ? value : null
-  }
-
+  if (typeof value === "number") return Number.isFinite(value) ? value : null
   return null
 }
 
@@ -57,23 +49,9 @@ function hasRenderableFallback(value: React.ReactNode): boolean {
   if (value === null || value === undefined || typeof value === "boolean") {
     return false
   }
-
-  if (typeof value === "string") {
-    return value.trim().length > 0
-  }
-
-  if (typeof value === "number") {
-    return Number.isFinite(value)
-  }
-
+  if (typeof value === "string") return value.trim().length > 0
+  if (typeof value === "number") return Number.isFinite(value)
   return true
-}
-
-function resolveFallback<TData>(
-  fallback: DataTableBadgeFallback<TData>,
-  row: Row<TData>
-): React.ReactNode {
-  return typeof fallback === "function" ? fallback(row) : fallback
 }
 
 export function createBadgeColumn<TData>({
@@ -88,36 +66,29 @@ export function createBadgeColumn<TData>({
 }: DataTableBadgeColumnConfig<TData>): ColumnDef<TData> {
   return {
     accessorKey,
-    meta: {
-      label: title,
-    },
+    meta: { label: title },
     header: createDataTableColumnHeader<TData, unknown>(title, {
       align: "center",
     }),
     cell: ({ getValue, row }) => {
       const rawValue = getValue()
-      const formattedValue = formatValue
-        ? formatValue(rawValue, row)
-        : rawValue
-      const value = normalizeBadgeValue(formattedValue)
+      const value = normalizeBadgeValue(
+        formatValue ? formatValue(rawValue, row) : rawValue
+      )
 
       if (value === null) {
-        const resolvedFallback = resolveFallback(fallback, row)
-
-        if (!hasRenderableFallback(resolvedFallback)) {
-          return null
-        }
-
-        return (
+        const resolvedFallback =
+          typeof fallback === "function" ? fallback(row) : fallback
+        return hasRenderableFallback(resolvedFallback) ? (
           <div className="flex min-w-0 justify-center">
             {resolvedFallback}
           </div>
-        )
+        ) : null
       }
 
       const resolvedVariant =
         typeof variant === "function" ? variant(value, row) : variant
-      const resolvedBadgeClassName =
+      const resolvedClassName =
         typeof badgeClassName === "function"
           ? badgeClassName(value, row)
           : badgeClassName
@@ -128,7 +99,7 @@ export function createBadgeColumn<TData>({
             variant={resolvedVariant}
             className={cn(
               "max-w-full justify-center text-center",
-              resolvedBadgeClassName
+              resolvedClassName
             )}
           >
             {value}

@@ -17,14 +17,7 @@ interface DragState {
   hasMoved: boolean
 }
 
-interface OverflowState {
-  horizontal: boolean
-  vertical: boolean
-}
-
 const DEFAULT_DRAG_THRESHOLD = 4
-const CLICK_SUPPRESSION_TIMEOUT_MS = 250
-
 const INTERACTIVE_ELEMENT_SELECTOR = [
   "a[href]",
   "button",
@@ -33,8 +26,6 @@ const INTERACTIVE_ELEMENT_SELECTOR = [
   "textarea",
   "label",
   "summary",
-  "audio[controls]",
-  "video[controls]",
   "[contenteditable]:not([contenteditable='false'])",
   "[draggable='true']",
   "[role='button']",
@@ -43,53 +34,25 @@ const INTERACTIVE_ELEMENT_SELECTOR = [
   "[role='link']",
   "[role='listbox']",
   "[role='menuitem']",
-  "[role='menuitemcheckbox']",
-  "[role='menuitemradio']",
   "[role='option']",
-  "[role='radio']",
   "[role='searchbox']",
-  "[role='slider']",
-  "[role='spinbutton']",
-  "[role='switch']",
-  "[role='tab']",
   "[role='textbox']",
   "[tabindex]:not([tabindex='-1'])",
   "[data-no-drag-scroll='true']",
 ].join(",")
 
 function createInitialDragState(): DragState {
-  return {
-    pointerId: null,
-    startX: 0,
-    scrollLeft: 0,
-    hasMoved: false,
-  }
-}
-
-function normalizeDragThreshold(
-  value: number
-): number {
-  return Number.isFinite(value) && value >= 0
-    ? value
-    : DEFAULT_DRAG_THRESHOLD
+  return { pointerId: null, startX: 0, scrollLeft: 0, hasMoved: false }
 }
 
 function isInteractiveElement(
   target: EventTarget | null,
   boundary: Element
 ): boolean {
-  if (!(target instanceof Element)) {
-    return false
-  }
-
-  const interactiveElement = target.closest(
-    INTERACTIVE_ELEMENT_SELECTOR
-  )
-
+  if (!(target instanceof Element)) return false
+  const interactive = target.closest(INTERACTIVE_ELEMENT_SELECTOR)
   return Boolean(
-    interactiveElement &&
-    interactiveElement !== boundary &&
-    boundary.contains(interactiveElement)
+    interactive && interactive !== boundary && boundary.contains(interactive)
   )
 }
 
@@ -98,400 +61,169 @@ export function DataTableScrollContainer({
   className,
   dragThreshold = DEFAULT_DRAG_THRESHOLD,
   enableDragScroll = true,
-  style,
   role: providedRole,
   tabIndex: providedTabIndex,
   onPointerDown: externalOnPointerDown,
   onPointerMove: externalOnPointerMove,
   onPointerUp: externalOnPointerUp,
   onPointerCancel: externalOnPointerCancel,
-  onLostPointerCapture:
-  externalOnLostPointerCapture,
+  onLostPointerCapture: externalOnLostPointerCapture,
   onClickCapture: externalOnClickCapture,
   ...props
 }: DataTableScrollContainerProps) {
-  const scrollRef =
-    React.useRef<HTMLDivElement>(null)
-
-  const dragState = React.useRef<DragState>(
-    createInitialDragState()
-  )
-
+  const ref = React.useRef<HTMLDivElement>(null)
+  const dragState = React.useRef<DragState>(createInitialDragState())
   const suppressClick = React.useRef(false)
+  const [isDragging, setIsDragging] = React.useState(false)
+  const [hasOverflow, setHasOverflow] = React.useState(false)
+  const threshold =
+    Number.isFinite(dragThreshold) && dragThreshold >= 0
+      ? dragThreshold
+      : DEFAULT_DRAG_THRESHOLD
 
-  const clickSuppressionTimeout =
-    React.useRef<number | null>(null)
-
-  const [isDragging, setIsDragging] =
-    React.useState(false)
-
-  const [overflowState, setOverflowState] =
-    React.useState<OverflowState>({
-      horizontal: false,
-      vertical: false,
-    })
-
-  const normalizedDragThreshold =
-    normalizeDragThreshold(dragThreshold)
-
-  const updateOverflowState =
-    React.useCallback(() => {
-      const scrollElement =
-        scrollRef.current
-
-      if (!scrollElement) {
-        return
-      }
-
-      const nextState: OverflowState = {
-        horizontal:
-          scrollElement.scrollWidth >
-          scrollElement.clientWidth + 1,
-        vertical:
-          scrollElement.scrollHeight >
-          scrollElement.clientHeight + 1,
-      }
-
-      setOverflowState((previousState) => {
-        if (
-          previousState.horizontal ===
-          nextState.horizontal &&
-          previousState.vertical ===
-          nextState.vertical
-        ) {
-          return previousState
-        }
-
-        return nextState
-      })
-    }, [])
+  const updateOverflow = React.useCallback(() => {
+    const element = ref.current
+    if (!element) return
+    setHasOverflow(
+      element.scrollWidth > element.clientWidth + 1 ||
+        element.scrollHeight > element.clientHeight + 1
+    )
+  }, [])
 
   React.useEffect(() => {
-    updateOverflowState()
-  }, [children, updateOverflowState])
-
-  React.useEffect(() => {
-    const scrollElement =
-      scrollRef.current
-
-    if (!scrollElement) {
-      return
-    }
+    updateOverflow()
+    const element = ref.current
+    if (!element) return
 
     const resizeObserver =
       typeof ResizeObserver !== "undefined"
-        ? new ResizeObserver(
-          updateOverflowState
-        )
+        ? new ResizeObserver(updateOverflow)
         : null
-
-    function observeResizeTargets() {
-      resizeObserver?.disconnect()
-      resizeObserver?.observe(scrollElement)
-
-      for (const child of Array.from(
-        scrollElement.children
-      )) {
-        resizeObserver?.observe(child)
-      }
+    resizeObserver?.observe(element)
+    for (const child of Array.from(element.children)) {
+      resizeObserver?.observe(child)
     }
-
-    observeResizeTargets()
 
     const mutationObserver =
       typeof MutationObserver !== "undefined"
-        ? new MutationObserver(() => {
-          observeResizeTargets()
-          updateOverflowState()
-        })
+        ? new MutationObserver(updateOverflow)
         : null
-
-    mutationObserver?.observe(scrollElement, {
-      childList: true,
-    })
-
-    window.addEventListener(
-      "resize",
-      updateOverflowState
-    )
+    mutationObserver?.observe(element, { childList: true, subtree: true })
+    window.addEventListener("resize", updateOverflow)
 
     return () => {
       resizeObserver?.disconnect()
       mutationObserver?.disconnect()
-
-      window.removeEventListener(
-        "resize",
-        updateOverflowState
-      )
+      window.removeEventListener("resize", updateOverflow)
     }
-  }, [updateOverflowState])
+  }, [children, updateOverflow])
 
-  const clearClickSuppressionTimeout =
-    React.useCallback(() => {
-      if (
-        clickSuppressionTimeout.current ===
-        null
-      ) {
-        return
+  const finishDragging = React.useCallback((releaseCapture: boolean) => {
+    const element = ref.current
+    const { pointerId, hasMoved } = dragState.current
+    if (pointerId === null) return
+
+    dragState.current = createInitialDragState()
+    setIsDragging(false)
+    if (hasMoved) suppressClick.current = true
+
+    if (releaseCapture && element?.hasPointerCapture(pointerId)) {
+      try {
+        element.releasePointerCapture(pointerId)
+      } catch {
+        // O navegador pode liberar a captura antes desta chamada.
       }
-
-      window.clearTimeout(
-        clickSuppressionTimeout.current
-      )
-
-      clickSuppressionTimeout.current = null
-    }, [])
-
-  const armClickSuppression =
-    React.useCallback(() => {
-      clearClickSuppressionTimeout()
-
-      suppressClick.current = true
-
-      clickSuppressionTimeout.current =
-        window.setTimeout(() => {
-          suppressClick.current = false
-          clickSuppressionTimeout.current =
-            null
-        }, CLICK_SUPPRESSION_TIMEOUT_MS)
-    }, [clearClickSuppressionTimeout])
-
-  React.useEffect(() => {
-    return () => {
-      clearClickSuppressionTimeout()
     }
-  }, [clearClickSuppressionTimeout])
+  }, [])
 
-  const finishDragging = React.useCallback(
-    (releaseCapture: boolean) => {
-      const scrollElement =
-        scrollRef.current
-
-      const {
-        pointerId,
-        hasMoved,
-      } = dragState.current
-
-      if (pointerId === null) {
-        return
-      }
-
-      dragState.current =
-        createInitialDragState()
-
-      setIsDragging(false)
-
-      if (hasMoved) {
-        armClickSuppression()
-      }
-
-      if (
-        releaseCapture &&
-        scrollElement?.hasPointerCapture(
-          pointerId
-        )
-      ) {
-        try {
-          scrollElement.releasePointerCapture(
-            pointerId
-          )
-        } catch {
-          // A captura pode ter sido liberada
-          // pelo navegador entre a verificação
-          // e esta chamada.
-        }
-      }
-    },
-    [armClickSuppression]
-  )
-
-  const hasScrollableOverflow =
-    overflowState.horizontal ||
-    overflowState.vertical
-
-  const resolvedRole =
-    providedRole ??
-    (hasScrollableOverflow
-      ? "region"
+  const resolvedRole = providedRole ?? (hasOverflow ? "region" : undefined)
+  const ariaLabel =
+    props["aria-label"] ??
+    (resolvedRole === "region" && !props["aria-labelledby"]
+      ? dataTableCopy.accessibility.scrollableTable
       : undefined)
-
-  const providedAriaLabel =
-    props["aria-label"]
-
-  const providedAriaLabelledBy =
-    props["aria-labelledby"]
-
-  const resolvedAriaLabel =
-    providedAriaLabel ??
-    (resolvedRole === "region" &&
-      !providedAriaLabelledBy
-      ? dataTableCopy.accessibility
-        .scrollableTable
-      : undefined)
-
-  const resolvedTabIndex =
-    providedTabIndex ??
-    (hasScrollableOverflow ? 0 : undefined)
 
   return (
     <div
       {...props}
-      ref={scrollRef}
+      ref={ref}
       role={resolvedRole}
-      aria-label={resolvedAriaLabel}
-      tabIndex={resolvedTabIndex}
-      data-scrollable-x={
-        overflowState.horizontal ||
-        undefined
-      }
-      data-scrollable-y={
-        overflowState.vertical ||
-        undefined
-      }
-      data-dragging={
-        isDragging || undefined
-      }
+      aria-label={ariaLabel}
+      tabIndex={providedTabIndex ?? (hasOverflow ? 0 : undefined)}
+      data-dragging={isDragging || undefined}
       className={cn(
         "min-h-0 overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
-        isDragging &&
-        "cursor-grabbing select-none",
+        isDragging && "cursor-grabbing select-none",
         className
       )}
-      style={style}
       onPointerDown={(event) => {
         externalOnPointerDown?.(event)
-
         if (
           event.defaultPrevented ||
           !enableDragScroll ||
           event.pointerType !== "mouse" ||
           !event.isPrimary ||
           event.button !== 0 ||
-          isInteractiveElement(
-            event.target,
-            event.currentTarget
-          )
+          isInteractiveElement(event.target, event.currentTarget) ||
+          event.currentTarget.scrollWidth <= event.currentTarget.clientWidth + 1
         ) {
           return
         }
-
-        const scrollElement =
-          event.currentTarget
-
-        if (
-          scrollElement.scrollWidth <=
-          scrollElement.clientWidth + 1
-        ) {
-          return
-        }
-
-        suppressClick.current = false
-        clearClickSuppressionTimeout()
 
         dragState.current = {
           pointerId: event.pointerId,
           startX: event.clientX,
-          scrollLeft:
-            scrollElement.scrollLeft,
+          scrollLeft: event.currentTarget.scrollLeft,
           hasMoved: false,
         }
-
         try {
-          scrollElement.setPointerCapture(
-            event.pointerId
-          )
+          event.currentTarget.setPointerCapture(event.pointerId)
         } catch {
-          dragState.current =
-            createInitialDragState()
+          dragState.current = createInitialDragState()
         }
       }}
       onPointerMove={(event) => {
         externalOnPointerMove?.(event)
-
-        if (event.defaultPrevented) {
-          return
-        }
-
-        const currentDrag =
-          dragState.current
-
         if (
-          currentDrag.pointerId !==
-          event.pointerId
+          event.defaultPrevented ||
+          dragState.current.pointerId !== event.pointerId
         ) {
           return
         }
-
         if (event.buttons === 0) {
           finishDragging(true)
           return
         }
 
-        const deltaX =
-          event.clientX -
-          currentDrag.startX
-
-        if (
-          !currentDrag.hasMoved &&
-          Math.abs(deltaX) <=
-          normalizedDragThreshold
-        ) {
-          return
-        }
-
-        if (!currentDrag.hasMoved) {
-          currentDrag.hasMoved = true
+        const deltaX = event.clientX - dragState.current.startX
+        if (!dragState.current.hasMoved && Math.abs(deltaX) <= threshold) return
+        if (!dragState.current.hasMoved) {
+          dragState.current.hasMoved = true
           setIsDragging(true)
         }
-
         event.preventDefault()
-
         event.currentTarget.scrollLeft =
-          currentDrag.scrollLeft - deltaX
+          dragState.current.scrollLeft - deltaX
       }}
       onPointerUp={(event) => {
-        if (
-          dragState.current.pointerId ===
-          event.pointerId
-        ) {
-          finishDragging(true)
-        }
-
+        if (dragState.current.pointerId === event.pointerId) finishDragging(true)
         externalOnPointerUp?.(event)
       }}
       onPointerCancel={(event) => {
-        if (
-          dragState.current.pointerId ===
-          event.pointerId
-        ) {
-          finishDragging(true)
-        }
-
+        if (dragState.current.pointerId === event.pointerId) finishDragging(true)
         externalOnPointerCancel?.(event)
       }}
       onLostPointerCapture={(event) => {
-        if (
-          dragState.current.pointerId ===
-          event.pointerId
-        ) {
-          finishDragging(false)
-        }
-
-        externalOnLostPointerCapture?.(
-          event
-        )
+        if (dragState.current.pointerId === event.pointerId) finishDragging(false)
+        externalOnLostPointerCapture?.(event)
       }}
       onClickCapture={(event) => {
         if (suppressClick.current) {
           event.preventDefault()
           event.stopPropagation()
-
           suppressClick.current = false
-          clearClickSuppressionTimeout()
-
           return
         }
-
         externalOnClickCapture?.(event)
       }}
     >

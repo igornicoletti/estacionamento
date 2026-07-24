@@ -36,12 +36,8 @@ export interface DataTableSearchInputProps
   onClear: () => void
 }
 
-function normalizeAccessibleText(
-  value: string | undefined
-): string {
-  return value
-    ?.trim()
-    .replace(/\s+/gu, " ") ?? ""
+function normalizeAccessibleText(value: string | undefined): string {
+  return value?.trim().replace(/\s+/gu, " ") ?? ""
 }
 
 export function DataTableSearchInput({
@@ -60,49 +56,23 @@ export function DataTableSearchInput({
   onClear,
   ...inputProps
 }: DataTableSearchInputProps) {
-  const inputRef =
-    React.useRef<HTMLInputElement>(null)
-
-  const hasInputValue = value.length > 0
-
+  const inputRef = React.useRef<HTMLInputElement>(null)
   const canClear =
-    hasInputValue &&
-    disabled !== true &&
-    readOnly !== true
-
-  const hasTrailingAddon =
-    isLoading || canClear
-
+    value.length > 0 && disabled !== true && readOnly !== true
   const resolvedAriaLabel =
-    normalizeAccessibleText(ariaLabel) ||
-    dataTableCopy.toolbar.search
-
+    normalizeAccessibleText(ariaLabel) || dataTableCopy.toolbar.search
   const resolvedPlaceholder =
     normalizeAccessibleText(placeholder) ||
     dataTableCopy.toolbar.searchPlaceholder
-
-  const clearSearchPrefix =
-    normalizeAccessibleText(
-      dataTableCopy.accessibility
-        .clearSearchPrefix
-    ) || "Limpar busca"
-
   const resolvedClearAriaLabel =
-    normalizeAccessibleText(
-      clearAriaLabel
-    ) ||
-    `${clearSearchPrefix}: ${resolvedAriaLabel}`
-
-  const resolvedLoadingAnnouncement =
-    normalizeAccessibleText(
-      loadingAnnouncement
-    )
+    normalizeAccessibleText(clearAriaLabel) ||
+    `${dataTableCopy.accessibility.clearSearchPrefix}: ${resolvedAriaLabel}`
+  const resolvedLoadingAnnouncement = normalizeAccessibleText(
+    loadingAnnouncement
+  )
 
   function handleClear() {
-    if (!canClear) {
-      return
-    }
-
+    if (!canClear) return
     onClear()
     inputRef.current?.focus()
   }
@@ -110,16 +80,9 @@ export function DataTableSearchInput({
   return (
     <InputGroup
       data-no-drag-scroll="true"
-      data-loading={
-        isLoading || undefined
-      }
-      aria-busy={
-        isLoading || undefined
-      }
-      className={cn(
-        "w-full lg:w-72 xl:w-80",
-        className
-      )}
+      data-loading={isLoading || undefined}
+      aria-busy={isLoading || undefined}
+      className={cn("w-full lg:w-72 xl:w-80", className)}
     >
       <InputGroupInput
         {...inputProps}
@@ -131,14 +94,9 @@ export function DataTableSearchInput({
         disabled={disabled}
         readOnly={readOnly}
         className={inputClassName}
-        onChange={(event) => {
-          onValueChange(
-            event.currentTarget.value
-          )
-        }}
+        onChange={(event) => onValueChange(event.currentTarget.value)}
         onKeyDown={(event) => {
           externalOnKeyDown?.(event)
-
           if (
             event.defaultPrevented ||
             event.nativeEvent.isComposing ||
@@ -147,21 +105,15 @@ export function DataTableSearchInput({
           ) {
             return
           }
-
           event.preventDefault()
           event.stopPropagation()
           handleClear()
         }}
       />
-
       <InputGroupAddon align="inline-start">
-        <SearchIcon
-          aria-hidden="true"
-          focusable="false"
-        />
+        <SearchIcon aria-hidden="true" focusable="false" />
       </InputGroupAddon>
-
-      {hasTrailingAddon ? (
+      {isLoading || canClear ? (
         <InputGroupAddon align="inline-end">
           {isLoading ? (
             <Spinner
@@ -171,32 +123,21 @@ export function DataTableSearchInput({
               focusable="false"
             />
           ) : null}
-
-          {isLoading &&
-            resolvedLoadingAnnouncement ? (
-            <span
-              role="status"
-              className="sr-only"
-            >
+          {isLoading && resolvedLoadingAnnouncement ? (
+            <span role="status" className="sr-only">
               {resolvedLoadingAnnouncement}
             </span>
           ) : null}
-
           {canClear ? (
             <InputGroupButton
               data-no-drag-scroll="true"
               type="button"
               variant="ghost"
               size="icon-sm"
-              aria-label={
-                resolvedClearAriaLabel
-              }
+              aria-label={resolvedClearAriaLabel}
               onClick={handleClear}
             >
-              <XIcon
-                aria-hidden="true"
-                focusable="false"
-              />
+              <XIcon aria-hidden="true" focusable="false" />
             </InputGroupButton>
           ) : null}
         </InputGroupAddon>

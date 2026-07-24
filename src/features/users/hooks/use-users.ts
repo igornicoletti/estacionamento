@@ -1,117 +1,157 @@
 import * as React from "react"
 
-import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
-import { toError } from "@/lib"
-
-import { USERS_CACHE_KEY, USERS_DISABLED_CACHE_KEY, usersCopy } from "../constants"
 import {
   blockUser,
-  clearUserLock,
   createUser,
   listUsers,
   resetUserAccess,
-  resetUserPasskey,
-  revokeUserSessions,
   updateUser,
-} from "../services"
-import { type CreateUserInput, type UpdateUserInput, type UserRecord } from "../model"
+} from "../services/users-service"
+import {
+  type CreateUserInput,
+  type UpdateUserInput,
+  type UserRecord,
+} from "../types/users-types"
 
-export function useUsers(options: { enabled?: boolean } = {}) {
-  const enabled = options.enabled ?? true
-  const snapshot = useAsyncSnapshot<UserRecord[]>({
-    cacheKey: enabled ? USERS_CACHE_KEY : USERS_DISABLED_CACHE_KEY,
-    errorMessage: usersCopy.errors.load,
-    initialData: [],
-    loadData: enabled ? listUsers : () => Promise.resolve([]),
-  })
+const usersLoadError = "Nao foi possivel carregar os usuarios."
+
+export function useUsers() {
+  const [data, setData] = React.useState<UserRecord[]>([])
+  const [isLoading, setIsLoading] = React.useState(true)
   const [isSaving, setIsSaving] = React.useState(false)
-  const activeSaveRef = React.useRef<Promise<UserRecord> | null>(null)
+  const [error, setError] = React.useState<Error | null>(null)
 
-  const runMutation = React.useCallback(async (mutation: () => Promise<UserRecord>) => {
-    if (activeSaveRef.current) {
-      return activeSaveRef.current
-    }
-
-    setIsSaving(true)
-    activeSaveRef.current = mutation()
-
+  const loadUsers = React.useCallback(async (isCurrent: () => boolean) => {
     try {
-      const user = await activeSaveRef.current
-      await snapshot.refetch()
-      return user
+      setIsLoading(true)
+      setError(null)
+
+      const users = await listUsers()
+
+      if (isCurrent()) {
+        setData(users)
+      }
+    } catch (caughtError) {
+      if (isCurrent()) {
+        setError(
+          caughtError instanceof Error
+            ? caughtError
+            : new Error(usersLoadError)
+        )
+      }
     } finally {
-      activeSaveRef.current = null
-      setIsSaving(false)
+      if (isCurrent()) {
+        setIsLoading(false)
+      }
     }
-  }, [snapshot])
+  }, [])
+
+  const refetch = React.useCallback(() => {
+    return loadUsers(() => true)
+  }, [loadUsers])
 
   const addUser = React.useCallback(async (input: CreateUserInput) => {
+    setIsSaving(true)
+    setError(null)
+
     try {
-      return await runMutation(() => createUser(input))
+      const createdUser = await createUser(input)
+      setData((current) => [createdUser, ...current])
+      return createdUser
     } catch (caughtError) {
-      throw toError(caughtError, usersCopy.errors.create)
+      const nextError =
+        caughtError instanceof Error
+          ? caughtError
+          : new Error("Nao foi possivel criar o usuario.")
+
+      setError(nextError)
+      throw nextError
+    } finally {
+      setIsSaving(false)
     }
-  }, [runMutation])
+  }, [])
 
   const editUser = React.useCallback(async (input: UpdateUserInput) => {
+    setIsSaving(true)
+    setError(null)
+
     try {
-      return await runMutation(() => updateUser(input))
+      const updatedUser = await updateUser(input)
+      setData((current) =>
+        current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+      )
+      return updatedUser
     } catch (caughtError) {
-      throw toError(caughtError, usersCopy.errors.update)
+      const nextError =
+        caughtError instanceof Error
+          ? caughtError
+          : new Error("Nao foi possivel atualizar o usuario.")
+
+      setError(nextError)
+      throw nextError
+    } finally {
+      setIsSaving(false)
     }
-  }, [runMutation])
+  }, [])
 
   const inactivateUser = React.useCallback(async (userId: string) => {
-    try {
-      return await runMutation(() => blockUser(userId))
-    } catch (caughtError) {
-      throw toError(caughtError, usersCopy.feedback.block.error)
-    }
-  }, [runMutation])
+    const updatedUser = await blockUser(userId)
+    setData((current) =>
+      current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+    )
+    return updatedUser
+  }, [])
 
   const resetAccess = React.useCallback(async (userId: string) => {
-    try {
-      return await runMutation(() => resetUserAccess(userId))
-    } catch (caughtError) {
-      throw toError(caughtError, usersCopy.feedback.reset.error)
-    }
-  }, [runMutation])
+    const updatedUser = await resetUserAccess(userId)
+    setData((current) =>
+      current.map((user) => (user.id === updatedUser.id ? updatedUser : user))
+    )
+    return updatedUser
+  }, [])
 
-  const resetPasskey = React.useCallback(async (userId: string) => {
-    try {
-      return await runMutation(() => resetUserPasskey(userId))
-    } catch (caughtError) {
-      throw toError(caughtError, usersCopy.feedback.resetPasskey.error)
-    }
-  }, [runMutation])
+  React.useEffect(() => {
+    let isMounted = true
 
-  const clearLock = React.useCallback(async (userId: string) => {
-    try {
-      return await runMutation(() => clearUserLock(userId))
-    } catch (caughtError) {
-      throw toError(caughtError, usersCopy.feedback.clearLock.error)
-    }
-  }, [runMutation])
+    async function loadInitialUsers() {
+      try {
+        const users = await listUsers()
 
-  const revokeSessions = React.useCallback(async (userId: string) => {
-    try {
-      return await runMutation(() => revokeUserSessions(userId))
-    } catch (caughtError) {
-      throw toError(caughtError, usersCopy.feedback.revokeSessions.error)
+        if (isMounted) {
+          setData(users)
+          setError(null)
+        }
+      } catch (caughtError) {
+        if (isMounted) {
+          setError(
+            caughtError instanceof Error
+              ? caughtError
+              : new Error(usersLoadError)
+          )
+        }
+      } finally {
+        if (isMounted) {
+          setIsLoading(false)
+        }
+      }
     }
-  }, [runMutation])
+
+    void loadInitialUsers()
+
+    return () => {
+      isMounted = false
+    }
+  }, [loadUsers])
 
   return {
-    ...snapshot,
-    isLoading: enabled ? snapshot.isLoading : false,
+    data,
+    error,
+    isLoading,
     isSaving,
     addUser,
     editUser,
-    refetch: snapshot.refetch,
+    refetch,
     inactivateUser,
     resetAccess,
-    resetPasskey,
-    clearLock,
-    revokeSessions,
   }
 }

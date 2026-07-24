@@ -1,96 +1,19 @@
-export { ClientSyncBlockingDialog, ClientsSyncHistoryDialog } from "./components"
+export { ClientsRoute } from "./routes/clients-route"
+export { ClientVehiclesRoute } from "./routes/client-vehicles-route"
+export { createClientsColumns } from "./columns/clients-columns"
+export { createClientVehiclesColumns } from "./columns/client-vehicles-columns"
+export { useClients } from "./hooks/use-clients"
+export { useClientVehicles } from "./hooks/use-client-vehicles"
+export { listClients, listClientVehicles } from "./services/clients-service"
 export {
-  clientsCopy,
-  clientsRoutePaths,
-  CLIENT_VEHICLES_CACHE_KEY_PREFIX,
-  CLIENT_VEHICLES_TABLE_COLUMN_VISIBILITY_KEY,
-  CLIENT_VIP_RULES_CACHE_KEY,
-  CLIENT_VIP_RULES_DISABLED_CACHE_KEY,
-  CLIENTS_BATCH_SIZE,
-  CLIENTS_CACHE_KEY,
-  CLIENTS_MAX_BATCHES,
-  CLIENTS_SYNC_HISTORY_CACHE_KEY,
-  CLIENTS_SYNC_HISTORY_LIMIT,
-  CLIENTS_TABLE_COLUMN_VISIBILITY_KEY,
-  CLIENT_SYNC_DEFAULT_MODE,
-  CLIENT_SYNC_FAILED_STATUS,
-  CLIENT_SYNC_FETCH_ERROR_MESSAGE,
-  CLIENT_SYNC_FUNCTION_NAME,
-  CLIENT_SYNC_IN_PROGRESS_ERROR_CODE,
-  CLIENT_SYNC_MANUAL_TRIGGER,
-  CLIENT_SYNC_RUN_MODES,
-  CLIENT_SYNC_STATUSES,
-  CLIENT_SYNC_SUCCESS_STATUS,
-  CLIENT_SYNC_TRIGGERS,
-  DEFAULT_CLIENTS_COLUMN_VISIBILITY,
-  DEFAULT_CLIENT_VEHICLES_COLUMN_VISIBILITY,
-} from "./constants"
-export {
-  useClient,
-  useClientSyncHistory,
-  useClientVipRules,
-  useClientVehicles,
-  useClientVehiclesTableFilters,
-  useClients,
-  useClientsTableFilters,
-} from "./hooks"
-export {
-  getClientDetailItems,
-  getClientVipStatus,
-  getClientVehicleDetailItems,
-  getVehicleVipStatus,
-  mapClientToTableRow,
-  mapClientVehicleToTableRow,
-  normalizeDisplayName,
-  parseClientRouteId,
-  resolveClientStatus,
-  resolveVipFlag,
   sanitizeErpClientPayload,
   sanitizeErpClientsPayload,
   sanitizeErpClientVehiclePayload,
   sanitizeErpClientVehiclesPayload,
-  type Client,
-  type ClientStatus,
-  type ClientSyncCounters,
-  type ClientSyncHistoryEntry,
-  type ClientVipRuleRecord,
-  type ClientVipRuleTargetType,
-  type ClientSyncMode,
-  type ClientsSnapshot,
-  type ClientSyncStatus,
-  type ClientSyncTrigger,
-  type ClientTableRow,
-  type ClientVehicle,
-  type ClientVehicleTableRow,
-  type ErpClientPayload,
-  type ErpClientVehiclePayload,
-  type TriggerClientsSyncResult,
-  type VipFlag,
-} from "./model"
-export { ClientVehiclesRoute, ClientsRoute } from "./routes"
-export {
-  configureClientSyncHistoryGateway,
-  configureClientsGateway,
-  executeClientSyncWithRefresh,
-  getClientSyncHistoryGateway,
-  getClientsGateway,
-  isClientSyncInProgressError,
-  listClientById,
-  listClientVipRules,
-  listClientVehiclesByClientId,
-  listClients,
-  listClientsSnapshot,
-  listClientSyncHistory,
-  listClientVehicles,
-  resetClientSyncHistoryGateway,
-  resetClientsGateway,
-  toggleClientVipRule,
-  toggleVehicleVipRule,
-  triggerClientsSync,
-  type ClientSyncHistoryGateway,
-  type ClientsGateway,
-} from "./services"
-export {
-  createClientsColumns,
-  createClientVehiclesColumns,
-} from "./table"
+} from "./utils/clients-normalizers"
+export type {
+  Client,
+  ClientVehicle,
+  ErpClientPayload,
+  ErpClientVehiclePayload,
+} from "./types/clients-types"

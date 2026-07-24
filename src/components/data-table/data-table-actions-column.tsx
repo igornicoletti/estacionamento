@@ -32,10 +32,7 @@ export function createActionsColumn<TData>(
     ),
     cell: ({ row }) => {
       const rowActions = resolveRowActions(actions, row)
-
-      if (rowActions.length === 0) {
-        return null
-      }
+      if (rowActions.length === 0) return null
 
       return (
         <div className="flex w-full justify-end">
@@ -43,12 +40,12 @@ export function createActionsColumn<TData>(
         </div>
       )
     },
+    enableColumnFilter: false,
+    enableGlobalFilter: false,
     enableSorting: false,
     enableHiding: false,
     enableResizing: false,
-    meta: {
-      enableExport: false,
-    },
+    meta: { enableExport: false },
     size: ACTIONS_COLUMN_SIZE,
     minSize: ACTIONS_COLUMN_SIZE,
     maxSize: ACTIONS_COLUMN_SIZE,

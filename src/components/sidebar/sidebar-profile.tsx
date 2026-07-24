@@ -1,42 +1,38 @@
 import { ShieldIcon } from "lucide-react"
 
-import {
-  SidebarMenu,
-  SidebarMenuButton,
-  SidebarMenuItem,
-} from "@/components/ui/sidebar"
 import { shouldBypassAuthInDev } from "@/config"
-import { useAuth, type AuthProfile } from "@/features/auth"
+import {
+  isUserRole,
+  userRoleLabels,
+} from "@/features/auth"
+import { useAuthSession } from "@/features/auth/hooks"
 
-import { sidebarCopy } from "./sidebar-copy"
+type UnknownRecord = Record<PropertyKey, unknown>
 
-function resolveProfileRoleLabel(profile: AuthProfile | null) {
-  if (profile?.role?.label) {
-    return profile.role.label
+function isRecord(value: unknown): value is UnknownRecord {
+  return typeof value === "object" && value !== null
+}
+
+function getProfileRoleLabel(profile: unknown) {
+  if (!isRecord(profile)) {
+    return shouldBypassAuthInDev() ? "Desenvolvedor" : "Administrador"
   }
 
-  return shouldBypassAuthInDev()
-    ? sidebarCopy.profile.developmentMode
-    : sidebarCopy.profile.fallbackRole
+  return isUserRole(profile.role) ? userRoleLabels[profile.role] : "Administrador"
 }
 
 export function SidebarProfile() {
-  const { profile } = useAuth()
-  const label = resolveProfileRoleLabel(profile)
+  const { profile } = useAuthSession()
+  const label = getProfileRoleLabel(profile)
 
   return (
-    <SidebarMenu className="px-2 py-3">
-      <SidebarMenuItem>
-        <SidebarMenuButton
-          variant="outline"
-          tooltip={label}
-          aria-label={label}
-          className="cursor-default border border-sidebar-primary-foreground/60 bg-sidebar-primary-foreground/10 text-[0.6875rem] font-semibold uppercase tracking-wider text-sidebar-primary-foreground hover:bg-sidebar-primary-foreground/10 hover:text-sidebar-primary-foreground active:bg-sidebar-primary-foreground/10 active:text-sidebar-primary-foreground"
-        >
-          <ShieldIcon className="size-4" />
-          <span>{label}</span>
-        </SidebarMenuButton>
-      </SidebarMenuItem>
-    </SidebarMenu>
+    <div className="px-3 py-2 group-data-[collapsible=icon]:flex group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:px-0">
+      <div className="flex items-center gap-2 rounded-lg border border-primary/20 bg-primary/10 px-3 py-1.5 text-xs font-bold uppercase group-data-[collapsible=icon]:h-9 group-data-[collapsible=icon]:w-9 group-data-[collapsible=icon]:justify-center group-data-[collapsible=icon]:gap-0 group-data-[collapsible=icon]:px-0 group-data-[collapsible=icon]:py-0">
+        <ShieldIcon className="size-4 shrink-0 text-primary" />
+        <span className="text-xs font-bold uppercase tracking-wider text-primary truncate group-data-[collapsible=icon]:hidden">
+          {label}
+        </span>
+      </div>
+    </div>
   )
 }

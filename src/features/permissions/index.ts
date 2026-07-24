@@ -1,37 +1,16 @@
-export { PermissionAccessIcon } from "./components"
+export { PermissionsRoute } from "./routes/permissions-route"
 export {
-  permissionsCopy,
-  permissionAccessFilterLabels,
-  permissionActionLabels,
+  createPermissionsColumns,
+  getPermissionDetails,
+} from "./columns/permissions-columns"
+export { usePermissions } from "./hooks/use-permissions"
+export {
+  buildPermissionMatrix,
+  listPermissionMatrix,
+} from "./services/permissions-service"
+export {
   permissionGroupLabels,
-  permissionObjectLabels,
-  permissionRoleLabels,
-  permissionSourceLabels,
-  PERMISSIONS_DEFAULT_COLUMN_VISIBILITY,
-  PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY,
-} from "./constants"
-export { usePermissions, usePermissionsTableFilters } from "./hooks"
-export {
-  createEmptyRoleAccess,
-  createPermissionRoleAccess,
-  formatPermissionRoles,
-  formatPermissionRolesWithoutAccess,
-  formatTechnicalPermissionKey,
-  getPermissionDetailItems,
-  isPermissionRole,
-  isPermissionSource,
-  normalizePermissionMatrixRow,
-  permissionAccessFilterValues,
-  permissionRoleValues,
-  permissionSourceValues,
-  sortPermissionRoles,
-  type PermissionAccessFilter,
-  type PermissionMatrixResponse,
+  permissionGroupValues,
+  type PermissionGroup,
   type PermissionMatrixRow,
-  type PermissionRole,
-  type PermissionRoleAccess,
-  type PermissionSource,
-} from "./model"
-export { PermissionsRoute } from "./routes"
-export { listPermissionMatrix } from "./services"
-export { createPermissionsColumns } from "./table"
+} from "./types/permissions-types"
