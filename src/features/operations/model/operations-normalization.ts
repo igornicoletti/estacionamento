@@ -89,7 +89,7 @@ function normalizeTimestamp(value: unknown) {
   return Number.isNaN(date.getTime()) ? null : date.toISOString()
 }
 
-function normalizeLegacyLocalTimestamp(dateValue: unknown, timeValue: unknown) {
+function normalizeLocalTimestampFields(dateValue: unknown, timeValue: unknown) {
   const date = readString(dateValue)
 
   if (!date) {
@@ -520,10 +520,10 @@ export function normalizeOperationalCaptureSourceRow(
   const cameraType = normalizeCameraType(row.des_tipo_camera)
   const entryAt =
     normalizeTimestamp(row.ts_entrada) ??
-    normalizeLegacyLocalTimestamp(row.dta_entrada, row.hra_entrada ?? row.hra_criacao)
+    normalizeLocalTimestampFields(row.dta_entrada, row.hra_entrada ?? row.hra_criacao)
   const exitAt =
     normalizeTimestamp(row.ts_saida) ??
-    normalizeLegacyLocalTimestamp(
+    normalizeLocalTimestampFields(
       row.dta_saida,
       row.hra_saida ?? row.hra_alteracao ?? row.hra_criacao
     )
@@ -532,7 +532,7 @@ export function normalizeOperationalCaptureSourceRow(
   const quality = getOperationalReadQuality(confidence)
   const plateRecordId = readId(row.seq_placa)
   const unitId = readId(row.unit_id ?? row.seq_unidade)
-  const legacyUnitId = readId(row.seq_unidade)
+  const erpUnitId = readId(row.seq_unidade)
   const hasVehicleImage = Boolean(row.has_vehicle_image ?? readNullableString(row.storage_url))
   const hasPlateImage = Boolean(row.has_plate_image ?? readNullableString(row.storage_placa_url))
   const negativeStay = hasNegativeStay(entryAt, exitAt)
@@ -574,7 +574,7 @@ export function normalizeOperationalCaptureSourceRow(
     id: `capture:${sequence}`,
     issueCodes,
     issueLabels: issueLabels(issueCodes),
-    legacyUnitId,
+    erpUnitId,
     matchedEventId: matchedEventId ? `capture:${matchedEventId}` : null,
     normalizedPlate: plate,
     plate,

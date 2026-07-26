@@ -1,76 +1,83 @@
 import {
-  authCapabilities,
-  authCapabilityLabels,
-  hasCapability,
-  userRoleLabels,
-  userRoleValues,
-  type AuthCapability,
-} from "@/features/auth"
+  AUTH_PERMISSION,
+  AUTH_PERMISSION_WILDCARD,
+  getRoleFallbackPermissions,
+  type AuthPermission,
+} from "@/features/auth/contracts"
 
+import { permissionGroupLabels } from "../constants"
 import {
-  permissionGroupLabels,
-  type PermissionGroup,
+  formatTechnicalPermissionKey,
+  normalizePermissionMatrixRow,
+  permissionRoleValues,
   type PermissionMatrixRow,
-} from "../types/permissions-types"
+  type PermissionRole,
+} from "../model"
 
-function resolvePermissionGroup(capability: AuthCapability): PermissionGroup {
-  if (capability.startsWith("audit.")) {
-    return "audit"
+const criticalPermissions = new Set<AuthPermission>([
+  AUTH_PERMISSION.auditRead,
+  AUTH_PERMISSION.permissionsRead,
+  AUTH_PERMISSION.usersManage,
+  AUTH_PERMISSION.accessRequestsReview,
+  AUTH_PERMISSION.syncExecute,
+])
+
+const permissionValues = Object.values(AUTH_PERMISSION).filter(
+  (permission): permission is Exclude<AuthPermission, typeof AUTH_PERMISSION_WILDCARD> => {
+    return permission !== AUTH_PERMISSION_WILDCARD
   }
+)
 
-  if (capability.startsWith("security.")) {
-    return "security"
-  }
-
-  if (capability.startsWith("admin.clients.")) {
-    return "clients"
-  }
-
-  if (capability.startsWith("admin.vehicles.")) {
-    return "vehicles"
-  }
-
-  if (capability.startsWith("admin.units.")) {
-    return "units"
-  }
-
-  if (capability.startsWith("admin.users.")) {
-    return "users"
-  }
-
-  if (capability.startsWith("profile.")) {
-    return "profile"
-  }
-
-  if (capability.startsWith("sessions.")) {
-    return "sessions"
-  }
-
-  return "passkeys"
+function resolvePermissionGroupKey(permission: AuthPermission) {
+  return permission.split(".")[0] ?? "system"
 }
 
-function buildPermissionMatrixRow(
-  capability: AuthCapability
-): PermissionMatrixRow {
-  const roles = userRoleValues.filter((role) => hasCapability(role, capability))
-  const group = resolvePermissionGroup(capability)
+function resolvePermissionGroupLabel(groupKey: string) {
+  return permissionGroupLabels[groupKey] ?? formatTechnicalPermissionKey(groupKey)
+}
 
-  return {
-    capability,
-    label: authCapabilityLabels[capability],
-    group,
-    groupLabel: permissionGroupLabels[group],
-    roles: [...roles],
-    roleLabels:
-      roles.length > 0
-        ? roles.map((role) => userRoleLabels[role]).join(", ")
-        : "Nenhum perfil",
-    roleCount: roles.length,
-  }
+function roleHasPermission(role: PermissionRole, permission: AuthPermission) {
+  const rolePermissions = getRoleFallbackPermissions(role)
+
+  return (
+    rolePermissions.includes(AUTH_PERMISSION_WILDCARD) ||
+    rolePermissions.includes(permission)
+  )
+}
+
+function resolveRoles(permission: AuthPermission): PermissionRole[] {
+  return permissionRoleValues.filter((role) => roleHasPermission(role, permission))
+}
+
+function buildPermissionMatrixRow(permission: AuthPermission): PermissionMatrixRow {
+  const groupKey = resolvePermissionGroupKey(permission)
+  const roles = resolveRoles(permission)
+
+  return normalizePermissionMatrixRow({
+    accessFilters: [],
+    description: null,
+    groupKey,
+    groupLabel: resolvePermissionGroupLabel(groupKey),
+    id: permission,
+    isCritical: criticalPermissions.has(permission),
+    key: permission,
+    label: formatTechnicalPermissionKey(permission),
+    roleAccess: {
+      admin: false,
+      auditor: false,
+      manager: false,
+      operator: false,
+      owner: false,
+    },
+    roleCount: 0,
+    roleLabels: "",
+    roles,
+    source: "system",
+  })
 }
 
 export function buildPermissionMatrix(): PermissionMatrixRow[] {
-  return authCapabilities.map(buildPermissionMatrixRow)
+  return permissionValues.map(buildPermissionMatrixRow)
 }
 
 export async function listPermissionMatrix(): Promise<PermissionMatrixRow[]> {

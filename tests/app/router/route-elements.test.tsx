@@ -12,7 +12,7 @@ import { appRoutePaths } from "@/app/router/route-registry"
 import {
   PrivateRouteGate,
   PublicRouteGate,
-} from "@/app/router/route-elements"
+} from "@/app/router/components"
 import {
   AUTH_PERMISSION,
   AUTH_PERMISSION_WILDCARD,

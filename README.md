@@ -118,6 +118,7 @@ O projeto já atende à exigência futura de `@supabase/supabase-js` por TypeScr
 Configuração local principal em `supabase/config.toml`:
 
 - signup público desabilitado;
+- provider de e-mail/senha ativo para e-mails técnicos internos do fluxo CPF;
 - senha mínima de 12 caracteres com letras maiúsculas, minúsculas, números e símbolos;
 - troca de senha com reautenticação;
 - sessão limitada por inatividade de 15 minutos e timebox de 24 horas;

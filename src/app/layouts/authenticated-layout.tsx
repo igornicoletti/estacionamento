@@ -1,5 +1,5 @@
 import { ClockIcon } from "lucide-react"
-import { Outlet, useMatches } from "react-router"
+import { Outlet } from "react-router"
 
 import { appRoutePaths } from "@/app/router/route-registry"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
@@ -7,60 +7,19 @@ import { AppHeader, AppSidebar } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { authCopy, useAuth } from "@/features/auth"
-import { cn } from "@/lib/utils"
-
-type LayoutScrollMode = "document" | "content"
-
-function getScrollMode(matches: ReturnType<typeof useMatches>): LayoutScrollMode {
-  for (let index = matches.length - 1; index >= 0; index -= 1) {
-    const routeHandle = matches[index].handle as
-      | { scrollMode?: LayoutScrollMode }
-      | undefined
-
-    if (routeHandle?.scrollMode) {
-      return routeHandle.scrollMode
-    }
-  }
-
-  return "document"
-}
 
 export function AuthenticatedLayout() {
   const auth = useAuth()
   const inactivity = auth.inactivity
   const copy = authCopy.inactivity
-  const matches = useMatches()
-  const scrollMode = getScrollMode(matches)
-  const isContainedScroll = scrollMode === "content"
 
   return (
     <>
-      <SidebarProvider
-        className={cn(
-          isContainedScroll
-            ? "min-h-dvh overflow-visible lg:h-dvh lg:overflow-hidden"
-            : "min-h-dvh overflow-visible"
-        )}
-      >
+      <SidebarProvider>
         <AppSidebar homeHref={appRoutePaths.home} />
-        <SidebarInset
-          className={cn(
-            isContainedScroll
-              ? "min-h-dvh overflow-visible lg:min-h-0 lg:overflow-hidden"
-              : "min-h-dvh overflow-visible"
-          )}
-        >
+        <SidebarInset>
           <AppHeader />
-          <main
-            className={cn(
-              "animate-page-in flex min-h-0 min-w-0 flex-1 flex-col gap-4 overflow-x-clip p-4 pb-6 md:p-6",
-              isContainedScroll
-                ? "overflow-visible lg:overflow-y-auto lg:overscroll-contain"
-                : "overflow-visible"
-            )}
-          >
-            <Outlet />
-          </main>
+          <Outlet />
         </SidebarInset>
       </SidebarProvider>
 

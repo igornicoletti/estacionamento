@@ -9,6 +9,7 @@ Componentes reutilizaveis de composicao da aplicacao.
 - `app-dialog.tsx`: shell de dialogo com header, body scrollavel e footer opcional.
 - `app-drawer.tsx`: shell equivalente ao dialogo para drawer.
 - `app-empty-state.tsx`: estado vazio padronizado com media, titulo, descricao e acoes.
+- `app-page.tsx`: wrapper unico de pagina autenticada com titulo, subtitulo, acoes e area principal de conteudo.
 - `app-password-field.tsx`: campo de senha com toggle de visibilidade, descricao e erro integrados.
 - `app-responsive-dialog-drawer.tsx`: alterna entre dialog e drawer conforme media query.
 - `app-sheet.tsx`: shell padrao para sheets laterais.

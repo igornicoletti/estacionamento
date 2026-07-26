@@ -1,10 +1,6 @@
 import { ShieldIcon } from "lucide-react"
 
 import { shouldBypassAuthInDev } from "@/config"
-import {
-  isUserRole,
-  userRoleLabels,
-} from "@/features/auth"
 import { useAuthSession } from "@/features/auth/hooks"
 
 type UnknownRecord = Record<PropertyKey, unknown>
@@ -18,7 +14,13 @@ function getProfileRoleLabel(profile: unknown) {
     return shouldBypassAuthInDev() ? "Desenvolvedor" : "Administrador"
   }
 
-  return isUserRole(profile.role) ? userRoleLabels[profile.role] : "Administrador"
+  const role = profile.role
+
+  if (isRecord(role) && typeof role.label === "string" && role.label.trim()) {
+    return role.label.trim()
+  }
+
+  return "Administrador"
 }
 
 export function SidebarProfile() {

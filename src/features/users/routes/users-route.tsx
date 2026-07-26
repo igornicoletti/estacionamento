@@ -5,15 +5,15 @@ import {
 } from "lucide-react"
 import * as React from "react"
 import { Controller, useForm } from "react-hook-form"
+import { useSearchParams } from "react-router"
 
 import {
   appUserStatusLabels,
-  AuthCpfField,
-  AuthPasswordField,
   isGlobalRole,
   userRoleLabels,
   userRoleValues,
 } from "@/features/auth"
+import { formatCpfInput } from "@/features/auth/validation"
 import {
   formatPhone,
   onlyDigits,
@@ -23,6 +23,10 @@ import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppPage } from "@/components/shared/app-page"
+import { AppTabs } from "@/components/shared/app-tabs"
+import { AppPasswordField } from "@/components/shared/app-password-field"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -59,13 +63,21 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { AccessRequestsPanel } from "@/features/access-requests"
 
-import { createUsersColumns } from "../columns/users-columns"
+import {
+  ACCESS_REQUESTS_TAB_VALUE,
+  USERS_DIALOG_FORM_ID,
+  USERS_TAB_VALUE,
+  usersCopy,
+} from "../constants"
+import { createUsersColumns } from "../table"
 import { useUsers } from "../hooks/use-users"
 import {
+  getUserDetailItems,
   usersFormSchema,
   type UsersFormValues,
-} from "../schemas/users-form-schema"
+} from "../model"
 import { type UserRecord } from "../types/users-types"
 
 const availableUnitOptions = [
@@ -109,6 +121,11 @@ function getPasswordDescription() {
 }
 
 export function UsersRoute() {
+  const [searchParams, setSearchParams] = useSearchParams()
+  const activeTab =
+    searchParams.get("tab") === ACCESS_REQUESTS_TAB_VALUE
+      ? ACCESS_REQUESTS_TAB_VALUE
+      : USERS_TAB_VALUE
   const {
     data,
     error,
@@ -119,9 +136,10 @@ export function UsersRoute() {
     inactivateUser,
     refetch,
     resetAccess,
-  } = useUsers()
+  } = useUsers({ enabled: activeTab === USERS_TAB_VALUE })
   const [isDialogOpen, setIsDialogOpen] = React.useState(false)
   const [editingUser, setEditingUser] = React.useState<UserRecord | null>(null)
+  const [detailsUser, setDetailsUser] = React.useState<UserRecord | null>(null)
   const [blockingUser, setBlockingUser] = React.useState<UserRecord | null>(null)
 
   const form = useForm<UsersFormValues>({
@@ -208,6 +226,7 @@ export function UsersRoute() {
   const columns = React.useMemo(
     () =>
       createUsersColumns({
+        onViewUserDetails: setDetailsUser,
         onBlockUser: (user) => {
           setBlockingUser(user)
         },
@@ -215,6 +234,21 @@ export function UsersRoute() {
         onResetAccess: handleResetAccess,
       }),
     [handleOpenEditDialog, handleResetAccess]
+  )
+
+  const handleTabChange = React.useCallback(
+    (value: string) => {
+      const nextParams = new URLSearchParams(searchParams)
+
+      if (value === ACCESS_REQUESTS_TAB_VALUE) {
+        nextParams.set("tab", ACCESS_REQUESTS_TAB_VALUE)
+      } else {
+        nextParams.delete("tab")
+      }
+
+      setSearchParams(nextParams, { replace: true })
+    },
+    [searchParams, setSearchParams]
   )
 
   async function handleSubmit(values: UsersFormValues) {
@@ -274,27 +308,20 @@ export function UsersRoute() {
   }
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <h1 className="text-2xl font-semibold tracking-tight">Usuários</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Gerencie os usuários com acesso ao sistema.
-          </p>
-        </div>
-
-        <div className="flex items-center justify-end">
-          <Button
-            type="button"
-            variant="secondary"
-            onClick={handleOpenCreateDialog}
-          >
-            <PlusIcon aria-hidden="true" />
-            Cadastrar
-          </Button>
-        </div>
-      </header>
-
+    <AppPage
+      title={usersCopy.page.title}
+      subtitle={usersCopy.page.subtitle}
+      actions={
+        <Button
+          type="button"
+          variant="secondary"
+          onClick={handleOpenCreateDialog}
+        >
+          <PlusIcon aria-hidden="true" />
+          {usersCopy.actions.create}
+        </Button>
+      }
+    >
       <Dialog open={isDialogOpen} onOpenChange={handleDialogOpenChange}>
         <DialogContent>
           <DialogHeader>
@@ -309,6 +336,7 @@ export function UsersRoute() {
           </DialogHeader>
 
           <form
+            id={USERS_DIALOG_FORM_ID}
             onSubmit={(event) => {
               void form.handleSubmit(handleSubmit)(event)
             }}
@@ -320,7 +348,7 @@ export function UsersRoute() {
                 render={({ field, fieldState }) => (
                   <Field data-invalid={Boolean(fieldState.error)}>
                     <FieldLabel htmlFor="user-name">
-                      Nome <span className="text-destructive">*</span>
+                      Nome<span className="text-destructive">*</span>
                     </FieldLabel>
                     <Input
                       id="user-name"
@@ -341,13 +369,26 @@ export function UsersRoute() {
                 control={form.control}
                 name="cpf"
                 render={({ field, fieldState }) => (
-                  <AuthCpfField
-                    id="user-cpf"
-                    value={field.value}
-                    onValueChange={field.onChange}
-                    disabled={isSaving}
-                    error={fieldState.error?.message}
-                  />
+                  <Field data-invalid={Boolean(fieldState.error)}>
+                    <FieldLabel htmlFor="user-cpf">
+                      CPF<span className="text-destructive">*</span>
+                    </FieldLabel>
+                    <Input
+                      id="user-cpf"
+                      className="w-full"
+                      value={field.value}
+                      onChange={(event) => {
+                        field.onChange(formatCpfInput(event.target.value))
+                      }}
+                      disabled={isSaving}
+                      inputMode="numeric"
+                      autoComplete="username"
+                      aria-invalid={Boolean(fieldState.error)}
+                    />
+                    {fieldState.error ? (
+                      <FieldError>{fieldState.error.message}</FieldError>
+                    ) : null}
+                  </Field>
                 )}
               />
 
@@ -356,7 +397,9 @@ export function UsersRoute() {
                 name="email"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={Boolean(fieldState.error)}>
-                    <FieldLabel htmlFor="user-email">Email</FieldLabel>
+                    <FieldLabel htmlFor="user-email">
+                      {usersCopy.form.fields.email}
+                    </FieldLabel>
                     <Input
                       id="user-email"
                       type="email"
@@ -378,7 +421,9 @@ export function UsersRoute() {
                 name="phone"
                 render={({ field, fieldState }) => (
                   <Field data-invalid={Boolean(fieldState.error)}>
-                    <FieldLabel htmlFor="user-phone">Telefone</FieldLabel>
+                    <FieldLabel htmlFor="user-phone">
+                      Telefone<span className="text-destructive">*</span>
+                    </FieldLabel>
                     <Input
                       id="user-phone"
                       className="w-full"
@@ -409,7 +454,7 @@ export function UsersRoute() {
                       onValueChange={(value) => {
                         field.onChange(value)
 
-                        if (isGlobalRole(value as UserRecord["role"])) {
+                        if (isGlobalRole(value)) {
                           form.setValue("unitName", "", {
                             shouldDirty: true,
                             shouldValidate: false,
@@ -421,6 +466,7 @@ export function UsersRoute() {
                       <SelectTrigger
                         className="w-full"
                         aria-invalid={Boolean(fieldState.error)}
+                        aria-label={usersCopy.form.roleLabel}
                       >
                         <SelectValue placeholder="Selecione" />
                       </SelectTrigger>
@@ -502,11 +548,11 @@ export function UsersRoute() {
                 control={form.control}
                 name="firstAccessPassword"
                 render={({ field, fieldState }) => (
-                  <AuthPasswordField
+                  <AppPasswordField
                     id="user-password"
                     label="Senha de primeiro acesso"
                     value={field.value}
-                    onValueChange={field.onChange}
+                    onChange={field.onChange}
                     error={fieldState.error?.message}
                     disabled={isSaving}
                     autoComplete="new-password"
@@ -531,42 +577,59 @@ export function UsersRoute() {
         </DialogContent>
       </Dialog>
 
-      <DataTable
-        columns={columns}
-        data={data}
-        getRowId={(user) => user.id}
-        globalSearch={{
-          columnIds: [
-            "id",
-            "name",
-            "cpf",
-            "email",
-            "phoneMasked",
-            "role",
-            "status",
-            "unitName",
-          ],
-          placeholder: "Buscar usuários...",
-        }}
-        filterFields={[
+      <AppTabs
+        value={activeTab}
+        onValueChange={handleTabChange}
+        items={[
           {
-            id: "role",
-            title: "Perfis",
-            options: roleOptions,
+            value: USERS_TAB_VALUE,
+            label: usersCopy.page.title,
+            content: (
+              <DataTable
+                columns={columns}
+                data={data}
+                getRowId={(user) => user.id}
+                globalSearch={{
+                  columnIds: [
+                    "id",
+                    "name",
+                    "cpf",
+                    "email",
+                    "phoneMasked",
+                    "role",
+                    "status",
+                    "unitName",
+                  ],
+                  placeholder: usersCopy.filters.searchPlaceholder,
+                }}
+                filterFields={[
+                  {
+                    id: "role",
+                    title: usersCopy.filters.role,
+                    options: roleOptions,
+                  },
+                  {
+                    id: "status",
+                    title: usersCopy.filters.status,
+                    options: statusOptions,
+                  },
+                ]}
+                isLoading={isLoading}
+                error={error}
+                onRetry={() => {
+                  void refetch()
+                }}
+                enablePagination
+                enableViewOptions
+              />
+            ),
           },
           {
-            id: "status",
-            title: "Status",
-            options: statusOptions,
+            value: ACCESS_REQUESTS_TAB_VALUE,
+            label: "Solicitações de acesso",
+            content: <AccessRequestsPanel showHeader={false} />,
           },
         ]}
-        isLoading={isLoading}
-        error={error}
-        onRetry={() => {
-          void refetch()
-        }}
-        enablePagination
-        enableViewOptions
       />
 
       <DestructiveConfirmDialog
@@ -591,6 +654,16 @@ export function UsersRoute() {
           setBlockingUser(null)
         }}
       />
-    </div>
+      <AppDetailsSheet
+        open={detailsUser !== null}
+        onOpenChange={(open) => {
+          if (!open) {
+            setDetailsUser(null)
+          }
+        }}
+        title={detailsUser ? usersCopy.details.title : undefined}
+        items={detailsUser ? getUserDetailItems(detailsUser) : []}
+      />
+    </AppPage>
   )
 }

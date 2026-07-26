@@ -4,6 +4,7 @@ import {
   authCpfSchema,
   authLoginSchema,
   authRecoverySchema,
+  AUTH_PERMISSION,
   isGlobalRole,
   requiresSingleUnit,
   routeCapabilities,
@@ -43,7 +44,7 @@ describe("auth validation", () => {
   })
 
   it("defines protected capabilities for clients and units routes", () => {
-    expect(routeCapabilities.clients).toEqual(["admin.clients.read"])
-    expect(routeCapabilities.units).toEqual(["admin.units.read"])
+    expect(routeCapabilities.clients).toEqual([AUTH_PERMISSION.clientsRead])
+    expect(routeCapabilities.units).toEqual([AUTH_PERMISSION.unitsRead])
   })
 })

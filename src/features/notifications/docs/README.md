@@ -25,7 +25,7 @@ src/features/notifications/
 - `constants` concentra copy, labels e chaves de persistência.
 - `model` concentra contratos, normalização, parsing, regras de contador, segurança de href interno e detalhes.
 - `services` isola Supabase, RPCs e realtime, sempre retornando dados normalizados.
-- `context` permanece nesta feature porque `AppProviders` depende de `NotificationsProvider` como provedor global.
+- `context` permanece nesta feature; `NotificationsProvider` é montado pelo shell autenticado em `src/app/providers/authenticated-app-providers.tsx`.
 - `table` mantém colunas e opções de filtros fora da rota.
 - `routes` somente compõe UI, ações e estado visual.
 

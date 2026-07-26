@@ -1,4 +1,1 @@
-export {
-  listAuditEvents,
-  type AuditEventsResult,
-} from "./audit-service"
+export { listAuditEvents } from "./audit-service"

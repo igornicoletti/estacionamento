@@ -4,13 +4,24 @@ import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppPage } from "@/components/shared/app-page"
 
-import { createPermissionsColumns } from "../columns/permissions-columns"
+import { createPermissionsColumns } from "../table"
 import { usePermissions } from "../hooks/use-permissions"
+import {
+  getPermissionDetailItems,
+  type PermissionMatrixRow,
+} from "../model"
 
 export function PermissionsRoute() {
   const { data: permissions, error, isLoading, refetch } = usePermissions()
-  const columns = React.useMemo(() => createPermissionsColumns(), [])
+  const [selectedPermission, setSelectedPermission] =
+    React.useState<PermissionMatrixRow | null>(null)
+  const columns = React.useMemo(
+    () => createPermissionsColumns({ onOpenDetails: setSelectedPermission }),
+    []
+  )
 
   const groupOptions = React.useMemo(
     () =>
@@ -23,23 +34,17 @@ export function PermissionsRoute() {
   )
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="max-w-2xl">
-        <h1 className="text-2xl font-semibold tracking-tight">
-          Perfil e Permissões
-        </h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Consulte a matriz de perfis e as permissões concedidas a cada nível de
-          acesso do sistema.
-        </p>
-      </header>
-
+    <AppPage
+      title="Perfil e Permissões"
+      subtitle="Consulte a matriz de perfis e as permissões concedidas a cada nível de acesso do sistema."
+      headingClassName="max-w-2xl"
+    >
       <DataTable
         columns={columns}
         data={permissions}
-        getRowId={(permission) => permission.capability}
+        getRowId={(permission) => permission.key}
         globalSearch={{
-          columnIds: ["capability", "label", "groupLabel"],
+          columnIds: ["key", "label", "groupLabel"],
           placeholder: "Buscar permissões...",
         }}
         filterFields={[
@@ -57,6 +62,24 @@ export function PermissionsRoute() {
         enablePagination
         enableViewOptions
       />
-    </div>
+
+      <AppDetailsSheet
+        open={Boolean(selectedPermission)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedPermission(null)
+          }
+        }}
+        title={selectedPermission ? "Detalhes da permissão" : undefined}
+        description={
+          selectedPermission
+            ? "Consulte a classificação e os perfis com acesso à permissão selecionada."
+            : undefined
+        }
+        items={
+          selectedPermission ? getPermissionDetailItems(selectedPermission) : []
+        }
+      />
+    </AppPage>
   )
 }

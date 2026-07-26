@@ -11,7 +11,11 @@ import {
 import {
   UnitUsersRoute,
   UnitsRoute,
+  configureUnitUserStatsGateway,
+  configureUnitYardGateway,
   configureUnitsGateway,
+  resetUnitUserStatsGateway,
+  resetUnitYardGateway,
   resetUnitsGateway,
 } from "@/features/units"
 
@@ -38,10 +42,31 @@ beforeEach(() => {
       ]
     },
   })
+  configureUnitUserStatsGateway({
+    async listStats() {
+      await Promise.resolve()
+      return new Map([["1", { managers: 1, operators: 1 }]])
+    },
+  })
+  configureUnitYardGateway({
+    async listConfigs() {
+      await Promise.resolve()
+      return []
+    },
+    async upsertConfig(input) {
+      await Promise.resolve()
+      return {
+        ...input,
+        updatedAt: new Date(0).toISOString(),
+      }
+    },
+  })
 })
 
 afterEach(() => {
   resetUnitsGateway()
+  resetUnitUserStatsGateway()
+  resetUnitYardGateway()
 })
 
 describe("Unit users route", () => {
@@ -62,12 +87,7 @@ describe("Unit users route", () => {
       expect(screen.getByText("Monte Carlo Centro")).toBeInTheDocument()
     })
 
-    fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
-
-    const usersMenuItem = await screen.findByRole("menuitem", {
-      name: "Funcionários",
-    })
-    fireEvent.click(usersMenuItem)
+    fireEvent.click(screen.getByRole("button", { name: "2" }))
 
     await waitFor(() => {
       expect(

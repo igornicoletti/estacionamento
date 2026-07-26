@@ -2,6 +2,7 @@ import * as React from "react"
 
 import {
   createDataTableFilterOptions,
+  defineDataTableCustomColumnId,
   type DataTableFilterField,
   type DataTableFilterOption,
   type DataTableFilterOptionGroup,
@@ -11,6 +12,7 @@ import { unitsCopy } from "../constants/units-copy"
 import { type Unit } from "../model"
 
 type UnitsTableFilterSource = Pick<Unit, "des_bandeira" | "nom_cidade" | "sgl_estado">
+const cityStateColumnId = defineDataTableCustomColumnId("cidadeUf")
 
 function formatCityState(unit: UnitsTableFilterSource) {
   return [unit.nom_cidade, unit.sgl_estado].filter(Boolean).join("/")
@@ -70,6 +72,6 @@ export function useUnitsTableFilters(units: readonly UnitsTableFilterSource[]) {
 
   return [
     { id: "des_bandeira", title: unitsCopy.filters.brands, options: brandOptions },
-    { id: "cidadeUf", title: unitsCopy.filters.cities, options: cityOptions, groups: cityGroups },
+    { id: cityStateColumnId, title: unitsCopy.filters.cities, options: cityOptions, groups: cityGroups },
   ] satisfies readonly DataTableFilterField<UnitsTableFilterSource>[]
 }

@@ -11,7 +11,7 @@ import {
   vi,
 } from "vitest"
 
-import { RouteErrorBoundary } from "@/app/router/route-error-boundary"
+import { RouteErrorBoundary } from "@/app/router/components"
 
 vi.mock("react-router", async () => {
   const actual = await vi.importActual<typeof import("react-router")>(
@@ -42,7 +42,7 @@ describe("RouteErrorBoundary", () => {
     mockedUseRouteError.mockReset()
   })
 
-  it("renders unexpected error using Empty layout with a link action", () => {
+  it("renders unexpected error with retry and home actions", () => {
     mockedUseRouteError.mockReturnValue(new Error("boom"))
 
     const { container } = render(
@@ -54,14 +54,16 @@ describe("RouteErrorBoundary", () => {
     expect(screen.getByText("Erro inesperado")).toBeInTheDocument()
     expect(
       screen.getByText(
-        "A aplicação encontrou um erro ao renderizar esta rota. Tente novamente ou retorne para a página inicial."
+        /A aplicação encontrou uma falha inesperada ao renderizar esta rota./
       )
     ).toBeInTheDocument()
 
-    const empty = container.querySelector('[data-slot="empty"]')
-    expect(empty).not.toBeNull()
+    expect(container.querySelector('[role="alert"]')).not.toBeNull()
+    expect(
+      screen.getByRole("button", { name: /Tentar novamente/ })
+    ).toBeInTheDocument()
 
     const backLink = screen.getByRole("link", { name: "Voltar para o início" })
-    expect(backLink).toHaveAttribute("href", "/clientes")
+    expect(backLink).toHaveAttribute("href", "/")
   })
 })

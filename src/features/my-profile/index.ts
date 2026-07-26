@@ -2,7 +2,6 @@ export { getProfileInitials, ProfileFormCard, ProfilePhotoDialog } from "./compo
 export { useMyProfile } from "./hooks/use-my-profile"
 export { myProfileCopy } from "./my-profile-copy"
 export { MyProfileRoute } from "./routes/my-profile-route"
-export { ProfileLegacyRedirectRoute } from "./routes/profile-legacy-redirect-route"
 export {
   ProfileServiceError,
   updateCurrentProfile,

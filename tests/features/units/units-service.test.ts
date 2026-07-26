@@ -4,8 +4,71 @@ import {
   configureUnitsGateway,
   listUnits,
   resetUnitsGateway,
+  type ErpUnitPayload,
 } from "@/features/units"
-import { mockErpUnitsPayload } from "@/features/erp-mock"
+
+const representativeErpUnitsPayload: ErpUnitPayload[] = [
+  {
+    cod_empresa: "1",
+    nom_razao_social: "POSTO MONTE CARLO IGUATEMI LTDA",
+    nom_fantasia: "IGUATEMI",
+    num_cnpj: "21384959000148",
+    cod_bandeira: "1",
+    des_bandeira: "BR",
+    cod_cidade: "3549805",
+    nom_cidade: "SAO JOSE DO RIO PRETO",
+    nom_estado: "SAO PAULO",
+    sgl_estado: "sp",
+    des_coordenada_empresa: "",
+    ip_rede: "",
+    nom_banco_dados: "",
+  },
+  {
+    cod_empresa: "7",
+    nom_razao_social: "AUTO POSTO MONTE CARLO ONDA VERDE LTDA",
+    nom_fantasia: "ONDA VERDE",
+    num_cnpj: "",
+    cod_bandeira: "2",
+    des_bandeira: "BR",
+    cod_cidade: "0",
+    nom_cidade: "ONDA VERDE",
+    nom_estado: "SAO PAULO",
+    sgl_estado: "sp",
+    des_coordenada_empresa: "",
+    ip_rede: "",
+    nom_banco_dados: "",
+  },
+  {
+    cod_empresa: "53",
+    nom_razao_social: "POSTO MONTE CARLO PONTA GROSSA BR-376 LTDA",
+    nom_fantasia: "PONTA GROSSA BR-376",
+    num_cnpj: "",
+    cod_bandeira: "3",
+    des_bandeira: "IPIRANGA",
+    cod_cidade: "0",
+    nom_cidade: "PONTA GROSSA",
+    nom_estado: "PARANA",
+    sgl_estado: "pr",
+    des_coordenada_empresa: "",
+    ip_rede: "",
+    nom_banco_dados: "",
+  },
+  {
+    cod_empresa: "76",
+    nom_razao_social: "POSTO MONTE CARLO CANDIDO MOTA LTDA",
+    nom_fantasia: "CANDIDO MOTA",
+    num_cnpj: "",
+    cod_bandeira: "1",
+    des_bandeira: "BR",
+    cod_cidade: "0",
+    nom_cidade: "CANDIDO MOTA",
+    nom_estado: "SAO PAULO",
+    sgl_estado: "sp",
+    des_coordenada_empresa: "",
+    ip_rede: "",
+    nom_banco_dados: "",
+  },
+]
 
 afterEach(() => {
   resetUnitsGateway()
@@ -86,15 +149,15 @@ describe("units-service", () => {
 
   it("normalizes the real ERP units mock without exposing raw uppercase display values", async () => {
     configureUnitsGateway({
-      async listUnitsPayload(): Promise<typeof mockErpUnitsPayload> {
+      async listUnitsPayload() {
         await Promise.resolve()
-        return mockErpUnitsPayload
+        return representativeErpUnitsPayload
       },
     })
 
     const units = await listUnits()
 
-    expect(units).toHaveLength(67)
+    expect(units).toHaveLength(4)
     expect(units.find((unit) => unit.cod_empresa === 1)).toMatchObject({
       nom_fantasia: "Iguatemi",
       nom_cidade: "São José do Rio Preto",

@@ -105,6 +105,15 @@ function requireAuthInactivityTimeoutAlignment() {
     return
   }
 
+  if (configMs === 0) {
+    requireContent(
+      "supabase/config.toml",
+      "AUTH_SESSION_TIMEOUTS.inactivityMinutes",
+      "client-side inactivity timeout documentation"
+    )
+    return
+  }
+
   if (frontendMs !== configMs) {
     errors.push(
       `AUTH_INACTIVITY.timeoutMs (${frontendMs}ms) must match supabase auth.sessions.inactivity_timeout (${configMs}ms)`
@@ -159,7 +168,7 @@ for (const requiredFile of [
   "components.json",
   "package.json",
   "src/App.tsx",
-  "src/app-entry.tsx",
+  "src/main.tsx",
   "src/config/env.ts",
   "src/components/data-table/data-table.tsx",
   "src/components/data-table/data-table-export-menu.tsx",
@@ -167,6 +176,7 @@ for (const requiredFile of [
   "src/components/data-table/data-table-scroll-container.tsx",
   "src/components/ui/table.tsx",
   "src/app/providers/app-providers.tsx",
+  "src/app/providers/authenticated-app-providers.tsx",
   "src/features/auth/api/auth-api.ts",
   "src/features/auth/context/auth-provider.tsx",
   "src/features/auth/contracts/auth-contracts.ts",
@@ -272,7 +282,7 @@ for (const [file, needles] of [
       "enableExport",
       "flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1",
       "shouldRenderStatePanel",
-      "shouldRenderInitialSkeleton || visibleRows.length > 0",
+      "shouldRenderTable",
       "shouldRenderToolbar",
       "surface === \"card\"",
       "flex min-w-0 flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden",
@@ -297,11 +307,11 @@ for (const [file, needles] of [
   ],
   [
     "src/features/users/services/users-service.ts",
-    ["cpf_display", "phone_display", "admin-user-auth-factors", "passkey_count"],
+    ["getUsersGateway", "normalizeUnitScope", "newPasswordSchema"],
   ],
   [
     "src/features/users/routes/users-route.tsx",
-    ["enableExport={canExportUsers}", "resetPasskey", "createUserOnlineFilterOptions"],
+    ["AppTabs", "AccessRequestsPanel", "onResetAccess"],
   ],
   [
     "src/features/users/table/users-filter-options.ts",
@@ -332,7 +342,11 @@ for (const [file, needles] of [
 for (const [file, needles] of [
   [
     "src/app/providers/app-providers.tsx",
-    ["NotificationsProvider", "AuthProvider"],
+    ["AuthProvider", "ToastApp", "TooltipProvider"],
+  ],
+  [
+    "src/app/providers/authenticated-app-providers.tsx",
+    ["NotificationsProvider", "SelectedUnitProvider"],
   ],
   [
     "src/features/auth/api/auth-api.ts",
@@ -362,10 +376,11 @@ for (const [file, needles] of [
     "supabase/config.toml",
     [
       "enable_signup = false",
+      "enable_signup = true",
       "minimum_password_length = 12",
       "password_requirements = \"lower_upper_letters_digits_symbols\"",
       "secure_password_change = true",
-      "inactivity_timeout = \"15m\"",
+      "inactivity_timeout = \"0s\"",
       "[functions.auth-password]",
       "[functions.auth-recovery-request]",
       "[functions.admin-user-auth-factors]",

@@ -26,9 +26,11 @@ describe("Clients routes", () => {
       expect(screen.getByText("Auto Center Alfa Ltda")).toBeInTheDocument()
     })
 
-    fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da linha")[0])
+    fireEvent.pointerDown(
+      screen.getAllByRole("button", { name: "Abrir ações da linha" })[0]
+    )
 
-    const vehiclesMenuItem = await screen.findByText("Veiculos")
+    const vehiclesMenuItem = await screen.findByText("Exibir veículos")
     fireEvent.click(vehiclesMenuItem)
 
     await waitFor(() => {

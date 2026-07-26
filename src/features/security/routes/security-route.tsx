@@ -1,8 +1,8 @@
 import { AlertTriangleIcon } from "lucide-react"
 import * as React from "react"
 
-import { PageHeader, PageSection } from "@/components/page"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppPage } from "@/components/shared/app-page"
 import { notify } from "@/components/toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -58,19 +58,17 @@ export function SecurityRoute() {
 
   if (isLoading) {
     return (
-      <PageSection>
-        <PageHeader title={securityCopy.page.title} subtitle={securityCopy.page.subtitle} />
+      <AppPage title={securityCopy.page.title} subtitle={securityCopy.page.subtitle}>
         <CenteredState>
           <Spinner className="size-6 text-primary" aria-label={securityCopy.page.title} />
         </CenteredState>
-      </PageSection>
+      </AppPage>
     )
   }
 
   if (error && !profile) {
     return (
-      <PageSection>
-        <PageHeader title={securityCopy.page.title} subtitle={securityCopy.page.subtitle} />
+      <AppPage title={securityCopy.page.title} subtitle={securityCopy.page.subtitle}>
         <CenteredState>
           <AppEmptyState
             media={<AlertTriangleIcon />}
@@ -79,14 +77,13 @@ export function SecurityRoute() {
             actions={<Button type="button" variant="secondary" size="lg" onClick={() => { void refreshProfile() }}>{securityCopy.error.action}</Button>}
           />
         </CenteredState>
-      </PageSection>
+      </AppPage>
     )
   }
 
   if (!profile) {
     return (
-      <PageSection>
-        <PageHeader title={securityCopy.page.title} subtitle={securityCopy.page.subtitle} />
+      <AppPage title={securityCopy.page.title} subtitle={securityCopy.page.subtitle}>
         <CenteredState>
           <AppEmptyState
             title={securityCopy.empty.title}
@@ -94,14 +91,16 @@ export function SecurityRoute() {
             actions={<Button type="button" variant="secondary" size="lg" onClick={() => { void refreshProfile() }}>{securityCopy.empty.action}</Button>}
           />
         </CenteredState>
-      </PageSection>
+      </AppPage>
     )
   }
 
   return (
-    <PageSection className="w-full pb-6">
-      <PageHeader title={securityCopy.page.title} subtitle={securityCopy.page.subtitle} />
-
+    <AppPage
+      className="w-full pb-6"
+      title={securityCopy.page.title}
+      subtitle={securityCopy.page.subtitle}
+    >
       <div className="grid gap-4">
         {error ? (
           <Alert className="border-destructive/30 bg-destructive/5 text-foreground">
@@ -128,7 +127,7 @@ export function SecurityRoute() {
         onOpenChange={setIsPasswordDialogOpen}
         onSubmit={handleChangePassword}
       />
-    </PageSection>
+    </AppPage>
   )
 }
 

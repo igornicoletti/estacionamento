@@ -1,78 +1,92 @@
 import { DownloadIcon } from "lucide-react"
 import * as React from "react"
 
-import { formatDateTime } from "@/lib"
-import { exportRowsToXlsx, type XlsxColumn } from "@/lib/export"
-
 import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppPage } from "@/components/shared/app-page"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
+import { formatDateTime } from "@/lib"
+import { exportRowsToXlsx, type XlsxColumn } from "@/lib/export"
 
 import {
-  createAuditColumns,
-  getAuditActorRoleLabel,
-} from "../columns/audit-columns"
+  auditCopy,
+  auditScopeLabels,
+  auditSeverityLabels,
+} from "../constants"
 import { useAudit } from "../hooks/use-audit"
 import {
-  auditActionLabels,
-  auditOutcomeLabels,
+  getAuditEventDetails,
+  getAuditOutcomeLabel,
   type AuditEvent,
-} from "../types/audit-types"
+} from "../model"
+import { createAuditColumns } from "../table"
 
 const auditExportColumns: readonly XlsxColumn<AuditEvent>[] = [
-  { header: "Data/hora", accessor: (event) => formatDateTime(event.occurredAt) },
-  { header: "Responsável", accessor: (event) => event.actorName },
-  { header: "Perfil", accessor: (event) => getAuditActorRoleLabel(event) },
-  { header: "Ação", accessor: (event) => auditActionLabels[event.action] },
-  { header: "Resultado", accessor: (event) => auditOutcomeLabels[event.outcome] },
-  { header: "Entidade", accessor: (event) => event.entity },
-  { header: "Identificador", accessor: (event) => event.entityId },
-  { header: "Unidade", accessor: (event) => event.unitName ?? "—" },
-  { header: "Endereço IP", accessor: (event) => event.ipAddress },
-  { header: "Dispositivo", accessor: (event) => event.userAgent },
-  { header: "Descrição", accessor: (event) => event.description },
+  { header: auditCopy.table.occurredAt, accessor: (event) => formatDateTime(event.occurredAt) },
+  { header: auditCopy.table.responsible, accessor: (event) => event.actorName },
+  { header: auditCopy.table.scope, accessor: (event) => auditScopeLabels[event.scope] },
+  { header: auditCopy.table.event, accessor: (event) => event.eventLabel },
+  { header: auditCopy.table.target, accessor: (event) => event.target || auditCopy.details.emptyValue },
+  { header: auditCopy.table.outcome, accessor: (event) => getAuditOutcomeLabel(event) },
+  { header: auditCopy.table.severity, accessor: (event) => auditSeverityLabels[event.severity] },
+  { header: auditCopy.details.reason, accessor: (event) => event.reason ?? auditCopy.details.emptyValue },
 ]
 
 export function AuditRoute() {
   const { data: events, error, isLoading, refetch } = useAudit()
-  const columns = React.useMemo(() => createAuditColumns(), [])
+  const [selectedEvent, setSelectedEvent] = React.useState<AuditEvent | null>(null)
+  const columns = React.useMemo(
+    () => createAuditColumns({ onOpenDetails: setSelectedEvent }),
+    []
+  )
 
-  const actionOptions = React.useMemo(
+  const responsibleOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
         events,
-        (event) => event.action,
-        (event) => auditActionLabels[event.action]
+        (event) => event.actorName,
+        (event) => event.actorName
       ),
     [events]
   )
 
-  const outcomeOptions = React.useMemo(
+  const scopeOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
         events,
-        (event) => event.outcome,
-        (event) => auditOutcomeLabels[event.outcome]
+        (event) => event.scope,
+        (event) => auditScopeLabels[event.scope]
       ),
     [events]
   )
 
-  const roleOptions = React.useMemo(
+  const eventOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
         events,
-        (event) => event.actorRole ?? "",
-        (event) => getAuditActorRoleLabel(event)
+        (event) => event.event,
+        (event) => event.eventLabel
+      ),
+    [events]
+  )
+
+  const severityOptions = React.useMemo(
+    () =>
+      createDataTableFilterOptions(
+        events,
+        (event) => event.severity,
+        (event) => auditSeverityLabels[event.severity]
       ),
     [events]
   )
 
   const handleExport = React.useCallback(() => {
     if (events.length === 0) {
-      notify.error("Não há eventos de auditoria para exportar.")
+      notify.error(auditCopy.feedback.exportEmptyError)
       return
     }
 
@@ -84,35 +98,28 @@ export function AuditRoute() {
         rows: events,
       })
 
-      notify.success("Exportação de auditoria gerada.")
+      notify.success(auditCopy.feedback.exportSuccess)
     } catch {
-      notify.error("Não foi possível exportar a auditoria.")
+      notify.error(auditCopy.feedback.exportError)
     }
   }, [events])
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <h1 className="text-2xl font-semibold tracking-tight">Auditoria</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Acompanhe os eventos de segurança e as ações realizadas no sistema.
-          </p>
-        </div>
-
-        <div className="flex items-center justify-end">
-          <Button
-            type="button"
-            variant="secondary"
-            disabled={isLoading || events.length === 0}
-            onClick={handleExport}
-          >
-            <DownloadIcon aria-hidden="true" />
-            Exportar
-          </Button>
-        </div>
-      </header>
-
+    <AppPage
+      title={auditCopy.page.title}
+      subtitle={auditCopy.page.subtitle}
+      actions={
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isLoading || events.length === 0}
+          onClick={handleExport}
+        >
+          <DownloadIcon aria-hidden="true" />
+          {auditCopy.actions.exportAll}
+        </Button>
+      }
+    >
       <DataTable
         columns={columns}
         data={events}
@@ -120,30 +127,34 @@ export function AuditRoute() {
         globalSearch={{
           columnIds: [
             "actorName",
-            "entity",
-            "entityId",
-            "unitName",
-            "ipAddress",
-            "userAgent",
-            "description",
+            "event",
+            "eventLabel",
+            "target",
+            "reason",
+            "requestId",
           ],
-          placeholder: "Buscar na auditoria...",
+          placeholder: auditCopy.page.searchPlaceholder,
         }}
         filterFields={[
           {
-            id: "action",
-            title: "Ações",
-            options: actionOptions,
+            id: "actorName",
+            title: auditCopy.filters.responsible,
+            options: responsibleOptions,
           },
           {
-            id: "outcome",
-            title: "Resultados",
-            options: outcomeOptions,
+            id: "scope",
+            title: auditCopy.filters.scopes,
+            options: scopeOptions,
           },
           {
-            id: "actorRole",
-            title: "Perfis",
-            options: roleOptions,
+            id: "event",
+            title: auditCopy.filters.events,
+            options: eventOptions,
+          },
+          {
+            id: "severity",
+            title: auditCopy.table.severity,
+            options: severityOptions,
           },
         ]}
         isLoading={isLoading}
@@ -154,6 +165,18 @@ export function AuditRoute() {
         enablePagination
         enableViewOptions
       />
-    </div>
+
+      <AppDetailsSheet
+        open={Boolean(selectedEvent)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedEvent(null)
+          }
+        }}
+        title={selectedEvent ? auditCopy.details.title : undefined}
+        description={selectedEvent ? auditCopy.details.description : undefined}
+        items={selectedEvent ? getAuditEventDetails(selectedEvent) : []}
+      />
+    </AppPage>
   )
 }

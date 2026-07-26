@@ -1,13 +1,13 @@
 import {
   sanitizeErpClientsPayload,
   sanitizeErpClientVehiclesPayload,
-} from "../utils/clients-normalizers"
+} from "../model"
 import {
   type Client,
   type ClientVehicle,
   type ErpClientPayload,
   type ErpClientVehiclePayload,
-} from "../types/clients-types"
+} from "../model"
 
 const simulatedErpClientsPayload: ErpClientPayload[] = [
   {
@@ -108,4 +108,29 @@ export async function listClients(): Promise<Client[]> {
 export async function listClientVehicles(): Promise<ClientVehicle[]> {
   await Promise.resolve()
   return sanitizeErpClientVehiclesPayload(simulatedErpClientVehiclesPayload)
+}
+
+export async function listClientById(
+  codPessoa: number
+): Promise<Client | null> {
+  const clients = await listClients()
+
+  return clients.find((client) => client.cod_pessoa === codPessoa) ?? null
+}
+
+export async function listClientVehiclesByClientId(
+  codPessoa: number
+): Promise<ClientVehicle[]> {
+  const vehicles = await listClientVehicles()
+
+  return vehicles.filter((vehicle) => vehicle.cod_pessoa === codPessoa)
+}
+
+export async function listClientsSnapshot() {
+  const [clients, vehicles] = await Promise.all([
+    listClients(),
+    listClientVehicles(),
+  ])
+
+  return { clients, vehicles }
 }

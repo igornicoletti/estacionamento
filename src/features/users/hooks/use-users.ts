@@ -11,13 +11,18 @@ import {
   type CreateUserInput,
   type UpdateUserInput,
   type UserRecord,
-} from "../types/users-types"
+} from "../model"
 
 const usersLoadError = "Nao foi possivel carregar os usuarios."
 
-export function useUsers() {
+interface UseUsersOptions {
+  enabled?: boolean
+}
+
+export function useUsers(options: UseUsersOptions = {}) {
+  const isEnabled = options.enabled ?? true
   const [data, setData] = React.useState<UserRecord[]>([])
-  const [isLoading, setIsLoading] = React.useState(true)
+  const [isLoading, setIsLoading] = React.useState(isEnabled)
   const [isSaving, setIsSaving] = React.useState(false)
   const [error, setError] = React.useState<Error | null>(null)
 
@@ -47,8 +52,12 @@ export function useUsers() {
   }, [])
 
   const refetch = React.useCallback(() => {
+    if (!isEnabled) {
+      return Promise.resolve()
+    }
+
     return loadUsers(() => true)
-  }, [loadUsers])
+  }, [isEnabled, loadUsers])
 
   const addUser = React.useCallback(async (input: CreateUserInput) => {
     setIsSaving(true)
@@ -114,6 +123,11 @@ export function useUsers() {
     let isMounted = true
 
     async function loadInitialUsers() {
+      if (!isEnabled) {
+        setIsLoading(false)
+        return
+      }
+
       try {
         const users = await listUsers()
 
@@ -141,7 +155,7 @@ export function useUsers() {
     return () => {
       isMounted = false
     }
-  }, [loadUsers])
+  }, [isEnabled, loadUsers])
 
   return {
     data,

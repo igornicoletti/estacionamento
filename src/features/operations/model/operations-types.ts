@@ -118,7 +118,7 @@ export interface OperationalCaptureEvent {
   color: string | null
   unitId: string | null
   unitName: string
-  legacyUnitId: string | null
+  erpUnitId: string | null
   plateRecordId: string | null
   cameraName: string
   cameraType: OperationalCameraType

@@ -15,6 +15,7 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
+import { buttonVariants, type Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { useControllableOpen } from "@/hooks/use-controllable-open"
 import { cn } from "@/lib/utils"
@@ -39,7 +40,7 @@ export type AppAlertDialogProps = Omit<
   showFooter?: boolean
   cancelLabel?: React.ReactNode
   actionLabel?: React.ReactNode
-  actionVariant?: React.ComponentProps<typeof AlertDialogAction>["variant"]
+  actionVariant?: React.ComponentProps<typeof Button>["variant"]
   pendingLabel?: React.ReactNode
   onAction?: () => void | Promise<void>
   closeOnAction?: boolean
@@ -149,13 +150,18 @@ export function AppAlertDialog({
           <AlertDialogFooter>
             {footer === undefined ? (
               <>
-                <AlertDialogCancel size="lg" disabled={isPending}>
+                <AlertDialogCancel
+                  className={buttonVariants({ variant: "outline", size: "lg" })}
+                  disabled={isPending}
+                >
                   {cancelLabel}
                 </AlertDialogCancel>
 
                 <AlertDialogAction
-                  size="lg"
-                  variant={actionVariant}
+                  className={buttonVariants({
+                    variant: actionVariant,
+                    size: "lg",
+                  })}
                   disabled={isPending}
                   onClick={handleActionClick}
                 >

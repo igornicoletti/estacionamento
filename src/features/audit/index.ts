@@ -1,24 +1,29 @@
 export { AuditRoute } from "./routes/audit-route"
 export {
   createAuditColumns,
-  getAuditActorRoleLabel,
-  getAuditEventDetails,
-} from "./columns/audit-columns"
+} from "./table"
 export { useAudit } from "./hooks/use-audit"
 export { listAuditEvents } from "./services/audit-service"
 export {
   sanitizeAuditEventPayload,
   sanitizeAuditEventsPayload,
-} from "./utils/audit-normalizers"
+} from "./model"
 export {
-  auditActionLabels,
-  auditActionValues,
-  auditOutcomeLabels,
-  auditOutcomeValues,
-  isAuditAction,
-  isAuditOutcome,
-  type AuditAction,
+  getAuditEventDetails,
+  getAuditEventLabel,
+  getAuditOutcomeLabel,
+  humanizeAuditIdentifier,
+  type AuditEventDetailItem,
   type AuditEvent,
-  type AuditOutcome,
+  type AuditScope,
+  type AuditSeverity,
   type RawAuditEventPayload,
-} from "./types/audit-types"
+} from "./model"
+export {
+  auditCopy,
+  auditEventLabels,
+  auditScopeLabels,
+  auditScopeValues,
+  auditSeverityLabels,
+  auditSeverityValues,
+} from "./constants"

@@ -1,4 +1,4 @@
-import { PageHeader, PageSection } from "@/components/page"
+import { AppPage } from "@/components/shared/app-page"
 import { AppUnitSelector, useSelectedUnit } from "@/components/shared/app-unit-selector"
 
 import { ReportsTabsContent } from "../components"
@@ -11,12 +11,11 @@ export function ReportsRoute() {
   const pageTitle = `${reportsCopy.page.title} — ${selectedUnitName}`
 
   return (
-    <PageSection>
-      <PageHeader
-        title={pageTitle}
-        subtitle={reportsCopy.page.subtitle}
-        actions={<AppUnitSelector />}
-      />
+    <AppPage
+      title={pageTitle}
+      subtitle={reportsCopy.page.subtitle}
+      actions={<AppUnitSelector />}
+    >
       <ReportsTabsContent
         data={data}
         isLoading={isLoading}
@@ -25,6 +24,6 @@ export function ReportsRoute() {
           void refetch()
         }}
       />
-    </PageSection>
+    </AppPage>
   )
 }

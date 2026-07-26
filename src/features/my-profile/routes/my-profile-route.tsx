@@ -1,8 +1,8 @@
 import { AlertTriangleIcon } from "lucide-react"
 import * as React from "react"
 
-import { PageHeader, PageSection } from "@/components/page"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppPage } from "@/components/shared/app-page"
 import { notify } from "@/components/toast"
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
@@ -78,19 +78,17 @@ export function MyProfileRoute() {
 
   if (isLoading) {
     return (
-      <PageSection>
-        <PageHeader title={myProfileCopy.page.title} subtitle={myProfileCopy.page.subtitle} />
+      <AppPage title={myProfileCopy.page.title} subtitle={myProfileCopy.page.subtitle}>
         <CenteredState>
           <Spinner className="size-6 text-primary" aria-label={myProfileCopy.page.title} />
         </CenteredState>
-      </PageSection>
+      </AppPage>
     )
   }
 
   if (error && !profile) {
     return (
-      <PageSection>
-        <PageHeader title={myProfileCopy.page.title} subtitle={myProfileCopy.page.subtitle} />
+      <AppPage title={myProfileCopy.page.title} subtitle={myProfileCopy.page.subtitle}>
         <CenteredState>
           <AppEmptyState
             media={<AlertTriangleIcon />}
@@ -103,14 +101,13 @@ export function MyProfileRoute() {
             }
           />
         </CenteredState>
-      </PageSection>
+      </AppPage>
     )
   }
 
   if (!profile) {
     return (
-      <PageSection>
-        <PageHeader title={myProfileCopy.page.title} subtitle={myProfileCopy.page.subtitle} />
+      <AppPage title={myProfileCopy.page.title} subtitle={myProfileCopy.page.subtitle}>
         <CenteredState>
           <AppEmptyState
             title={myProfileCopy.empty.title}
@@ -122,17 +119,16 @@ export function MyProfileRoute() {
             }
           />
         </CenteredState>
-      </PageSection>
+      </AppPage>
     )
   }
 
   return (
-    <PageSection className="w-full pb-6">
-      <PageHeader
-        title={myProfileCopy.page.title}
-        subtitle={myProfileCopy.page.subtitle}
-      />
-
+    <AppPage
+      className="w-full pb-6"
+      title={myProfileCopy.page.title}
+      subtitle={myProfileCopy.page.subtitle}
+    >
       <div className="grid gap-4">
         {error ? (
           <Alert className="border-destructive/30 bg-destructive/5 text-foreground">
@@ -169,7 +165,7 @@ export function MyProfileRoute() {
         onOpenChange={setIsPasswordDialogOpen}
         onSubmit={handleChangePassword}
       />
-    </PageSection>
+    </AppPage>
   )
 }
 

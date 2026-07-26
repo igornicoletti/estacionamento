@@ -26,7 +26,7 @@ src/features/clients/
 - `constants/clients-routes.ts` concentra rotas da feature.
 - `hooks/use-clients-table-filters.ts` e `hooks/use-client-vehicles-table-filters.ts` montam filtros derivados da tabela, no mesmo padrão de `useUnitsTableFilters`.
 - `routes` compõe tela, permissões, eventos e componentes reutilizáveis sem montar filtros inline.
-- `services/clients-gateway.ts` segue o gateway de `units`: validação com `zod`, suporte a `erp-mock`, Supabase browser client e erro explícito quando o serviço não está configurado.
+- `services/clients-gateway.ts` segue o gateway de `units`: validação com `zod`, Supabase browser client e erro explícito quando o serviço não está configurado.
 - `components/clients-sync-history-dialog.tsx` é autocontido e não depende de `src/features/sync`, mantendo a sincronização de clientes restrita à própria feature.
 - A raiz mantém apenas `index.ts`.
 
@@ -35,7 +35,7 @@ src/features/clients/
 - Separada a resolução de cliente da consulta de veículos, evitando carregar a lista completa de clientes para abrir `/clientes/:cod_pessoa`.
 - Adicionada consulta dedicada `listClientVehiclesByClientId`.
 - Removidos filtros montados diretamente nas rotas.
-- Removido gateway mock local duplicado; a feature usa o mock central de ERP, como `units`.
+- Removido gateway mock local duplicado; a feature usa o gateway configurado da aplicação.
 - Adicionadas `DEFAULT_CLIENTS_COLUMN_VISIBILITY` e `DEFAULT_CLIENT_VEHICLES_COLUMN_VISIBILITY`.
 - Removido toast de carregamento por promessa para VIP; feedback de loading não usa toast.
 - Preservadas policies de RLS por permissão em migration dedicada.

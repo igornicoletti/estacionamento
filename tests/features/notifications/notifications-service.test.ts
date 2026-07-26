@@ -22,7 +22,7 @@ const notificationsFixture: NotificationRecord[] = [
   },
   {
     description: "Mensagem de segurança.",
-    href: "/perfil",
+    href: "/meu-perfil",
     id: "N-002",
     occurredAt: "2026-07-01T07:58:00.000Z",
     status: "unread",

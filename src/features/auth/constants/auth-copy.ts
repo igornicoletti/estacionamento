@@ -59,10 +59,11 @@ export const authCopy = {
   passkeyUnavailable: {
     title: "Cadastro de passkey necessário",
     description:
-      "A senha foi validada, mas a conta exige cadastro de passkey. Por segurança, a sessão não foi aberta porque este cliente ainda não possui fluxo WebAuthn validado. Solicite suporte administrativo para concluir o acesso.",
+      "A senha foi validada, mas a conta exige cadastro de passkey antes de abrir a sessão.",
     action: "Entendi",
   },
   passkeyRegistration: {
+    submit: "Cadastrar passkey",
     loading: "Aguardando...",
     success: "Passkey cadastrada. Acesso liberado.",
   },

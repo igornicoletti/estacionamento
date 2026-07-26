@@ -15,7 +15,7 @@ Feature responsavel pela pagina de dados pessoais da conta autenticada.
 
 - `components/`: cartoes de perfil e dialog compartilhado de foto.
 - `hooks/`: composicao do perfil autenticado com acoes de persistencia.
-- `routes/`: entrypoint da rota e redirect legado.
+- `routes/`: entrypoint da rota.
 - `services/`: Edge Function de perfil, upload de avatar e validacoes de arquivo.
 - `types/`: contratos de snapshot e payload.
 - `utils/`: normalizacao e formatacao defensiva dos dados do perfil.

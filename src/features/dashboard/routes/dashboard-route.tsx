@@ -1,9 +1,9 @@
 import { LayoutDashboardIcon } from "lucide-react"
 import * as React from "react"
 
-import { PageHeader, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppPage } from "@/components/shared/app-page"
 import { AppUnitSelector, useSelectedUnit } from "@/components/shared/app-unit-selector"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
@@ -35,29 +35,25 @@ export function DashboardRoute() {
 
   if (isLoading) {
     return (
-      <PageSection>
-        <PageHeader
-          title={pageTitle}
-          subtitle={dashboardCopy.page.subtitle}
-          actions={<AppUnitSelector />}
-        />
-
+      <AppPage
+        title={pageTitle}
+        subtitle={dashboardCopy.page.subtitle}
+        actions={<AppUnitSelector />}
+      >
         <div className="flex flex-1 items-center justify-center">
           <Spinner className="size-6 text-primary" aria-label={dashboardCopy.page.title} />
         </div>
-      </PageSection>
+      </AppPage>
     )
   }
 
   if (error || !data) {
     return (
-      <PageSection>
-        <PageHeader
-          title={pageTitle}
-          subtitle={dashboardCopy.page.subtitle}
-          actions={<AppUnitSelector />}
-        />
-
+      <AppPage
+        title={pageTitle}
+        subtitle={dashboardCopy.page.subtitle}
+        actions={<AppUnitSelector />}
+      >
         <div className="flex flex-1 items-center justify-center">
           <AppEmptyState
             media={<LayoutDashboardIcon />}
@@ -70,7 +66,7 @@ export function DashboardRoute() {
             )}
           />
         </div>
-      </PageSection>
+      </AppPage>
     )
   }
 
@@ -89,13 +85,11 @@ export function DashboardRoute() {
         : undefined
 
   return (
-    <PageSection>
-      <PageHeader
-        title={pageTitle}
-        subtitle={dashboardCopy.page.subtitle}
-        actions={<AppUnitSelector />}
-      />
-
+    <AppPage
+      title={pageTitle}
+      subtitle={dashboardCopy.page.subtitle}
+      actions={<AppUnitSelector />}
+    >
       <DashboardBentoGrid
         snapshot={data}
         onOpenMovementDetails={(row) => setDetails({ kind: "movement", row })}
@@ -117,6 +111,6 @@ export function DashboardRoute() {
         }
         items={detailsItems}
       />
-    </PageSection>
+    </AppPage>
   )
 }

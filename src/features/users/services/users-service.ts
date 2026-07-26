@@ -1,61 +1,25 @@
 import {
+  createNextUserId,
   isGlobalRole,
-  requiresSingleUnit,
-} from "@/features/auth"
+  normalizeUnitScope,
+} from "../model"
 import {
   formatCpf,
   formatPhone,
   onlyDigits,
 } from "@/lib"
+import { newPasswordSchema } from "@/features/auth/validation"
+import { listUnits } from "@/features/units"
 
 import {
   type CreateUserInput,
   type UpdateUserInput,
   type UserRecord,
-} from "../types/users-types"
-
-const initialUsers: UserRecord[] = [
-  {
-    id: "USR-001",
-    name: "Ana Pereira",
-    cpf: "123.456.789-01",
-    email: "ana.pereira@rmc.local",
-    phoneMasked: "(11) 99999-8888",
-    role: "admin",
-    status: "active",
-    unitName: null,
-    mfaStatus: "active",
-    lastAccessAt: "2026-06-30 15:32",
-  },
-  {
-    id: "USR-002",
-    name: "Bruno Martins",
-    cpf: "987.654.321-00",
-    email: "bruno.martins@rmc.local",
-    phoneMasked: "(21) 98888-7777",
-    role: "auditor",
-    status: "active",
-    unitName: null,
-    mfaStatus: "inactive",
-    lastAccessAt: "2026-06-29 10:11",
-  },
-]
-
-let inMemoryUsers = [...initialUsers]
-
-function createNextUserId(users: readonly UserRecord[]) {
-  const nextNumber =
-    Math.max(
-      0,
-      ...users.map((user) => Number(user.id.replace("USR-", "")) || 0)
-    ) + 1
-
-  return `USR-${String(nextNumber).padStart(3, "0")}`
-}
+} from "../model"
+import { getUsersGateway } from "./users-gateway"
 
 export async function listUsers(): Promise<UserRecord[]> {
-  await Promise.resolve()
-  return [...inMemoryUsers]
+  return getUsersGateway().list()
 }
 
 export async function createUser(input: CreateUserInput): Promise<UserRecord> {
@@ -69,32 +33,41 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
     throw new Error("Informe o CPF do usuário.")
   }
 
-  if (requiresSingleUnit(input.role) && !input.unitName?.trim()) {
-    throw new Error("Selecione uma unidade para o perfil informado.")
+  const passwordResult = newPasswordSchema.safeParse(input.firstAccessPassword.trim())
+
+  if (!passwordResult.success) {
+    throw new Error(passwordResult.error.issues[0]?.message ?? "Senha inválida.")
   }
 
-  const normalizedUnitName = isGlobalRole(input.role)
-    ? null
-    : input.unitName?.trim() || null
+  const unitsCatalog = isGlobalRole(input.role)
+    ? []
+    : (await listUnits()).map((unit) => ({
+        id: String(unit.cod_empresa),
+        name: unit.nom_fantasia || unit.nom_razao_social,
+      }))
+  const unitScope = normalizeUnitScope(input, unitsCatalog)
 
   const normalizedPhone = input.phone?.trim()
     ? formatPhone(onlyDigits(input.phone))
     : null
+  const users = await listUsers()
 
   const nextUser: UserRecord = {
-    id: createNextUserId(inMemoryUsers),
+    id: createNextUserId(users),
     name: input.name.trim(),
     cpf: formatCpf(onlyDigits(input.cpf)),
     email: input.email?.trim() || null,
     phoneMasked: normalizedPhone,
     role: input.role,
     status: "active",
-    unitName: normalizedUnitName,
-    mfaStatus: "inactive",
+    authUserId: undefined,
+    unitId: unitScope.unitId,
+    unitName: unitScope.unitName,
+    passkeyStatus: "inactive",
     lastAccessAt: null,
   }
 
-  inMemoryUsers = [nextUser, ...inMemoryUsers]
+  await getUsersGateway().saveAll([nextUser, ...users])
 
   return nextUser
 }
@@ -102,20 +75,21 @@ export async function createUser(input: CreateUserInput): Promise<UserRecord> {
 export async function updateUser(input: UpdateUserInput): Promise<UserRecord> {
   await Promise.resolve()
 
-  if (requiresSingleUnit(input.role) && !input.unitName?.trim()) {
-    throw new Error("Selecione uma unidade para o perfil informado.")
-  }
-
-  const userIndex = inMemoryUsers.findIndex((user) => user.id === input.id)
+  const users = await listUsers()
+  const userIndex = users.findIndex((user) => user.id === input.id)
 
   if (userIndex < 0) {
     throw new Error("Usuário não encontrado.")
   }
 
-  const currentUser = inMemoryUsers[userIndex]
-  const normalizedUnitName = isGlobalRole(input.role)
-    ? null
-    : input.unitName?.trim() || null
+  const currentUser = users[userIndex]
+  const unitsCatalog = isGlobalRole(input.role)
+    ? []
+    : (await listUnits()).map((unit) => ({
+        id: String(unit.cod_empresa),
+        name: unit.nom_fantasia || unit.nom_razao_social,
+      }))
+  const unitScope = normalizeUnitScope(input, unitsCatalog)
   const normalizedPhone = input.phone?.trim()
     ? formatPhone(onlyDigits(input.phone))
     : null
@@ -127,11 +101,12 @@ export async function updateUser(input: UpdateUserInput): Promise<UserRecord> {
     name: input.name.trim(),
     phoneMasked: normalizedPhone,
     role: input.role,
-    unitName: normalizedUnitName,
+    unitId: unitScope.unitId,
+    unitName: unitScope.unitName,
   }
 
-  inMemoryUsers = inMemoryUsers.map((user) =>
-    user.id === input.id ? updatedUser : user
+  await getUsersGateway().saveAll(
+    users.map((user) => (user.id === input.id ? updatedUser : user))
   )
 
   return updatedUser
@@ -140,7 +115,8 @@ export async function updateUser(input: UpdateUserInput): Promise<UserRecord> {
 export async function blockUser(userId: string): Promise<UserRecord> {
   await Promise.resolve()
 
-  const currentUser = inMemoryUsers.find((user) => user.id === userId)
+  const users = await listUsers()
+  const currentUser = users.find((user) => user.id === userId)
 
   if (!currentUser) {
     throw new Error("Usuário não encontrado.")
@@ -151,8 +127,8 @@ export async function blockUser(userId: string): Promise<UserRecord> {
     status: "inactive",
   }
 
-  inMemoryUsers = inMemoryUsers.map((user) =>
-    user.id === userId ? nextUser : user
+  await getUsersGateway().saveAll(
+    users.map((user) => (user.id === userId ? nextUser : user))
   )
 
   return nextUser
@@ -161,7 +137,8 @@ export async function blockUser(userId: string): Promise<UserRecord> {
 export async function resetUserAccess(userId: string): Promise<UserRecord> {
   await Promise.resolve()
 
-  const currentUser = inMemoryUsers.find((user) => user.id === userId)
+  const users = await listUsers()
+  const currentUser = users.find((user) => user.id === userId)
 
   if (!currentUser) {
     throw new Error("Usuário não encontrado.")
@@ -169,13 +146,70 @@ export async function resetUserAccess(userId: string): Promise<UserRecord> {
 
   const nextUser: UserRecord = {
     ...currentUser,
-    mfaStatus: "inactive",
     status: "password_reset",
   }
 
-  inMemoryUsers = inMemoryUsers.map((user) =>
-    user.id === userId ? nextUser : user
+  await getUsersGateway().saveAll(
+    users.map((user) => (user.id === userId ? nextUser : user))
   )
 
   return nextUser
+}
+
+export async function resetUserPasskey(userId: string): Promise<UserRecord> {
+  await Promise.resolve()
+
+  const users = await listUsers()
+  const currentUser = users.find((user) => user.id === userId)
+
+  if (!currentUser) {
+    throw new Error("Usuário não encontrado.")
+  }
+
+  const nextUser: UserRecord = {
+    ...currentUser,
+    passkeyStatus: "inactive",
+    status: "passkey_reset",
+  }
+
+  await getUsersGateway().saveAll(
+    users.map((user) => (user.id === userId ? nextUser : user))
+  )
+
+  return nextUser
+}
+
+export async function clearUserLock(userId: string): Promise<UserRecord> {
+  await Promise.resolve()
+
+  const users = await listUsers()
+  const currentUser = users.find((user) => user.id === userId)
+
+  if (!currentUser) {
+    throw new Error("Usuário não encontrado.")
+  }
+
+  const nextUser: UserRecord = {
+    ...currentUser,
+    lockedUntil: null,
+    status: "active",
+  }
+
+  await getUsersGateway().saveAll(
+    users.map((user) => (user.id === userId ? nextUser : user))
+  )
+
+  return nextUser
+}
+
+export async function revokeUserSessions(userId: string): Promise<UserRecord> {
+  await Promise.resolve()
+
+  const currentUser = (await listUsers()).find((user) => user.id === userId)
+
+  if (!currentUser) {
+    throw new Error("Usuário não encontrado.")
+  }
+
+  return currentUser
 }

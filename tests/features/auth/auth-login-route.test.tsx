@@ -1,4 +1,4 @@
-import { render, screen } from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
@@ -57,6 +57,22 @@ vi.mock("@/features/auth", async () => {
   }
 })
 
+vi.mock("@/features/auth/context", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/auth/context")>()
+
+  return {
+    ...actual,
+    useAuth: () => mocks.authContext,
+  }
+})
+
+vi.mock("@/components/toast", () => ({
+  notify: {
+    error: vi.fn(),
+    success: vi.fn(),
+  },
+}))
+
 async function renderRoute() {
   const { AuthLoginRoute } = await import("@/features/auth/routes/auth-login-route")
 
@@ -70,14 +86,97 @@ async function renderRoute() {
 describe("AuthLoginRoute", () => {
   beforeEach(() => {
     vi.resetModules()
-    mocks.consumeExpired.mockReturnValue(true)
+    vi.clearAllMocks()
+    mocks.consumeExpired.mockReturnValue(false)
+    mocks.authContext.isSubmitting = false
+    mocks.authContext.passwordChange.required = false
   })
 
   it("shows only one acknowledgement action when the session expired", async () => {
+    mocks.consumeExpired.mockReturnValue(true)
+
     await renderRoute()
 
     expect(screen.getByRole("heading", { name: "Sessão encerrada" })).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Entendi" })).toBeInTheDocument()
     expect(screen.queryByRole("button", { name: "Cancelar" })).not.toBeInTheDocument()
+  })
+
+  it("completes the required password step and returns to credential login", async () => {
+    mocks.authContext.actions.signInWithPassword.mockResolvedValueOnce({
+      flowId: "password-flow",
+      message: "Ação adicional necessária.",
+      nextAction: "set_new_password",
+    })
+    mocks.authContext.actions.completeRequiredPassword.mockResolvedValueOnce({
+      flowId: "passkey-flow",
+      message: "Senha atualizada.",
+      nextAction: "authenticated",
+    })
+
+    await renderRoute()
+
+    fireEvent.change(screen.getByLabelText("CPF*"), {
+      target: { value: "52998224725" },
+    })
+    fireEvent.change(screen.getByLabelText("Senha*"), {
+      target: { value: "SenhaAtual@2026" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Entrar" }))
+
+    expect(await screen.findByText("Defina uma nova senha")).toBeInTheDocument()
+
+    fireEvent.change(screen.getByLabelText("Nova senha*"), {
+      target: { value: "NovaSenha@2026" },
+    })
+    fireEvent.change(screen.getByLabelText("Confirmar nova senha*"), {
+      target: { value: "NovaSenha@2026" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Salvar nova senha" }))
+
+    await waitFor(() => {
+      expect(
+        mocks.authContext.actions.completeRequiredPassword
+      ).toHaveBeenCalledWith("NovaSenha@2026")
+    })
+    expect(await screen.findByText("Acesse sua conta")).toBeInTheDocument()
+  })
+
+  it("registers a required passkey when the password flow requests it", async () => {
+    mocks.authContext.actions.signInWithPassword.mockResolvedValueOnce({
+      flowId: "passkey-flow",
+      message: "Ação adicional necessária.",
+      nextAction: "register_passkey",
+    })
+    mocks.authContext.actions.registerRequiredPasskey.mockResolvedValueOnce({
+      flowId: null,
+      message: "Autenticado.",
+      nextAction: "authenticated",
+    })
+
+    await renderRoute()
+
+    fireEvent.change(screen.getByLabelText("CPF*"), {
+      target: { value: "52998224725" },
+    })
+    fireEvent.change(screen.getByLabelText("Senha*"), {
+      target: { value: "SenhaAtual@2026" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Entrar" }))
+
+    expect(
+      await screen.findByText("Cadastro de passkey necessário")
+    ).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole("button", { name: "Cadastrar passkey" }))
+
+    await waitFor(() => {
+      expect(
+        mocks.authContext.actions.registerRequiredPasskey
+      ).toHaveBeenCalledWith({
+        cpf: "529.982.247-25",
+        flowId: "passkey-flow",
+      })
+    })
   })
 })

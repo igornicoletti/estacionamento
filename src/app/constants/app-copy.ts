@@ -64,10 +64,6 @@ export const appCopy = {
       label: "Segurança",
       description: "Gerenciar credenciais, sessão e permissões efetivas.",
     },
-    settings: {
-      label: "Meu Perfil",
-      description: "Rota legada redirecionada para Meu Perfil.",
-    },
     login: {
       label: "Entrar",
       description: "Autenticação por CPF e senha.",

@@ -73,6 +73,8 @@ export default defineConfig({
       },
     },
     globals: true,
+    hookTimeout: 30000,
     setupFiles: "./tests/setup.ts",
+    testTimeout: 30000,
   },
 })

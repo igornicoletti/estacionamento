@@ -242,7 +242,8 @@ export function DataTableFacetedFilter<TData, TValue>({
   )
   const hiddenSelectedOptionCount =
     selectedOptions.length - visibleSelectedOptions.length
-  const filterLabel =
+  const filterLabel = title.trim()
+  const filterPlaceholder =
     placeholder?.trim() ||
     `${dataTableCopy.toolbar.filterPlaceholderPrefix} ${title}`
   const facets =
@@ -340,7 +341,7 @@ export function DataTableFacetedFilter<TData, TValue>({
         <ComboboxChipsInput
           aria-label={filterLabel}
           className="min-w-8 flex-1 text-left"
-          placeholder={selectedOptions.length ? "" : filterLabel}
+          placeholder={selectedOptions.length ? "" : filterPlaceholder}
         />
         {selectedOptions.length ? (
           <Button

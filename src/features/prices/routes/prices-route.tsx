@@ -3,10 +3,10 @@ import { BadgeDollarSignIcon, PlusIcon } from "lucide-react"
 import * as React from "react"
 
 import { DataTable } from "@/components/data-table"
-import { PageHeader, PageSection } from "@/components/page"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppPage } from "@/components/shared/app-page"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 
@@ -90,18 +90,16 @@ export function PricesRoute() {
   )
 
   return (
-    <PageSection>
-      <PageHeader
-        title={pricesCopy.page.title}
-        subtitle={pricesCopy.page.subtitle}
-        actions={
-          <Button type="button" variant="secondary" size="lg" onClick={() => { setEditingRecord(null); setIsFormOpen(true) }}>
-            <PlusIcon />
-            {pricesCopy.actions.add}
-          </Button>
-        }
-      />
-
+    <AppPage
+      title={pricesCopy.page.title}
+      subtitle={pricesCopy.page.subtitle}
+      actions={
+        <Button type="button" variant="secondary" size="lg" onClick={() => { setEditingRecord(null); setIsFormOpen(true) }}>
+          <PlusIcon />
+          {pricesCopy.actions.add}
+        </Button>
+      }
+    >
       <DataTable
         columns={columns}
         data={data}
@@ -170,7 +168,7 @@ export function PricesRoute() {
         pendingLabel={pricesCopy.actions.saving}
         onAction={handleUpdatePriceTableStatus}
       />
-    </PageSection>
+    </AppPage>
   )
 }
 

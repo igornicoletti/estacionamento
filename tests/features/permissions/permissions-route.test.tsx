@@ -12,7 +12,7 @@ describe("PermissionsRoute", () => {
     ).toBeInTheDocument()
 
     await waitFor(() => {
-      expect(screen.getByText("Visualizar auditoria")).toBeInTheDocument()
+      expect(screen.getByText("Auditoria - Consultar")).toBeInTheDocument()
     })
   })
 
@@ -20,12 +20,13 @@ describe("PermissionsRoute", () => {
     render(<PermissionsRoute />)
 
     const trigger = await screen.findByRole("button", {
-      name: "Visualizar auditoria",
+      name: "Auditoria - Consultar",
     })
 
     fireEvent.click(trigger)
 
-    expect(screen.getByText("Chave da permissão")).toBeInTheDocument()
-    expect(screen.getAllByText("audit.read").length).toBeGreaterThan(0)
+    expect(await screen.findByText("Detalhes da permissão")).toBeInTheDocument()
+    expect(screen.getByText("Chave")).toBeInTheDocument()
+    expect(screen.getAllByText("Auditoria - Consultar").length).toBeGreaterThan(0)
   })
 })

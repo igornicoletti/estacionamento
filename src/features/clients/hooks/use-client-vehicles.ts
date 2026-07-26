@@ -6,13 +6,14 @@ import {
 } from "../services/clients-service"
 import {
   type Client,
-  type ClientVehicle,
-} from "../types/clients-types"
+  mapClientVehicleToTableRow,
+  type ClientVehicleTableRow,
+} from "../model"
 
 const vehiclesLoadError = "Nao foi possivel carregar os veiculos do cliente."
 
 export function useClientVehicles(codPessoa: number) {
-  const [data, setData] = React.useState<ClientVehicle[]>([])
+  const [data, setData] = React.useState<ClientVehicleTableRow[]>([])
   const [client, setClient] = React.useState<Client | null>(null)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState<Error | null>(null)
@@ -36,7 +37,11 @@ export function useClientVehicles(codPessoa: number) {
           null
       )
       setData(
-        vehicles.filter((vehicle) => vehicle.cod_pessoa === codPessoa)
+        vehicles
+          .filter((vehicle) => vehicle.cod_pessoa === codPessoa)
+          .map((vehicle) =>
+            mapClientVehicleToTableRow(vehicle, { isVipEnabled: false })
+          )
       )
     } catch (caughtError) {
       if (isCurrent()) {
@@ -76,7 +81,11 @@ export function useClientVehicles(codPessoa: number) {
             null
         )
         setData(
-          vehicles.filter((vehicle) => vehicle.cod_pessoa === codPessoa)
+          vehicles
+            .filter((vehicle) => vehicle.cod_pessoa === codPessoa)
+            .map((vehicle) =>
+              mapClientVehicleToTableRow(vehicle, { isVipEnabled: false })
+            )
         )
         setError(null)
       } catch (caughtError) {

@@ -10,17 +10,27 @@ export type { AuditScope, AuditSeverity }
 export interface RawAuditEventPayload {
   id: unknown
   occurred_at: unknown
-  scope: unknown
-  event: unknown
-  actor: unknown
-  actor_user_id: unknown
-  target: unknown
-  target_user_id: unknown
-  success: unknown
-  severity: unknown
-  reason: unknown
-  request_id: unknown
-  metadata: unknown
+  scope?: unknown
+  event?: unknown
+  actor?: unknown
+  actor_user_id?: unknown
+  target?: unknown
+  target_user_id?: unknown
+  success?: unknown
+  severity?: unknown
+  reason?: unknown
+  request_id?: unknown
+  metadata?: unknown
+  action?: unknown
+  actor_name?: unknown
+  actor_role?: unknown
+  description?: unknown
+  entity?: unknown
+  entity_id?: unknown
+  ip_address?: unknown
+  outcome?: unknown
+  unit_name?: unknown
+  user_agent?: unknown
 }
 
 export interface AuditEvent {

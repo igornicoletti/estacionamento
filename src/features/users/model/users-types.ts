@@ -3,7 +3,7 @@ import {
   AUTH_STATUS,
   type AuthRoleKey,
   type AuthStatus,
-} from "@/features/auth"
+} from "@/features/auth/contracts"
 
 export type UserRole = AuthRoleKey
 export type AppUserStatus = AuthStatus

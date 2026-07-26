@@ -1,12 +1,11 @@
 # Documentação do Projeto
 
-Esta pasta foi reorganizada para separar conteúdo vigente de material histórico.
+Esta pasta concentra a documentação vigente e os relatórios de validação do projeto.
 
 ## Estrutura
 
 - `docs/current/`: documentação vigente e operacional.
 - `docs/reports/`: evidências de validação por fluxo (QA, segurança, regressão).
-- `docs/archive/`: documentação legada/desatualizada preservada para rastreabilidade.
 
 ## Índices
 
@@ -18,4 +17,3 @@ Esta pasta foi reorganizada para separar conteúdo vigente de material históric
 
 - Vigente operacional: `YYYY-MM-DD__<tema>.md`
 - Índices/backlog: `INDEX__*.md`, `BACKLOG__*.md`
-- Arquivos legados: prefixo `legacy__` em `docs/archive/`

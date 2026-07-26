@@ -1,5 +1,5 @@
-import { sanitizeAuditEventsPayload } from "../utils/audit-normalizers"
-import { type AuditEvent, type RawAuditEventPayload } from "../types/audit-types"
+import { sanitizeAuditEventsPayload } from "../model"
+import { type AuditEvent, type RawAuditEventPayload } from "../model"
 
 /**
  * Simulated append-only audit trail. In production this data would come from an

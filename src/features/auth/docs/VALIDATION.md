@@ -26,7 +26,7 @@ A validação local do artefato confirma estrutura, sintaxe TypeScript e integri
 
 ## Sessão e inatividade
 
-- O frontend usa `AUTH_SESSION_TIMEOUTS.inactivityMinutes = 15`, derivando `AUTH_INACTIVITY.timeoutMs`.
-- O `supabase/config.toml` local declara `jwt_expiry = 3600`, `timebox = "24h"` e `inactivity_timeout = "15m"`.
-- `tests/features/auth/auth-session-config.test.ts` valida que o contrato do frontend continua alinhado ao TOML local.
+- O frontend usa `AUTH_SESSION_TIMEOUTS.inactivityMinutes = 45`, derivando `AUTH_INACTIVITY.timeoutMs`.
+- O `supabase/config.toml` local declara `jwt_expiry = 3600`, `timebox = "0s"` e `inactivity_timeout = "0s"`.
+- `tests/features/auth/auth-session-config.test.ts` valida que a expiração server-side permanece desabilitada e que o contrato do frontend continua explícito.
 - Em 22/07/2026, `supabase config push` informou que o remoto estava com `timebox = "0s"` e `inactivity_timeout = "0s"` e recusou aplicar `24h/15m` com status 402 porque timeouts de sessão exigem plano Pro. No remoto atual, a expiração por inatividade é responsabilidade do frontend.

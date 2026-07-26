@@ -3,9 +3,9 @@ import * as React from "react"
 import { useNavigate, useParams } from "react-router"
 
 import { DataTable } from "@/components/data-table"
-import { PageHeader, PageHeaderActions, PageSection } from "@/components/page"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppPage } from "@/components/shared/app-page"
 import { Button } from "@/components/ui/button"
 import { type UserRecord } from "@/features/users"
 
@@ -65,27 +65,23 @@ export function UnitUsersRoute() {
   }, [refetchUnits, refetchUsers, shouldLoadUsers])
 
   return (
-    <PageSection>
-      <PageHeader
-        title={pageTitle}
-        subtitle={pageSubtitle}
-        actions={(
-          <PageHeaderActions>
-            <Button
-              type="button"
-              variant="secondary"
-              size="lg"
-              onClick={() => {
-                void navigate(unitsRoutePaths.list)
-              }}
-            >
-              <ArrowLeftIcon aria-hidden="true" />
-              {unitsCopy.actions.backToUnits}
-            </Button>
-          </PageHeaderActions>
-        )}
-      />
-
+    <AppPage
+      title={pageTitle}
+      subtitle={pageSubtitle}
+      actions={
+        <Button
+          type="button"
+          variant="secondary"
+          size="lg"
+          onClick={() => {
+            void navigate(unitsRoutePaths.list)
+          }}
+        >
+          <ArrowLeftIcon aria-hidden="true" />
+          {unitsCopy.actions.backToUnits}
+        </Button>
+      }
+    >
       <DataTable
         columns={columns}
         data={tableUsers}
@@ -141,6 +137,6 @@ export function UnitUsersRoute() {
           : []
         }
       />
-    </PageSection>
+    </AppPage>
   )
 }

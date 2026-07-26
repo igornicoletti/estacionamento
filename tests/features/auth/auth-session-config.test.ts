@@ -19,18 +19,16 @@ function readTomlValue(config: string, key: string) {
 }
 
 describe("auth session configuration", () => {
-  it("keeps frontend inactivity timing aligned with Supabase local config", () => {
+  it("keeps frontend inactivity timing explicit when Supabase server-side timeouts are disabled", () => {
     const config = readSupabaseConfig()
 
-    expect(readTomlValue(config, "inactivity_timeout")).toBe(
-      `${AUTH_SESSION_TIMEOUTS.inactivityMinutes}m`
-    )
-    expect(readTomlValue(config, "timebox")).toBe(
-      `${AUTH_SESSION_TIMEOUTS.timeboxHours}h`
-    )
+    expect(readTomlValue(config, "inactivity_timeout")).toBe("0s")
+    expect(readTomlValue(config, "timebox")).toBe("0s")
     expect(readTomlValue(config, "jwt_expiry")).toBe(
       String(AUTH_SESSION_TIMEOUTS.jwtExpirySeconds)
     )
+    expect(AUTH_SESSION_TIMEOUTS.inactivityMinutes).toBe(45)
+    expect(AUTH_SESSION_TIMEOUTS.timeboxHours).toBe(24)
     expect(AUTH_INACTIVITY.timeoutMs).toBe(
       AUTH_SESSION_TIMEOUTS.inactivityMinutes * 60 * 1000
     )

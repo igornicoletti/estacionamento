@@ -1,181 +1,39 @@
-import * as React from "react"
+import { Outlet, type RouteObject } from "react-router"
+
 import {
-  Outlet,
-  type RouteObject,
-} from "react-router"
-
-import { AppShell, AuthShell } from "@/app/layouts"
+  RouteErrorBoundary,
+  RouteNotFound,
+  RouteLoadingState,
+} from "./components"
 import {
-  routeCapabilities,
-  type AuthCapability,
-} from "@/features/auth"
-
-import { AuthRoute } from "./auth-route"
-import { DefaultRouteRedirect } from "./default-route-redirect"
-import { ProtectedRoute } from "./protected-route"
-import { PublicRoute } from "./public-route"
-import { lazyAppRouteDefinitions } from "./route-definitions"
-import { RouteErrorBoundary } from "./route-error-boundary"
-import { RouteLoading } from "./route-loading"
-
-const NotFoundRoute = React.lazy(() =>
-  import("@/app/router/not-found-route").then((module) => ({
-    default: module.NotFoundRoute,
-  }))
-)
-
-const AuthLoginRoute = React.lazy(() =>
-  import("@/features/auth/routes/auth-login-route").then((module) => ({
-    default: module.AuthLoginRoute,
-  }))
-)
-
-const AuthRecoveryRoute = React.lazy(() =>
-  import("@/features/auth/routes/auth-recovery-route").then((module) => ({
-    default: module.AuthRecoveryRoute,
-  }))
-)
-
-const ClientVehiclesRoute = React.lazy(() =>
-  import("@/features/clients").then((module) => ({
-    default: module.ClientVehiclesRoute,
-  }))
-)
-
-const NotificationsRoute = React.lazy(() =>
-  import("@/features/notifications").then((module) => ({
-    default: module.NotificationsRoute,
-  }))
-)
-
-const SettingsRoute = React.lazy(() =>
-  import("@/features/settings").then((module) => ({
-    default: module.SettingsRoute,
-  }))
-)
-
-type RouteLoadingVariant = React.ComponentProps<typeof RouteLoading>["variant"]
-
-function withRouteSuspense(
-  element: React.ReactNode,
-  variant: RouteLoadingVariant = "screen"
-) {
-  return (
-    <React.Suspense fallback={<RouteLoading variant={variant} />}>
-      {element}
-    </React.Suspense>
-  )
-}
-
-function withProtectedRouteBoundary(
-  element: React.ReactNode,
-  requiredCapabilities: readonly AuthCapability[] = []
-) {
-  return (
-    <ProtectedRoute requiredCapabilities={requiredCapabilities}>
-      {withRouteSuspense(element, "section")}
-    </ProtectedRoute>
-  )
-}
-
-function withPublicRouteBoundary(element: React.ReactNode) {
-  return withRouteSuspense(element, "screen")
-}
-
-const appRoutes = lazyAppRouteDefinitions.map((route) => {
-  const RouteComponent = React.lazy(route.load)
-
-  return {
-    id: route.id,
-    path: route.path,
-    element: withProtectedRouteBoundary(
-      <RouteComponent />,
-      route.requiredCapabilities
-    ),
-    errorElement: <RouteErrorBoundary />,
-  } satisfies RouteObject
-})
+  createAuthenticatedRoute,
+  createAuthenticatedShellRoute,
+  createPublicRoute,
+  createPublicShellRoute,
+} from "./route-builders"
+import {
+  appRouteIds,
+  authenticatedRouteRegistry,
+  publicRouteRegistry,
+} from "./route-registry"
 
 export const routes = [
   {
-    id: "root",
+    id: appRouteIds.root,
     element: <Outlet />,
     errorElement: <RouteErrorBoundary />,
+    hydrateFallbackElement: <RouteLoadingState scope="app" />,
     children: [
+      createPublicShellRoute(publicRouteRegistry.map(createPublicRoute)),
+      createAuthenticatedShellRoute(
+        authenticatedRouteRegistry.map(createAuthenticatedRoute)
+      ),
       {
-        id: "auth",
-        element: <AuthShell />,
-        errorElement: <RouteErrorBoundary />,
-        children: [
-          {
-            id: "auth-guard",
-            element: <AuthRoute />,
-            children: [
-              {
-                id: "login",
-                path: "login",
-                element: withPublicRouteBoundary(<AuthLoginRoute />),
-              },
-              {
-                id: "access-recovery",
-                path: "recuperar-acesso",
-                element: withPublicRouteBoundary(<AuthRecoveryRoute />),
-              },
-            ],
-          },
-        ],
-      },
-      {
-        id: "app",
-        element: (
-          <ProtectedRoute>
-            <AppShell />
-          </ProtectedRoute>
-        ),
-        errorElement: <RouteErrorBoundary />,
-        children: [
-          {
-            index: true,
-            element: <DefaultRouteRedirect />,
-          },
-          {
-            id: "client-vehicles",
-            path: "clientes/:cod_pessoa",
-            element: withProtectedRouteBoundary(
-              <ClientVehiclesRoute />,
-              routeCapabilities.clientVehicles
-            ),
-            errorElement: <RouteErrorBoundary />,
-          },
-          {
-            id: "notifications",
-            path: "notificacoes",
-            element: withProtectedRouteBoundary(
-              <NotificationsRoute />,
-              routeCapabilities.notifications
-            ),
-            errorElement: <RouteErrorBoundary />,
-          },
-          {
-            id: "settings",
-            path: "configuracoes",
-            element: withProtectedRouteBoundary(
-              <SettingsRoute />,
-              routeCapabilities.settings
-            ),
-            errorElement: <RouteErrorBoundary />,
-          },
-          ...appRoutes,
-        ],
-      },
-      {
-        id: "not-found",
+        id: appRouteIds.notFound,
         path: "*",
-        element: (
-          <PublicRoute>
-            {withPublicRouteBoundary(<NotFoundRoute />)}
-          </PublicRoute>
-        ),
+        element: <RouteNotFound />,
+        errorElement: <RouteErrorBoundary />,
+        hydrateFallbackElement: <RouteLoadingState scope="page" />,
       },
     ],
   },

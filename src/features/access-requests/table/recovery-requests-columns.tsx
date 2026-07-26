@@ -2,7 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 
 import { createActionsColumn, DataTableSensitiveValue, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { formatDateTime, getBadgeToneClassName, type BadgeTone } from "@/lib"
+import { formatDateTime, getBadgeToneClassName, onlyDigits, type BadgeTone } from "@/lib"
 
 import { accessRequestsCopy } from "../constants"
 import {
@@ -24,6 +24,20 @@ const verificationToneByStatus: Record<
   matched: "success",
   mismatch: "warning",
   unverified: "info",
+}
+
+function maskRecoveryPhone(value: string) {
+  const digits = onlyDigits(value)
+
+  if (digits.length === 11) {
+    return `(${digits.slice(0, 2)}) *****-${digits.slice(-4)}`
+  }
+
+  if (digits.length === 10) {
+    return `(${digits.slice(0, 2)}) ****-${digits.slice(-4)}`
+  }
+
+  return value
 }
 
 export function createRecoveryRequestsColumns({
@@ -90,6 +104,7 @@ export function createRecoveryRequestsColumns({
           value={row.original.phoneMasked}
           kind="phone"
           fallback={accessRequestsCopy.shared.emptyValue}
+          maskValue={maskRecoveryPhone}
         />
       ),
     },

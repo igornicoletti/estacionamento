@@ -1,5 +1,6 @@
 import {
   BellIcon,
+  CameraIcon,
   LogOutIcon,
   SettingsIcon,
   UserIcon,
@@ -7,8 +8,9 @@ import {
 import { useState } from "react"
 import { Link, useNavigate } from "react-router"
 
+import { appRoutePaths } from "@/app/router/route-registry"
 import { shouldBypassAuthInDev } from "@/config"
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { DestructiveConfirmDialog } from "@/components/ui/destructive-confirm-dialog"
 import {
@@ -20,11 +22,14 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  isUserRole,
-  userRoleLabels,
-} from "@/features/auth"
 import { useAuthSession } from "@/features/auth/hooks"
+import { getProfileInitials, ProfilePhotoDialog } from "@/features/my-profile/components"
+import {
+  updateCurrentProfile,
+  uploadProfileAvatarFile,
+} from "@/features/my-profile/services/profile-service"
+
+import { sidebarCopy } from "./sidebar-copy"
 
 type UnknownRecord = Record<PropertyKey, unknown>
 
@@ -56,28 +61,79 @@ function getProfileMeta(profile: unknown) {
     return shouldBypassAuthInDev() ? "Modo desenvolvimento" : "Perfil"
   }
 
-  return isUserRole(profile.role) ? userRoleLabels[profile.role] : "Perfil"
+  const role = profile.role
+
+  if (isRecord(role) && typeof role.label === "string" && role.label.trim()) {
+    return role.label.trim()
+  }
+
+  return "Perfil"
+}
+
+function getProfileStringField(profile: unknown, field: string) {
+  if (!isRecord(profile) || typeof profile[field] !== "string") {
+    return null
+  }
+
+  const value = profile[field].trim()
+  return value || null
 }
 
 export function UserMenu() {
-  const { profile, signOut } = useAuthSession()
+  const { profile, refresh, signOut } = useAuthSession()
   const navigate = useNavigate()
+  const [isPhotoDialogOpen, setIsPhotoDialogOpen] = useState(false)
+  const [isSavingPhoto, setIsSavingPhoto] = useState(false)
   const [isSignOutDialogOpen, setIsSignOutDialogOpen] = useState(false)
   const displayName = getProfileName(profile)
   const displayMeta = getProfileMeta(profile)
   const fallback = getFallback(displayName)
+  const avatarUrl = getProfileStringField(profile, "avatarUrl")
+  const authUserId = getProfileStringField(profile, "authUserId")
+  const email = getProfileStringField(profile, "email")
 
   async function handleSignOut() {
     await signOut()
     void navigate("/login", { replace: true })
   }
 
+  async function handleSavePhotoFile(payload: {
+    file: File
+    previewUrl: string
+  }) {
+    if (!authUserId || isSavingPhoto) {
+      return
+    }
+
+    setIsSavingPhoto(true)
+
+    try {
+      const avatarPath = await uploadProfileAvatarFile(payload.file, authUserId)
+
+      await updateCurrentProfile({
+        avatarPath,
+        avatarPreviewUrl: payload.previewUrl,
+        email,
+        name: displayName,
+      })
+      await refresh()
+      setIsPhotoDialogOpen(false)
+    } finally {
+      setIsSavingPhoto(false)
+    }
+  }
+
   return (
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <Button variant="ghost" className="h-10 gap-2 px-2">
+          <Button
+            variant="ghost"
+            className="h-10 gap-2 px-2"
+            aria-label={sidebarCopy.menu.openUserMenu(displayName)}
+          >
             <Avatar>
+              {avatarUrl ? <AvatarImage src={avatarUrl} alt="" /> : null}
               <AvatarFallback>{fallback}</AvatarFallback>
             </Avatar>
             <span className="hidden flex-col items-center md:flex">
@@ -97,23 +153,32 @@ export function UserMenu() {
                 {displayMeta}
               </span>
             </div>
-          </DropdownMenuLabel>
+            </DropdownMenuLabel>
           <DropdownMenuSeparator />
           <DropdownMenuGroup>
+            <DropdownMenuItem
+              onSelect={(event) => {
+                event.preventDefault()
+                setIsPhotoDialogOpen(true)
+              }}
+            >
+              <CameraIcon />
+              {sidebarCopy.menu.changePhoto}
+            </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/perfil">
+              <Link to={appRoutePaths.profile}>
                 <UserIcon />
                 Meu perfil
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/configuracoes">
+              <Link to={appRoutePaths.profile}>
                 <SettingsIcon />
                 Configurações
               </Link>
             </DropdownMenuItem>
             <DropdownMenuItem asChild>
-              <Link to="/notificacoes">
+              <Link to={appRoutePaths.notifications}>
                 <BellIcon />
                 Notificações
               </Link>
@@ -132,6 +197,17 @@ export function UserMenu() {
           </DropdownMenuGroup>
         </DropdownMenuContent>
       </DropdownMenu>
+
+      {isPhotoDialogOpen ? (
+        <ProfilePhotoDialog
+          avatarUrl={avatarUrl}
+          fallback={getProfileInitials(displayName)}
+          isSaving={isSavingPhoto}
+          onOpenChange={setIsPhotoDialogOpen}
+          onSaveFile={handleSavePhotoFile}
+          open={isPhotoDialogOpen}
+        />
+      ) : null}
 
       <DestructiveConfirmDialog
         open={isSignOutDialogOpen}

@@ -112,6 +112,7 @@ export function DataTableRowActions<TData>({
           variant="ghost"
           size="icon-lg"
           className="data-[state=open]:bg-muted"
+          aria-label={triggerLabel}
           aria-busy={hasPendingAction || undefined}
           onClick={(event) => event.stopPropagation()}
         >

@@ -4,11 +4,11 @@ import { Navigate } from "react-router"
 
 import { appRoutePaths } from "@/app/router/route-registry"
 import { DataTable } from "@/components/data-table"
-import { PageHeader, PageSection } from "@/components/page"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppDialog } from "@/components/shared/app-dialog"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppPage } from "@/components/shared/app-page"
 import { AppPasswordField } from "@/components/shared/app-password-field"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
@@ -138,12 +138,8 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
     }
   }, [isApprovalPasswordInvalid, pendingRecoveryReview, resetPendingReview, reviewRecovery, temporaryPassword])
 
-  return (
+  const content = (
     <>
-      {showHeader ? (
-        <PageHeader title={accessRequestsCopy.page.title} subtitle={accessRequestsCopy.page.subtitle} />
-      ) : null}
-
       <DataTable
         columns={recoveryColumns}
         data={data.recoveryRequests}
@@ -276,14 +272,23 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
       />
     </>
   )
+
+  if (!showHeader) {
+    return content
+  }
+
+  return (
+    <AppPage
+      title={accessRequestsCopy.page.title}
+      subtitle={accessRequestsCopy.page.subtitle}
+    >
+      {content}
+    </AppPage>
+  )
 }
 
 export function AccessRequestsRoute() {
-  return (
-    <PageSection>
-      <AccessRequestsPanel />
-    </PageSection>
-  )
+  return <AccessRequestsPanel />
 }
 
 export function AccessRequestsRedirectRoute() {

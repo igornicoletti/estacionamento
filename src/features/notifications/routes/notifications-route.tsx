@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppPage } from "@/components/shared/app-page"
 import { notify } from "@/components/toast"
 import {
   createDataTableFilterOptions,
@@ -106,14 +107,11 @@ export function NotificationsRoute() {
   )
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="max-w-2xl">
-        <h1 className="text-2xl font-semibold tracking-tight">Notificações</h1>
-        <p className="mt-2 text-sm text-muted-foreground">
-          Acompanhe alertas de sistema, sincronização e segurança.
-        </p>
-      </header>
-
+    <AppPage
+      title="Notificações"
+      subtitle="Acompanhe alertas de sistema, sincronização e segurança."
+      headingClassName="max-w-2xl"
+    >
       <DataTable
         columns={columns}
         data={data}
@@ -173,6 +171,6 @@ export function NotificationsRoute() {
         description={resolveNotificationDetailsDescription(selectedNotification)}
         items={selectedNotificationItems}
       />
-    </div>
+    </AppPage>
   )
 }

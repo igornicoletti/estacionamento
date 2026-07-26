@@ -11,11 +11,11 @@ describe("AuditRoute", () => {
       screen.getByRole("heading", { name: "Auditoria" })
     ).toBeInTheDocument()
     expect(
-      screen.getByRole("button", { name: "Exportar" })
+      screen.getByRole("button", { name: "Exportar tudo" })
     ).toBeInTheDocument()
 
     await waitFor(() => {
-      expect(screen.getByText("Monte Carlo Sul")).toBeInTheDocument()
+      expect(screen.getByText("Rede Monte Carlo")).toBeInTheDocument()
     })
   })
 
@@ -28,7 +28,8 @@ describe("AuditRoute", () => {
 
     fireEvent.click(trigger)
 
-    expect(screen.getByText("Identificador do evento")).toBeInTheDocument()
-    expect(screen.getByText("Endereço IP")).toBeInTheDocument()
+    expect(await screen.findByText("Detalhes do evento")).toBeInTheDocument()
+    expect(screen.getAllByText("Escopo").length).toBeGreaterThan(0)
+    expect(screen.getByText("Motivo")).toBeInTheDocument()
   })
 })

@@ -8,7 +8,6 @@ import {
 } from "@/components/ui/sidebar"
 
 import { SidebarBrand } from "./sidebar-brand"
-import { SidebarFooterText } from "./sidebar-footer"
 import { SidebarNavigation } from "./sidebar-navigation"
 import { SidebarProfile } from "./sidebar-profile"
 
@@ -29,12 +28,9 @@ export function AppSidebar({ homeHref }: AppSidebarProps) {
       <SidebarContent className="gap-1 py-2 group-data-[collapsible=icon]:items-center">
         <SidebarProfile />
         <SidebarNavigation />
-        <div className="mt-auto hidden p-2 lg:flex">
-          <SidebarTrigger className="text-sidebar-foreground/70 hover:bg-transparent! hover:text-sidebar-foreground/70 active:bg-transparent!" />
-        </div>
       </SidebarContent>
-      <SidebarFooter className="group-data-[collapsible=icon]:items-center">
-        <SidebarFooterText />
+      <SidebarFooter className="hidden lg:flex group-data-[collapsible=icon]:items-center">
+        <SidebarTrigger className="text-sidebar-foreground/70 hover:bg-transparent! hover:text-sidebar-foreground/70 active:bg-transparent!" />
       </SidebarFooter>
       <SidebarRail />
     </Sidebar>

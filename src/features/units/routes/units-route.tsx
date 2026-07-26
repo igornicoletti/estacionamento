@@ -1,18 +1,35 @@
 import { HistoryIcon, RefreshCcwIcon } from "lucide-react"
 import * as React from "react"
+import { useNavigate } from "react-router"
 
 import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppPage } from "@/components/shared/app-page"
 import { Button } from "@/components/ui/button"
 
-import { createUnitsColumns } from "../columns/units-columns"
+import {
+  getUnitDetailItems,
+} from "../model"
+import { createUnitsColumns, type UnitTableRow } from "../table"
 import { useUnits } from "../hooks/use-units"
 
 export function UnitsRoute() {
+  const navigate = useNavigate()
   const { data: units, error, isLoading, refetch } = useUnits()
-  const columns = React.useMemo(() => createUnitsColumns(), [])
+  const [selectedUnit, setSelectedUnit] = React.useState<UnitTableRow | null>(null)
+  const columns = React.useMemo(
+    () =>
+      createUnitsColumns({
+        onOpenDetails: setSelectedUnit,
+        onSelectUsers: (unit) => {
+          void navigate(`/unidades/${unit.cod_empresa}/usuarios`)
+        },
+      }),
+    [navigate]
+  )
   const brandOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
@@ -33,16 +50,11 @@ export function UnitsRoute() {
   )
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <h1 className="text-2xl font-semibold tracking-tight">Unidades</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Consulte as unidades sincronizadas a partir do ERP.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center">
+    <AppPage
+      title="Unidades"
+      subtitle="Consulte as unidades sincronizadas a partir do ERP."
+      actions={
+        <>
           <Button type="button" variant="secondary" >
             <HistoryIcon aria-hidden="true" />
             Histórico
@@ -59,9 +71,9 @@ export function UnitsRoute() {
             <RefreshCcwIcon aria-hidden="true" />
             Sincronizar
           </Button>
-        </div>
-      </header>
-
+        </>
+      }
+    >
       <DataTable
         columns={columns}
         data={units}
@@ -101,6 +113,30 @@ export function UnitsRoute() {
         enablePagination
         enableViewOptions
       />
-    </div>
+
+      <AppDetailsSheet
+        open={Boolean(selectedUnit)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedUnit(null)
+          }
+        }}
+        title={selectedUnit ? "Detalhes da unidade" : undefined}
+        description={
+          selectedUnit
+            ? "Consulte os dados cadastrais, operacionais e de pátio da unidade."
+            : undefined
+        }
+        items={
+          selectedUnit
+            ? getUnitDetailItems(
+                selectedUnit,
+                selectedUnit.yardConfig,
+                selectedUnit.userStats
+              )
+            : []
+        }
+      />
+    </AppPage>
   )
 }

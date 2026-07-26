@@ -3,7 +3,6 @@ export {
   formatCpf,
   formatCpfCnpj,
   isValidCpf,
-  maskCpfForDisplay,
   onlyDigits,
 } from "./cpf"
 export {
@@ -27,4 +26,5 @@ export {
 } from "./phone"
 export { resolveVisibleSensitiveValue } from "./sensitive-display"
 export { cn } from "./utils"
+export { getValidatedSupabaseAccessToken } from "./supabase-auth-session"
 export { getSupabaseBrowserClient } from "./supabase-browser"

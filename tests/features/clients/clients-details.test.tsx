@@ -20,9 +20,9 @@ describe("ClientsRoute details", () => {
       screen.getByRole("button", { name: "Auto Center Alfa Ltda" })
     )
 
-    expect(screen.getAllByText("Codigo do cliente").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Código do cliente").length).toBeGreaterThan(0)
     expect(
-      screen.getByRole("heading", { name: "Auto Center Alfa Ltda" })
+      screen.getByRole("heading", { name: "Detalhes do cliente" })
     ).toBeInTheDocument()
   })
 
@@ -41,8 +41,8 @@ describe("ClientsRoute details", () => {
       screen.getAllByRole("button", { name: "Abrir ações da linha" })[0]
     )
 
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Informações" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Detalhes" }))
 
-    expect(screen.getAllByText("Codigo do cliente").length).toBeGreaterThan(0)
+    expect(screen.getAllByText("Código do cliente").length).toBeGreaterThan(0)
   })
 })

@@ -184,14 +184,13 @@ function getLocalStorage(
 function parseStoredSnapshot(value: unknown): DataTableStateSnapshot {
   if (
     isPlainRecord(value) &&
-    (value.version === 1 || value.version === DATA_TABLE_STORAGE_VERSION) &&
+    value.version === DATA_TABLE_STORAGE_VERSION &&
     isPlainRecord(value.state)
   ) {
     return sanitizePersistedSnapshot(value.state)
   }
 
-  const legacyVisibility = sanitizeVisibilityState(value)
-  return legacyVisibility ? { columnVisibility: legacyVisibility } : {}
+  return {}
 }
 
 export function readDataTableSnapshot(

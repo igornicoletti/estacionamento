@@ -25,7 +25,7 @@ src/features/units/
 - Rotas compõem tela e orquestração, sem parsing direto de payload externo.
 - Parsing, sanitização e normalização ficam em `model` e `services`.
 - Histórico e bloqueio de sincronização são autocontidos na feature para remover dependência de `src/features/sync`.
-- O mock de ERP permanece centralizado em `src/features/erp-mock` e é usado apenas quando a flag de mock estiver habilitada.
+- A leitura do ERP passa pelo gateway da feature, com validação e sanitização antes de chegar às rotas.
 - A configuração de pátio usa validação Zod, estado otimista serializado e validação defensiva no service.
 - Tabelas recebem dados normalizados e estados derivados já materializados na rota.
 - Textos e mensagens permanecem centralizados em `constants/units-copy.ts`.

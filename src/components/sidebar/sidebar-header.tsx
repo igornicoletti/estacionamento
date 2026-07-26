@@ -19,29 +19,31 @@ export function AppHeader() {
   }
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background px-4">
-      <SidebarTrigger className="lg:hidden" />
-      <div className="ml-auto flex items-center gap-2">
-        <NotificationsPopover />
-        <UserMenu />
-        <DestructiveConfirmDialog
-          title="Encerrar sessão"
-          description="Deseja realmente sair agora? Você precisará fazer login novamente para continuar."
-          confirmLabel="Sair"
-          onConfirm={async () => {
-            await handleSignOut()
-          }}
-          trigger={
-            <Button
-              type="button"
-              variant="destructive"
-              className="hidden bg-destructive text-destructive-foreground md:inline-flex hover:bg-destructive/90"
-            >
-              <LogOutIcon />
-              Sair
-            </Button>
-          }
-        />
+    <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
+      <div className="flex w-full items-center justify-between gap-2 px-4">
+        <SidebarTrigger className="lg:hidden" />
+        <div className="ml-auto flex items-center gap-2">
+          <NotificationsPopover />
+          <UserMenu />
+          <DestructiveConfirmDialog
+            title="Encerrar sessão"
+            description="Deseja realmente sair agora? Você precisará fazer login novamente para continuar."
+            confirmLabel="Sair"
+            onConfirm={async () => {
+              await handleSignOut()
+            }}
+            trigger={
+              <Button
+                type="button"
+                variant="destructive"
+                className="hidden bg-destructive text-destructive-foreground md:inline-flex hover:bg-destructive/90"
+              >
+                <LogOutIcon />
+                Sair
+              </Button>
+            }
+          />
+        </div>
       </div>
     </header>
   )

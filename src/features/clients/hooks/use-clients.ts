@@ -1,12 +1,15 @@
 import * as React from "react"
 
 import { listClients } from "../services/clients-service"
-import { type Client } from "../types/clients-types"
+import {
+  mapClientToTableRow,
+  type ClientTableRow,
+} from "../model"
 
 const clientsLoadError = "Nao foi possivel carregar os clientes."
 
 export function useClients() {
-  const [data, setData] = React.useState<Client[]>([])
+  const [data, setData] = React.useState<ClientTableRow[]>([])
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState<Error | null>(null)
 
@@ -15,7 +18,9 @@ export function useClients() {
       setIsLoading(true)
       setError(null)
 
-      const clients = await listClients()
+      const clients = (await listClients()).map((client) =>
+        mapClientToTableRow(client, { isVipEnabled: false })
+      )
 
       if (isCurrent()) {
         setData(clients)
@@ -44,7 +49,9 @@ export function useClients() {
 
     async function loadInitialClients() {
       try {
-        const clients = await listClients()
+        const clients = (await listClients()).map((client) =>
+          mapClientToTableRow(client, { isVipEnabled: false })
+        )
 
         if (isMounted) {
           setData(clients)

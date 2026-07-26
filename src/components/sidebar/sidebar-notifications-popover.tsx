@@ -1,7 +1,13 @@
-import { BellIcon, RefreshCcwIcon } from "lucide-react"
+import {
+  BellIcon,
+  CheckCheckIcon,
+  RefreshCcwIcon,
+  ShieldAlertIcon,
+} from "lucide-react"
 import * as React from "react"
 import { Link } from "react-router"
 
+import { appRoutePaths } from "@/app/router/route-registry"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
 import {
@@ -20,6 +26,8 @@ import {
 } from "@/components/ui/popover"
 import { notificationTypeLabels, useNotifications } from "@/features/notifications"
 
+import { sidebarCopy } from "./sidebar-copy"
+
 function formatNotificationCount(count: number) {
   if (count === 0) {
     return null
@@ -28,9 +36,27 @@ function formatNotificationCount(count: number) {
   return count > 99 ? "+99" : String(count)
 }
 
+function getNotificationTypeIcon(type: string) {
+  if (type === "security") {
+    return ShieldAlertIcon
+  }
+
+  if (type === "sync") {
+    return RefreshCcwIcon
+  }
+
+  return BellIcon
+}
+
 export function NotificationsPopover() {
   const [isOpen, setIsOpen] = React.useState(false)
-  const { data, unreadCount, isLoading, refetch, updateStatus } = useNotifications()
+  const {
+    data,
+    unreadCount,
+    isUpdatingBatch,
+    markAllAsRead,
+    updateStatus,
+  } = useNotifications()
   const unreadBadge = formatNotificationCount(unreadCount)
 
   const recentNotifications = React.useMemo(() => data.slice(0, 6), [data])
@@ -42,7 +68,7 @@ export function NotificationsPopover() {
           variant="ghost"
           size="icon-lg"
           className="relative"
-          aria-label="Abrir notificações"
+          aria-label={sidebarCopy.notifications.open}
         >
           <BellIcon />
           {unreadBadge ? (
@@ -69,66 +95,73 @@ export function NotificationsPopover() {
         ) : (
           <div className="flex flex-col gap-2 p-2.5">
             <PopoverHeader className="flex-row items-center justify-between gap-2">
-              <PopoverTitle>Notificações</PopoverTitle>
+              <PopoverTitle>{sidebarCopy.notifications.panelTitle}</PopoverTitle>
               <Button
                 type="button"
                 variant="ghost"
-                disabled={isLoading}
+                disabled={isUpdatingBatch || unreadCount === 0}
                 onClick={() => {
-                  void refetch()
+                  void markAllAsRead()
                 }}
               >
-                <RefreshCcwIcon aria-hidden="true" />
-                Sincronizar
+                <CheckCheckIcon aria-hidden="true" />
+                {isUpdatingBatch
+                  ? sidebarCopy.notifications.updatingAll
+                  : sidebarCopy.notifications.markAllRead}
               </Button>
             </PopoverHeader>
 
             <div className="flex max-h-80 flex-col gap-1 overflow-y-auto">
-              {recentNotifications.map((notification) => (
-                <Button
-                  key={notification.id}
-                  asChild
-                  variant="ghost"
-                  className="h-auto justify-start px-2 py-2 text-left"
-                >
-                  <Link
-                    to={notification.href || "/notificacoes"}
-                    onClick={() => {
-                      setIsOpen(false)
-                      if (notification.status === "unread") {
-                        void updateStatus(notification.id, "read")
-                      }
-                    }}
+              {recentNotifications.map((notification) => {
+                const NotificationIcon = getNotificationTypeIcon(notification.type)
+
+                return (
+                  <Button
+                    key={notification.id}
+                    asChild
+                    variant="ghost"
+                    className="h-auto justify-start px-2 py-2 text-left"
                   >
-                    <span className="flex min-w-0 flex-1 items-start gap-2">
-                      <span
-                        aria-hidden="true"
-                        className={
-                          notification.status === "unread"
-                            ? "mt-1.5 size-2 shrink-0 rounded-full bg-primary"
-                            : "mt-1.5 size-2 shrink-0 rounded-full bg-muted"
+                    <Link
+                      to={notification.href || appRoutePaths.notifications}
+                      onClick={() => {
+                        setIsOpen(false)
+                        if (notification.status === "unread") {
+                          void updateStatus(notification.id, "read")
                         }
-                      />
-                      <span className="min-w-0 flex-1">
-                        <span className="flex items-start justify-between gap-2">
-                          <span className="truncate text-sm font-medium">
-                            {notification.title}
+                      }}
+                    >
+                      <span className="flex min-w-0 flex-1 items-start gap-2">
+                        <NotificationIcon
+                          aria-hidden="true"
+                          data-notification-type-icon={notification.type}
+                          className={
+                            notification.status === "unread"
+                              ? "mt-0.5 size-4 shrink-0 text-primary"
+                              : "mt-0.5 size-4 shrink-0 text-muted-foreground"
+                          }
+                        />
+                        <span className="min-w-0 flex-1">
+                          <span className="flex items-start justify-between gap-2">
+                            <span className="truncate text-sm font-medium">
+                              {notification.title}
+                            </span>
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {notification.occurredAt}
+                            </span>
                           </span>
-                          <span className="shrink-0 text-xs text-muted-foreground">
-                            {notification.occurredAt}
+                          <span className="line-clamp-2 text-xs text-muted-foreground">
+                            {notification.description}
                           </span>
-                        </span>
-                        <span className="line-clamp-2 text-xs text-muted-foreground">
-                          {notification.description}
-                        </span>
-                        <span className="text-[0.6875rem] text-muted-foreground">
-                          {notificationTypeLabels[notification.type]}
+                          <span className="text-[0.6875rem] text-muted-foreground">
+                            {notificationTypeLabels[notification.type]}
+                          </span>
                         </span>
                       </span>
-                    </span>
-                  </Link>
-                </Button>
-              ))}
+                    </Link>
+                  </Button>
+                )
+              })}
             </div>
 
             <Button
@@ -139,7 +172,9 @@ export function NotificationsPopover() {
                 setIsOpen(false)
               }}
             >
-              <Link to="/notificacoes">Ver todas</Link>
+              <Link to={appRoutePaths.notifications}>
+                {sidebarCopy.notifications.viewAll}
+              </Link>
             </Button>
           </div>
         )}

@@ -13,14 +13,29 @@ export {
 } from "./api"
 export {
   allRoles,
+  appUserStatusLabels,
+  authCapabilities,
+  authCapabilityLabels,
   canManageRole,
   getAssignableRoles,
+  hasAllCapabilities,
   hasAllPermissions,
+  hasAnyCapability,
   hasAnyPermission,
+  hasCapability,
   isGlobalRole,
   isRoleSuperior,
+  isUserRole,
   permissionsByRole,
+  requiresSingleUnit,
+  routeCapabilities,
+  unitScopedRoleValues,
   unitScopedRoles,
+  userRoleLabels,
+  userRoleValues,
+  type AppUserStatus,
+  type AuthCapability,
+  type UserRole,
 } from "./authorization"
 export { AuthPageCard } from "./components"
 export {
@@ -67,7 +82,6 @@ export {
   type AuthSessionValue,
   type RequiredPasswordChallenge,
 } from "./context"
-export { AuthLoginRoute, AuthRecoveryRoute } from "./routes"
 export type {
   AppUserProfile,
   AuthFlowActionResponse,

@@ -4,19 +4,35 @@ import { useNavigate } from "react-router"
 
 import {
   createDataTableFilterOptions,
+  defineDataTableCustomColumnId,
   DataTable,
 } from "@/components/data-table"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppPage } from "@/components/shared/app-page"
 import { Button } from "@/components/ui/button"
 
-import { createClientsColumns } from "../columns/clients-columns"
+import {
+  getClientDetailItems,
+  type ClientTableRow,
+} from "../model"
+import { createClientsColumns } from "../table"
 import { useClients } from "../hooks/use-clients"
+
+const cityStateColumnId = defineDataTableCustomColumnId("cidadeUf")
+
+function formatCityState(client: ClientTableRow) {
+  return [client.nom_cidade, client.sgl_estado].filter(Boolean).join("/")
+}
 
 export function ClientsRoute() {
   const navigate = useNavigate()
   const { data: clients, error, isLoading, refetch } = useClients()
+  const [selectedClient, setSelectedClient] =
+    React.useState<ClientTableRow | null>(null)
   const columns = React.useMemo(
     () =>
       createClientsColumns({
+        onOpenDetails: setSelectedClient,
         onSelectVehicles: (client) => {
           void navigate(`/clientes/${client.cod_pessoa}`)
         },
@@ -27,8 +43,8 @@ export function ClientsRoute() {
     () =>
       createDataTableFilterOptions(
         clients,
-        (client) => client.sgl_estado,
-        (client) => client.sgl_estado
+        (client) => formatCityState(client),
+        (client) => formatCityState(client)
       ),
     [clients]
   )
@@ -36,23 +52,18 @@ export function ClientsRoute() {
     () =>
       createDataTableFilterOptions(
         clients,
-        (client) => client.ind_pessoa_ativa,
-        (client) => client.ind_pessoa_ativa
+        (client) => client.status,
+        (client) => (client.status === "ativo" ? "Ativo" : "Inativo")
       ),
     [clients]
   )
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
-          <h1 className="text-2xl font-semibold tracking-tight">Clientes</h1>
-          <p className="mt-2 text-sm text-muted-foreground">
-            Consulte os clientes sincronizados a partir do ERP.
-          </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center">
+    <AppPage
+      title="Clientes"
+      subtitle="Consulte os clientes sincronizados a partir do ERP."
+      actions={
+        <>
           <Button type="button" variant="secondary" >
             <HistoryIcon aria-hidden="true" />
             Historico
@@ -69,9 +80,9 @@ export function ClientsRoute() {
             <RefreshCcwIcon aria-hidden="true" />
             Sincronizar
           </Button>
-        </div>
-      </header>
-
+        </>
+      }
+    >
       <DataTable
         columns={columns}
         data={clients}
@@ -96,12 +107,12 @@ export function ClientsRoute() {
         }}
         filterFields={[
           {
-            id: "sgl_estado",
-            title: "Estados",
+            id: cityStateColumnId,
+            title: "Cidades",
             options: stateOptions,
           },
           {
-            id: "ind_pessoa_ativa",
+            id: "status",
             title: "Ativo",
             options: activeOptions,
           },
@@ -114,6 +125,22 @@ export function ClientsRoute() {
         enablePagination
         enableViewOptions
       />
-    </div>
+
+      <AppDetailsSheet
+        open={Boolean(selectedClient)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedClient(null)
+          }
+        }}
+        title={selectedClient ? "Detalhes do cliente" : undefined}
+        description={
+          selectedClient
+            ? "Consulte os dados cadastrais e comerciais do cliente selecionado."
+            : undefined
+        }
+        items={selectedClient ? getClientDetailItems(selectedClient) : []}
+      />
+    </AppPage>
   )
 }

@@ -1,5 +1,35 @@
 export { UsersRoute } from "./routes/users-route"
 export { useUsers } from "./hooks/use-users"
-export { createUsersColumns } from "./columns/users-columns"
-export { listUsers, createUser } from "./services/users-service"
-export type { UserRecord, CreateUserInput } from "./types/users-types"
+export {
+  createUserOnlineFilterOptions,
+  createUserRoleFilterOptions,
+  createUserStatusFilterOptions,
+  createUsersColumns,
+} from "./table"
+export {
+  blockUser,
+  clearUserLock,
+  createUser,
+  listUsers,
+  resetUserAccess,
+  resetUserPasskey,
+  revokeUserSessions,
+  updateUser,
+} from "./services/users-service"
+export {
+  appUserStatusLabels,
+  getUserDetailItems,
+  isGlobalRole,
+  isUserOnline,
+  resolveLastAccessLabel,
+  resolvePasskeyLabel,
+  resolveUnitLabel,
+  userRoleLabels,
+  userRoleValues,
+  type AppUserStatus,
+  type CreateUserInput,
+  type UnitCatalogItem,
+  type UpdateUserInput,
+  type UserRecord,
+  type UserRole,
+} from "./model"

@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { listPermissionMatrix } from "../services/permissions-service"
-import { type PermissionMatrixRow } from "../types/permissions-types"
+import { type PermissionMatrixRow } from "../model"
 
 const permissionsLoadError =
   "Não foi possível carregar a matriz de perfis e permissões."

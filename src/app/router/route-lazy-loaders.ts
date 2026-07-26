@@ -71,10 +71,6 @@ export const routeLazyLoaders = {
     import("@/features/security/routes/security-route").then((module) => ({
       Component: module.SecurityRoute,
     })),
-  settingsRedirect: () =>
-    import("@/features/my-profile/routes/profile-legacy-redirect-route").then((module) => ({
-      Component: module.ProfileLegacyRedirectRoute,
-    })),
   yard: () =>
     import("@/features/yard/routes/yard-route").then((module) => ({
       Component: module.YardRoute,

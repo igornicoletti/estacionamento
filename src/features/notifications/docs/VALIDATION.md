@@ -20,7 +20,7 @@ pnpm dev
 Checklist no navegador:
 
 - Nenhum warning no console.
-- `NotificationsProvider` carregado dentro de `AppProviders`.
+- `NotificationsProvider` carregado dentro dos providers autenticados do shell.
 - Rota `/notificacoes` renderiza sem loop.
 - Estado vazio usa `AppEmptyState`.
 - Busca global, filtros, paginação e colunas funcionam.

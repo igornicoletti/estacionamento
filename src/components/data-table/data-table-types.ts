@@ -1,4 +1,5 @@
 import type { ReactNode } from "react"
+import type { RowData } from "@tanstack/react-table"
 
 export type DataTableExportCellValue =
   | string

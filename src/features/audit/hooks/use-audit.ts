@@ -1,7 +1,7 @@
 import * as React from "react"
 
 import { listAuditEvents } from "../services/audit-service"
-import { type AuditEvent } from "../types/audit-types"
+import { type AuditEvent } from "../model"
 
 const auditLoadError = "Não foi possível carregar a trilha de auditoria."
 

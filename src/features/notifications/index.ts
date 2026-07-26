@@ -24,4 +24,6 @@ export {
   type NotificationRecord,
   type NotificationStatus,
   type NotificationType,
+  type NotificationsGateway,
+  type SetNotificationsStatusBatchResult,
 } from "./model"

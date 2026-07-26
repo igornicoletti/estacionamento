@@ -49,6 +49,22 @@ if (!globalThis.ResizeObserver) {
   })
 }
 
+if (!window.matchMedia) {
+  Object.defineProperty(window, "matchMedia", {
+    configurable: true,
+    value: vi.fn((query: string) => ({
+      matches: false,
+      media: query,
+      onchange: null,
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+      addListener: vi.fn(),
+      removeListener: vi.fn(),
+      dispatchEvent: vi.fn(),
+    })),
+  })
+}
+
 const { testAuthContext, testAuthSession } = vi.hoisted(() => {
   const profile = {
     authUserId: "test-auth-user",
@@ -175,7 +191,7 @@ const seedNotifications: NotificationRecord[] = [
   },
   {
     description: "Uma nova tentativa de login foi registrada para seu usuário.",
-    href: "/perfil",
+    href: "/meu-perfil",
     id: "N-002",
     occurredAt: "2026-07-01T07:58:00.000Z",
     status: "unread",

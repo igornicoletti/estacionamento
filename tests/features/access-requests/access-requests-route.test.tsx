@@ -206,7 +206,7 @@ describe("AccessRequestsRoute", () => {
     })
   })
 
-  it("redirects the legacy route to the users access requests tab", async () => {
+  it("redirects the standalone route to the users access requests tab", async () => {
     const { AccessRequestsRedirectRoute } = await import("@/features/access-requests")
 
     render(

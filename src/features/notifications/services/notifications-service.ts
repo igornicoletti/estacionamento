@@ -1,68 +1,148 @@
+import { getSupabaseBrowserClient } from "@/lib"
+
+import { notificationsCopy } from "../constants"
 import {
+  normalizeNotificationDeliveries,
+  normalizeReturnedIds,
   type NotificationRecord,
   type NotificationsGateway,
   type NotificationStatus,
   type SetNotificationsStatusBatchResult,
 } from "../model"
 
-const initialNotifications: NotificationRecord[] = [
-  {
-    id: "N-001",
-    title: "Sincronização concluída",
-    description: "Clientes e unidades foram sincronizados com sucesso.",
-    type: "sync",
-    status: "unread",
-    occurredAt: "2026-07-01 08:25",
-    href: "/clientes",
-  },
-  {
-    id: "N-002",
-    title: "Nova tentativa de acesso",
-    description: "Uma nova tentativa de login foi registrada para seu usuário.",
-    type: "security",
-    status: "unread",
-    occurredAt: "2026-07-01 07:58",
-    href: "/perfil",
-  },
-  {
-    id: "N-003",
-    title: "Atualização aplicada",
-    description: "Nova versão do painel foi publicada com melhorias de desempenho.",
-    type: "system",
-    status: "read",
-    occurredAt: "2026-06-30 19:10",
-  },
-]
+type SupabaseBrowserClient = NonNullable<ReturnType<typeof getSupabaseBrowserClient>>
 
-function createMemoryNotificationsGateway(
-  seedNotifications: readonly NotificationRecord[]
-): NotificationsGateway {
-  let notifications = seedNotifications.map((notification) => ({ ...notification }))
-  const listeners = new Set<() => void>()
+const NOTIFICATION_DELIVERY_SELECT =
+  "id, created_at, read_at, notification_events(created_at, description, href, title, type)"
 
-  function emitChange() {
-    listeners.forEach((listener) => {
-      listener()
-    })
-  }
-
+function createEmptyNotificationsGateway(): NotificationsGateway {
   return {
     async countUnreadNotifications() {
       await Promise.resolve()
-      return notifications.filter((notification) => notification.status === "unread")
-        .length
+      return 0
     },
     async listNotifications() {
       await Promise.resolve()
-      return notifications.map((notification) => ({ ...notification }))
+      return []
     },
     async markAllNotificationsAsRead() {
       await Promise.resolve()
-      const unreadIds = notifications
-        .filter((notification) => notification.status === "unread")
-        .map((notification) => notification.id)
+      return {
+        failed: [],
+        total: 0,
+        updated: 0,
+      }
+    },
+    async setNotificationStatus() {
+      await Promise.resolve()
+      throw new Error(notificationsCopy.feedback.unavailableClient)
+    },
+    async setNotificationsStatus(notificationIds) {
+      await Promise.resolve()
+      return {
+        failed: [...new Set(notificationIds)],
+        total: new Set(notificationIds).size,
+        updated: 0,
+      }
+    },
+    subscribeNotifications() {
+      return () => undefined
+    },
+  }
+}
 
-      if (unreadIds.length === 0) {
+function getSupabaseOrThrow() {
+  const supabase = getSupabaseBrowserClient()
+
+  if (!supabase) {
+    throw new Error(notificationsCopy.feedback.unavailableClient)
+  }
+
+  return supabase
+}
+
+async function getNotificationById(
+  supabase: SupabaseBrowserClient,
+  notificationId: string
+) {
+  const response = await supabase
+    .from("notification_deliveries")
+    .select(NOTIFICATION_DELIVERY_SELECT)
+    .eq("id", notificationId)
+    .maybeSingle()
+
+  if (response.error) {
+    throw new Error(notificationsCopy.feedback.loadError)
+  }
+
+  const [notification] = normalizeNotificationDeliveries(
+    response.data ? [response.data] : []
+  )
+
+  if (!notification) {
+    throw new Error(notificationsCopy.feedback.notFound)
+  }
+
+  return notification
+}
+
+async function listExistingNotificationIds(
+  supabase: SupabaseBrowserClient,
+  notificationIds: readonly string[]
+) {
+  if (notificationIds.length === 0) {
+    return new Set<string>()
+  }
+
+  const response = await supabase
+    .from("notification_deliveries")
+    .select("id")
+    .in("id", notificationIds)
+
+  if (response.error) {
+    throw new Error(notificationsCopy.feedback.loadError)
+  }
+
+  return new Set(normalizeReturnedIds(response.data))
+}
+
+function toIsRead(status: NotificationStatus) {
+  return status === "read"
+}
+
+function createSupabaseNotificationsGateway(): NotificationsGateway {
+  return {
+    async countUnreadNotifications() {
+      const supabase = getSupabaseOrThrow()
+      const response = await supabase
+        .from("notification_deliveries")
+        .select("id", { count: "exact", head: true })
+        .is("read_at", null)
+
+      if (response.error) {
+        throw new Error(notificationsCopy.feedback.loadError)
+      }
+
+      return response.count ?? 0
+    },
+    async listNotifications() {
+      const supabase = getSupabaseOrThrow()
+      const response = await supabase
+        .from("notification_deliveries")
+        .select(NOTIFICATION_DELIVERY_SELECT)
+        .order("created_at", { ascending: false })
+
+      if (response.error) {
+        throw new Error(notificationsCopy.feedback.loadError)
+      }
+
+      return normalizeNotificationDeliveries(response.data)
+    },
+    async markAllNotificationsAsRead() {
+      const supabase = getSupabaseOrThrow()
+      const total = await this.countUnreadNotifications()
+
+      if (total === 0) {
         return {
           failed: [],
           total: 0,
@@ -70,94 +150,111 @@ function createMemoryNotificationsGateway(
         }
       }
 
-      notifications = notifications.map((notification) =>
-        notification.status === "unread"
-          ? { ...notification, status: "read" }
-          : notification
-      )
-      emitChange()
+      const response = await supabase.rpc("set_all_notifications_read_status", {
+        is_read: true,
+      })
+
+      if (response.error) {
+        throw new Error(notificationsCopy.feedback.markAllAsReadError)
+      }
 
       return {
         failed: [],
-        total: unreadIds.length,
-        updated: unreadIds.length,
+        total,
+        updated: normalizeReturnedIds(response.data).length,
       }
     },
     async setNotificationStatus(notificationId, status) {
-      await Promise.resolve()
-      const currentNotification = notifications.find(
-        (notification) => notification.id === notificationId
-      )
+      const supabase = getSupabaseOrThrow()
+      const response = await supabase.rpc("set_notification_read_status", {
+        delivery_id: notificationId,
+        is_read: toIsRead(status),
+      })
 
-      if (!currentNotification) {
-        throw new Error("Notificação não encontrada.")
+      if (response.error) {
+        throw new Error(
+          status === "read"
+            ? notificationsCopy.feedback.markAsReadError
+            : notificationsCopy.feedback.markAsUnreadError
+        )
       }
 
-      const updatedNotification: NotificationRecord = {
-        ...currentNotification,
-        status,
+      if (normalizeReturnedIds(response.data).length === 0) {
+        throw new Error(notificationsCopy.feedback.notFound)
       }
 
-      notifications = notifications.map((notification) =>
-        notification.id === notificationId ? updatedNotification : notification
-      )
-      emitChange()
-
-      return updatedNotification
+      return getNotificationById(supabase, notificationId)
     },
     async setNotificationsStatus(notificationIds, status) {
-      await Promise.resolve()
-      const uniqueIds = Array.from(new Set(notificationIds))
-      const failed: string[] = []
-      let updated = 0
+      const supabase = getSupabaseOrThrow()
+      const uniqueIds = [...new Set(notificationIds)]
 
-      for (const notificationId of uniqueIds) {
-        const currentNotification = notifications.find(
-          (notification) => notification.id === notificationId
-        )
-
-        if (!currentNotification) {
-          failed.push(notificationId)
-          continue
-        }
-
-        if (currentNotification.status !== status) {
-          notifications = notifications.map((notification) =>
-            notification.id === notificationId
-              ? { ...notification, status }
-              : notification
-          )
-          updated += 1
+      if (uniqueIds.length === 0) {
+        return {
+          failed: [],
+          total: 0,
+          updated: 0,
         }
       }
 
-      if (updated > 0) emitChange()
+      const existingIds = await listExistingNotificationIds(supabase, uniqueIds)
+      const response = await supabase.rpc("set_notifications_read_status", {
+        delivery_ids: uniqueIds,
+        is_read: toIsRead(status),
+      })
+
+      if (response.error) {
+        throw new Error(notificationsCopy.feedback.markAllAsReadError)
+      }
 
       return {
-        failed,
+        failed: uniqueIds.filter((notificationId) => !existingIds.has(notificationId)),
         total: uniqueIds.length,
-        updated,
+        updated: normalizeReturnedIds(response.data).length,
       }
     },
-    subscribeNotifications(listener) {
-      listeners.add(listener)
+    subscribeNotifications(listener, options) {
+      const supabase = getSupabaseBrowserClient()
+
+      if (!supabase) {
+        return () => undefined
+      }
+
+      const filter = options?.recipientAuthUserId
+        ? `recipient_auth_user_id=eq.${options.recipientAuthUserId}`
+        : undefined
+      const channel = supabase
+        .channel(`notification_deliveries:${options?.recipientAuthUserId ?? "current"}`)
+        .on(
+          "postgres_changes",
+          {
+            event: "*",
+            schema: "public",
+            table: "notification_deliveries",
+            ...(filter ? { filter } : {}),
+          },
+          listener
+        )
+        .subscribe()
 
       return () => {
-        listeners.delete(listener)
+        void supabase.removeChannel(channel)
       }
     },
   }
 }
 
 let notificationsGateway: NotificationsGateway =
-  createMemoryNotificationsGateway(initialNotifications)
+  getSupabaseBrowserClient() ? createSupabaseNotificationsGateway() : createEmptyNotificationsGateway()
 
 export function setNotificationsGateway(gateway: NotificationsGateway) {
   notificationsGateway = gateway
 }
 
 export function resetNotificationsGateway() {
-  notificationsGateway = createMemoryNotificationsGateway(initialNotifications)
+  notificationsGateway = getSupabaseBrowserClient()
+    ? createSupabaseNotificationsGateway()
+    : createEmptyNotificationsGateway()
 }
 
 export function subscribeNotifications(

@@ -6,9 +6,15 @@ import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppPage } from "@/components/shared/app-page"
 import { Button } from "@/components/ui/button"
 
-import { createClientVehiclesColumns } from "../columns/client-vehicles-columns"
+import {
+  getClientVehicleDetailItems,
+  type ClientVehicleTableRow,
+} from "../model"
+import { createClientVehiclesColumns } from "../table"
 import { useClientVehicles } from "../hooks/use-client-vehicles"
 
 function parseCodPessoa(value: string | undefined) {
@@ -34,7 +40,12 @@ export function ClientVehiclesRoute() {
     [codPessoaParam]
   )
   const { client, data, error, isLoading, refetch } = useClientVehicles(codPessoa)
-  const columns = React.useMemo(() => createClientVehiclesColumns(), [])
+  const [selectedVehicle, setSelectedVehicle] =
+    React.useState<ClientVehicleTableRow | null>(null)
+  const columns = React.useMemo(
+    () => createClientVehiclesColumns({ onOpenDetails: setSelectedVehicle }),
+    []
+  )
   const plateOptions = React.useMemo(
     () =>
       createDataTableFilterOptions(
@@ -46,9 +57,9 @@ export function ClientVehiclesRoute() {
   )
 
   return (
-    <div className="flex flex-col gap-6">
-      <header className="flex flex-col gap-4 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-2xl">
+    <AppPage
+      headingContent={
+        <>
           <div className="flex items-center gap-2">
             <Button
               type="button"
@@ -64,15 +75,17 @@ export function ClientVehiclesRoute() {
             <h1 className="text-2xl font-semibold tracking-tight">
               {client?.nom_pessoa
                 ? normalizeDisplayText(client.nom_pessoa)
-                : "Cliente não encontrado"}
+              : "Cliente não encontrado"}
             </h1>
           </div>
           <p className="mt-2 text-sm text-muted-foreground">
             {client?.num_cnpj_cpf || ""}
           </p>
-        </div>
-
-        <div className="grid grid-cols-2 gap-2 lg:flex lg:items-center">
+        </>
+      }
+      headingClassName="max-w-2xl"
+      actions={
+        <>
           <Button type="button" variant="secondary" >
             <HistoryIcon aria-hidden="true" />
             Historico
@@ -89,9 +102,9 @@ export function ClientVehiclesRoute() {
             <RefreshCcwIcon aria-hidden="true" />
             Sincronizar
           </Button>
-        </div>
-      </header>
-
+        </>
+      }
+    >
       <DataTable
         columns={columns}
         data={data}
@@ -124,6 +137,24 @@ export function ClientVehiclesRoute() {
         enablePagination
         enableViewOptions
       />
-    </div>
+
+      <AppDetailsSheet
+        open={Boolean(selectedVehicle)}
+        onOpenChange={(open) => {
+          if (!open) {
+            setSelectedVehicle(null)
+          }
+        }}
+        title={selectedVehicle ? "Detalhes do veículo" : undefined}
+        description={
+          selectedVehicle
+            ? "Consulte os dados do veículo vinculado ao cliente."
+            : undefined
+        }
+        items={
+          selectedVehicle ? getClientVehicleDetailItems(selectedVehicle) : []
+        }
+      />
+    </AppPage>
   )
 }

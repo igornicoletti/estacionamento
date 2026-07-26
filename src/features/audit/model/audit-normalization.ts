@@ -96,7 +96,7 @@ function sanitizeIsoTimestamp(value: unknown): string {
 }
 
 function sanitizeBoolean(value: unknown): boolean {
-  return value === true
+  return value === true || value === "success"
 }
 
 function isSanitizableMetadataValue(value: unknown) {
@@ -133,23 +133,44 @@ function sanitizeMetadata(value: unknown): Record<string, unknown> | null {
 export function sanitizeAuditEventPayload(
   payload: RawAuditEventPayload
 ): AuditEvent {
-  const event = sanitizeRawText(payload.event)
+  const event = sanitizeRawText(payload.event ?? payload.action)
+  const metadata = sanitizeMetadata(
+    payload.metadata ?? {
+      actorRole: payload.actor_role,
+      description: payload.description,
+      entity: payload.entity,
+      entityId: payload.entity_id,
+      ipAddress: payload.ip_address,
+      unitName: payload.unit_name,
+      userAgent: payload.user_agent,
+    }
+  )
 
   return {
     id: sanitizeRawText(payload.id),
     occurredAt: sanitizeIsoTimestamp(payload.occurred_at),
-    scope: isAuditScope(payload.scope) ? payload.scope : "system",
+    scope: isAuditScope(payload.scope)
+      ? payload.scope
+      : event.startsWith("auth.") || event.startsWith("login")
+        ? "login"
+        : "system",
     event,
     eventLabel: getAuditEventLabel(event),
-    actorName: sanitizeText(payload.actor) || auditCopy.labels.systemActor,
+    actorName:
+      sanitizeText(payload.actor ?? payload.actor_name) ||
+      auditCopy.labels.systemActor,
     actorUserId: sanitizeNullableRawText(payload.actor_user_id),
-    target: sanitizeText(payload.target),
+    target: sanitizeText(payload.target ?? payload.entity),
     targetUserId: sanitizeNullableRawText(payload.target_user_id),
-    success: sanitizeBoolean(payload.success),
-    severity: isAuditSeverity(payload.severity) ? payload.severity : "info",
-    reason: sanitizeNullableText(payload.reason),
+    success: sanitizeBoolean(payload.success ?? payload.outcome),
+    severity: isAuditSeverity(payload.severity)
+      ? payload.severity
+      : payload.outcome === "failure"
+        ? "warning"
+        : "info",
+    reason: sanitizeNullableText(payload.reason ?? payload.description),
     requestId: sanitizeNullableRawText(payload.request_id),
-    metadata: sanitizeMetadata(payload.metadata),
+    metadata,
   }
 }
 

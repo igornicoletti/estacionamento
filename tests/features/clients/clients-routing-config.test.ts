@@ -1,21 +1,29 @@
 import { describe, expect, it } from "vitest"
 
-import { appRouteDefinitions } from "@/app/router/route-definitions"
+import {
+  appRouteIds,
+  appRoutePaths,
+  authenticatedRouteRegistry,
+} from "@/app/router/route-registry"
 import { navigationGroups } from "@/components/sidebar/sidebar-config"
-import { routeCapabilities } from "@/features/auth"
+import { AUTH_PERMISSION } from "@/features/auth"
 
 describe("clients route and sidebar integration", () => {
-  it("exposes clients route with required capability", () => {
-    const clientsRoute = appRouteDefinitions.find((route) => route.id === "clients")
+  it("exposes clients route with required permission", () => {
+    const clientsRoute = authenticatedRouteRegistry.find((route) => {
+      return route.id === appRouteIds.clients
+    })
 
     expect(clientsRoute).toBeDefined()
     expect(clientsRoute?.path).toBe("clientes")
-    expect(clientsRoute?.requiredCapabilities).toEqual(routeCapabilities.clients)
+    expect(clientsRoute?.requiredPermissions).toEqual([AUTH_PERMISSION.clientsRead])
   })
 
   it("shows clients entry in sidebar navigation groups", () => {
     const hasClientsItem = navigationGroups.some((group) => {
-      return group.items.some((item) => item.id === "clients" && item.href === "/clientes")
+      return group.items.some((item) => {
+        return item.id === appRouteIds.clients && item.href === appRoutePaths.clients
+      })
     })
 
     expect(hasClientsItem).toBe(true)

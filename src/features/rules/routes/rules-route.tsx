@@ -3,10 +3,10 @@ import { ClipboardListIcon, PlusIcon } from "lucide-react"
 import * as React from "react"
 
 import { DataTable } from "@/components/data-table"
-import { PageHeader, PageSection } from "@/components/page"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
+import { AppPage } from "@/components/shared/app-page"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import {
@@ -100,26 +100,24 @@ export function RulesRoute() {
   const statusOptions = React.useMemo(() => createRuleStatusOptions(data), [data])
 
   return (
-    <PageSection>
-      <PageHeader
-        title={rulesCopy.page.title}
-        subtitle={rulesCopy.page.subtitle}
-        actions={
-          <Button
-            type="button"
-            variant="secondary"
-            size="lg"
-            onClick={() => {
-              setEditingRecord(null)
-              setIsFormOpen(true)
-            }}
-          >
-            <PlusIcon />
-            {rulesCopy.actions.add}
-          </Button>
-        }
-      />
-
+    <AppPage
+      title={rulesCopy.page.title}
+      subtitle={rulesCopy.page.subtitle}
+      actions={
+        <Button
+          type="button"
+          variant="secondary"
+          size="lg"
+          onClick={() => {
+            setEditingRecord(null)
+            setIsFormOpen(true)
+          }}
+        >
+          <PlusIcon />
+          {rulesCopy.actions.add}
+        </Button>
+      }
+    >
       <DataTable
         columns={columns}
         data={data}
@@ -206,7 +204,7 @@ export function RulesRoute() {
         pendingLabel={rulesCopy.actions.saving}
         onAction={handleUpdateRuleStatus}
       />
-    </PageSection>
+    </AppPage>
   )
 }
 
