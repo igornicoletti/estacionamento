@@ -1,6 +1,7 @@
 import * as React from "react"
 
-import { canAccessProtectedApp, useAuth } from "@/features/auth"
+import { canAccessProtectedApp } from "@/features/auth/contracts"
+import { useAuth } from "@/features/auth/context"
 
 import {
   NOTIFICATIONS_REALTIME_REFRESH_DELAY_MS,

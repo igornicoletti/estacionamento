@@ -196,6 +196,7 @@ export function DataTableToolbar<TData>({
                 normalizeVisibleText(globalSearchAriaLabel) ||
                 normalizeVisibleText(normalizedGlobalSearch.ariaLabel) ||
                 normalizeVisibleText(normalizedGlobalSearch.label) ||
+                normalizeVisibleText(normalizedGlobalSearch.placeholder) ||
                 dataTableCopy.toolbar.search
               }
               placeholder={

@@ -1,31 +1,88 @@
 import * as React from "react"
 
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { notify } from "@/components/toast"
 import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
+import { Button } from "@/components/ui/button"
 
-import { createNotificationsColumns } from "../columns/notifications-columns"
-import { useNotifications } from "../hooks/use-notifications"
+import { createNotificationsColumns } from "../table"
+import { useNotifications } from "../context"
 import {
   notificationStatusLabels,
+  notificationsCopy,
   notificationTypeLabels,
-} from "../types/notifications-types"
+} from "../constants"
+import {
+  getNotificationDetailItems,
+  resolveNotificationDetailsDescription,
+  resolveNotificationDetailsTitle,
+  type NotificationRecord,
+  type NotificationStatus,
+} from "../model"
 
 export function NotificationsRoute() {
-  const { data, error, isLoading, updateStatus } = useNotifications()
+  const {
+    data,
+    error,
+    isLoading,
+    isNotificationUpdating,
+    isUpdatingBatch,
+    markAllAsRead,
+    unreadCount,
+    updateStatus,
+  } = useNotifications()
+  const [selectedNotification, setSelectedNotification] =
+    React.useState<NotificationRecord | null>(null)
+
+  const selectedNotificationItems = React.useMemo(
+    () =>
+      selectedNotification
+        ? getNotificationDetailItems(selectedNotification)
+        : [],
+    [selectedNotification]
+  )
+
+  const handleStatusChange = React.useCallback(
+    async (notification: NotificationRecord, status: NotificationStatus) => {
+      try {
+        await updateStatus(notification.id, status)
+      } catch {
+        notify.error(
+          status === "read"
+            ? notificationsCopy.feedback.markAsReadError
+            : notificationsCopy.feedback.markAsUnreadError
+        )
+      }
+    },
+    [updateStatus]
+  )
+
+  const handleMarkAllAsRead = React.useCallback(async () => {
+    try {
+      await markAllAsRead()
+    } catch {
+      notify.error(notificationsCopy.feedback.markAllAsReadError)
+    }
+  }, [markAllAsRead])
 
   const columns = React.useMemo(
     () =>
       createNotificationsColumns({
+        isNotificationUpdating,
         onMarkAsRead: (notification) => {
-          void updateStatus(notification.id, "read")
+          void handleStatusChange(notification, "read")
         },
         onMarkAsUnread: (notification) => {
-          void updateStatus(notification.id, "unread")
+          void handleStatusChange(notification, "unread")
+        },
+        onOpenDetails: (notification) => {
+          setSelectedNotification(notification)
         },
       }),
-    [updateStatus]
+    [handleStatusChange, isNotificationUpdating]
   )
 
   const typeOptions = React.useMemo(
@@ -71,24 +128,50 @@ export function NotificationsRoute() {
             "occurredAt",
             "href",
           ],
-          placeholder: "Buscar notificações...",
+          placeholder: notificationsCopy.filters.searchPlaceholder,
         }}
         filterFields={[
           {
             id: "type",
-            title: "Tipos",
+            title: notificationsCopy.filters.type,
             options: typeOptions,
           },
           {
             id: "status",
-            title: "Status",
+            title: notificationsCopy.filters.status,
             options: statusOptions,
           },
         ]}
+        toolbarActions={
+          <Button
+            type="button"
+            variant="outline"
+            size="lg"
+            disabled={isUpdatingBatch || unreadCount === 0}
+            aria-busy={isUpdatingBatch || undefined}
+            onClick={() => {
+              void handleMarkAllAsRead()
+            }}
+          >
+            {isUpdatingBatch
+              ? notificationsCopy.actions.updatingAll
+              : notificationsCopy.actions.markAllAsRead}
+          </Button>
+        }
         isLoading={isLoading}
         error={error}
         enablePagination
         enableViewOptions
+      />
+
+      <AppDetailsSheet
+        open={selectedNotification !== null}
+        onOpenChange={(open) => {
+          if (!open) setSelectedNotification(null)
+        }}
+        title={resolveNotificationDetailsTitle(selectedNotification)}
+        description={resolveNotificationDetailsDescription(selectedNotification)}
+        items={selectedNotificationItems}
       />
     </div>
   )

@@ -1,17 +1,27 @@
 export { NotificationsRoute } from "./routes/notifications-route"
-export { useNotifications } from "./hooks/use-notifications"
+export {
+  NotificationsProvider,
+  useNotifications,
+  type NotificationsContextValue,
+} from "./context"
 export {
   countUnreadNotifications,
   listNotifications,
+  markAllNotificationsAsRead,
+  resetNotificationsGateway,
   setNotificationStatus,
+  setNotificationsGateway,
+  setNotificationsStatus,
   subscribeNotifications,
-} from "./services/notifications-service"
+} from "./services"
 export {
   notificationStatusLabels,
-  notificationStatusValues,
   notificationTypeLabels,
+} from "./constants"
+export {
+  notificationStatusValues,
   notificationTypeValues,
   type NotificationRecord,
   type NotificationStatus,
   type NotificationType,
-} from "./types/notifications-types"
+} from "./model"

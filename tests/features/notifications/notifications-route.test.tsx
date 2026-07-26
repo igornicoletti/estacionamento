@@ -26,7 +26,8 @@ describe("NotificationsRoute", () => {
     const destination = screen.getByRole("link", { name: "/clientes" })
     const description = screen.getByText("Clientes e unidades foram sincronizados com sucesso.")
 
-    expect(destination).toHaveClass("hover:underline")
+    expect(destination).toHaveClass("hover:text-muted-foreground")
+    expect(destination).not.toHaveClass("hover:underline")
     expect(description).toHaveClass("truncate")
 
     expect(
@@ -78,13 +79,17 @@ describe("NotificationsRoute", () => {
       expect(screen.getByText("Sincronização concluída")).toBeInTheDocument()
     })
 
-    fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da notificação")[0])
+    fireEvent.pointerDown(
+      screen.getAllByRole("button", { name: "Abrir ações da notificação" })[0]
+    )
 
     expect(await screen.findByRole("menuitem", { name: "Marcar como lida" })).toBeInTheDocument()
     expect(screen.queryByRole("menuitem", { name: "Marcar como não lida" })).not.toBeInTheDocument()
 
     fireEvent.keyDown(document.body, { key: "Escape" })
-    fireEvent.pointerDown(screen.getAllByLabelText("Abrir ações da notificação")[2])
+    fireEvent.pointerDown(
+      screen.getAllByRole("button", { name: "Abrir ações da notificação" })[2]
+    )
 
     expect(await screen.findByRole("menuitem", { name: "Marcar como não lida" })).toBeInTheDocument()
     expect(screen.queryByRole("menuitem", { name: "Marcar como lida" })).not.toBeInTheDocument()

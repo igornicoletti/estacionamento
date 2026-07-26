@@ -202,6 +202,16 @@ vi.mock("@/features/auth", async (importOriginal) => {
   }
 })
 
+vi.mock("@/features/auth/context", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("@/features/auth/context")>()
+
+  return {
+    ...actual,
+    useAuth: () => testAuthContext,
+    useAuthSession: () => testAuthSession,
+  }
+})
+
 vi.mock("@/components/ui/tooltip", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/components/ui/tooltip")>()
 

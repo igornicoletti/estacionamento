@@ -3,6 +3,7 @@ import { describe, expect, it } from "vitest"
 
 import { DataTable } from "@/components/data-table/data-table"
 import { DataTableSensitiveValue } from "@/components/data-table/data-table-sensitive-value"
+import { DataTableTextAction } from "@/components/data-table/data-table-text-action"
 import { createTextColumn } from "@/components/data-table/data-table-text-column"
 import { type DataTableGlobalSearch } from "@/components/data-table/data-table-types"
 
@@ -34,7 +35,7 @@ describe("DataTable", () => {
       <DataTable columns={columns} data={[]} getRowId={(row) => row.id} />
     )
 
-    expect(screen.getByText("Nenhum registro cadastrado")).toBeInTheDocument()
+    expect(screen.getByText("Nenhum registro encontrado")).toBeInTheDocument()
   })
 
   it("keeps the empty state inside the table shell", () => {
@@ -148,35 +149,44 @@ describe("DataTable", () => {
     expect(searchInput).toHaveValue("Alpha ")
   })
 
-  it("reveals sensitive values only while pressed", () => {
-    render(<DataTableSensitiveValue value="111.444.777-35" kind="cpf" />)
+  it("uses the low-noise table text action style", () => {
+    render(<DataTableTextAction>Ver detalhes</DataTableTextAction>)
 
-    const value = screen.getByRole("button", {
-      name: "Segure para visualizar o conteúdo completo",
-    })
+    const action = screen.getByRole("button", { name: "Ver detalhes" })
 
-    expect(value).toHaveTextContent("111.***.***-35")
-
-    fireEvent.pointerDown(value)
-    expect(value).toHaveTextContent("111.444.777-35")
-
-    fireEvent.pointerUp(value)
-    expect(value).toHaveTextContent("111.***.***-35")
+    expect(action).toHaveClass("text-foreground")
+    expect(action).toHaveClass("hover:text-muted-foreground")
+    expect(action).not.toHaveClass("text-primary")
+    expect(action).not.toHaveClass("hover:underline")
   })
 
-  it("formats raw CNPJ values before masking and revealing", () => {
-    render(<DataTableSensitiveValue value="22111333000144" kind="cpfCnpj" />)
+  it("masks sensitive values by default", () => {
+    render(<DataTableSensitiveValue value="111.444.777-35" kind="cpf" />)
+
+    expect(screen.getByText("***.***.***-**")).toBeInTheDocument()
+    expect(screen.queryByRole("button")).not.toBeInTheDocument()
+  })
+
+  it("formats raw CNPJ values before masking and explicit reveal", () => {
+    render(
+      <DataTableSensitiveValue
+        value="22111333000144"
+        kind="cpfCnpj"
+        canReveal
+        maskMode="partial"
+      />
+    )
 
     const value = screen.getByRole("button", {
-      name: "Segure para visualizar o conteúdo completo",
+      name: "Alternar visualização do conteúdo completo",
     })
 
-    expect(value).toHaveTextContent("22.***.***/****-44")
+    expect(value).toHaveTextContent("**.***.***/****-44")
 
-    fireEvent.pointerDown(value)
+    fireEvent.click(value)
     expect(value).toHaveTextContent("22.111.333/0001-44")
 
-    fireEvent.pointerUp(value)
-    expect(value).toHaveTextContent("22.***.***/****-44")
+    fireEvent.click(value)
+    expect(value).toHaveTextContent("**.***.***/****-44")
   })
 })

@@ -57,12 +57,13 @@ describe("DataTable export", () => {
         data={exportRows}
         getRowId={(row) => row.id}
         initialPageSize={1}
+        enableExport
         enableViewOptions={false}
       />
     )
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Exportar" }))
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Dados filtrados/i }))
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menu de exportação" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Exportar resultados filtrados/i }))
 
     expect(exportRowsToXlsxMock).toHaveBeenCalledTimes(1)
     expect(exportRowsToXlsxMock.mock.calls[0]?.[0].rows).toEqual([
@@ -81,6 +82,7 @@ describe("DataTable export", () => {
         data={exportRows}
         getRowId={(row) => row.id}
         defaultColumnVisibility={{ secret: false }}
+        enableExport
         enableViewOptions={false}
         globalSearch={exportSearch}
       />
@@ -94,8 +96,8 @@ describe("DataTable export", () => {
       expect(screen.queryByText("Alpha")).not.toBeInTheDocument()
     })
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Exportar" }))
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Dados filtrados/i }))
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menu de exportação" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Exportar resultados filtrados/i }))
 
     const exportOptions = exportRowsToXlsxMock.mock.calls[0]?.[0]
 
@@ -117,12 +119,13 @@ describe("DataTable export", () => {
         data={exportRows}
         getRowId={(row) => row.id}
         defaultColumnVisibility={{ secret: false }}
+        enableExport
         enableViewOptions={false}
       />
     )
 
-    fireEvent.pointerDown(screen.getByRole("button", { name: "Exportar" }))
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Dados carregados/i }))
+    fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menu de exportação" }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Exportar registros carregados/i }))
 
     const exportOptions = exportRowsToXlsxMock.mock.calls[0]?.[0]
 

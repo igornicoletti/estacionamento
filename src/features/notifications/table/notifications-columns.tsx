@@ -116,7 +116,7 @@ export function createNotificationsColumns(
         return (
           <Link
             to={href}
-            className="font-medium text-foreground underline-offset-4 hover:underline"
+            className="font-medium text-foreground transition-colors hover:text-muted-foreground"
           >
             {href}
           </Link>
