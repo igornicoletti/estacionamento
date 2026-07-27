@@ -79,7 +79,9 @@ describe("DataTable", () => {
 
     expect(screen.getByText("Alpha")).toBeInTheDocument()
     expect(screen.getByText("Beta")).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: /Filtros e ações/ })).toBeInTheDocument()
+    expect(
+      screen.getByRole("heading", { name: "Filtros e ações" })
+    ).toBeInTheDocument()
     expect(screen.queryByText("Registros")).not.toBeInTheDocument()
 
     fireEvent.change(screen.getByLabelText("Buscar linhas..."), {
@@ -106,7 +108,9 @@ describe("DataTable", () => {
     )
 
     expect(screen.getByText("Alpha")).toBeInTheDocument()
-    expect(screen.queryByRole("button", { name: /Filtros e ações/ })).not.toBeInTheDocument()
+    expect(
+      screen.queryByRole("heading", { name: "Filtros e ações" })
+    ).not.toBeInTheDocument()
   })
 
   it("uses the provided empty states for business-specific scenarios", () => {
