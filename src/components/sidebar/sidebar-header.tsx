@@ -1,8 +1,9 @@
 import { LogOutIcon } from "lucide-react"
 import { useNavigate } from "react-router"
 
+import { appRoutePaths } from "@/app/router/route-registry"
+import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { Button } from "@/components/ui/button"
-import { DestructiveConfirmDialog } from "@/components/ui/destructive-confirm-dialog"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { useAuthSession } from "@/features/auth/hooks"
 
@@ -15,7 +16,7 @@ export function AppHeader() {
 
   async function handleSignOut() {
     await signOut()
-    void navigate("/login", { replace: true })
+    void navigate(appRoutePaths.login, { replace: true })
   }
 
   return (
@@ -25,20 +26,21 @@ export function AppHeader() {
         <div className="ml-auto flex items-center gap-2">
           <NotificationsPopover />
           <UserMenu />
-          <DestructiveConfirmDialog
+          <AppAlertDialog
+            size="sm"
+            tone="destructive"
             title="Encerrar sessão"
             description="Deseja realmente sair agora? Você precisará fazer login novamente para continuar."
-            confirmLabel="Sair"
-            onConfirm={async () => {
-              await handleSignOut()
-            }}
+            actionLabel="Sair"
+            pendingLabel="Saindo..."
+            onAction={handleSignOut}
             trigger={
               <Button
                 type="button"
                 variant="destructive"
-                className="hidden bg-destructive text-destructive-foreground md:inline-flex hover:bg-destructive/90"
+                className="hidden md:inline-flex"
               >
-                <LogOutIcon />
+                <LogOutIcon data-icon="inline-start" aria-hidden="true" />
                 Sair
               </Button>
             }

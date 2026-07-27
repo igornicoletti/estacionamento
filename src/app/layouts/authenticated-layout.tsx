@@ -15,9 +15,9 @@ export function AuthenticatedLayout() {
 
   return (
     <>
-      <SidebarProvider>
+      <SidebarProvider className="min-w-0 overflow-x-clip">
         <AppSidebar homeHref={appRoutePaths.home} />
-        <SidebarInset>
+        <SidebarInset className="min-w-0 max-w-full overflow-x-clip">
           <AppHeader />
           <Outlet />
         </SidebarInset>
@@ -25,6 +25,8 @@ export function AuthenticatedLayout() {
 
       <AppAlertDialog
         open={inactivity.isWarningOpen}
+        size="default"
+        tone="warning"
         title={copy.title}
         description={copy.secondsRemaining(inactivity.secondsRemaining)}
         media={<ClockIcon aria-hidden="true" />}

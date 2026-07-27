@@ -4,6 +4,7 @@ import { describe, expect, it } from "vitest"
 
 import { NotificationsProvider } from "@/features/notifications/context/notifications-provider"
 import { NotificationsRoute } from "@/features/notifications/routes/notifications-route"
+import { flushReactUpdates } from "../../helpers/flush-react-updates"
 
 describe("NotificationsRoute", () => {
   it("renders notifications with standardized labels and hides raw identifiers in details", async () => {
@@ -22,6 +23,7 @@ describe("NotificationsRoute", () => {
     await waitFor(() => {
       expect(screen.getByText("Sincronização concluída")).toBeInTheDocument()
     })
+    await flushReactUpdates()
 
     const destination = screen.getByRole("link", { name: "/clientes" })
     const description = screen.getByText("Clientes e unidades foram sincronizados com sucesso.")
@@ -42,6 +44,7 @@ describe("NotificationsRoute", () => {
     expect(screen.getAllByText("Sincronização concluída").length).toBeGreaterThan(0)
     expect(screen.queryByText("ID")).not.toBeInTheDocument()
     expect(screen.queryByText("N-001")).not.toBeInTheDocument()
+    await flushReactUpdates()
   })
 
   it("uses primary badge for read notifications and warning badge for unread notifications", async () => {
@@ -60,10 +63,10 @@ describe("NotificationsRoute", () => {
     const unreadBadge = screen.getAllByText("Não lida")[0]?.closest("[data-slot='badge']")
     const readBadge = screen.getByText("Lida").closest("[data-slot='badge']")
 
-    expect(unreadBadge).toHaveAttribute("data-variant", "secondary")
+    expect(unreadBadge).toHaveAttribute("data-variant", "warning")
     expect(unreadBadge).toHaveClass("bg-warning/10")
-    expect(readBadge).toHaveAttribute("data-variant", "default")
-    expect(readBadge).not.toHaveClass("bg-warning/10")
+    expect(readBadge).toHaveAttribute("data-variant", "info")
+    expect(readBadge).toHaveClass("bg-info/10")
   })
 
   it("shows only the status action that applies to each notification", async () => {

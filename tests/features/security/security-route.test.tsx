@@ -193,8 +193,12 @@ describe("SecurityRoute", () => {
     resetProfile()
   })
 
-  it("renders supported measures, full score and only security notifications", () => {
+  it("renders supported measures, full score and only security notifications", async () => {
     renderRoute()
+
+    await waitFor(() => {
+      expect(mocks.getSession).toHaveBeenCalledTimes(1)
+    })
 
     expect(screen.getByRole("heading", { name: "Segurança" })).toBeInTheDocument()
     expect(screen.getByText("3 de 3 medidas suportadas concluídas")).toBeInTheDocument()
@@ -208,7 +212,7 @@ describe("SecurityRoute", () => {
     expect(screen.getByText("Sessão atual")).toBeInTheDocument()
   })
 
-  it("shows action-required measures when passkey and recovery contact are missing", () => {
+  it("shows action-required measures when passkey and recovery contact are missing", async () => {
     resetProfile({
       passkeyStatus: "inactive",
       phoneMasked: "",
@@ -216,6 +220,10 @@ describe("SecurityRoute", () => {
     })
 
     renderRoute()
+
+    await waitFor(() => {
+      expect(mocks.getSession).toHaveBeenCalledTimes(1)
+    })
 
     expect(screen.getByText("1 de 3 medidas suportadas concluídas")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: /Cadastrar passkey/i })).toBeInTheDocument()

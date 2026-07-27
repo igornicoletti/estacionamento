@@ -36,13 +36,9 @@ export interface DataTableSensitiveValueProps {
     kind: DataTableSensitiveValueKind
   ) => string
   revealLabel?: string
-  autoHideMs?: number
   onReveal?: (context: DataTableSensitiveValueRevealContext) => void
 }
 
-const DEFAULT_AUTO_HIDE_MS = 10_000
-const MIN_AUTO_HIDE_MS = 1_000
-const MAX_AUTO_HIDE_MS = 60_000
 const GENERIC_FULL_MASK = "••••••"
 const MASK_CHARACTER_PATTERN = /[*•]/u
 const STRUCTURED_VALUE_PATTERN = /^[\d\s()./+()-]+$/u
@@ -57,16 +53,6 @@ const sensitiveValueLabels: Record<DataTableSensitiveValueKind, string> = {
 
 function normalizeAccessibleText(value: string | undefined): string {
   return value?.trim().replace(/\s+/gu, " ") ?? ""
-}
-
-function normalizeAutoHideMs(value: number | undefined): number {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return DEFAULT_AUTO_HIDE_MS
-  }
-  return Math.min(
-    Math.max(Math.round(value), MIN_AUTO_HIDE_MS),
-    MAX_AUTO_HIDE_MS
-  )
 }
 
 function resolveValueState(
@@ -158,13 +144,11 @@ export function DataTableSensitiveValue({
   canReveal = false,
   maskMode = "full",
   maskValue,
-  revealLabel = "Alternar visualização do conteúdo completo",
-  autoHideMs = DEFAULT_AUTO_HIDE_MS,
+  revealLabel = "Mantenha pressionado para exibir o conteúdo completo",
   onReveal,
 }: DataTableSensitiveValueProps) {
   const normalizedValue = value?.trim() ?? ""
   const descriptionId = React.useId()
-  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | null>(null)
   const [revealedContextKey, setRevealedContextKey] = React.useState<
     string | null
   >(null)
@@ -181,15 +165,6 @@ export function DataTableSensitiveValue({
     resolvedValueState,
     normalizedValue,
   ].join(":")
-
-  React.useEffect(() => {
-    return () => {
-      if (timeoutRef.current !== null) {
-        clearTimeout(timeoutRef.current)
-        timeoutRef.current = null
-      }
-    }
-  }, [revealContextKey])
 
   if (!normalizedValue) {
     return fallback
@@ -229,27 +204,27 @@ export function DataTableSensitiveValue({
     ? `${sensitiveValueLabels[kind]} completo visível: ${currentValue}.`
     : `${sensitiveValueLabels[kind]} mascarado: ${currentValue}.`
 
-  function clearAutoHideTimeout() {
-    if (timeoutRef.current !== null) {
-      clearTimeout(timeoutRef.current)
-      timeoutRef.current = null
-    }
-  }
-
   function hideValue() {
-    clearAutoHideTimeout()
     setRevealedContextKey(null)
   }
 
   function revealValue() {
-    clearAutoHideTimeout()
+    if (isRevealed) return
     setRevealedContextKey(revealContextKey)
     onReveal?.({ kind })
+  }
 
-    timeoutRef.current = setTimeout(() => {
-      setRevealedContextKey(null)
-      timeoutRef.current = null
-    }, normalizeAutoHideMs(autoHideMs))
+  function releasePointerCapture(
+    element: HTMLButtonElement,
+    pointerId: number
+  ) {
+    if (!element.hasPointerCapture(pointerId)) return
+
+    try {
+      element.releasePointerCapture(pointerId)
+    } catch {
+      // O navegador pode liberar a captura antes desta chamada.
+    }
   }
 
   return (
@@ -260,24 +235,56 @@ export function DataTableSensitiveValue({
       size="sm"
       aria-label={
         normalizeAccessibleText(revealLabel) ||
-        "Alternar visualização do conteúdo completo"
+        "Mantenha pressionado para exibir o conteúdo completo"
       }
       aria-describedby={descriptionId}
       aria-pressed={isRevealed}
-      title={
-        isRevealed
-          ? "Ocultar conteúdo completo"
-          : "Mostrar conteúdo completo"
-      }
+      title="Mantenha pressionado para exibir; solte para ocultar"
       className={cn(
         "h-auto max-w-full justify-start whitespace-normal break-all px-1 py-0.5 text-left font-normal",
         baseClassName
       )}
-      onPointerDown={(event) => event.stopPropagation()}
-      onClick={(event) => {
+      onPointerDown={(event) => {
         event.stopPropagation()
-        if (isRevealed) hideValue()
-        else revealValue()
+        if (!event.isPrimary || event.button !== 0) return
+
+        event.preventDefault()
+        try {
+          event.currentTarget.setPointerCapture(event.pointerId)
+        } catch {
+          // A revelação ainda funciona mesmo sem captura de ponteiro.
+        }
+        revealValue()
+      }}
+      onPointerUp={(event) => {
+        event.stopPropagation()
+        releasePointerCapture(event.currentTarget, event.pointerId)
+        hideValue()
+      }}
+      onPointerCancel={(event) => {
+        event.stopPropagation()
+        releasePointerCapture(event.currentTarget, event.pointerId)
+        hideValue()
+      }}
+      onLostPointerCapture={hideValue}
+      onClick={(event) => {
+        event.preventDefault()
+        event.stopPropagation()
+        hideValue()
+      }}
+      onKeyDown={(event) => {
+        if ((event.key === "Enter" || event.key === " ") && !event.repeat) {
+          event.preventDefault()
+          event.stopPropagation()
+          revealValue()
+        }
+      }}
+      onKeyUp={(event) => {
+        if (event.key === "Enter" || event.key === " ") {
+          event.preventDefault()
+          event.stopPropagation()
+          hideValue()
+        }
       }}
       onBlur={hideValue}
     >

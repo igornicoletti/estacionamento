@@ -1,4 +1,4 @@
-import { getSupabaseBrowserClient } from "@/lib"
+import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import type { SecuritySessionSummary } from "../types/security-types"
 

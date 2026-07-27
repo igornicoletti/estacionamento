@@ -75,7 +75,7 @@ export function DataTableScrollContainer({
   const dragState = React.useRef<DragState>(createInitialDragState())
   const suppressClick = React.useRef(false)
   const [isDragging, setIsDragging] = React.useState(false)
-  const [hasOverflow, setHasOverflow] = React.useState(false)
+  const [hasHorizontalOverflow, setHasHorizontalOverflow] = React.useState(false)
   const threshold =
     Number.isFinite(dragThreshold) && dragThreshold >= 0
       ? dragThreshold
@@ -84,9 +84,8 @@ export function DataTableScrollContainer({
   const updateOverflow = React.useCallback(() => {
     const element = ref.current
     if (!element) return
-    setHasOverflow(
-      element.scrollWidth > element.clientWidth + 1 ||
-        element.scrollHeight > element.clientHeight + 1
+    setHasHorizontalOverflow(
+      element.scrollWidth > element.clientWidth + 1
     )
   }, [])
 
@@ -136,7 +135,8 @@ export function DataTableScrollContainer({
     }
   }, [])
 
-  const resolvedRole = providedRole ?? (hasOverflow ? "region" : undefined)
+  const resolvedRole =
+    providedRole ?? (hasHorizontalOverflow ? "region" : undefined)
   const ariaLabel =
     props["aria-label"] ??
     (resolvedRole === "region" && !props["aria-labelledby"]
@@ -149,10 +149,10 @@ export function DataTableScrollContainer({
       ref={ref}
       role={resolvedRole}
       aria-label={ariaLabel}
-      tabIndex={providedTabIndex ?? (hasOverflow ? 0 : undefined)}
+      tabIndex={providedTabIndex ?? (hasHorizontalOverflow ? 0 : undefined)}
       data-dragging={isDragging || undefined}
       className={cn(
-        "min-h-0 overflow-auto focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
+        "max-w-full overflow-x-auto overflow-y-visible overscroll-x-contain focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2",
         isDragging && "cursor-grabbing select-none",
         className
       )}

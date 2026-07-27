@@ -38,13 +38,16 @@ export function AppPage({
 
   return (
     <div
-      className={cn("flex flex-1 flex-col gap-4 p-4 md:p-5", className)}
+      className={cn(
+        "flex w-full min-w-0 max-w-full flex-1 flex-col gap-4 overflow-x-clip p-4 md:p-5",
+        className
+      )}
       {...props}
     >
       {hasHeader ? (
         <div
           className={cn(
-            "grid auto-rows-min gap-4 md:grid-cols-[1fr_auto]",
+            "grid min-w-0 auto-rows-min gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start",
             headerClassName
           )}
         >
@@ -72,7 +75,7 @@ export function AppPage({
           {hasActions ? (
             <div
               className={cn(
-                "grid w-full gap-2 sm:grid-cols-2 md:flex md:w-auto md:items-center md:justify-end",
+                "grid min-w-0 w-full gap-2 sm:grid-cols-2 md:flex md:w-auto md:flex-wrap md:items-center md:justify-end",
                 actionsClassName
               )}
             >
@@ -84,7 +87,7 @@ export function AppPage({
 
       <div
         className={cn(
-          "flex min-h-screen flex-1 flex-col md:min-h-min",
+          "flex min-w-0 max-w-full flex-col",
           contentClassName
         )}
       >

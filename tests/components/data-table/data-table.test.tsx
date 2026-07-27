@@ -182,15 +182,19 @@ describe("DataTable", () => {
     )
 
     const value = screen.getByRole("button", {
-      name: "Alternar visualização do conteúdo completo",
+      name: "Mantenha pressionado para exibir o conteúdo completo",
     })
 
     expect(value).toHaveTextContent("**.***.***/****-44")
 
-    fireEvent.click(value)
+    fireEvent.pointerDown(value, {
+      button: 0,
+      isPrimary: true,
+      pointerId: 1,
+    })
     expect(value).toHaveTextContent("22.111.333/0001-44")
 
-    fireEvent.click(value)
+    fireEvent.pointerUp(value, { pointerId: 1 })
     expect(value).toHaveTextContent("**.***.***/****-44")
   })
 })

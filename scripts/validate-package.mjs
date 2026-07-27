@@ -6,10 +6,16 @@ const errors = []
 
 const ignoredDirectories = new Set([
   ".git",
+  ".quality-gate-logs",
   "coverage",
   "dist",
   "node_modules",
 ])
+
+const ignoredDirectoryPrefixes = [
+  ".audit-toolkit",
+  ".audit-snapshot-staging",
+]
 
 const normalizePath = (filePath) => filePath.replaceAll(path.sep, "/")
 const absolutePath = (filePath) => path.join(root, filePath)
@@ -25,7 +31,11 @@ function walk(directory = ".") {
   }
 
   return fs.readdirSync(absolute, { withFileTypes: true }).flatMap((entry) => {
-    if (entry.isDirectory() && ignoredDirectories.has(entry.name)) {
+    if (
+      entry.isDirectory() &&
+      (ignoredDirectories.has(entry.name) ||
+        ignoredDirectoryPrefixes.some((prefix) => entry.name.startsWith(prefix)))
+    ) {
       return []
     }
 
@@ -264,6 +274,12 @@ if (frontendSecretLeaks.length > 0) {
   errors.push(`Potential Supabase secret leakage in frontend files: ${frontendSecretLeaks.join(", ")}`)
 }
 
+requireContent(".gitignore", ".audit-snapshot-staging*/", "audit staging ignore")
+requireContent("eslint.config.js", ".audit-snapshot-staging*/**", "ESLint audit staging ignore")
+requireContent("vite.config.ts", "configDefaults.exclude", "Vitest default test excludes")
+requireContent("src/index.css", "\"Inter Variable\"", "Inter Variable font token")
+requireContent("src/index.css", "--color-success", "semantic success color token")
+requireContent("src/index.css", "font-sans", "body sans font utility")
 requireAuthInactivityTimeoutAlignment()
 requireContent(
   "src/features/auth/context/auth-provider.tsx",
@@ -280,12 +296,12 @@ for (const [file, needles] of [
     [
       "sourceRowCount",
       "enableExport",
-      "flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1",
+      "flex w-full min-w-0 max-w-full flex-col gap-4",
       "shouldRenderStatePanel",
       "shouldRenderTable",
       "shouldRenderToolbar",
       "surface === \"card\"",
-      "flex min-w-0 flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden",
+      "flex min-w-0 flex-col",
       "DataTableDefaultState",
     ],
   ],

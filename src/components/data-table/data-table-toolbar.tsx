@@ -169,10 +169,9 @@ export function DataTableToolbar<TData>({
   const hasActions = hasRenderableContent(actions)
   const resolvedCanExport =
     canExport ?? table.getRowModel().rows.length > 0
-  const shouldRenderExport =
-    enableExport &&
-    resolvedCanExport &&
-    (allowExportWhileLoading || !isLoading)
+  const shouldRenderExport = enableExport
+  const exportDisabled =
+    !resolvedCanExport || (isLoading && !allowExportWhileLoading)
   const hasUtilityActions =
     enableViewOptions || shouldRenderExport || hasActions
   const filterPrefix =
@@ -292,6 +291,7 @@ export function DataTableToolbar<TData>({
             <DataTableExportMenu
               table={table}
               manualFiltering={manualFiltering}
+              disabled={exportDisabled}
               {...exportConfig}
             />
           ) : null}

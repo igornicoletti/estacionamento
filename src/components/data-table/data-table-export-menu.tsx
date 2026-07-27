@@ -43,6 +43,7 @@ export interface DataTableFilteredExportContext<TData> {
 export interface DataTableExportMenuProps<TData> {
   table: Table<TData>
   manualFiltering?: boolean
+  disabled?: boolean
   filename?: string
   sheetName?: string
   columnExportPolicy?: DataTableColumnExportPolicy
@@ -56,7 +57,7 @@ export interface DataTableExportMenuProps<TData> {
 
 export type DataTableExportConfig<TData> = Omit<
   DataTableExportMenuProps<TData>,
-  "table" | "manualFiltering"
+  "table" | "manualFiltering" | "disabled"
 >
 
 interface ExportOptionState<TData> {
@@ -413,6 +414,7 @@ function getAvailableExportOptions({
 
 export function DataTableExportMenu<TData>({
   table,
+  disabled = false,
   manualFiltering,
   filename = "tabela",
   sheetName = "Dados",
@@ -504,11 +506,11 @@ export function DataTableExportMenu<TData>({
           data-no-drag-scroll="true"
           type="button"
           variant="outline"
-          size="lg"
-          className="w-full justify-center sm:w-auto lg:size-9 lg:px-0"
+          size="default"
+          className="w-full justify-center sm:w-auto"
           aria-label={dataTableCopy.toolbar.exportAriaLabel}
           aria-busy={isExporting || undefined}
-          disabled={isExporting || !hasAvailableExport}
+          disabled={disabled || isExporting || !hasAvailableExport}
         >
           {isExporting ? (
             <Spinner
@@ -525,9 +527,7 @@ export function DataTableExportMenu<TData>({
               focusable="false"
             />
           )}
-          <span className="lg:sr-only">
-            {dataTableCopy.toolbar.export}
-          </span>
+          <span>{dataTableCopy.toolbar.export}</span>
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent
@@ -540,7 +540,7 @@ export function DataTableExportMenu<TData>({
         {optionStates.map((state) => (
           <DropdownMenuItem
             key={state.option.id}
-            disabled={!state.canExport || isExporting}
+            disabled={disabled || !state.canExport || isExporting}
             onSelect={() => void handleExport(state)}
             className="items-start gap-2 py-2"
           >

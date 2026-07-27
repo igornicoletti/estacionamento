@@ -12,7 +12,7 @@ import { appRoutePaths } from "@/app/router/route-registry"
 import { shouldBypassAuthInDev } from "@/config"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
-import { DestructiveConfirmDialog } from "@/components/ui/destructive-confirm-dialog"
+import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -209,15 +209,16 @@ export function UserMenu() {
         />
       ) : null}
 
-      <DestructiveConfirmDialog
+      <AppAlertDialog
+        size="sm"
+        tone="destructive"
         open={isSignOutDialogOpen}
         onOpenChange={setIsSignOutDialogOpen}
         title="Encerrar sessão"
         description="Deseja realmente sair agora? Você precisará fazer login novamente para continuar."
-        confirmLabel="Sair"
-        onConfirm={async () => {
-          await handleSignOut()
-        }}
+        actionLabel="Sair"
+        pendingLabel="Saindo..."
+        onAction={handleSignOut}
       />
     </>
   )

@@ -55,7 +55,7 @@ import {
 } from "@/components/ui/field"
 import { Input } from "@/components/ui/input"
 import { InputGroupAddon } from "@/components/ui/input-group"
-import { DestructiveConfirmDialog } from "@/components/ui/destructive-confirm-dialog"
+import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import {
   Select,
   SelectContent,
@@ -632,8 +632,9 @@ export function UsersRoute() {
         ]}
       />
 
-      <DestructiveConfirmDialog
-        size='sm'
+      <AppAlertDialog
+        size="sm"
+        tone="destructive"
         open={Boolean(blockingUser)}
         onOpenChange={(open) => {
           if (!open) {
@@ -644,8 +645,8 @@ export function UsersRoute() {
         description={blockingUser
           ? `Tem certeza que deseja bloquear ${blockingUser.name}? O acesso ao sistema será interrompido imediatamente.`
           : "Tem certeza que deseja bloquear este usuário?"}
-        confirmLabel="Bloquear"
-        onConfirm={() => {
+        actionLabel="Bloquear"
+        onAction={() => {
           if (!blockingUser) {
             return
           }

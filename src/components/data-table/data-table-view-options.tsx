@@ -125,8 +125,8 @@ export function DataTableViewOptions<TData>({
               data-no-drag-scroll="true"
               type="button"
               variant="outline"
-              size="lg"
-              className="w-full justify-center sm:w-auto lg:size-9 lg:px-0"
+              size="default"
+              className="w-full justify-center sm:w-auto"
               aria-label={resolvedAriaLabel}
             >
               <Settings2
@@ -134,9 +134,7 @@ export function DataTableViewOptions<TData>({
                 aria-hidden="true"
                 focusable="false"
               />
-              <span aria-hidden="true" className="lg:sr-only">
-                {resolvedTriggerLabel}
-              </span>
+              <span aria-hidden="true">{resolvedTriggerLabel}</span>
             </Button>
           </DropdownMenuTrigger>
         </TooltipTrigger>

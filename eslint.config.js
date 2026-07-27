@@ -9,6 +9,9 @@ export default tseslint.config(
     ignores: [
       "dist",
       "node_modules",
+      ".audit-toolkit*/**",
+      ".audit-snapshot-staging*/**",
+      ".quality-gate-logs/**",
       "src/components/ui/carousel.tsx",
       "src/components/ui/chart.tsx",
       "src/hooks/use-mobile.ts",

@@ -20,6 +20,12 @@ describe("AppPage", () => {
     ).toBeInTheDocument()
     expect(screen.getByText("Subtítulo da página")).toBeInTheDocument()
     expect(screen.getByRole("button", { name: "Ação" })).toBeInTheDocument()
-    expect(screen.getByText("Conteúdo principal")).toBeInTheDocument()
+    const content = screen.getByText("Conteúdo principal")
+    const page = content.parentElement?.parentElement
+
+    expect(content).toBeInTheDocument()
+    expect(page).toHaveClass("min-w-0")
+    expect(page).toHaveClass("overflow-x-clip")
+    expect(content.parentElement).not.toHaveClass("min-h-screen")
   })
 })

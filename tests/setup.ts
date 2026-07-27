@@ -40,12 +40,38 @@ if (!HTMLElement.prototype.scrollIntoView) {
 }
 
 if (!globalThis.ResizeObserver) {
+  class TestResizeObserver implements ResizeObserver {
+    readonly #callback: ResizeObserverCallback
+
+    constructor(callback: ResizeObserverCallback) {
+      this.#callback = callback
+    }
+
+    observe(target: Element) {
+      const contentRect = DOMRect.fromRect({
+        width: 1024,
+        height: 576,
+      })
+
+      this.#callback(
+        [
+          {
+            target,
+            contentRect,
+          } as ResizeObserverEntry,
+        ],
+        this
+      )
+    }
+
+    unobserve() {}
+
+    disconnect() {}
+  }
+
   Object.defineProperty(globalThis, "ResizeObserver", {
-    value: class ResizeObserver {
-      observe() { }
-      unobserve() { }
-      disconnect() { }
-    },
+    configurable: true,
+    value: TestResizeObserver,
   })
 }
 

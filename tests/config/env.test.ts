@@ -1,11 +1,19 @@
-import { beforeEach, describe, expect, it, vi } from "vitest"
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 async function loadEnvModule() {
   return import("@/config/env")
 }
 
 describe("config/env", () => {
+  let consoleErrorCalls: unknown[][] = []
+
   beforeEach(() => {
+    consoleErrorCalls = []
+
+    vi.spyOn(console, "error").mockImplementation((...args: unknown[]) => {
+      consoleErrorCalls.push(args)
+    })
+
     vi.resetModules()
     vi.unstubAllEnvs()
     vi.stubEnv("VITE_SUPABASE_URL", "")
@@ -14,11 +22,19 @@ describe("config/env", () => {
     vi.stubEnv("VITE_WEBAUTHN_RP_ID", window.location.hostname)
   })
 
+  afterEach(() => {
+    vi.restoreAllMocks()
+    vi.unstubAllEnvs()
+  })
+
   it("rejects partial Supabase config to avoid ambiguous local behavior", async () => {
     vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", "")
     vi.stubEnv("VITE_SUPABASE_URL", "https://project.supabase.co")
 
     await expect(loadEnvModule()).rejects.toThrow("ENV_SUPABASE_CONFIG_PARTIAL")
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("[env:ENV_SUPABASE_CONFIG_PARTIAL]")
+    )
   })
 
   it("rejects secret Supabase keys in client env without leaking raw value", async () => {
@@ -28,6 +44,9 @@ describe("config/env", () => {
     vi.stubEnv("VITE_SUPABASE_PUBLISHABLE_KEY", leakedValue)
 
     await expect(loadEnvModule()).rejects.toThrow("ENV_SUPABASE_KEY_SECRET")
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("[env:ENV_SUPABASE_KEY_SECRET]")
+    )
 
     try {
       await loadEnvModule()
@@ -35,6 +54,7 @@ describe("config/env", () => {
       const message = caughtError instanceof Error ? caughtError.message : ""
 
       expect(message).not.toContain(leakedValue)
+      expect(JSON.stringify(consoleErrorCalls)).not.toContain(leakedValue)
     }
   })
 
@@ -46,6 +66,9 @@ describe("config/env", () => {
     )
 
     await expect(loadEnvModule()).rejects.toThrow("ENV_SUPABASE_KEY_SERVICE_ROLE")
+    expect(console.error).toHaveBeenCalledWith(
+      expect.stringContaining("[env:ENV_SUPABASE_KEY_SERVICE_ROLE]")
+    )
   })
 
   it("sanitizes invalid boolean env errors", async () => {
@@ -58,6 +81,12 @@ describe("config/env", () => {
 
       expect(message).toContain("ENV_BOOLEAN_INVALID")
       expect(message).not.toContain("SECRET_INTERNAL_FLAG")
+      expect(console.error).toHaveBeenCalledWith(
+        expect.stringContaining("[env:ENV_BOOLEAN_INVALID]")
+      )
+      expect(JSON.stringify(consoleErrorCalls)).not.toContain(
+        "SECRET_INTERNAL_FLAG"
+      )
       return
     }
 

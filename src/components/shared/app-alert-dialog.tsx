@@ -15,10 +15,13 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog"
-import { buttonVariants, type Button } from "@/components/ui/button"
+import { Button, buttonVariants } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { useControllableOpen } from "@/hooks/use-controllable-open"
 import { cn } from "@/lib/utils"
+
+type AppAlertDialogSize = "default" | "sm"
+type AppAlertDialogTone = "default" | "destructive" | "warning"
 
 function isRenderable(value: React.ReactNode) {
   return value !== null && value !== undefined && typeof value !== "boolean"
@@ -44,10 +47,13 @@ export type AppAlertDialogProps = Omit<
   pendingLabel?: React.ReactNode
   onAction?: () => void | Promise<void>
   closeOnAction?: boolean
+  isPending?: boolean
+  size?: AppAlertDialogSize
+  tone?: AppAlertDialogTone
   className?: string
   contentProps?: Omit<
     React.ComponentProps<typeof AlertDialogContent>,
-    "children" | "className"
+    "children" | "className" | "size"
   >
 }
 
@@ -64,10 +70,13 @@ export function AppAlertDialog({
   showFooter = true,
   cancelLabel = "Cancelar",
   actionLabel = "Confirmar",
-  actionVariant = "default",
+  actionVariant,
   pendingLabel = "Confirmando...",
   onAction,
   closeOnAction = true,
+  isPending: externalPending = false,
+  size = "default",
+  tone = "default",
   className,
   contentProps,
   ...props
@@ -77,19 +86,24 @@ export function AppAlertDialog({
     defaultOpen,
     onOpenChange,
   })
-  const [isPending, setIsPending] = React.useState(false)
-  const isPendingRef = React.useRef(false)
-  const resolvedMedia = media ?? <CircleAlertIcon />
+  const [internalPending, setInternalPending] = React.useState(false)
+  const pendingRef = React.useRef(false)
+  const isPending = externalPending || internalPending
+  const resolvedMedia =
+    media === undefined ? <CircleAlertIcon aria-hidden="true" /> : media
+  const hasMedia = isRenderable(resolvedMedia)
   const hasHeader =
-    isRenderable(resolvedMedia) || isRenderable(title) || isRenderable(description)
+    hasMedia || isRenderable(title) || isRenderable(description)
   const hasFooter = showFooter && footer !== null && footer !== false
+  const resolvedActionVariant =
+    actionVariant ?? (tone === "destructive" ? "destructive" : "default")
 
   async function executeAction(event: React.MouseEvent<HTMLButtonElement>) {
-    if (!onAction || isPendingRef.current) return
+    if (!onAction || pendingRef.current || externalPending) return
 
     event.preventDefault()
-    isPendingRef.current = true
-    setIsPending(true)
+    pendingRef.current = true
+    setInternalPending(true)
 
     try {
       await onAction()
@@ -98,48 +112,70 @@ export function AppAlertDialog({
         setCurrentOpen(false)
       }
     } catch {
-      // A acao deve exibir feedback proprio para o usuario e manter o dialog aberto.
+      // A ação mantém o diálogo aberto; o chamador é responsável pelo feedback.
     } finally {
-      isPendingRef.current = false
-      setIsPending(false)
+      pendingRef.current = false
+      setInternalPending(false)
     }
-  }
-
-  function handleActionClick(event: React.MouseEvent<HTMLButtonElement>) {
-    void executeAction(event)
   }
 
   function handleOpenChange(nextOpen: boolean) {
-    if (isPendingRef.current) {
-      return
-    }
-
+    if (pendingRef.current || externalPending) return
     setCurrentOpen(nextOpen)
   }
 
+  const mediaToneClassName =
+    tone === "destructive"
+      ? "bg-destructive/10 text-destructive"
+      : tone === "warning"
+        ? "bg-warning/10 text-warning dark:bg-warning/20 dark:text-warning-foreground"
+        : "bg-muted text-foreground"
+
   return (
-    <AlertDialog
-      open={currentOpen}
-      onOpenChange={handleOpenChange}
-      {...props}
-    >
+    <AlertDialog open={currentOpen} onOpenChange={handleOpenChange} {...props}>
       {trigger ? (
         <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
       ) : null}
 
-      <AlertDialogContent {...contentProps} className={cn(className)}>
+      <AlertDialogContent
+        {...contentProps}
+        size={size}
+        className={cn(className)}
+      >
         {hasHeader ? (
-          <AlertDialogHeader>
-            {isRenderable(resolvedMedia) ? (
-              <AlertDialogMedia>{resolvedMedia}</AlertDialogMedia>
+          <AlertDialogHeader
+            className={cn(
+              size === "sm" && "items-center text-center",
+              size === "default" &&
+                hasMedia &&
+                "grid grid-cols-[auto_minmax(0,1fr)] items-start gap-x-3 gap-y-1"
+            )}
+          >
+            {hasMedia ? (
+              <AlertDialogMedia
+                className={cn(
+                  mediaToneClassName,
+                  size === "default" && "row-span-2 mt-0.5"
+                )}
+              >
+                {resolvedMedia}
+              </AlertDialogMedia>
             ) : null}
 
             {isRenderable(title) ? (
-              <AlertDialogTitle>{title}</AlertDialogTitle>
+              <AlertDialogTitle
+                className={cn(size === "default" && hasMedia && "col-start-2")}
+              >
+                {title}
+              </AlertDialogTitle>
             ) : null}
 
             {isRenderable(description) ? (
-              <AlertDialogDescription>{description}</AlertDialogDescription>
+              <AlertDialogDescription
+                className={cn(size === "default" && hasMedia && "col-start-2")}
+              >
+                {description}
+              </AlertDialogDescription>
             ) : null}
           </AlertDialogHeader>
         ) : null}
@@ -147,7 +183,9 @@ export function AppAlertDialog({
         {children}
 
         {hasFooter ? (
-          <AlertDialogFooter>
+          <AlertDialogFooter
+            className={cn(size === "sm" && "grid grid-cols-2")}
+          >
             {footer === undefined ? (
               <>
                 <AlertDialogCancel
@@ -159,11 +197,13 @@ export function AppAlertDialog({
 
                 <AlertDialogAction
                   className={buttonVariants({
-                    variant: actionVariant,
+                    variant: resolvedActionVariant,
                     size: "lg",
                   })}
                   disabled={isPending}
-                  onClick={handleActionClick}
+                  onClick={(event) => {
+                    void executeAction(event)
+                  }}
                 >
                   {isPending ? <Spinner data-icon="inline-start" /> : null}
                   {isPending ? pendingLabel : actionLabel}

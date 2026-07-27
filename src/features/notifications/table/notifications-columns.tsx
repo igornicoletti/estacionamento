@@ -8,7 +8,7 @@ import {
   type DataTableRowAction,
 } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { formatDateTime, getBadgeToneClassName } from "@/lib"
+import { formatDateTime } from "@/lib"
 
 import {
   notificationStatusLabels,
@@ -27,18 +27,10 @@ interface CreateNotificationsColumnsOptions {
   onOpenDetails?: (notification: NotificationRecord) => void
 }
 
-function resolveNotificationStatusBadge(status: NotificationRecord["status"]) {
-  if (status === "read") {
-    return {
-      tone: "info" as const,
-      variant: "default" as const,
-    }
-  }
-
-  return {
-    tone: "warning" as const,
-    variant: "secondary" as const,
-  }
+function resolveNotificationStatusBadge(
+  status: NotificationRecord["status"]
+) {
+  return status === "read" ? ("info" as const) : ("warning" as const)
 }
 
 export function createNotificationsColumns(
@@ -87,13 +79,12 @@ export function createNotificationsColumns(
     {
       accessorKey: "status",
       cell: ({ row }) => {
-        const badge = resolveNotificationStatusBadge(row.original.status)
+        const variant = resolveNotificationStatusBadge(row.original.status)
 
         return (
           <div className="flex justify-center">
             <Badge
-              variant={badge.variant}
-              className={getBadgeToneClassName(badge.tone)}
+              variant={variant}
             >
               {notificationStatusLabels[row.original.status]}
             </Badge>

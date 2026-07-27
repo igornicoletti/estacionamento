@@ -24,6 +24,12 @@ Thumbs.db
 
 # Logs
 *.log
+
+# Local audit artifacts
+.audit-toolkit*/
+.audit-snapshot-staging*/
+.quality-gate-logs/
+estacionamento-auditoria-forense-*.zip
 npm-debug.log*
 pnpm-debug.log*
 

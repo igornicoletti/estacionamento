@@ -1,7 +1,8 @@
-import { ArrowLeftIcon, HistoryIcon, RefreshCcwIcon } from "lucide-react"
+import { ArrowLeftIcon, RefreshCcwIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate, useParams } from "react-router"
 
+import { appRoutePaths } from "@/app/router/route-registry"
 import {
   createDataTableFilterOptions,
   DataTable,
@@ -10,33 +11,22 @@ import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppPage } from "@/components/shared/app-page"
 import { Button } from "@/components/ui/button"
 
+import { clientsCopy } from "../constants"
+import { useClientVehicles } from "../hooks/use-client-vehicles"
 import {
+  formatClientDocument,
   getClientVehicleDetailItems,
+  normalizeDisplayName,
+  parseClientRouteId,
   type ClientVehicleTableRow,
 } from "../model"
 import { createClientVehiclesColumns } from "../table"
-import { useClientVehicles } from "../hooks/use-client-vehicles"
-
-function parseCodPessoa(value: string | undefined) {
-  const normalized = Number(value)
-
-  return Number.isFinite(normalized) ? Math.trunc(normalized) : 0
-}
-
-function normalizeDisplayText(value: string) {
-  return value
-    .toLowerCase()
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
-    .join(" ")
-}
 
 export function ClientVehiclesRoute() {
   const navigate = useNavigate()
   const { cod_pessoa: codPessoaParam } = useParams<{ cod_pessoa: string }>()
   const codPessoa = React.useMemo(
-    () => parseCodPessoa(codPessoaParam),
+    () => parseClientRouteId(codPessoaParam) ?? 0,
     [codPessoaParam]
   )
   const { client, data, error, isLoading, refetch } = useClientVehicles(codPessoa)
@@ -55,54 +45,56 @@ export function ClientVehiclesRoute() {
       ),
     [data]
   )
+  const pageTitle = client?.nom_pessoa
+    ? normalizeDisplayName(client.nom_pessoa)
+    : clientsCopy.pages.clientVehicles.fallbackTitle
+  const pageSubtitle = formatClientDocument(
+    client?.num_cnpj_cpf,
+    clientsCopy.pages.clientVehicles.fallbackDescription
+  )
 
   return (
     <AppPage
       headingContent={
-        <>
-          <div className="flex items-center gap-2">
+        <div className="grid min-w-0 gap-0.5">
+          <div className="flex min-w-0 items-center gap-2">
             <Button
               type="button"
               variant="ghost"
               size="icon"
-              aria-label="Voltar para clientes"
+              aria-label={clientsCopy.actions.backToClients}
               onClick={() => {
-                void navigate("/clientes")
+                void navigate(appRoutePaths.clients)
               }}
             >
-              <ArrowLeftIcon aria-hidden="true" />
+              <ArrowLeftIcon aria-hidden="true" focusable="false" />
             </Button>
-            <h1 className="text-2xl font-semibold tracking-tight">
-              {client?.nom_pessoa
-                ? normalizeDisplayText(client.nom_pessoa)
-              : "Cliente não encontrado"}
+            <h1 className="min-w-0 truncate text-lg font-semibold tracking-tight sm:text-xl">
+              {pageTitle}
             </h1>
           </div>
-          <p className="mt-2 text-sm text-muted-foreground">
-            {client?.num_cnpj_cpf || ""}
+          <p className="pl-10 text-sm text-muted-foreground">
+            {pageSubtitle}
           </p>
-        </>
+        </div>
       }
-      headingClassName="max-w-2xl"
+      headingClassName="min-w-0 max-w-2xl"
       actions={
-        <>
-          <Button type="button" variant="secondary" >
-            <HistoryIcon aria-hidden="true" />
-            Historico
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-
-            disabled={isLoading}
-            onClick={() => {
-              void refetch()
-            }}
-          >
-            <RefreshCcwIcon aria-hidden="true" />
-            Sincronizar
-          </Button>
-        </>
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isLoading}
+          onClick={() => {
+            void refetch()
+          }}
+        >
+          <RefreshCcwIcon
+            data-icon="inline-start"
+            aria-hidden="true"
+            focusable="false"
+          />
+          {clientsCopy.actions.sync}
+        </Button>
       }
     >
       <DataTable
@@ -120,12 +112,12 @@ export function ClientVehiclesRoute() {
             "des_veiculo",
             "nom_motorista",
           ],
-          placeholder: "Buscar veiculos...",
+          placeholder: clientsCopy.pages.clientVehicles.searchPlaceholder,
         }}
         filterFields={[
           {
             id: "num_placa",
-            title: "Placas",
+            title: clientsCopy.filters.plates,
             options: plateOptions,
           },
         ]}
@@ -141,9 +133,7 @@ export function ClientVehiclesRoute() {
       <AppDetailsSheet
         open={Boolean(selectedVehicle)}
         onOpenChange={(open) => {
-          if (!open) {
-            setSelectedVehicle(null)
-          }
+          if (!open) setSelectedVehicle(null)
         }}
         title={selectedVehicle ? "Detalhes do veículo" : undefined}
         description={

@@ -3,6 +3,7 @@ import { MemoryRouter } from "react-router"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
 import { UsersRoute } from "@/features/users"
+import { flushReactUpdates } from "../../helpers/flush-react-updates"
 
 const invokeMock = vi.fn()
 const fromMock = vi.fn()
@@ -81,6 +82,7 @@ describe("UsersRoute", () => {
     await waitFor(() => {
       expect(screen.getByText("Usuario Teste")).toBeInTheDocument()
     })
+    await flushReactUpdates()
 
     fireEvent.click(screen.getByRole("button", { name: "Usuario Teste" }))
 
@@ -94,6 +96,7 @@ describe("UsersRoute", () => {
     expect(screen.getAllByText("Passkey").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Ativa").length).toBeGreaterThan(0)
     expect(screen.getAllByText("Inativa").length).toBeGreaterThan(0)
+    await flushReactUpdates()
   }, 15_000)
 
   it("exibe validacoes obrigatorias ao submeter dialogo de cadastro vazio", async () => {

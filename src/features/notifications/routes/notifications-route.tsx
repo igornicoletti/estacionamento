@@ -1,3 +1,4 @@
+import { CheckCheckIcon } from "lucide-react"
 import * as React from "react"
 
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
@@ -111,6 +112,26 @@ export function NotificationsRoute() {
       title="Notificações"
       subtitle="Acompanhe alertas de sistema, sincronização e segurança."
       headingClassName="max-w-2xl"
+      actions={
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isUpdatingBatch || unreadCount === 0}
+          aria-busy={isUpdatingBatch || undefined}
+          onClick={() => {
+            void handleMarkAllAsRead()
+          }}
+        >
+          <CheckCheckIcon
+            data-icon="inline-start"
+            aria-hidden="true"
+            focusable="false"
+          />
+          {isUpdatingBatch
+            ? notificationsCopy.actions.updatingAll
+            : notificationsCopy.actions.markAllAsRead}
+        </Button>
+      }
     >
       <DataTable
         columns={columns}
@@ -140,22 +161,6 @@ export function NotificationsRoute() {
             options: statusOptions,
           },
         ]}
-        toolbarActions={
-          <Button
-            type="button"
-            variant="outline"
-            size="lg"
-            disabled={isUpdatingBatch || unreadCount === 0}
-            aria-busy={isUpdatingBatch || undefined}
-            onClick={() => {
-              void handleMarkAllAsRead()
-            }}
-          >
-            {isUpdatingBatch
-              ? notificationsCopy.actions.updatingAll
-              : notificationsCopy.actions.markAllAsRead}
-          </Button>
-        }
         isLoading={isLoading}
         error={error}
         enablePagination

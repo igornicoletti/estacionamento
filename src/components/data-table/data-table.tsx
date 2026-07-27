@@ -277,7 +277,7 @@ function DataTableStatePanel({
     <div
       role={kind === "error" ? "alert" : kind === "loading" ? "status" : undefined}
       aria-live={kind === "error" ? "assertive" : kind === "loading" ? "polite" : undefined}
-      className="flex min-h-48 flex-1 items-center justify-center px-3 py-8 sm:min-h-64 sm:px-4 sm:py-10"
+      className="flex items-center justify-center px-3 py-8 sm:px-4 sm:py-10"
     >
       <div className="w-full max-w-sm sm:max-w-md">{children}</div>
     </div>
@@ -819,11 +819,11 @@ export function DataTable<TData extends RowData, TValue>({
 
   const tableSurfaceContent = (
     <>
-      <div className="flex min-w-0 flex-col lg:min-h-0 lg:flex-1 lg:overflow-hidden">
+      <div className="flex min-w-0 flex-col">
         {shouldRenderTable ? (
           <DataTableScrollContainer
             aria-label={resolvedAriaLabel}
-            className="w-full max-w-full lg:min-h-0 lg:max-h-full lg:flex-1"
+            className="w-full max-w-full"
           >
             <Table
               className="min-w-max"
@@ -926,7 +926,7 @@ export function DataTable<TData extends RowData, TValue>({
 
   return (
     <div
-      className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1"
+      className="flex w-full min-w-0 max-w-full flex-col gap-4"
       aria-busy={isLoading || undefined}
     >
       {hasNonBlockingError ? (
@@ -957,7 +957,7 @@ export function DataTable<TData extends RowData, TValue>({
               <CollapsibleTrigger asChild>
                 <Button variant="ghost" size="icon" className="size-8">
                   <ChevronsUpDownIcon />
-                  <span className="sr-only">Toggle details</span>
+                  <span className="sr-only">{dataTableCopy.toolbar.toggleControls}</span>
                 </Button>
               </CollapsibleTrigger>
             </div>
@@ -1001,14 +1001,14 @@ export function DataTable<TData extends RowData, TValue>({
       {surface === "card" ? (
         <Card
           size="sm"
-          className="overflow-visible lg:min-h-0 lg:flex-1 lg:overflow-hidden"
+          className="overflow-visible"
         >
-          <CardContent className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
+          <CardContent className="flex w-full min-w-0 max-w-full flex-col gap-4">
             {tableSurfaceContent}
           </CardContent>
         </Card>
       ) : (
-        <div className="flex min-w-0 flex-col gap-4 lg:min-h-0 lg:flex-1">
+        <div className="flex w-full min-w-0 max-w-full flex-col gap-4">
           {tableSurfaceContent}
         </div>
       )}
