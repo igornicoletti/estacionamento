@@ -31,7 +31,7 @@ interface LocationState {
   }
 }
 
-type LoginStep = "credentials" | "required-password" | "required-passkey"
+type LoginStep = "credentials" | "required-password"
 
 function RequiredMark() {
   return <span className="text-destructive">*</span>
@@ -61,7 +61,6 @@ export function AuthLoginRoute() {
   const [values, setValues] = React.useState<AuthLoginPayload>(getInitialValues)
   const [errors, setErrors] = React.useState<FieldErrors<AuthLoginPayload>>({})
   const [step, setStep] = React.useState<LoginStep>("credentials")
-  const [flowId, setFlowId] = React.useState<string | null>(null)
   const [requiredPasswordValues, setRequiredPasswordValues] =
     React.useState<RequiredPasswordValues>(getInitialRequiredPasswordValues)
   const [requiredPasswordErrors, setRequiredPasswordErrors] =
@@ -73,22 +72,15 @@ export function AuthLoginRoute() {
   const isSubmitting = auth.isSubmitting
   const isBusy = isSubmitting || isPasskeySubmitting
   const title =
-    step === "required-password"
-      ? authCopy.requiredPassword.title
-      : step === "required-passkey"
-        ? authCopy.passkeyUnavailable.title
-        : copy.title
+    step === "required-password" ? authCopy.requiredPassword.title : copy.title
   const description =
     step === "required-password"
       ? authCopy.requiredPassword.description
-      : step === "required-passkey"
-        ? authCopy.passkeyUnavailable.description
       : copy.description
 
   function resetPendingFlow() {
     auth.actions.clearRequiredPasswordChallenge()
     setStep("credentials")
-    setFlowId(null)
     setRequiredPasswordValues(getInitialRequiredPasswordValues())
     setRequiredPasswordErrors({})
   }
@@ -117,26 +109,18 @@ export function AuthLoginRoute() {
     }
   }
 
-  async function finishAuthenticatedFlow() {
-    await auth.actions.refreshProfile()
+  function finishAuthenticatedFlow() {
     void navigate(redirectTo, { replace: true })
   }
 
   async function handlePasswordResponse(response: AuthPasswordResponse) {
-    setFlowId(response.flowId)
-
     if (response.nextAction === AUTH_NEXT_ACTION.authenticated) {
-      await finishAuthenticatedFlow()
+      finishAuthenticatedFlow()
       return
     }
 
     if (response.nextAction === AUTH_NEXT_ACTION.setNewPassword) {
       setStep("required-password")
-      return
-    }
-
-    if (response.nextAction === AUTH_NEXT_ACTION.registerPasskey) {
-      setStep("required-passkey")
       return
     }
 
@@ -180,15 +164,9 @@ export function AuthLoginRoute() {
         parsed.data.newPassword
       )
 
-      if (response.nextAction === AUTH_NEXT_ACTION.registerPasskey) {
-        await handlePasswordResponse(response)
-        return
-      }
-
       if (response.nextAction === AUTH_NEXT_ACTION.authenticated) {
         notify.success(authCopy.requiredPassword.success)
-        setValues((current) => ({ ...current, password: "" }))
-        resetPendingFlow()
+        finishAuthenticatedFlow()
         return
       }
 
@@ -202,43 +180,11 @@ export function AuthLoginRoute() {
     }
   }
 
-  async function handleRequiredPasskeySubmit() {
-    setIsPasskeySubmitting(true)
-
-    try {
-      const response = await auth.actions.registerRequiredPasskey({
-        cpf: values.cpf,
-        flowId,
-      })
-
-      if (response.nextAction === AUTH_NEXT_ACTION.authenticated) {
-        notify.success(authCopy.passkeyRegistration.success)
-        await finishAuthenticatedFlow()
-        return
-      }
-
-      notify.error(authCopy.errors.passkeyRegistrationFailed)
-    } catch (caughtError) {
-      notify.error(
-        caughtError instanceof Error
-          ? caughtError.message
-          : authCopy.errors.passkeyRegistrationFailed
-      )
-    } finally {
-      setIsPasskeySubmitting(false)
-    }
-  }
-
   async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault()
 
     if (step === "required-password") {
       await handleRequiredPasswordSubmit()
-      return
-    }
-
-    if (step === "required-passkey") {
-      await handleRequiredPasskeySubmit()
       return
     }
 
@@ -250,7 +196,7 @@ export function AuthLoginRoute() {
 
     try {
       await auth.actions.signInWithPasskey()
-      await finishAuthenticatedFlow()
+      finishAuthenticatedFlow()
     } catch (caughtError) {
       notify.error(
         caughtError instanceof Error
@@ -282,7 +228,7 @@ export function AuthLoginRoute() {
 
       <AuthPageCard title={title} description={description}>
         <form
-          onSubmit={(event) => {
+          onSubmit={(event: React.FormEvent<HTMLFormElement>) => {
             void handleSubmit(event)
           }}
           noValidate
@@ -367,22 +313,16 @@ export function AuthLoginRoute() {
               type="submit"
               className="w-full"
               disabled={isBusy}
-              aria-busy={isSubmitting || (step === "required-passkey" && isPasskeySubmitting)}
+              aria-busy={isSubmitting}
             >
-              {isSubmitting || (step === "required-passkey" && isPasskeySubmitting) ? (
-                <Spinner data-icon="inline-start" />
-              ) : null}
+              {isSubmitting ? <Spinner data-icon="inline-start" /> : null}
               {step === "required-password"
                 ? isSubmitting
                   ? authCopy.requiredPassword.submitting
                   : authCopy.requiredPassword.submit
-                : step === "required-passkey"
-                  ? isPasskeySubmitting
-                    ? authCopy.passkeyRegistration.loading
-                    : authCopy.passkeyRegistration.submit
-                  : isSubmitting
-                    ? copy.submitting
-                    : copy.submit}
+                : isSubmitting
+                  ? copy.submitting
+                  : copy.submit}
             </Button>
 
             {step === "credentials" ? (

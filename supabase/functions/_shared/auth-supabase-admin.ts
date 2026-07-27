@@ -27,6 +27,7 @@ export function createAdminClient() {
     {
       auth: {
         autoRefreshToken: false,
+        experimental: { passkey: true },
         persistSession: false,
       },
     }

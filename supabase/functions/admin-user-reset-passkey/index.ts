@@ -1,4 +1,9 @@
-import { completeAdminAction, createAdminActionContext, errorResponse, handleAdminCors } from "../_shared/admin-users.ts"
+import {
+  completeAdminAction,
+  createAdminActionContext,
+  errorResponse,
+  handleAdminCors,
+} from "../_shared/admin-users.ts"
 
 Deno.serve(async (request) => {
   const cors = handleAdminCors(request)
@@ -6,36 +11,39 @@ Deno.serve(async (request) => {
 
   try {
     const context = await createAdminActionContext(request)
-    const updateResponse = await context.admin
-      .from("app_users")
-      .update({ status: "passkey_reset", locked_until: null })
-      .eq("auth_user_id", context.target.auth_user_id)
+    const userId = context.target.auth_user_id
+    const listResponse = await context.admin.auth.admin.passkey.listPasskeys({
+      userId,
+    })
 
-    if (updateResponse.error) {
-      throw new Error("Não foi possível resetar a passkey.")
+    if (listResponse.error) {
+      throw new Error("Não foi possível consultar as passkeys do usuário.")
     }
 
-    const credentialsResponse = await context.admin
-      .schema("auth")
-      .from("webauthn_credentials")
-      .delete()
-      .eq("user_id", context.target.auth_user_id)
+    for (const passkey of listResponse.data ?? []) {
+      const deleteResponse = await context.admin.auth.admin.passkey.deletePasskey({
+        passkeyId: passkey.id,
+        userId,
+      })
 
-    if (credentialsResponse.error) {
-      throw new Error("Não foi possível remover as passkeys anteriores.")
+      if (deleteResponse.error) {
+        throw new Error("Não foi possível remover todas as passkeys do usuário.")
+      }
     }
 
-    await context.admin
-      .schema("auth")
-      .from("mfa_factors")
-      .delete()
-      .eq("user_id", context.target.auth_user_id)
-      .eq("factor_type", "webauthn")
+    const signOutResponse = await context.admin.auth.admin.signOut(userId, "global")
 
-    await context.admin.auth.admin.signOut(context.target.auth_user_id, "global")
+    if (signOutResponse.error) {
+      throw new Error("Não foi possível revogar as sessões do usuário.")
+    }
 
-    return completeAdminAction(context, "passkey_reset_requested")
+    return completeAdminAction(context, "passkeys_removed")
   } catch (caughtError) {
-    return errorResponse(request, caughtError instanceof Error ? caughtError.message : "Não foi possível resetar a passkey.")
+    return errorResponse(
+      request,
+      caughtError instanceof Error
+        ? caughtError.message
+        : "Não foi possível remover as passkeys."
+    )
   }
 })

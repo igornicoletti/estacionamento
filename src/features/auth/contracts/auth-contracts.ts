@@ -177,26 +177,17 @@ export function getRoleFallbackPermissions(
 
 export function resolveAuthProfilePermissions({
   permissions,
-  roleKey,
 }: {
   permissions: unknown
   roleKey: string | null | undefined
-}) {
-  const resolvedPermissions = normalizeAuthPermissions(permissions)
-
-  if (resolvedPermissions.length > 0) {
-    return resolvedPermissions
-  }
-
-  return permissions === null || permissions === undefined
-    ? getRoleFallbackPermissions(roleKey)
-    : []
+}): readonly AuthPermission[] {
+  return normalizeAuthPermissions(permissions)
 }
 
 export function canAccessProtectedApp(status: AuthStatus | null | undefined) {
-  return status === AUTH_STATUS.active
+  return status === AUTH_STATUS.active || status === AUTH_STATUS.passkeyReset
 }
 
 export function requiresAccountRecovery(status: AuthStatus | null | undefined) {
-  return status === AUTH_STATUS.passwordReset || status === AUTH_STATUS.passkeyReset
+  return status === AUTH_STATUS.passwordReset
 }

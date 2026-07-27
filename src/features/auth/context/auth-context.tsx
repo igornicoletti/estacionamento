@@ -43,10 +43,6 @@ export interface AuthActions {
   signInWithPasskey: () => Promise<void>
   registerProfilePasskey: () => Promise<AuthPasskeyRegistrationResult>
   completeRequiredPassword: (newPassword: string) => Promise<AuthPasswordResponse>
-  registerRequiredPasskey: (input: {
-    cpf: string
-    flowId: string | null
-  }) => Promise<AuthPasswordResponse>
   clearRequiredPasswordChallenge: () => void
   logout: () => void
   logoutAsync: () => Promise<void>

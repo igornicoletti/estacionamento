@@ -16,16 +16,29 @@ function enablePasskeySupport() {
 }
 
 function createSupabaseMock() {
-  const functionsInvoke = vi.fn(() =>
-    Promise.resolve({
-      data: { ok: true },
-      error: null,
-    })
+  const functionsInvoke = vi.fn(
+    (_name: string, _options?: unknown): Promise<{ data: unknown; error: null }> =>
+      Promise.resolve({
+        data: { ok: true },
+        error: null,
+      })
   )
-  const signInWithPasskey = vi.fn()
-  const getValidatedSupabaseAccessToken = vi.fn()
+  const signInWithPasskey = vi.fn<
+    () => Promise<{
+      data: {
+        session: { access_token: string } | null
+        user: { id: string } | null
+      }
+      error: null
+    }>
+  >()
+  const setSession = vi.fn((_session: unknown) => Promise.resolve({ error: null }))
+  const getValidatedSupabaseAccessToken = vi.fn<
+    (_client: unknown) => Promise<string | null>
+  >()
   const supabase = {
     auth: {
+      setSession,
       signInWithPasskey,
     },
     functions: {
@@ -36,6 +49,7 @@ function createSupabaseMock() {
   return {
     functionsInvoke,
     getValidatedSupabaseAccessToken,
+    setSession,
     signInWithPasskey,
     supabase,
   }
@@ -58,6 +72,34 @@ describe("auth api", () => {
     vi.resetModules()
     vi.clearAllMocks()
     enablePasskeySupport()
+  })
+
+  it("normalizes the legacy required-passkey response as authenticated", async () => {
+    const mock = createSupabaseMock()
+    mock.functionsInvoke.mockResolvedValueOnce({
+      data: {
+        flowId: "legacy-flow",
+        message: "Legacy response",
+        nextAction: "register_passkey",
+        session: {
+          access_token: "access-token",
+          refresh_token: "refresh-token",
+        },
+      },
+      error: null,
+    })
+    const { signInWithPassword } = await importAuthApiWithSupabase(mock)
+
+    const response = await signInWithPassword({
+      cpf: "12345678909",
+      password: "Password!123",
+    })
+
+    expect(response.nextAction).toBe("authenticated")
+    expect(mock.setSession).toHaveBeenCalledWith({
+      access_token: "access-token",
+      refresh_token: "refresh-token",
+    })
   })
 
   it("registers passkey login audit with the returned authenticated session", async () => {

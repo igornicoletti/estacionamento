@@ -1,3 +1,4 @@
+// A persistência em auth_flow_attempts fica isolada em auth-password-flow.ts.
 import {
   createAdminClient,
   createPasswordAuthClient,
@@ -5,149 +6,141 @@ import {
   handleCors,
   hashSensitiveValue,
   jsonResponse,
-  normalizeCpf,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
-const maxFailedAttempts = 5
-const lockMinutes = 15
-const flowMinutes = 10
+import {
+  isLocked,
+  parsePasswordRequest,
+  resolveNextAction,
+  type AppUserRow,
+} from "./auth-password-contracts.ts"
+import {
+  claimPasswordFlow,
+  completePasswordTask,
+  createPasswordFlow,
+  findAppUser,
+  releasePasswordFlowClaim,
+} from "./auth-password-flow.ts"
+import {
+  clearFailedAttempts,
+  markPasswordReset,
+  recordFailedAttempt,
+  revokeAllSessions,
+  rollbackPassword,
+} from "./auth-password-security.ts"
 
-type NextAction =
-  | "authenticated"
-  | "set_new_password"
-  | "register_passkey"
-  | "use_passkey"
-
-interface PasswordRequest {
-  cpf: string
-  flowId?: string | null
-  newPassword?: string | null
-  password: string
-}
-
-function isRecord(value: unknown): value is Record<string, unknown> {
-  return Boolean(value) && typeof value === "object" && !Array.isArray(value)
-}
-
-function parsePasswordRequest(value: unknown): PasswordRequest {
-  if (!isRecord(value)) {
-    throw new Error("Payload inválido.")
-  }
-
-  const cpf = normalizeCpf(typeof value.cpf === "string" ? value.cpf : "")
-  const password = typeof value.password === "string" ? value.password : ""
-  const flowId = typeof value.flowId === "string" ? value.flowId : null
-  const newPassword = typeof value.newPassword === "string" ? value.newPassword : null
-
-  if (cpf.length !== 11 || password.length < 1) {
-    throw new Error("Credenciais inválidas.")
-  }
-
-  return { cpf, flowId, newPassword, password }
-}
-
-function isLocked(lockedUntil: string | null | undefined) {
-  return Boolean(lockedUntil && new Date(lockedUntil).getTime() > Date.now())
-}
-
-function resolveNextAction(status: string): NextAction {
-  if (status === "pending" || status === "password_reset") {
-    return "set_new_password"
-  }
-
-  if (status === "passkey_reset") {
-    return "register_passkey"
-  }
-
-  return "authenticated"
-}
-
-async function recordFailedAttempt(
-  cpfHash: string,
-  targetName: string
-) {
-  const admin = createAdminClient()
-  const { data, error } = await admin.rpc("internal_record_auth_failed_attempt", {
-    p_cpf_hmac: cpfHash,
-    p_lock_minutes: lockMinutes,
-    p_max_attempts: maxFailedAttempts,
-  }) as {
-    data: Array<{ failed_attempts: number; locked_until: string | null }> | null
-    error: { message?: string } | null
-  }
-
-  if (error) {
-    console.error("failed_attempt_rpc_failed", { error: error.message })
-  }
-
-  const result = data?.[0]
-
-  await writeAuditEvent({
-    actor: "Sistema",
-    event: "login_failed",
-    metadata: { locked: Boolean(result?.locked_until) },
-    scope: "login",
-    success: false,
-    target: targetName,
-  }).catch((e) => console.error("[audit-fail]", e))
-}
-
-async function createPasswordFlow(input: {
-  appUserId: string
+async function handleRequiredPassword(input: {
+  appUser: AppUserRow
   cpfHash: string
-  purpose: "first_access" | "password_reset" | "passkey_reset"
-}) {
-  const admin = createAdminClient()
-  const response = await admin
-    .from("auth_flow_attempts")
-    .insert({
-      app_user_id: input.appUserId,
-      cpf_hmac: input.cpfHash,
-      expires_at: new Date(Date.now() + flowMinutes * 60_000).toISOString(),
-      purpose: input.purpose,
-    })
-    .select("flow_id")
-    .single()
-
-  if (response.error || !response.data) {
-    throw new Error("Não foi possível iniciar o fluxo.")
-  }
-
-  return response.data.flow_id
-}
-
-async function consumePasswordFlow(input: {
-  cpfHash: string
+  currentPassword: string
   flowId: string
+  newPassword: string
+  passwordClient: ReturnType<typeof createPasswordAuthClient>
+  request: Request
 }) {
-  const admin = createAdminClient()
-  const { data, error } = await admin.rpc("internal_consume_auth_flow", {
-    p_allowed_purposes: ["first_access", "password_reset"],
-    p_cpf_hmac: input.cpfHash,
-    p_flow_id: input.flowId,
-  }) as {
-    data: Array<{ app_user_id: string; id: string; purpose: string }> | null
-    error: { message?: string } | null
-  }
-
-  if (error || !data?.[0]) {
-    if (error) {
-      console.error("password_flow_consume_failed", { error: error.message })
-    }
-    throw new Error("Fluxo expirado.")
-  }
-}
-
-async function clearFailedAttempts(authUserId: string) {
-  const admin = createAdminClient()
-  const { error } = await admin.rpc("internal_clear_auth_failed_attempts", {
-    p_auth_user_id: authUserId,
+  const claimToken = crypto.randomUUID()
+  const claimed = await claimPasswordFlow({
+    appUserId: input.appUser.id,
+    claimToken,
+    cpfHash: input.cpfHash,
+    flowId: input.flowId,
   })
 
-  if (error) {
-    console.error("clear_failed_attempts_rpc_failed", { error: error.message })
+  if (!claimed) {
+    return genericAuthError(400, input.request)
   }
+
+  const admin = createAdminClient()
+  const updatePasswordResponse = await admin.auth.admin.updateUserById(
+    input.appUser.auth_user_id,
+    { password: input.newPassword }
+  )
+
+  if (updatePasswordResponse.error) {
+    await releasePasswordFlowClaim({
+      appUserId: input.appUser.id,
+      claimToken,
+      flowId: input.flowId,
+    })
+    return genericAuthError(400, input.request)
+  }
+
+  const taskCompletion = await completePasswordTask({
+    appUserId: input.appUser.id,
+    claimToken,
+    cpfHash: input.cpfHash,
+    flowId: input.flowId,
+  })
+
+  if (taskCompletion === "not_completed") {
+    const rolledBack = await rollbackPassword(
+      input.appUser.auth_user_id,
+      input.currentPassword
+    )
+    await releasePasswordFlowClaim({
+      appUserId: input.appUser.id,
+      claimToken,
+      flowId: input.flowId,
+    })
+
+    if (!rolledBack) {
+      await markPasswordReset(input.appUser.auth_user_id)
+    }
+
+    return genericAuthError(400, input.request)
+  }
+
+  if (taskCompletion === "unknown") {
+    await markPasswordReset(input.appUser.auth_user_id)
+
+    try {
+      await revokeAllSessions(input.appUser.auth_user_id)
+    } catch (caughtError) {
+      console.error("password_unknown_state_session_revoke_failed", {
+        error: caughtError instanceof Error ? caughtError.message : "unknown",
+      })
+    }
+
+    return genericAuthError(400, input.request)
+  }
+
+  try {
+    await revokeAllSessions(input.appUser.auth_user_id)
+  } catch {
+    await markPasswordReset(input.appUser.auth_user_id)
+    return genericAuthError(400, input.request)
+  }
+
+  const newSessionResponse = await input.passwordClient.auth.signInWithPassword({
+    email: input.appUser.technical_email,
+    password: input.newPassword,
+  })
+
+  if (newSessionResponse.error || !newSessionResponse.data.session) {
+    return genericAuthError(400, input.request)
+  }
+
+  await writeAuditEvent({
+    actor: input.appUser.name,
+    actorUserId: input.appUser.auth_user_id,
+    event: "password_changed",
+    request: input.request,
+    scope: "login",
+    success: true,
+    target: input.appUser.name,
+    targetUserId: input.appUser.auth_user_id,
+  }).catch((caughtError) => console.error("[audit-fail]", caughtError))
+
+  return jsonResponse({
+    flowId: null,
+    message: "Senha atualizada.",
+    nextAction: "authenticated",
+    session: {
+      access_token: newSessionResponse.data.session.access_token,
+      refresh_token: newSessionResponse.data.session.refresh_token,
+    },
+  }, 200, input.request)
 }
 
 Deno.serve(async (request) => {
@@ -161,18 +154,11 @@ Deno.serve(async (request) => {
   try {
     const input = parsePasswordRequest(await request.json())
     const cpfHash = await hashSensitiveValue(input.cpf)
-    const admin = createAdminClient()
-    const appUserResponse = await admin
-      .from("app_users")
-      .select("id, auth_user_id, technical_email, name, status, failed_attempts, locked_until")
-      .eq("cpf_hmac", cpfHash)
-      .maybeSingle()
+    const appUser = await findAppUser(cpfHash)
 
-    if (appUserResponse.error || !appUserResponse.data) {
+    if (!appUser) {
       return genericAuthError(401, request)
     }
-
-    const appUser = appUserResponse.data
 
     if (isLocked(appUser.locked_until)) {
       return genericAuthError(423, request)
@@ -192,92 +178,53 @@ Deno.serve(async (request) => {
     await clearFailedAttempts(appUser.auth_user_id)
 
     if (input.flowId && input.newPassword) {
-      await consumePasswordFlow({ cpfHash, flowId: input.flowId })
-
-      const updateResponse = await admin.auth.admin.updateUserById(
-        appUser.auth_user_id,
-        { password: input.newPassword }
-      )
-
-      if (updateResponse.error) {
+      if (appUser.status !== "pending" && appUser.status !== "password_reset") {
         return genericAuthError(400, request)
       }
 
-      await admin
-        .from("app_users")
-        .update({ status: "passkey_reset" })
-        .eq("auth_user_id", appUser.auth_user_id)
-
-      const passkeyFlowId = await createPasswordFlow({
-        appUserId: appUser.id,
+      return handleRequiredPassword({
+        appUser,
         cpfHash,
-        purpose: "passkey_reset",
-      })
-
-      const updatedPasswordSignInResponse = await passwordClient.auth.signInWithPassword({
-        email: appUser.technical_email,
-        password: input.newPassword,
-      })
-
-      if (
-        updatedPasswordSignInResponse.error ||
-        !updatedPasswordSignInResponse.data.session
-      ) {
-        return genericAuthError(400, request)
-      }
-
-      await writeAuditEvent({
-        actor: appUser.name,
-        actorUserId: appUser.auth_user_id,
-        event: "password_changed",
+        currentPassword: input.password,
+        flowId: input.flowId,
+        newPassword: input.newPassword,
+        passwordClient,
         request,
-        scope: "login",
-        success: true,
-        target: appUser.name,
-        targetUserId: appUser.auth_user_id,
-      }).catch((e) => console.error("[audit-fail]", e))
-
-      return jsonResponse({
-        flowId: passkeyFlowId,
-        message: "Senha atualizada. Cadastre a passkey para concluir o acesso.",
-        nextAction: "register_passkey",
-        session: {
-          access_token: updatedPasswordSignInResponse.data.session.access_token,
-          refresh_token: updatedPasswordSignInResponse.data.session.refresh_token,
-        },
-      }, 200, request)
+      })
     }
 
     const nextAction = resolveNextAction(appUser.status)
 
-    if (nextAction === "set_new_password" || nextAction === "register_passkey") {
+    if (nextAction === "set_new_password") {
       const flowId = await createPasswordFlow({
         appUserId: appUser.id,
         cpfHash,
-        purpose: appUser.status === "passkey_reset"
-          ? "passkey_reset"
-          : appUser.status === "pending"
-            ? "first_access"
-            : "password_reset",
+        purpose: appUser.status === "pending" ? "first_access" : "password_reset",
       })
+
+      await revokeAllSessions(appUser.auth_user_id)
 
       return jsonResponse({
         flowId,
-        message: "Ação adicional necessária.",
+        message: "Troca de senha necessária.",
         nextAction,
-        ...(nextAction === "register_passkey"
-          ? {
-            session: {
-              access_token: signInResponse.data.session.access_token,
-              refresh_token: signInResponse.data.session.refresh_token,
-            },
-          }
-          : {}),
       }, 200, request)
     }
 
-    if (appUser.status !== "active") {
+    if (appUser.status !== "active" && appUser.status !== "passkey_reset") {
       return genericAuthError(403, request)
+    }
+
+    if (appUser.status === "passkey_reset") {
+      const admin = createAdminClient()
+      const normalizeStatusResponse = await admin
+        .from("app_users")
+        .update({ status: "active" })
+        .eq("auth_user_id", appUser.auth_user_id)
+
+      if (normalizeStatusResponse.error) {
+        return genericAuthError(400, request)
+      }
     }
 
     await writeAuditEvent({
@@ -289,12 +236,12 @@ Deno.serve(async (request) => {
       success: true,
       target: appUser.name,
       targetUserId: appUser.auth_user_id,
-    }).catch((e) => console.error("[audit-fail]", e))
+    }).catch((caughtError) => console.error("[audit-fail]", caughtError))
 
     return jsonResponse({
       flowId: null,
       message: "Autenticado.",
-      nextAction,
+      nextAction: "authenticated",
       session: {
         access_token: signInResponse.data.session.access_token,
         refresh_token: signInResponse.data.session.refresh_token,

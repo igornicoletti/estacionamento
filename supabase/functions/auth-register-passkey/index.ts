@@ -1,18 +1,11 @@
 import {
   createAdminClient,
-  flowCpfSchema,
   genericAuthError,
   getAuthenticatedActor,
   handleCors,
-  hashSensitiveValue,
   jsonResponse,
-  normalizeCpf,
   writeAuditEvent,
 } from "../_shared/index.ts"
-
-function isExpired(value: string) {
-  return new Date(value).getTime() <= Date.now()
-}
 
 Deno.serve(async (request) => {
   const cors = handleCors(request)
@@ -25,89 +18,31 @@ Deno.serve(async (request) => {
   try {
     const actor = await getAuthenticatedActor(request)
 
-    if (!actor) {
+    if (
+      !actor ||
+      (actor.status !== "active" && actor.status !== "passkey_reset")
+    ) {
       return genericAuthError(401, request)
     }
 
-    const input = flowCpfSchema.parse(await request.json())
-    const cpfHash = await hashSensitiveValue(normalizeCpf(input.cpf))
     const supabase = createAdminClient()
-    const { data: flow, error: flowError } = await supabase
-      .from("auth_flow_attempts")
-      .select("id, app_user_id, cpf_hmac, consumed_at, expires_at, purpose")
-      .eq("flow_id", input.flowId)
-      .maybeSingle()
+    const passkeysResponse = await supabase.auth.admin.passkey.listPasskeys({
+      userId: actor.authUserId,
+    })
 
-    if (
-      flowError ||
-      !flow ||
-      flow.cpf_hmac !== cpfHash ||
-      flow.consumed_at ||
-      isExpired(String(flow.expires_at))
-    ) {
+    if (passkeysResponse.error || !passkeysResponse.data?.length) {
       return genericAuthError(400, request)
     }
 
-    const { data: appUser, error: appUserError } = await supabase
-      .from("app_users")
-      .select("id, auth_user_id, name, status")
-      .eq("id", flow.app_user_id)
-      .maybeSingle()
+    if (actor.status === "passkey_reset") {
+      const statusResponse = await supabase
+        .from("app_users")
+        .update({ status: "active" })
+        .eq("auth_user_id", actor.authUserId)
 
-    if (
-      appUserError ||
-      !appUser ||
-      appUser.auth_user_id !== actor.authUserId ||
-      (appUser.status !== "pending" &&
-        appUser.status !== "passkey_reset" &&
-        appUser.status !== "active")
-    ) {
-      return genericAuthError(403, request)
-    }
-
-    const { count: passkeyCount, error: passkeyCountError } = await supabase
-      .schema("auth")
-      .from("webauthn_credentials")
-      .select("id", { count: "exact", head: true })
-      .eq("user_id", actor.authUserId)
-
-    if (passkeyCountError || !passkeyCount) {
-      return genericAuthError(400, request)
-    }
-
-    const { data: consumedFlow, error: consumeFlowError } = await supabase.rpc(
-      "internal_consume_auth_flow",
-      {
-        p_allowed_purposes: ["first_access", "passkey_reset"],
-        p_cpf_hmac: cpfHash,
-        p_flow_id: input.flowId,
+      if (statusResponse.error) {
+        return genericAuthError(400, request)
       }
-    ) as {
-      data: Array<{ app_user_id: string; id: string; purpose: string }> | null
-      error: { message?: string } | null
-    }
-
-    if (consumeFlowError || !consumedFlow?.[0]) {
-      if (consumeFlowError) {
-        console.error("passkey_flow_consume_failed", {
-          error: consumeFlowError.message,
-        })
-      }
-      return genericAuthError(400, request)
-    }
-
-    const updateResponse = await supabase
-      .from("app_users")
-      .update({
-        failed_attempts: 0,
-        last_failed_at: null,
-        locked_until: null,
-        status: "active",
-      })
-      .eq("auth_user_id", actor.authUserId)
-
-    if (updateResponse.error) {
-      return genericAuthError(400, request)
     }
 
     await writeAuditEvent({
@@ -115,14 +50,14 @@ Deno.serve(async (request) => {
       actorUserId: actor.authUserId,
       event: "passkey_registered",
       request,
-      scope: "login",
+      scope: "system",
       success: true,
       target: actor.name,
       targetUserId: actor.authUserId,
-    }).catch((e) => console.error("[audit-fail]", e))
+    }).catch((caughtError) => console.error("[audit-fail]", caughtError))
 
     return jsonResponse({
-      flowId: input.flowId,
+      flowId: null,
       message: "Passkey cadastrada.",
       nextAction: "authenticated",
     }, 200, request)
