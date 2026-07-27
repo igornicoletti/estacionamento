@@ -11,8 +11,8 @@ import { Badge } from "@/components/ui/badge"
 import { formatDateTime } from "@/lib"
 
 import {
-  notificationStatusLabels,
   notificationsCopy,
+  notificationStatusLabels,
   notificationTypeLabels,
 } from "../constants"
 import {
@@ -61,7 +61,7 @@ export function createNotificationsColumns(
       accessorKey: "description",
       cell: ({ row }) => (
         <span
-          className="block max-w-[28rem] truncate"
+          className="block max-w-md truncate"
           title={row.original.description}
         >
           {row.original.description}

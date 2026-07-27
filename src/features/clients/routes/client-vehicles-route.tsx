@@ -1,4 +1,4 @@
-import { ArrowLeftIcon, RefreshCcwIcon } from "lucide-react"
+import { ArrowLeftIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate, useParams } from "react-router"
 
@@ -55,46 +55,22 @@ export function ClientVehiclesRoute() {
 
   return (
     <AppPage
-      headingContent={
-        <div className="grid min-w-0 gap-0.5">
-          <div className="flex min-w-0 items-center gap-2">
-            <Button
-              type="button"
-              variant="ghost"
-              size="icon"
-              aria-label={clientsCopy.actions.backToClients}
-              onClick={() => {
-                void navigate(appRoutePaths.clients)
-              }}
-            >
-              <ArrowLeftIcon aria-hidden="true" focusable="false" />
-            </Button>
-            <h1 className="min-w-0 truncate text-lg font-semibold tracking-tight sm:text-xl">
-              {pageTitle}
-            </h1>
-          </div>
-          <p className="pl-10 text-sm text-muted-foreground">
-            {pageSubtitle}
-          </p>
-        </div>
-      }
-      headingClassName="min-w-0 max-w-2xl"
+      title={pageTitle}
+      subtitle={pageSubtitle}
       actions={
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={isLoading}
-          onClick={() => {
-            void refetch()
-          }}
-        >
-          <RefreshCcwIcon
-            data-icon="inline-start"
-            aria-hidden="true"
-            focusable="false"
-          />
-          {clientsCopy.actions.sync}
-        </Button>
+        <>
+          <Button
+            type="button"
+            variant="secondary"
+            aria-label={clientsCopy.actions.backToClients}
+            onClick={() => {
+              void navigate(appRoutePaths.clients)
+            }}
+          >
+            <ArrowLeftIcon aria-hidden="true" focusable="false" />
+            {clientsCopy.actions.backToClients}
+          </Button>
+        </>
       }
     >
       <DataTable

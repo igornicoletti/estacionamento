@@ -422,7 +422,7 @@ as $$
 $$;
 
 create or replace function private.has_current_user_permission(
-  p_permission_key text
+  permission_key text
 )
 returns boolean
 language sql
@@ -439,7 +439,7 @@ as $$
         on role_permission.role_key = app_user.role
       where app_user.auth_user_id = auth.uid()
         and app_user.status = 'active'
-        and role_permission.permission_key in (p_permission_key, '*')
+        and role_permission.permission_key in ($1, '*')
     ),
     false
   );
