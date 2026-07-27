@@ -8,7 +8,7 @@ function getStorage(storage: "local" | "session") {
   return storage === "local" ? window.localStorage : window.sessionStorage
 }
 
-export function publishAuthActivity(at = Date.now()) {
+export function publishAuthActivity(at: number) {
   getStorage("local")?.setItem(AUTH_STORAGE_KEYS.activityAt, String(at))
 }
 

@@ -29,13 +29,23 @@ export interface AuthSessionLease {
 }
 
 function isLeaseStatus(value: unknown): value is AuthSessionLeaseStatus {
-  return Object.values(AUTH_SESSION_LEASE_STATUS).includes(
-    value as AuthSessionLeaseStatus
+  return (
+    typeof value === "string" &&
+    Object.values(AUTH_SESSION_LEASE_STATUS).some((status) => status === value)
   )
 }
 
+function getFirstRpcRow(value: unknown): unknown {
+  if (!Array.isArray(value)) {
+    return value
+  }
+
+  const rows: readonly unknown[] = value
+  return rows[0]
+}
+
 export function mapAuthSessionLease(value: unknown): AuthSessionLease {
-  const record = Array.isArray(value) ? value[0] : value
+  const record = getFirstRpcRow(value)
 
   if (!isRecord(record)) {
     throw new AuthApiError(authCopy.errors.sessionLoadFailed)

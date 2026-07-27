@@ -25,7 +25,7 @@ interface LeaseDeadlineInput {
 
 export function resolveAuthSessionLeaseDeadline(
   lease: LeaseDeadlineInput,
-  now = Date.now()
+  clientNow: number
 ) {
   if (!lease.enforcementEnabled) {
     return null
@@ -36,11 +36,15 @@ export function resolveAuthSessionLeaseDeadline(
     .map((value) => (value ? Date.parse(value) : Number.NaN))
     .filter((value): value is number => Number.isFinite(value))
 
-  if (!Number.isFinite(serverTime) || expirations.length === 0) {
+  if (
+    !Number.isFinite(clientNow) ||
+    !Number.isFinite(serverTime) ||
+    expirations.length === 0
+  ) {
     return null
   }
 
-  return now + Math.max(0, Math.min(...expirations) - serverTime)
+  return clientNow + Math.max(0, Math.min(...expirations) - serverTime)
 }
 
 export function useAuthInactivity({
@@ -56,9 +60,10 @@ export function useAuthInactivity({
   const [isWarningOpen, setIsWarningOpen] = React.useState(false)
   const [secondsRemaining, setSecondsRemaining] = React.useState(0)
   const serverDeadlineAtRef = React.useRef<number | null>(null)
-  const lastActivityAtRef = React.useRef(Date.now())
+  const lastActivityAtRef = React.useRef<number | null>(null)
   const lastBroadcastAtRef = React.useRef(0)
   const pendingActivityRef = React.useRef(false)
+  const activityVersionRef = React.useRef(0)
   const synchronizingRef = React.useRef(false)
   const expiredRef = React.useRef(false)
   const trackingEnabledRef = React.useRef(false)
@@ -77,17 +82,14 @@ export function useAuthInactivity({
   }, [onExpired])
 
   const synchronize = React.useCallback(
-    async (force: boolean) => {
+    async () => {
       if (!trackingEnabledRef.current || synchronizingRef.current) {
-        return
-      }
-
-      if (!force && !pendingActivityRef.current) {
         return
       }
 
       synchronizingRef.current = true
       const activityObserved = pendingActivityRef.current
+      const synchronizedActivityVersion = activityVersionRef.current
 
       try {
         const lease = await touchCurrentAuthSession({ activityObserved })
@@ -97,8 +99,17 @@ export function useAuthInactivity({
           return
         }
 
-        pendingActivityRef.current = false
-        serverDeadlineAtRef.current = resolveAuthSessionLeaseDeadline(lease)
+        if (
+          activityObserved &&
+          activityVersionRef.current === synchronizedActivityVersion
+        ) {
+          pendingActivityRef.current = false
+        }
+
+        serverDeadlineAtRef.current = resolveAuthSessionLeaseDeadline(
+          lease,
+          Date.now()
+        )
         expiredRef.current = false
         clearAuthInactivitySessionExpired()
 
@@ -106,7 +117,7 @@ export function useAuthInactivity({
           setIsWarningOpen(false)
         }
       } catch {
-        pendingActivityRef.current = activityObserved
+        // Mantém a atividade pendente para a próxima tentativa.
       } finally {
         synchronizingRef.current = false
       }
@@ -115,12 +126,19 @@ export function useAuthInactivity({
   )
 
   const registerActivity = React.useCallback(
-    (at = Date.now(), broadcast = true) => {
+    (at: number, broadcast = true) => {
       if (!trackingEnabledRef.current || expiredRef.current) {
         return
       }
 
-      lastActivityAtRef.current = Math.max(lastActivityAtRef.current, at)
+      const lastActivityAt = lastActivityAtRef.current
+
+      if (lastActivityAt !== null && at <= lastActivityAt) {
+        return
+      }
+
+      lastActivityAtRef.current = at
+      activityVersionRef.current += 1
       pendingActivityRef.current = true
       setIsWarningOpen(false)
 
@@ -140,7 +158,10 @@ export function useAuthInactivity({
     trackingEnabledRef.current = false
     trackedAuthUserIdRef.current = null
     serverDeadlineAtRef.current = null
+    lastActivityAtRef.current = null
+    lastBroadcastAtRef.current = 0
     pendingActivityRef.current = false
+    activityVersionRef.current = 0
     synchronizingRef.current = false
     expiredRef.current = false
     setIsWarningOpen(false)
@@ -167,12 +188,13 @@ export function useAuthInactivity({
       trackedAuthUserIdRef.current = nextAuthUserId
       lastActivityAtRef.current = now
       serverDeadlineAtRef.current = null
+      activityVersionRef.current += 1
       pendingActivityRef.current = true
       expiredRef.current = false
       setIsWarningOpen(false)
       setSecondsRemaining(0)
       publishAuthActivity(now)
-      void synchronize(true)
+      void synchronize()
     },
     [clearTracking, synchronize]
   )
@@ -186,7 +208,7 @@ export function useAuthInactivity({
       return
     }
 
-    const handleActivity = () => registerActivity()
+    const handleActivity = () => registerActivity(Date.now())
     const handleStorage = (event: StorageEvent) => {
       if (event.key !== AUTH_STORAGE_KEYS.activityAt || !event.newValue) {
         return
@@ -205,7 +227,7 @@ export function useAuthInactivity({
         registerActivity(publishedAt, false)
       }
 
-      void synchronize(true)
+      void synchronize()
     }
 
     for (const eventName of ACTIVITY_EVENTS) {
@@ -231,11 +253,17 @@ export function useAuthInactivity({
     }
 
     const heartbeat = window.setInterval(() => {
-      void synchronize(true)
+      void synchronize()
     }, AUTH_INACTIVITY.heartbeatMs)
 
     const ticker = window.setInterval(() => {
-      const localDeadline = lastActivityAtRef.current + AUTH_INACTIVITY.timeoutMs
+      const lastActivityAt = lastActivityAtRef.current
+
+      if (lastActivityAt === null) {
+        return
+      }
+
+      const localDeadline = lastActivityAt + AUTH_INACTIVITY.timeoutMs
       const deadline = Math.min(
         serverDeadlineAtRef.current ?? localDeadline,
         localDeadline
@@ -264,8 +292,8 @@ export function useAuthInactivity({
       isWarningOpen,
       secondsRemaining,
       continueSession: () => {
-        registerActivity()
-        void synchronize(true)
+        registerActivity(Date.now())
+        void synchronize()
       },
       markExpired: expire,
       consumeExpired: consumeAuthInactivitySessionExpired,
