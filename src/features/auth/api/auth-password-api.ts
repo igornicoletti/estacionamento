@@ -15,6 +15,8 @@ import {
   setSessionIfPresent,
 } from "./auth-api-helpers"
 
+type PasswordFunctionBody = Record<string, unknown>
+
 function normalizePasswordNextAction(value: unknown): AuthNextAction | null {
   const nextAction = getString(value)
 
@@ -59,7 +61,7 @@ function mapPasswordResponse(value: unknown): AuthPasswordResponse {
   }
 }
 
-async function invokePasswordFunction(body: unknown) {
+async function invokePasswordFunction(body: PasswordFunctionBody) {
   const supabase = getSupabaseOrThrow()
   const passwordResponse = await supabase.functions.invoke(AUTH_FUNCTIONS.password, {
     body,
@@ -79,7 +81,10 @@ async function invokePasswordFunction(body: unknown) {
 }
 
 export function signInWithPassword(payload: AuthLoginPayload) {
-  return invokePasswordFunction(payload)
+  return invokePasswordFunction({
+    cpf: payload.cpf,
+    password: payload.password,
+  })
 }
 
 export function completeRequiredPassword(input: {

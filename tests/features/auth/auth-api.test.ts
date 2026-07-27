@@ -16,13 +16,30 @@ function enablePasskeySupport() {
 }
 
 function createSupabaseMock() {
-  const functionsInvoke = vi.fn(
-    (_name: string, _options?: unknown): Promise<{ data: unknown; error: null }> =>
-      Promise.resolve({
-        data: { ok: true },
-        error: null,
-      })
+  let authStateChangeCallback: (() => void) | null = null
+  const unsubscribe = vi.fn()
+  const functionsInvoke = vi.fn<
+    (
+      name: string,
+      options?: unknown
+    ) => Promise<{ data: unknown; error: null }>
+  >(() =>
+    Promise.resolve({
+      data: { ok: true },
+      error: null,
+    })
   )
+  const onAuthStateChange = vi.fn((callback: () => void) => {
+    authStateChangeCallback = callback
+
+    return {
+      data: {
+        subscription: {
+          unsubscribe,
+        },
+      },
+    }
+  })
   const signInWithPasskey = vi.fn<
     () => Promise<{
       data: {
@@ -32,12 +49,15 @@ function createSupabaseMock() {
       error: null
     }>
   >()
-  const setSession = vi.fn((_session: unknown) => Promise.resolve({ error: null }))
+  const setSession = vi.fn<
+    (session: unknown) => Promise<{ error: null }>
+  >(() => Promise.resolve({ error: null }))
   const getValidatedSupabaseAccessToken = vi.fn<
-    (_client: unknown) => Promise<string | null>
+    (client: unknown) => Promise<string | null>
   >()
   const supabase = {
     auth: {
+      onAuthStateChange,
       setSession,
       signInWithPasskey,
     },
@@ -47,15 +67,20 @@ function createSupabaseMock() {
   }
 
   return {
+    emitAuthStateChange() {
+      authStateChangeCallback?.()
+    },
     functionsInvoke,
     getValidatedSupabaseAccessToken,
+    onAuthStateChange,
     setSession,
     signInWithPasskey,
     supabase,
+    unsubscribe,
   }
 }
 
-async function importAuthApiWithSupabase(
+function importAuthApiWithSupabase(
   mock: ReturnType<typeof createSupabaseMock>
 ) {
   vi.doMock("@/lib", () => ({
@@ -144,5 +169,31 @@ describe("auth api", () => {
 
     expect(mock.getValidatedSupabaseAccessToken).toHaveBeenCalledWith(mock.supabase)
     expect(mock.functionsInvoke).not.toHaveBeenCalled()
+  })
+
+  it("defers profile loading until the auth event callback has returned", async () => {
+    vi.useFakeTimers()
+
+    try {
+      const mock = createSupabaseMock()
+      const { subscribeToAuthSessionChanges } =
+        await importAuthApiWithSupabase(mock)
+      const listener = vi.fn()
+      const unsubscribe = subscribeToAuthSessionChanges(listener)
+
+      mock.emitAuthStateChange()
+
+      expect(listener).not.toHaveBeenCalled()
+
+      await vi.runOnlyPendingTimersAsync()
+
+      expect(listener).toHaveBeenCalledTimes(1)
+
+      unsubscribe()
+
+      expect(mock.unsubscribe).toHaveBeenCalledTimes(1)
+    } finally {
+      vi.useRealTimers()
+    }
   })
 })

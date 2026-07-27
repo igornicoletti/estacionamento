@@ -86,9 +86,9 @@ export function DataTableColumnHeader<TData, TValue>({
         data-no-drag-scroll="true"
         type="button"
         variant="ghost"
-        size="sm"
+        size="lg"
         className={cn(
-          "h-9 w-full min-w-0 gap-1.5 px-2 font-medium hover:bg-transparent data-[state=active]:bg-transparent",
+          "h-9 w-full min-w-0 px-0 hover:bg-transparent data-[state=active]:bg-transparent",
           alignmentClassName,
           buttonClassName
         )}
@@ -100,7 +100,7 @@ export function DataTableColumnHeader<TData, TValue>({
           data-icon="inline-end"
           aria-hidden="true"
           focusable="false"
-          className="shrink-0 text-muted-foreground"
+          className="shrink-0 size-3 text-muted-foreground"
         />
       </Button>
     </div>

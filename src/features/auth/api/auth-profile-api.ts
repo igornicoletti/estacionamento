@@ -84,16 +84,48 @@ async function resolveProfileAvatarUrl(
 
 export function subscribeToAuthSessionChanges(callback: () => void) {
   const supabase = getSupabaseBrowserClient()
+  let isActive = true
+  let pendingCallback: ReturnType<typeof setTimeout> | null = null
+
+  function scheduleCallback() {
+    if (!isActive || pendingCallback !== null) {
+      return
+    }
+
+    pendingCallback = setTimeout(() => {
+      pendingCallback = null
+
+      if (isActive) {
+        callback()
+      }
+    }, 0)
+  }
 
   if (!supabase) {
-    return () => undefined
+    scheduleCallback()
+
+    return () => {
+      isActive = false
+
+      if (pendingCallback !== null) {
+        clearTimeout(pendingCallback)
+      }
+    }
   }
 
   const authStateChangeResponse = supabase.auth.onAuthStateChange(() => {
-    callback()
+    scheduleCallback()
   })
 
-  return () => authStateChangeResponse.data.subscription.unsubscribe()
+  return () => {
+    isActive = false
+
+    if (pendingCallback !== null) {
+      clearTimeout(pendingCallback)
+    }
+
+    authStateChangeResponse.data.subscription.unsubscribe()
+  }
 }
 
 export async function getCurrentAuthProfile() {

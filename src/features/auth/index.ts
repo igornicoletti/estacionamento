@@ -4,7 +4,6 @@ export {
   getCurrentAuthProfile,
   isPasskeySupported,
   registerAuthenticatedPasskey,
-  registerCurrentPasskey,
   requestAccessRecovery,
   signInWithPasskey,
   signInWithPassword,

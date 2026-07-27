@@ -38,7 +38,7 @@ export function AppPage({
 
   return (
     <div
-      className={cn("flex flex-1 flex-col gap-4 p-4 pt-0", className)}
+      className={cn("flex flex-1 flex-col gap-4 p-4 md:p-5", className)}
       {...props}
     >
       {hasHeader ? (
@@ -58,7 +58,7 @@ export function AppPage({
                     {title}
                   </h1>
                   {subtitle ? (
-                    <p className="text-[0.8125rem]/relaxed text-muted-foreground">
+                    <p className="text-sm text-muted-foreground">
                       {subtitle}
                     </p>
                   ) : null}
@@ -84,7 +84,7 @@ export function AppPage({
 
       <div
         className={cn(
-          "flex min-h-[100vh] flex-1 flex-col md:min-h-min",
+          "flex min-h-screen flex-1 flex-col md:min-h-min",
           contentClassName
         )}
       >

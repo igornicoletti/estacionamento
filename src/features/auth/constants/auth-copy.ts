@@ -30,8 +30,6 @@ export const authCopy = {
       "Este navegador ou origem não permite passkeys. Use HTTPS e um navegador compatível com WebAuthn.",
     passkeyRegistrationFailed: "Não foi possível cadastrar a passkey.",
     unsupportedNextAction: "Este fluxo de autenticação não está disponível nesta interface.",
-    passkeyRequired:
-      "Sua conta exige cadastro de passkey, mas este cliente ainda não possui um fluxo WebAuthn validado. Solicite liberação ou orientação a um administrador.",
   },
   login: {
     title: "Acesse sua conta",
@@ -49,23 +47,12 @@ export const authCopy = {
   requiredPassword: {
     title: "Defina uma nova senha",
     description:
-      "Sua conta exige troca de senha antes de continuar. Após concluir, informe a nova senha para acessar.",
+      "Sua conta exige troca de senha antes de continuar. Após concluir, o acesso será liberado.",
     newPasswordLabel: "Nova senha",
     confirmPasswordLabel: "Confirmar nova senha",
     submit: "Salvar nova senha",
     submitting: "Salvando...",
-    success: "Senha atualizada. Informe a nova senha para continuar.",
-  },
-  passkeyUnavailable: {
-    title: "Cadastro de passkey necessário",
-    description:
-      "A senha foi validada, mas a conta exige cadastro de passkey antes de abrir a sessão.",
-    action: "Entendi",
-  },
-  passkeyRegistration: {
-    submit: "Cadastrar passkey",
-    loading: "Aguardando...",
-    success: "Passkey cadastrada. Acesso liberado.",
+    success: "Senha atualizada. Acesso liberado.",
   },
   recovery: {
     title: "Recuperar acesso",

@@ -12,17 +12,24 @@ import type { AuthContextValue } from "@/features/auth/context/auth-provider"
 import type { AuthProfile } from "@/features/auth/types/auth-types"
 
 const signOutCurrentSession = vi.fn(() => Promise.resolve())
-const registerCurrentPasskey = vi.fn()
+const registerAuthenticatedPasskey = vi.fn(() =>
+  Promise.resolve({
+    createdAt: null,
+    friendlyName: null,
+    id: "passkey-test",
+  })
+)
 const signInWithPasskey = vi.fn()
 const signInWithPassword = vi.fn(() =>
   Promise.resolve({
     flowId: null,
     message: "ok",
     nextAction: AUTH_NEXT_ACTION.authenticated,
-    profile: null,
   })
 )
 const getCurrentAuthProfile = vi.fn<() => Promise<AuthProfile | null>>()
+let authStateChangeCallback: (() => void) | null = null
+let currentAuth: AuthContextValue | null = null
 
 const profile: AuthProfile = {
   authUserId: "auth-user-admin-test",
@@ -46,12 +53,14 @@ const profile: AuthProfile = {
   unitName: null,
 }
 
-let currentAuth: AuthContextValue | null = null
-
 async function flushMicrotasks(times = 5) {
   for (let index = 0; index < times; index += 1) {
     await Promise.resolve()
   }
+}
+
+function emitAuthStateChange() {
+  authStateChangeCallback?.()
 }
 
 describe("AuthProvider inactivity", () => {
@@ -60,20 +69,29 @@ describe("AuthProvider inactivity", () => {
     vi.resetModules()
     window.sessionStorage.clear()
     signOutCurrentSession.mockClear()
-    registerCurrentPasskey.mockClear()
+    registerAuthenticatedPasskey.mockClear()
     signInWithPasskey.mockClear()
     signInWithPassword.mockClear()
     getCurrentAuthProfile.mockReset()
+    authStateChangeCallback = null
     currentAuth = null
 
     vi.doMock("@/features/auth/api/auth-api", () => ({
       completeRequiredPassword: vi.fn(),
       getCurrentAuthProfile,
-      registerCurrentPasskey,
+      registerAuthenticatedPasskey,
       signInWithPasskey,
       signInWithPassword,
       signOutCurrentSession,
-      subscribeToAuthSessionChanges: vi.fn(() => () => undefined),
+      subscribeToAuthSessionChanges: vi.fn((callback: () => void) => {
+        authStateChangeCallback = callback
+
+        return () => {
+          if (authStateChangeCallback === callback) {
+            authStateChangeCallback = null
+          }
+        }
+      }),
     }))
   })
 
@@ -105,6 +123,7 @@ describe("AuthProvider inactivity", () => {
     )
 
     await act(async () => {
+      emitAuthStateChange()
       await flushMicrotasks()
     })
     expect(screen.getByLabelText("status")).toHaveTextContent("anonymous")

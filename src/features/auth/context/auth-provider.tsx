@@ -137,8 +137,6 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [loadProfile])
 
   React.useEffect(() => {
-    void loadProfile(false)
-
     const unsubscribe = subscribeToAuthSessionChanges(() => {
       void loadProfile(false)
     })

@@ -73,7 +73,7 @@ export const dataTableCopy = {
     clearFilters: "Limpar filtros",
     clearFiltersAriaLabel: "Limpar todos os filtros da tabela",
     controlsTitle: "Filtros e ações",
-    controlsDescription: "Busca, filtros, colunas e exportação da listagem.",
+    controlsDescription: "Abrir painel de filtros e ações da tabela",
     export: "Exportar",
     exportAriaLabel: "Abrir menu de exportação",
     exportTooltip: "Exportar dados da tabela",

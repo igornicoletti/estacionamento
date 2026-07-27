@@ -19,13 +19,12 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table"
 import {
-  ChevronDownIcon,
+  ChevronsUpDownIcon,
   DatabaseIcon,
   ListRestartIcon,
   PlusIcon,
   RefreshCcwIcon,
   SearchXIcon,
-  SlidersHorizontalIcon,
 } from "lucide-react"
 import * as React from "react"
 
@@ -45,6 +44,7 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
+import { Button } from '@/components/ui/button'
 import { DataTableColumnHeader } from "./data-table-column-header"
 import {
   DATA_TABLE_INITIAL_PAGE_SIZE,
@@ -116,7 +116,7 @@ function resolveInitialPageSize(
   return isPositiveSafeInteger(initialPageSize)
     ? initialPageSize
     : pageSizeOptions.find(isPositiveSafeInteger) ??
-        DATA_TABLE_INITIAL_PAGE_SIZE
+    DATA_TABLE_INITIAL_PAGE_SIZE
 }
 
 function normalizePageSizeOptions(
@@ -142,7 +142,7 @@ function normalizePaginationState(
       : 0,
     pageSize:
       isPositiveSafeInteger(pagination.pageSize) &&
-      pageSizeOptions.includes(pagination.pageSize)
+        pageSizeOptions.includes(pagination.pageSize)
         ? pagination.pageSize
         : fallbackPageSize,
   }
@@ -289,10 +289,10 @@ function resolveStateActionProps(
 ) {
   return action
     ? {
-        actionLabel: action.label,
-        actionIcon: action.icon,
-        onAction: action.onClick,
-      }
+      actionLabel: action.label,
+      actionIcon: action.icon,
+      onAction: action.onClick,
+    }
     : {}
 }
 
@@ -667,10 +667,10 @@ export function DataTable<TData extends RowData, TValue>({
     getCoreRowModel: getCoreRowModel(),
     ...(!manualFiltering
       ? {
-          getFilteredRowModel: getFilteredRowModel(),
-          getFacetedRowModel: getFacetedRowModel(),
-          getFacetedUniqueValues: getFacetedUniqueValues(),
-        }
+        getFilteredRowModel: getFilteredRowModel(),
+        getFacetedRowModel: getFacetedRowModel(),
+        getFacetedUniqueValues: getFacetedUniqueValues(),
+      }
       : {}),
     ...(!manualSorting
       ? { getSortedRowModel: getSortedRowModel() }
@@ -725,10 +725,10 @@ export function DataTable<TData extends RowData, TValue>({
     () =>
       onRetry
         ? {
-            label: dataTableCopy.fallback.errorAction,
-            icon: <RefreshCcwIcon aria-hidden="true" />,
-            onClick: onRetry,
-          }
+          label: dataTableCopy.fallback.errorAction,
+          icon: <RefreshCcwIcon aria-hidden="true" />,
+          onClick: onRetry,
+        }
         : undefined,
     [onRetry]
   )
@@ -810,9 +810,8 @@ export function DataTable<TData extends RowData, TValue>({
         : emptyState ?? defaultEmptyState
   const headerSurfaceClassName =
     surface === "card" ? "bg-card" : "bg-background"
-  const caption = `${resolvedAriaLabel}. ${currentRowCount} ${
-    currentRowCount === 1 ? "registro" : "registros"
-  }${isFiltered ? " filtrados" : ""}.`
+  const caption = `${resolvedAriaLabel}. ${currentRowCount} ${currentRowCount === 1 ? "registro" : "registros"
+    }${isFiltered ? " filtrados" : ""}.`
   const shouldRenderTable =
     shouldRenderInitialSkeleton ||
     hasVisibleRows ||
@@ -854,17 +853,17 @@ export function DataTable<TData extends RowData, TValue>({
                         {header.isPlaceholder
                           ? null
                           : typeof header.column.columnDef.header ===
-                              "string"
+                            "string"
                             ? (
-                                <DataTableColumnHeader
-                                  column={header.column}
-                                  title={header.column.columnDef.header}
-                                />
-                              )
+                              <DataTableColumnHeader
+                                column={header.column}
+                                title={header.column.columnDef.header}
+                              />
+                            )
                             : flexRender(
-                                header.column.columnDef.header,
-                                header.getContext()
-                              )}
+                              header.column.columnDef.header,
+                              header.getContext()
+                            )}
                       </TableHead>
                     ))}
                   </TableRow>
@@ -946,31 +945,22 @@ export function DataTable<TData extends RowData, TValue>({
             defaultOpen
             className="group/data-table-controls"
           >
-            <CollapsibleTrigger
-              type="button"
-              className="flex w-full items-center justify-between gap-3 rounded-t-xl px-(--card-spacing) text-left outline-none transition-colors hover:bg-muted/40 focus-visible:outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50"
-            >
-              <span className="flex min-w-0 items-start gap-2">
-                <SlidersHorizontalIcon
-                  aria-hidden="true"
-                  focusable="false"
-                  className="mt-0.5 size-4 shrink-0 text-muted-foreground"
-                />
-                <span className="grid min-w-0 gap-1">
-                  <span className="text-sm leading-snug font-medium text-foreground">
-                    {dataTableCopy.toolbar.controlsTitle}
-                  </span>
-                  <span className="hidden text-sm text-muted-foreground sm:block">
-                    {dataTableCopy.toolbar.controlsDescription}
-                  </span>
-                </span>
-              </span>
-              <ChevronDownIcon
-                aria-hidden="true"
-                focusable="false"
-                className="size-4 shrink-0 text-muted-foreground transition-transform group-data-[state=open]/data-table-controls:rotate-180"
-              />
-            </CollapsibleTrigger>
+            <div className="flex items-center justify-between gap-2 px-4 py-3">
+              <div className="flex flex-col gap-1">
+                <h4 className="text-sm font-medium leading-none">
+                  {dataTableCopy.toolbar.controlsTitle}
+                </h4>
+                <p className="text-sm text-muted-foreground">
+                  {dataTableCopy.toolbar.controlsDescription}
+                </p>
+              </div>
+              <CollapsibleTrigger asChild>
+                <Button variant="ghost" size="icon" className="size-8">
+                  <ChevronsUpDownIcon />
+                  <span className="sr-only">Toggle details</span>
+                </Button>
+              </CollapsibleTrigger>
+            </div>
             <CollapsibleContent className="pt-3">
               <CardContent>
                 <DataTableToolbar

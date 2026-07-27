@@ -1,6 +1,8 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
-import { MemoryRouter } from "react-router"
+import { MemoryRouter, Route, Routes } from "react-router"
 import { beforeEach, describe, expect, it, vi } from "vitest"
+
+import { appRoutePaths } from "@/app/router/route-registry"
 
 const mocks = vi.hoisted(() => {
   const consumeExpired = vi.fn(() => true)
@@ -20,7 +22,6 @@ const mocks = vi.hoisted(() => {
       logoutAsync: vi.fn(),
       refreshProfile: vi.fn(),
       registerProfilePasskey: vi.fn(),
-      registerRequiredPasskey: vi.fn(),
       signInWithPasskey: vi.fn(),
       signInWithPassword: vi.fn(),
     },
@@ -77,10 +78,26 @@ async function renderRoute() {
   const { AuthLoginRoute } = await import("@/features/auth/routes/auth-login-route")
 
   return render(
-    <MemoryRouter>
-      <AuthLoginRoute />
+    <MemoryRouter initialEntries={[appRoutePaths.login]}>
+      <Routes>
+        <Route path={appRoutePaths.login} element={<AuthLoginRoute />} />
+        <Route
+          path={appRoutePaths.home}
+          element={<h1>Área autenticada</h1>}
+        />
+      </Routes>
     </MemoryRouter>
   )
+}
+
+function submitCredentials() {
+  fireEvent.change(screen.getByLabelText("CPF*"), {
+    target: { value: "52998224725" },
+  })
+  fireEvent.change(screen.getByLabelText("Senha*"), {
+    target: { value: "SenhaAtual@2026" },
+  })
+  fireEvent.click(screen.getByRole("button", { name: "Entrar" }))
 }
 
 describe("AuthLoginRoute", () => {
@@ -102,27 +119,20 @@ describe("AuthLoginRoute", () => {
     expect(screen.queryByRole("button", { name: "Cancelar" })).not.toBeInTheDocument()
   })
 
-  it("completes the required password step and returns to credential login", async () => {
+  it("completes the required password step and opens the authenticated route", async () => {
     mocks.authContext.actions.signInWithPassword.mockResolvedValueOnce({
       flowId: "password-flow",
       message: "Ação adicional necessária.",
       nextAction: "set_new_password",
     })
     mocks.authContext.actions.completeRequiredPassword.mockResolvedValueOnce({
-      flowId: "passkey-flow",
+      flowId: null,
       message: "Senha atualizada.",
       nextAction: "authenticated",
     })
 
     await renderRoute()
-
-    fireEvent.change(screen.getByLabelText("CPF*"), {
-      target: { value: "52998224725" },
-    })
-    fireEvent.change(screen.getByLabelText("Senha*"), {
-      target: { value: "SenhaAtual@2026" },
-    })
-    fireEvent.click(screen.getByRole("button", { name: "Entrar" }))
+    submitCredentials()
 
     expect(await screen.findByText("Defina uma nova senha")).toBeInTheDocument()
 
@@ -139,44 +149,27 @@ describe("AuthLoginRoute", () => {
         mocks.authContext.actions.completeRequiredPassword
       ).toHaveBeenCalledWith("NovaSenha@2026")
     })
-    expect(await screen.findByText("Acesse sua conta")).toBeInTheDocument()
+
+    expect(
+      await screen.findByRole("heading", { name: "Área autenticada" })
+    ).toBeInTheDocument()
   })
 
-  it("registers a required passkey when the password flow requests it", async () => {
+  it("keeps passkey optional after password authentication", async () => {
     mocks.authContext.actions.signInWithPassword.mockResolvedValueOnce({
-      flowId: "passkey-flow",
-      message: "Ação adicional necessária.",
-      nextAction: "register_passkey",
-    })
-    mocks.authContext.actions.registerRequiredPasskey.mockResolvedValueOnce({
       flowId: null,
       message: "Autenticado.",
       nextAction: "authenticated",
     })
 
     await renderRoute()
-
-    fireEvent.change(screen.getByLabelText("CPF*"), {
-      target: { value: "52998224725" },
-    })
-    fireEvent.change(screen.getByLabelText("Senha*"), {
-      target: { value: "SenhaAtual@2026" },
-    })
-    fireEvent.click(screen.getByRole("button", { name: "Entrar" }))
+    submitCredentials()
 
     expect(
-      await screen.findByText("Cadastro de passkey necessário")
+      await screen.findByRole("heading", { name: "Área autenticada" })
     ).toBeInTheDocument()
-
-    fireEvent.click(screen.getByRole("button", { name: "Cadastrar passkey" }))
-
-    await waitFor(() => {
-      expect(
-        mocks.authContext.actions.registerRequiredPasskey
-      ).toHaveBeenCalledWith({
-        cpf: "529.982.247-25",
-        flowId: "passkey-flow",
-      })
-    })
+    expect(
+      screen.queryByText("Cadastro de passkey necessário")
+    ).not.toBeInTheDocument()
   })
 })

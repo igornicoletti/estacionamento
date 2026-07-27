@@ -113,7 +113,7 @@ export function AuthLoginRoute() {
     void navigate(redirectTo, { replace: true })
   }
 
-  async function handlePasswordResponse(response: AuthPasswordResponse) {
+  function handlePasswordResponse(response: AuthPasswordResponse) {
     if (response.nextAction === AUTH_NEXT_ACTION.authenticated) {
       finishAuthenticatedFlow()
       return
@@ -139,7 +139,7 @@ export function AuthLoginRoute() {
 
     try {
       const response = await auth.actions.signInWithPassword(parsed.data)
-      await handlePasswordResponse(response)
+      handlePasswordResponse(response)
     } catch (caughtError) {
       notify.error(
         caughtError instanceof Error

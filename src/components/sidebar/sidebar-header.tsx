@@ -19,8 +19,8 @@ export function AppHeader() {
   }
 
   return (
-    <header className="flex h-16 shrink-0 items-center gap-2 border-b bg-background transition-[width,height] ease-linear group-has-data-[collapsible=icon]/sidebar-wrapper:h-12">
-      <div className="flex w-full items-center justify-between gap-2 px-4">
+    <header className="z-10 sticky top-0 flex h-16 shrink-0 items-center gap-2 bg-background border-b">
+      <div className="flex flex-1 items-center gap-2 px-4">
         <SidebarTrigger className="lg:hidden" />
         <div className="ml-auto flex items-center gap-2">
           <NotificationsPopover />
