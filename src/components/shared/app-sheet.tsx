@@ -61,9 +61,7 @@ export function AppSheet({
             ) : null}
           </SheetHeader>
         ) : null}
-
         {children}
-
         {isRenderable(footer) ? <SheetFooter>{footer}</SheetFooter> : null}
       </SheetContent>
     </Sheet>

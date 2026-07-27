@@ -6,3 +6,14 @@ export class AuthApiError extends Error {
     this.name = "AuthApiError"
   }
 }
+
+export class AuthSessionExpiredError extends AuthApiError {
+  constructor() {
+    super(authCopy.inactivity.expiredDescription)
+    this.name = "AuthSessionExpiredError"
+  }
+}
+
+export function isAuthSessionExpiredError(error: unknown) {
+  return error instanceof AuthSessionExpiredError
+}

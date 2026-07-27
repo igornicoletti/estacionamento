@@ -19,6 +19,7 @@ import {
   type SupabaseBrowserClient,
   type UnknownRecord,
 } from "./auth-api-helpers"
+import { requireActiveCurrentAuthSession } from "./auth-session-api"
 
 function mapRoleProfile(record: UnknownRecord): AuthRoleProfile | null {
   const key = getString(record.role_key) ?? getString(record.role)
@@ -141,6 +142,8 @@ export async function getCurrentAuthProfile() {
   if (userResponse.error || !user) {
     return null
   }
+
+  await requireActiveCurrentAuthSession()
 
   const profileResponse = await supabase.rpc("get_current_auth_profile")
 

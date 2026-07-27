@@ -3,7 +3,11 @@
  * AUTH_FUNCTIONS.password e AUTH_FUNCTIONS.recovery são consumidos nos módulos
  * especializados; signOut({ scope: "local" }) permanece em auth-session-api.ts.
  */
-export { AuthApiError } from "./auth-api-error"
+export {
+  AuthApiError,
+  AuthSessionExpiredError,
+  isAuthSessionExpiredError,
+} from "./auth-api-error"
 export {
   isPasskeySupported,
   registerAuthenticatedPasskey,
@@ -18,4 +22,12 @@ export {
   subscribeToAuthSessionChanges,
 } from "./auth-profile-api"
 export { requestAccessRecovery } from "./auth-recovery-api"
-export { signOutCurrentSession } from "./auth-session-api"
+export {
+  AUTH_SESSION_LEASE_STATUS,
+  mapAuthSessionLease,
+  requireActiveCurrentAuthSession,
+  signOutCurrentSession,
+  touchCurrentAuthSession,
+  type AuthSessionLease,
+  type AuthSessionLeaseStatus,
+} from "./auth-session-api"

@@ -21,6 +21,7 @@ export const AUTH_FUNCTIONS = {
 } as const
 
 export const AUTH_STORAGE_KEYS = {
+  activityAt: "rmc.auth.activity-at",
   inactivityExpired: "rmc.auth.inactivity-expired",
 } as const
 
@@ -31,6 +32,8 @@ export const AUTH_SESSION_TIMEOUTS = {
 } as const
 
 export const AUTH_INACTIVITY = {
+  activityBroadcastThrottleMs: 5 * 1000,
+  heartbeatMs: 30 * 1000,
   timeoutMs: AUTH_SESSION_TIMEOUTS.inactivityMinutes * 60 * 1000,
   warningMs: 60 * 1000,
   tickMs: 1000,

@@ -5,6 +5,7 @@ import { clearAsyncSnapshotCache } from "@/hooks/use-async-snapshot"
 import {
   completeRequiredPassword,
   getCurrentAuthProfile,
+  isAuthSessionExpiredError,
   registerAuthenticatedPasskey,
   signInWithPasskey as signInWithPasskeyApi,
   signInWithPassword,
@@ -20,6 +21,7 @@ import {
   type AuthSessionStatus,
 } from "./auth-context"
 import { useAuthInactivity } from "./auth-inactivity"
+import { markAuthInactivitySessionExpired } from "./auth-inactivity-storage"
 import { createAuthAccessState } from "./create-auth-access-state"
 
 export { useAuth, useAuthSession } from "./auth-context"
@@ -116,14 +118,30 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           setResolvedProfile(nextProfile)
         }
       } catch (caughtError) {
+        const sessionExpired = isAuthSessionExpiredError(caughtError)
+
         if (profileLoadId === profileLoadIdRef.current) {
           setProfile(null)
           clearInactivityTracking()
           setStatus("anonymous")
-          setError(resolveErrorMessage(caughtError))
+          setError(sessionExpired ? null : resolveErrorMessage(caughtError))
+
+          if (sessionExpired) {
+            markAuthInactivitySessionExpired()
+          }
         }
 
-        if (throwOnError) {
+        if (sessionExpired) {
+          try {
+            await signOutCurrentSession()
+          } catch {
+            // O lease já está inválido; a limpeza local é concluída pelo provider.
+          }
+
+          if (throwOnError) {
+            throw caughtError
+          }
+        } else if (throwOnError) {
           throw caughtError
         }
       }
