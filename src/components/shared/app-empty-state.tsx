@@ -9,10 +9,7 @@ import {
   EmptyTitle,
 } from "@/components/ui/empty"
 import { cn } from "@/lib/utils"
-
-function isRenderable(value: React.ReactNode) {
-  return value !== null && value !== undefined && typeof value !== "boolean"
-}
+import { isRenderable } from "@/lib/is-renderable"
 
 export type AppEmptyStateProps = Omit<
   React.ComponentProps<typeof Empty>,

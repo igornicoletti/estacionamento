@@ -7,6 +7,7 @@ import {
   type AppSheetProps,
 } from "@/components/shared/app-sheet"
 import { cn } from "@/lib/utils"
+import { isRenderable } from "@/lib/is-renderable"
 
 export interface AppDetailsSheetItem {
   id?: string
@@ -18,10 +19,6 @@ export interface AppDetailsSheetProps
   extends Omit<AppSheetProps, "children" | "trigger"> {
   items: readonly AppDetailsSheetItem[]
   emptyContent?: React.ReactNode
-}
-
-function isRenderable(value: React.ReactNode) {
-  return value !== null && value !== undefined && typeof value !== "boolean"
 }
 
 function renderDetailValue(value: React.ReactNode) {

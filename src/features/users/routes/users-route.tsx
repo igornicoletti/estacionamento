@@ -76,9 +76,9 @@ import { useUsers } from "../hooks/use-users"
 import {
   getUserDetailItems,
   usersFormSchema,
+  type UserRecord,
   type UsersFormValues,
 } from "../model"
-import { type UserRecord } from "../types/users-types"
 
 const availableUnitOptions = [
   "Centro",

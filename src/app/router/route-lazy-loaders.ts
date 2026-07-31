@@ -7,10 +7,15 @@ type LazyRouteModule = {
 export type LazyRouteLoader = () => Promise<LazyRouteModule>
 
 export const routeLazyLoaders = {
-  home: () =>
-    import("@/features/dashboard/routes/dashboard-route").then((module) => ({
-      Component: module.DashboardRoute,
-    })),
+  home: import.meta.env.PROD
+    ? () =>
+        import("./components/production-home-route").then((module) => ({
+          Component: module.ProductionHomeRoute,
+        }))
+    : () =>
+        import("@/features/dashboard/routes/dashboard-route").then((module) => ({
+          Component: module.DashboardRoute,
+        })),
   login: () =>
     import("@/features/auth/routes/auth-login-route").then((module) => ({
       Component: module.AuthLoginRoute,
@@ -48,7 +53,7 @@ export const routeLazyLoaders = {
       Component: module.UsersRoute,
     })),
   accessRequests: () =>
-    import("@/features/access-requests/routes/access-requests-route").then((module) => ({
+    import("@/features/access-requests/routes/access-requests-redirect-route").then((module) => ({
       Component: module.AccessRequestsRedirectRoute,
     })),
   permissions: () =>
@@ -71,12 +76,16 @@ export const routeLazyLoaders = {
     import("@/features/security/routes/security-route").then((module) => ({
       Component: module.SecurityRoute,
     })),
-  yard: () =>
-    import("@/features/yard/routes/yard-route").then((module) => ({
-      Component: module.YardRoute,
-    })),
-  reports: () =>
-    import("@/features/reports/routes/reports-route").then((module) => ({
-      Component: module.ReportsRoute,
-    })),
-} as const satisfies Record<string, LazyRouteLoader>
+  yard: import.meta.env.DEV
+    ? () =>
+        import("@/features/yard/routes/yard-route").then((module) => ({
+          Component: module.YardRoute,
+        }))
+    : undefined,
+  reports: import.meta.env.DEV
+    ? () =>
+        import("@/features/reports/routes/reports-route").then((module) => ({
+          Component: module.ReportsRoute,
+        }))
+    : undefined,
+} as const satisfies Record<string, LazyRouteLoader | undefined>

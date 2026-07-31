@@ -1,8 +1,10 @@
 export {
   getUsersGateway,
   resetUsersGateway,
-  resetUsersInMemoryState,
   setUsersGateway,
+  type CreateUserCommand,
+  type UpdateUserCommand,
+  type UserMutationResult,
   type UsersGateway,
 } from "./users-gateway"
 export {

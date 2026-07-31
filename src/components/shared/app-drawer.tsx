@@ -12,10 +12,7 @@ import {
   DrawerTrigger,
 } from "@/components/ui/drawer"
 import { cn } from "@/lib/utils"
-
-function isRenderable(value: React.ReactNode) {
-  return value !== null && value !== undefined && typeof value !== "boolean"
-}
+import { isRenderable } from "@/lib/is-renderable"
 
 type DrawerRootProps = React.ComponentProps<typeof Drawer>
 

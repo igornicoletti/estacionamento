@@ -4,10 +4,6 @@ const integerFormatter = new Intl.NumberFormat(PT_BR_LOCALE, {
   maximumFractionDigits: 0,
 })
 
-const pluralRules = new Intl.PluralRules(PT_BR_LOCALE, {
-  type: "cardinal",
-})
-
 function normalizeCount(value: number): number {
   return Number.isFinite(value) && value > 0 ? Math.trunc(value) : 0
 }
@@ -17,7 +13,7 @@ function formatInteger(value: number): string {
 }
 
 function isSingular(value: number): boolean {
-  return pluralRules.select(normalizeCount(value)) === "one"
+  return normalizeCount(value) === 1
 }
 
 export function formatSelectedRows(
@@ -53,6 +49,13 @@ export function formatPageOf(
   return `Página ${formatInteger(currentPage)} de ${formattedPageCount}`
 }
 
+export function formatResultCount(resultCount: number): string {
+  const count = normalizeCount(resultCount)
+  const label = isSingular(count) ? "resultado" : "resultados"
+
+  return `${formatInteger(count)} ${label}`
+}
+
 export const dataTableCopy = {
   accessibility: {
     scrollableTable: "Tabela com rolagem horizontal",
@@ -70,17 +73,18 @@ export const dataTableCopy = {
     refetchAnnouncement: "Atualizando dados da tabela.",
   },
   toolbar: {
-    clearFilters: "Limpar filtros",
-    clearFiltersAriaLabel: "Limpar todos os filtros da tabela",
-    controlsTitle: "Filtros e ações",
-    controlsDescription: "Abrir painel de filtros e ações da tabela",
-    toggleControls: "Alternar filtros e ações",
+    addFilter: "Filtros",
+    addFilterAriaLabel: "Abrir filtros da tabela",
+    allFiltersAdded: "Todos os filtros já foram adicionados",
     export: "Exportar",
     exportAriaLabel: "Abrir menu de exportação",
     exportTooltip: "Exportar dados da tabela",
     search: "Buscar",
     searchPlaceholder: "Buscar registros",
     filterPlaceholderPrefix: "Filtrar por",
+    searchFilterPlaceholderPrefix: "Buscar em",
+    removeFilterPrefix: "Remover filtro",
+    results: formatResultCount,
   },
   exportMenu: {
     title: "Exportar dados",
@@ -95,20 +99,19 @@ export const dataTableCopy = {
       "Exportar todos os registros carregados na tabela e as colunas marcadas como exportáveis.",
   },
   facetedFilter: {
-    noResults: "Nenhum resultado encontrado.",
+    noResults: "Nenhuma opção encontrada.",
     selectedSuffix: "selecionados",
-    clearFilters: "Limpar filtros",
+    clearFilter: "Limpar",
+    clearFilterAriaLabelPrefix: "Limpar filtro",
   },
   fallback: {
     errorTitle: "Não foi possível carregar os dados",
-    errorDescription:
-      "A tabela não pôde carregar os registros. Verifique sua conexão e tente novamente.",
+    errorDescription: "Verifique sua conexão e tente novamente.",
     errorAction: "Tentar novamente",
     emptyTitle: "Nenhum registro encontrado",
-    emptyDescription: "Não há registros para exibir nesta tabela.",
+    emptyDescription: "Não há registros para exibir.",
     filteredEmptyTitle: "Nenhum resultado encontrado",
-    filteredEmptyDescription:
-      "Nenhum registro corresponde aos filtros aplicados. Limpe os filtros para voltar à listagem completa.",
+    filteredEmptyDescription: "Ajuste a busca ou remova um filtro.",
     filteredEmptyAction: "Limpar filtros",
   },
   pagination: {

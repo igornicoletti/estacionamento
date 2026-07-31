@@ -1,8 +1,6 @@
 import { type Column, type OnChangeFn, type Table } from "@tanstack/react-table"
-import { XIcon } from "lucide-react"
 import * as React from "react"
 
-import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
 import { dataTableCopy } from "./data-table-copy"
@@ -12,12 +10,17 @@ import {
 } from "./data-table-export-menu"
 import { DataTableFacetedFilter } from "./data-table-faceted-filter"
 import {
+  DataTableFilterMenu,
+  type DataTableFilterMenuItem,
+} from "./data-table-filter-menu"
+import {
   dedupeFilterFields,
   dedupeGlobalSearchColumnIds,
   dedupeSearchFields,
   isEmptyFilterValue,
   normalizeSearchValue,
 } from "./data-table-filter-utils"
+import { DataTableSearchFilter } from "./data-table-search-filter"
 import { DataTableSearchInput } from "./data-table-search-input"
 import {
   type DataTableFilterField,
@@ -42,9 +45,26 @@ export interface DataTableToolbarProps<TData> {
   allowExportWhileLoading?: boolean
   isExternallyFiltered?: boolean
   globalFilterValue?: string
+  resultCount?: number
   onGlobalFilterChange?: OnChangeFn<string>
   onClearFilters?: () => void
 }
+
+type DataTableToolbarFilterDefinition<TData> =
+  | {
+      id: string
+      kind: "faceted"
+      label: string
+      icon: DataTableFilterField<TData>["icon"]
+      field: DataTableFilterField<TData>
+    }
+  | {
+      id: string
+      kind: "search"
+      label: string
+      icon: DataTableSearchField<TData>["icon"]
+      field: DataTableSearchField<TData>
+    }
 
 function normalizeVisibleText(value: string | undefined): string {
   return (
@@ -93,6 +113,43 @@ function hasRenderableContent(content: React.ReactNode): boolean {
   return React.Children.toArray(content).length > 0
 }
 
+function createFilterDefinitions<TData>({
+  table,
+  searchFields,
+  filterFields,
+}: {
+  table: Table<TData>
+  searchFields: readonly DataTableSearchField<TData>[]
+  filterFields: readonly DataTableFilterField<TData>[]
+}): DataTableToolbarFilterDefinition<TData>[] {
+  const definitions: DataTableToolbarFilterDefinition<TData>[] = []
+  const seenIds = new Set<string>()
+
+  for (const field of filterFields) {
+    const id = String(field.id)
+    const column = table.getColumn(id)
+    if (!column || !column.getCanFilter() || seenIds.has(id)) continue
+
+    const label =
+      normalizeVisibleText(field.title) || resolveColumnLabel(column, id)
+    definitions.push({ id, icon: field.icon, kind: "faceted", label, field })
+    seenIds.add(id)
+  }
+
+  for (const field of searchFields) {
+    const id = String(field.id)
+    const column = table.getColumn(id)
+    if (!column || !column.getCanFilter() || seenIds.has(id)) continue
+
+    const label =
+      normalizeVisibleText(field.label) || resolveColumnLabel(column, id)
+    definitions.push({ id, icon: field.icon, kind: "search", label, field })
+    seenIds.add(id)
+  }
+
+  return definitions
+}
+
 export function DataTableToolbar<TData>({
   table,
   globalSearch,
@@ -109,8 +166,8 @@ export function DataTableToolbar<TData>({
   allowExportWhileLoading = false,
   isExternallyFiltered = false,
   globalFilterValue,
+  resultCount,
   onGlobalFilterChange,
-  onClearFilters,
 }: DataTableToolbarProps<TData>) {
   const normalizedGlobalSearch = React.useMemo(() => {
     if (!globalSearch) return undefined
@@ -125,17 +182,83 @@ export function DataTableToolbar<TData>({
     () => dedupeFilterFields(filterFields),
     [filterFields]
   )
+  const filterDefinitions = React.useMemo(
+    () =>
+      createFilterDefinitions({
+        table,
+        searchFields: normalizedSearchFields,
+        filterFields: normalizedFilterFields,
+      }),
+    [normalizedFilterFields, normalizedSearchFields, table]
+  )
+  const definitionIds = React.useMemo(
+    () => new Set(filterDefinitions.map((definition) => definition.id)),
+    [filterDefinitions]
+  )
+  const columnFilters = table.getState().columnFilters
+  const appliedFilterIds = React.useMemo(
+    () =>
+      columnFilters
+        .filter(
+          (filter) =>
+            definitionIds.has(filter.id) && !isEmptyFilterValue(filter.value)
+        )
+        .map((filter) => filter.id),
+    [columnFilters, definitionIds]
+  )
+  const [manuallyActiveFilterIds, setManuallyActiveFilterIds] =
+    React.useState<string[]>([])
+  const [pendingOpenFilterId, setPendingOpenFilterId] =
+    React.useState<string>()
+  const activeFilterIds = React.useMemo(() => {
+    const activeIds = manuallyActiveFilterIds.filter((id) =>
+      definitionIds.has(id)
+    )
+    for (const id of appliedFilterIds) {
+      if (!activeIds.includes(id)) activeIds.push(id)
+    }
+    return activeIds
+  }, [appliedFilterIds, definitionIds, manuallyActiveFilterIds])
+
   const resolvedGlobalFilterValue = resolveTableGlobalFilterValue(
     table,
     globalFilterValue
   )
   const isGlobalFiltered =
     normalizeSearchValue(resolvedGlobalFilterValue).length > 0
-  const isColumnFiltered = table
-    .getState()
-    .columnFilters.some((filter) => !isEmptyFilterValue(filter.value))
+  const isColumnFiltered = columnFilters.some(
+    (filter) => !isEmptyFilterValue(filter.value)
+  )
   const isFiltered =
     isColumnFiltered || isGlobalFiltered || isExternallyFiltered
+  const hasActions = hasRenderableContent(actions)
+  const resolvedCanExport = canExport ?? table.getRowModel().rows.length > 0
+  const shouldRenderExport = enableExport
+  const exportDisabled =
+    !resolvedCanExport || (isLoading && !allowExportWhileLoading)
+  const hasUtilityActions =
+    enableViewOptions || shouldRenderExport || hasActions
+
+  const activeDefinitions = React.useMemo(
+    () =>
+      activeFilterIds.flatMap((id) => {
+        const definition = filterDefinitions.find((item) => item.id === id)
+        return definition ? [definition] : []
+      }),
+    [activeFilterIds, filterDefinitions]
+  )
+  const availableFilterItems = React.useMemo<DataTableFilterMenuItem[]>(
+    () =>
+      filterDefinitions
+        .filter((definition) => !activeFilterIds.includes(definition.id))
+        .map((definition) => ({
+          id: definition.id,
+          icon: definition.icon,
+          kind: definition.kind,
+          label: definition.label,
+        })),
+    [activeFilterIds, filterDefinitions]
+  )
 
   const updateGlobalFilter = React.useCallback(
     (value: string) => {
@@ -145,147 +268,109 @@ export function DataTableToolbar<TData>({
     [onGlobalFilterChange, table]
   )
 
-  const clearFilters = React.useCallback(() => {
-    if (onClearFilters) {
-      onClearFilters()
-      return
-    }
-    table.resetColumnFilters(true)
-    if (onGlobalFilterChange) onGlobalFilterChange("")
-    else table.resetGlobalFilter(true)
-  }, [onClearFilters, onGlobalFilterChange, table])
+  const addFilter = React.useCallback((id: string) => {
+    setManuallyActiveFilterIds((previous) =>
+      previous.includes(id) ? previous : [...previous, id]
+    )
+    setPendingOpenFilterId(id)
+  }, [])
 
-  const hasSearchFields = normalizedSearchFields.some((field) =>
-    Boolean(table.getColumn(String(field.id)))
-  )
-  const hasFilterFields = normalizedFilterFields.some((field) =>
-    Boolean(table.getColumn(String(field.id)))
-  )
-  const hasControls =
-    Boolean(normalizedGlobalSearch) ||
-    hasSearchFields ||
-    hasFilterFields ||
-    isFiltered
-  const hasActions = hasRenderableContent(actions)
-  const resolvedCanExport =
-    canExport ?? table.getRowModel().rows.length > 0
-  const shouldRenderExport = enableExport
-  const exportDisabled =
-    !resolvedCanExport || (isLoading && !allowExportWhileLoading)
-  const hasUtilityActions =
-    enableViewOptions || shouldRenderExport || hasActions
-  const filterPrefix =
-    normalizeVisibleText(dataTableCopy.toolbar.filterPlaceholderPrefix) ||
-    "Filtrar"
+  const removeFilter = React.useCallback((id: string) => {
+    setManuallyActiveFilterIds((previous) =>
+      previous.filter((item) => item !== id)
+    )
+    setPendingOpenFilterId((current) =>
+      current === id ? undefined : current
+    )
+  }, [])
 
   return (
     <div
-      className={cn(
-        "grid min-w-0 gap-3",
-        hasControls &&
-          hasUtilityActions &&
-          "lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start"
-      )}
+      className="flex min-w-0 flex-wrap items-center gap-2"
+      data-slot="data-table-toolbar"
     >
-      {hasControls ? (
-        <div className="flex min-w-0 flex-1 flex-wrap items-center gap-3">
-          {normalizedGlobalSearch ? (
-            <DataTableSearchInput
-              ariaLabel={
-                normalizeVisibleText(globalSearchAriaLabel) ||
-                normalizeVisibleText(normalizedGlobalSearch.ariaLabel) ||
-                normalizeVisibleText(normalizedGlobalSearch.label) ||
-                normalizeVisibleText(normalizedGlobalSearch.placeholder) ||
-                dataTableCopy.toolbar.search
-              }
-              placeholder={
-                normalizeVisibleText(normalizedGlobalSearch.placeholder) ||
-                dataTableCopy.toolbar.searchPlaceholder
-              }
-              value={resolvedGlobalFilterValue}
-              isLoading={isLoading}
-              onValueChange={updateGlobalFilter}
-              onClear={() => updateGlobalFilter("")}
+      {normalizedGlobalSearch ? (
+        <DataTableSearchInput
+          ariaLabel={
+            normalizeVisibleText(globalSearchAriaLabel) ||
+            normalizeVisibleText(normalizedGlobalSearch.ariaLabel) ||
+            normalizeVisibleText(normalizedGlobalSearch.label) ||
+            normalizeVisibleText(normalizedGlobalSearch.placeholder) ||
+            dataTableCopy.toolbar.search
+          }
+          placeholder={
+            normalizeVisibleText(normalizedGlobalSearch.placeholder) ||
+            dataTableCopy.toolbar.searchPlaceholder
+          }
+          value={resolvedGlobalFilterValue}
+          isLoading={isLoading}
+          className="w-full sm:w-64 lg:w-72 xl:w-80"
+          onValueChange={updateGlobalFilter}
+          onClear={() => updateGlobalFilter("")}
+        />
+      ) : null}
+
+      {activeDefinitions.map((definition) => {
+        const column = table.getColumn(definition.id)
+        if (!column) return null
+
+        if (definition.kind === "faceted") {
+          const field = definition.field
+          return (
+            <DataTableFacetedFilter
+              key={definition.id}
+              column={column}
+              icon={definition.icon}
+              title={definition.label}
+              options={field.options}
+              groups={field.groups}
+              showCounts={field.showCounts ?? !manualFiltering}
+              facetCountSource={field.countSource}
+              facetValueToOptionValue={field.facetValueToOptionValue}
+              defaultOpen={pendingOpenFilterId === definition.id}
+              onRemove={() => removeFilter(definition.id)}
             />
-          ) : null}
+          )
+        }
 
-          {normalizedSearchFields.map((field) => {
-            const columnId = String(field.id)
-            const column = table.getColumn(columnId)
-            if (!column) return null
+        return (
+          <DataTableSearchFilter
+            key={definition.id}
+            column={column}
+            icon={definition.icon}
+            title={definition.label}
+            ariaLabel={definition.field.ariaLabel}
+            placeholder={definition.field.placeholder}
+            defaultOpen={pendingOpenFilterId === definition.id}
+            onRemove={() => removeFilter(definition.id)}
+          />
+        )
+      })}
 
-            const columnLabel =
-              normalizeVisibleText(field.label) ||
-              resolveColumnLabel(column, columnId)
-            const accessibleLabel =
-              normalizeVisibleText(field.ariaLabel) ||
-              `${filterPrefix} ${columnLabel}`
-            const filterValue = column.getFilterValue()
-            const inputValue =
-              typeof filterValue === "string" ? filterValue : ""
+      {filterDefinitions.length ? (
+        <DataTableFilterMenu
+          items={availableFilterItems}
+          onSelect={addFilter}
+        />
+      ) : null}
 
-            return (
-              <DataTableSearchInput
-                key={columnId}
-                ariaLabel={accessibleLabel}
-                placeholder={
-                  normalizeVisibleText(field.placeholder) ||
-                  `${accessibleLabel}...`
-                }
-                value={inputValue}
-                isLoading={isLoading}
-                disabled={!column.getCanFilter()}
-                onValueChange={(value) =>
-                  column.setFilterValue(value || undefined)
-                }
-                onClear={() => column.setFilterValue(undefined)}
-              />
-            )
-          })}
-
-          {normalizedFilterFields.map((field) => {
-            const columnId = String(field.id)
-            const column = table.getColumn(columnId)
-            if (!column || !column.getCanFilter()) return null
-
-            return (
-              <DataTableFacetedFilter
-                key={columnId}
-                column={column}
-                title={field.title}
-                options={field.options}
-                groups={field.groups}
-                showCounts={field.showCounts ?? !manualFiltering}
-                facetCountSource={field.countSource}
-                facetValueToOptionValue={field.facetValueToOptionValue}
-                maxVisibleChips={field.maxVisibleChips}
-              />
-            )
-          })}
-
-          {isFiltered ? (
-            <Button
-              data-no-drag-scroll="true"
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="h-9 shrink-0"
-              aria-label={dataTableCopy.toolbar.clearFiltersAriaLabel}
-              onClick={clearFilters}
-            >
-              {dataTableCopy.toolbar.clearFilters}
-              <XIcon
-                data-icon="inline-end"
-                aria-hidden="true"
-                focusable="false"
-              />
-            </Button>
-          ) : null}
-        </div>
+      {typeof resultCount === "number" ? (
+        <span
+          role="status"
+          className={cn(
+            "shrink-0 text-sm text-muted-foreground",
+            isFiltered && "text-foreground"
+          )}
+          aria-live="polite"
+          aria-atomic="true"
+          data-slot="data-table-result-count"
+        >
+          {dataTableCopy.toolbar.results(resultCount)}
+        </span>
       ) : null}
 
       {hasUtilityActions ? (
-        <div className="flex min-w-0 flex-wrap items-center gap-2 lg:justify-end">
+        <div className="ml-auto flex min-w-0 flex-wrap items-center gap-2">
           {enableViewOptions ? <DataTableViewOptions table={table} /> : null}
           {shouldRenderExport ? (
             <DataTableExportMenu

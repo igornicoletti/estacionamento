@@ -30,6 +30,6 @@ describe("AuditRoute", () => {
 
     expect(await screen.findByText("Detalhes do evento")).toBeInTheDocument()
     expect(screen.getAllByText("Escopo").length).toBeGreaterThan(0)
-    expect(screen.getByText("Motivo")).toBeInTheDocument()
+    expect(screen.getAllByText("Motivo").length).toBeGreaterThan(0)
   })
 })

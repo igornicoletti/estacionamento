@@ -9,8 +9,6 @@ import {
 } from "vitest"
 
 import {
-  UnitUsersRoute,
-  UnitsRoute,
   configureUnitUserStatsGateway,
   configureUnitYardGateway,
   configureUnitsGateway,
@@ -18,6 +16,8 @@ import {
   resetUnitYardGateway,
   resetUnitsGateway,
 } from "@/features/units"
+import { UnitUsersRoute } from "@/features/units/routes/unit-users-route"
+import { UnitsRoute } from "@/features/units/routes/units-route"
 
 beforeEach(() => {
   configureUnitsGateway({

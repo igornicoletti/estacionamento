@@ -1,4 +1,3 @@
-export { NotificationsRoute } from "./routes/notifications-route"
 export {
   NotificationsProvider,
   useNotifications,

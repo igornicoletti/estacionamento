@@ -1,0 +1,32 @@
+import { ListFilterIcon, SearchIcon, type LucideIcon } from "lucide-react"
+import * as React from "react"
+
+export type DataTableFilterKind = "faceted" | "search"
+
+interface DataTableFilterIconProps {
+  icon?: LucideIcon
+  kind: DataTableFilterKind
+  className?: string
+}
+
+export function DataTableFilterIcon({
+  icon,
+  kind,
+  className,
+}: DataTableFilterIconProps) {
+  const iconProps: React.ComponentProps<LucideIcon> & {
+    "data-icon": string
+    "data-slot": string
+  } = {
+    "aria-hidden": true,
+    className,
+    "data-icon": "inline-start",
+    "data-slot": "data-table-filter-icon",
+    focusable: "false",
+  }
+
+  return React.createElement(
+    icon ?? (kind === "search" ? SearchIcon : ListFilterIcon),
+    iconProps
+  )
+}

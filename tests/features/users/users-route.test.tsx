@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
 import { beforeEach, describe, expect, it, vi } from "vitest"
 
-import { UsersRoute } from "@/features/users"
+import { UsersRoute } from "@/features/users/routes/users-route"
 import { flushReactUpdates } from "../../helpers/flush-react-updates"
 
 const invokeMock = vi.fn()

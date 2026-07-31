@@ -4,9 +4,18 @@ import * as React from "react"
 import { beforeEach, vi } from "vitest"
 
 import {
+  configureAuditGateway,
+  type RawAuditEventPayload,
+} from "@/features/audit"
+import {
   setNotificationsGateway,
   type NotificationRecord,
 } from "@/features/notifications"
+import {
+  configurePermissionsGateway,
+  type PermissionMatrixRow,
+} from "@/features/permissions"
+import { configureClientsGateway } from "@/features/clients/services/clients-gateway"
 import {
   configureUnitUserStatsGateway,
   resetUnitUserStatsGateway,
@@ -15,9 +24,11 @@ import {
   resetUsersGateway,
   setUsersGateway,
 } from "@/features/users/services/users-gateway"
-import { type UserRecord } from "@/features/users/types/users-types"
+import { type UserRecord } from "@/features/users/model"
 
 import { createMemoryNotificationsGateway } from "./helpers/notifications-memory-gateway"
+import { createMemoryClientsGateway } from "./helpers/clients-memory-gateway"
+import { createMemoryUsersGateway } from "./helpers/users-memory-gateway"
 
 if (!HTMLElement.prototype.hasPointerCapture) {
   Object.defineProperties(HTMLElement.prototype, {
@@ -235,6 +246,48 @@ const seedNotifications: NotificationRecord[] = [
   },
 ]
 
+const seedAuditEvents: RawAuditEventPayload[] = [
+  {
+    actor: "Rede Monte Carlo",
+    actor_user_id: null,
+    event: "unit_sync",
+    id: "00000000-0000-4000-8000-000000000001",
+    metadata: { mode: "incremental" },
+    occurred_at: "2026-07-02T11:20:19Z",
+    reason: null,
+    request_id: "req-test",
+    scope: "system",
+    severity: "info",
+    success: true,
+    target: "Unidades",
+    target_user_id: null,
+  },
+]
+
+const seedPermissionMatrix: PermissionMatrixRow[] = [
+  {
+    accessFilters: ["with_access", "without_access"],
+    description: "Permite visualizar eventos de auditoria.",
+    groupKey: "audit",
+    groupLabel: "Auditoria",
+    id: "audit.read",
+    isCritical: true,
+    key: "audit.read",
+    label: "Visualizar auditoria",
+    roleAccess: {
+      admin: true,
+      auditor: true,
+      manager: false,
+      operator: false,
+      owner: true,
+    },
+    roleCount: 3,
+    roleLabels: "Proprietário, Administrador, Auditor",
+    roles: ["owner", "admin", "auditor"],
+    source: "system",
+  },
+]
+
 vi.mock("@/features/auth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/features/auth")>()
 
@@ -272,28 +325,25 @@ vi.mock("@/components/ui/tooltip", async (importOriginal) => {
 })
 
 beforeEach(() => {
+  configureClientsGateway(createMemoryClientsGateway())
+  configureAuditGateway({
+    listEvents: () => Promise.resolve(seedAuditEvents),
+  })
+  configurePermissionsGateway({
+    listMatrix: () => Promise.resolve(seedPermissionMatrix),
+  })
   setNotificationsGateway(createMemoryNotificationsGateway(seedNotifications))
 
-  const currentUsers = seedUsers.map((user) => ({ ...user }))
-
   resetUsersGateway()
-  setUsersGateway({
-    async list() {
-      await Promise.resolve()
-      return [...currentUsers]
-    },
-    async saveAll(users) {
-      await Promise.resolve()
-      currentUsers.splice(0, currentUsers.length, ...users)
-    },
-  })
+  const usersGateway = createMemoryUsersGateway(seedUsers)
+  setUsersGateway(usersGateway)
 
   resetUnitUserStatsGateway()
   configureUnitUserStatsGateway({
     async listStats() {
       await Promise.resolve()
       const stats = new Map<string, { managers: number; operators: number }>()
-      for (const user of currentUsers) {
+      for (const user of await usersGateway.list()) {
         if (!user.unitId || user.status !== "active") {
           continue
         }

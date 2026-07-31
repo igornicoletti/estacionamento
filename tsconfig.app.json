@@ -23,9 +23,7 @@
     "baseUrl": ".",
     "paths": {
       "@/*": ["./src/*"]
-    },
-    "types": ["vitest/globals", "node"]
+    }
   },
-  "include": ["src"],
-  "exclude": ["src/mocks/table-data/seed.ts"]
+  "include": ["src"]
 }

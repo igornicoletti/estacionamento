@@ -12,12 +12,13 @@ import {
 } from "@/features/units"
 import {
   resetUsersGateway,
-  resetUsersInMemoryState,
+  setUsersGateway,
 } from "@/features/users/services/users-gateway"
 import {
   createUser,
   listUsers,
 } from "@/features/users/services/users-service"
+import { createMemoryUsersGateway } from "../../helpers/users-memory-gateway"
 
 describe("users service", () => {
   beforeEach(() => {
@@ -43,7 +44,7 @@ describe("users service", () => {
       },
     })
     resetUsersGateway()
-    resetUsersInMemoryState()
+    setUsersGateway(createMemoryUsersGateway())
   })
 
   afterEach(() => {
@@ -61,7 +62,7 @@ describe("users service", () => {
       unitId: "2",
     })
 
-    expect(createdUser.status).toBe("active")
+    expect(createdUser.status).toBe("pending")
     expect(createdUser.unitId).toBe("2")
     expect(createdUser.unitName).toBe("Monte Carlo Norte")
 

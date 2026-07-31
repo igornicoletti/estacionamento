@@ -13,7 +13,7 @@ export {
   type AccessRequestReviewDecision,
   type AccessRequestsSnapshot,
 } from "./model"
-export { AccessRequestsPanel, AccessRequestsRedirectRoute, AccessRequestsRoute } from "./routes"
+export { AccessRequestsPanel } from "./routes/access-requests-route"
 export { listPendingRecoveryRequests, reviewRecoveryRequest } from "./services"
 export {
   createRecoveryReasonFilterOptions,

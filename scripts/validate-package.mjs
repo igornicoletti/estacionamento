@@ -1,5 +1,6 @@
 import fs from "node:fs"
 import path from "node:path"
+import { execFileSync } from "node:child_process"
 
 const root = process.cwd()
 const errors = []
@@ -43,6 +44,24 @@ function walk(directory = ".") {
 
     return entry.isDirectory() ? walk(relative) : relative
   })
+}
+
+function listProjectFiles() {
+  try {
+    return execFileSync(
+      "git",
+      ["ls-files", "--cached", "--others", "--exclude-standard", "-z"],
+      { cwd: root, encoding: "utf8" }
+    )
+      .split("\0")
+      .filter(Boolean)
+      .map(normalizePath)
+      .filter(exists)
+      .sort()
+  } catch {
+    console.warn("Git inventory unavailable; falling back to filesystem walk.")
+    return walk().sort()
+  }
 }
 
 function requireFile(filePath) {
@@ -159,7 +178,7 @@ function resolveImport(fromFile, specifier) {
   )
 }
 
-const files = walk().sort()
+const files = listProjectFiles()
 const srcCodeFiles = files.filter((file) => file.startsWith("src/") && /\.(ts|tsx)$/.test(file))
 const projectCodeFiles = files.filter(
   (file) =>

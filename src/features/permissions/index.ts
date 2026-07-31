@@ -4,9 +4,11 @@ export {
 } from "./table"
 export { usePermissions } from "./hooks/use-permissions"
 export {
-  buildPermissionMatrix,
+  configurePermissionsGateway,
   listPermissionMatrix,
-} from "./services/permissions-service"
+  resetPermissionsGateway,
+  type PermissionsGateway,
+} from "./services"
 export {
   createEmptyRoleAccess,
   createPermissionRoleAccess,

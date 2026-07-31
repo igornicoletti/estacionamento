@@ -80,6 +80,7 @@ export type AppRouteId = (typeof appRouteIds)[keyof typeof appRouteIds];
 export type AppRoutePath = (typeof appRoutePaths)[keyof typeof appRoutePaths];
 export type AppRouteGroupId =
   (typeof appRouteGroupIds)[keyof typeof appRouteGroupIds];
+export type AppRouteAvailability = "all" | "development";
 
 export interface AppRouteRegistryItem {
   id: AppRouteId;
@@ -88,6 +89,7 @@ export interface AppRouteRegistryItem {
   index?: boolean;
   label: string;
   description: string;
+  availability?: AppRouteAvailability;
   requiredPermissions?: readonly AuthPermission[];
   lazy?: LazyRouteLoader;
   navigation?: {
@@ -115,7 +117,7 @@ export const publicRouteRegistry = [
   },
 ] as const satisfies readonly AppRouteRegistryItem[];
 
-export const authenticatedRouteRegistry = [
+const registeredAuthenticatedRoutes = [
   {
     id: appRouteIds.home,
     index: true,
@@ -123,13 +125,16 @@ export const authenticatedRouteRegistry = [
     label: appCopy.routes.home.label,
     description: appCopy.routes.home.description,
     lazy: routeLazyLoaders.home,
-    navigation: {
-      group: appRouteGroupIds.workspace,
-      order: 0,
-    },
+    navigation: import.meta.env.DEV
+      ? {
+          group: appRouteGroupIds.workspace,
+          order: 0,
+        }
+      : undefined,
   },
   {
     id: appRouteIds.yard,
+    availability: "development",
     path: appRouteSegments.yard,
     href: appRoutePaths.yard,
     label: appCopy.routes.yard.label,
@@ -143,6 +148,7 @@ export const authenticatedRouteRegistry = [
   },
   {
     id: appRouteIds.reports,
+    availability: "development",
     path: appRouteSegments.reports,
     href: appRoutePaths.reports,
     label: appCopy.routes.reports.label,
@@ -313,6 +319,17 @@ export const authenticatedRouteRegistry = [
     lazy: routeLazyLoaders.unitUsers,
   },
 ] as const satisfies readonly AppRouteRegistryItem[];
+
+export function isRouteAvailable(
+  route: Pick<AppRouteRegistryItem, "id" | "availability">,
+  isDevelopment = import.meta.env.DEV
+) {
+  return route.availability !== "development" || isDevelopment;
+}
+
+export const authenticatedRouteRegistry = registeredAuthenticatedRoutes.filter(
+  (route) => isRouteAvailable(route)
+);
 
 export const navigationGroups = [
   {

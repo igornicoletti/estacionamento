@@ -103,13 +103,11 @@ Copie as variáveis necessárias a partir de `.env.example`.
 
 - `VITE_SUPABASE_URL`
 - `VITE_SUPABASE_PUBLISHABLE_KEY`
-- `VITE_ERP_CATALOG_MOCK_ENABLED`
 - `VITE_APP_ORIGIN`
-- `APP_HMAC_SECRET`
-- `APP_ALLOWED_ORIGINS`
+- `VITE_WEBAUTHN_RP_ID`
 
 Em produção, `VITE_APP_ORIGIN` e `VITE_SUPABASE_URL` devem usar HTTPS. O client valida a origem em runtime para evitar execução em domínio não autorizado.
-`VITE_ERP_CATALOG_MOCK_ENABLED` só é aceito em desenvolvimento e injeta catálogo sintético de unidades, clientes e veículos enquanto o token do ERP não estiver disponível.
+Segredos das Edge Functions ficam separados em `supabase/functions/.env.example`; nenhuma variável privada usa o prefixo público `VITE_`.
 
 O projeto já atende à exigência futura de `@supabase/supabase-js` por TypeScript 5+ usando TypeScript 6. Passkeys/WebAuthn continuam tratadas como recurso beta do Supabase: enriquecimentos administrativos de passkey são opcionais e não bloqueiam a listagem principal de usuários quando a origem de metadados WebAuthn não está disponível.
 
@@ -121,7 +119,7 @@ Configuração local principal em `supabase/config.toml`:
 - provider de e-mail/senha ativo para e-mails técnicos internos do fluxo CPF;
 - senha mínima de 12 caracteres com letras maiúsculas, minúsculas, números e símbolos;
 - troca de senha com reautenticação;
-- sessão limitada por inatividade de 15 minutos e timebox de 24 horas;
+- timeouts server-side desabilitados no plano atual; o cliente aplica o contrato de inatividade documentado em `AUTH_SESSION_TIMEOUTS`;
 - funções `auth-password` e `auth-recovery-request` públicas com CORS/HMAC;
 - função `admin-user-auth-factors` protegida por JWT;
 - permissões comerciais `prices.manage` e `rules.manage` aplicadas em RLS e RPCs.

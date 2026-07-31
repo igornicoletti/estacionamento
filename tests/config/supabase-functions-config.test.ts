@@ -8,7 +8,10 @@ function readSupabaseConfig() {
 }
 
 function readEnvExample() {
-  return readFileSync(join(process.cwd(), ".env.example"), "utf8")
+  return readFileSync(
+    join(process.cwd(), "supabase", "functions", ".env.example"),
+    "utf8"
+  )
 }
 
 function readCorsHelper() {
@@ -85,12 +88,10 @@ describe("Supabase Edge Function auth config", () => {
       expect.arrayContaining([
         "http://localhost:5173",
         "http://127.0.0.1:5173",
-        "http://localhost:4173",
-        "http://127.0.0.1:4173",
-        "https://estacionamento-livid.vercel.app",
         "https://estacionamento.redemontecarlo.com.br",
       ])
     )
+    expect(origins).not.toContain("https://estacionamento-livid.vercel.app")
     expect(origins).toContain(siteUrl)
   })
 

@@ -18,5 +18,5 @@
     "noUncheckedSideEffectImports": true,
     "types": ["node"]
   },
-  "include": ["vite.config.ts", "eslint.config.js", "scripts/**/*.mjs", "src/mocks/table-data/seed.ts"]
+  "include": ["vite.config.ts", "eslint.config.js", "scripts/**/*.mjs"]
 }

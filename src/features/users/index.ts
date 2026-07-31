@@ -1,4 +1,3 @@
-export { UsersRoute } from "./routes/users-route"
 export { useUsers } from "./hooks/use-users"
 export {
   createUserOnlineFilterOptions,

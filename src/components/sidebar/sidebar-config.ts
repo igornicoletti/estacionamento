@@ -23,8 +23,9 @@ import {
   type AppRouteRegistryItem,
 } from "@/app/router/route-registry"
 import montecarloLogo from "@/assets/brand/montecarlo-logo.webp"
-import montecarloSymbol from "@/assets/brand/montecarlo-symbol.svg"
 import type { AuthPermission } from "@/features/auth"
+
+const montecarloSymbol = "/favicon.svg"
 
 export interface SidebarNavigationItem {
   id: string

@@ -12,10 +12,7 @@ import {
   SheetTrigger,
 } from "@/components/ui/sheet"
 import { cn } from "@/lib/utils"
-
-function isRenderable(value: React.ReactNode) {
-  return value !== null && value !== undefined && typeof value !== "boolean"
-}
+import { isRenderable } from "@/lib/is-renderable"
 
 export type AppSheetProps = Omit<
   React.ComponentProps<typeof Sheet>,

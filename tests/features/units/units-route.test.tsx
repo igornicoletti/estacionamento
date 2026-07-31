@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
+import { UnitsRoute } from "@/features/units/routes/units-route"
 import {
-  UnitsRoute,
   configureUnitYardGateway,
   configureUnitsGateway,
   resetUnitYardGateway,

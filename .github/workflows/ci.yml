@@ -17,18 +17,18 @@ jobs:
       - name: Setup pnpm
         uses: pnpm/action-setup@v4
         with:
-          version: 10
+          version: 10.34.5
 
       - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 24
+          node-version-file: .node-version
           cache: pnpm
 
       - name: Setup Deno
         uses: denoland/setup-deno@v2
         with:
-          deno-version: v2.x
+          deno-version: v2.8.2
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
@@ -50,6 +50,12 @@ jobs:
 
       - name: Build
         run: pnpm build
+
+      - name: Check bundle budget
+        run: pnpm bundle:check
+
+      - name: Audit production dependencies
+        run: pnpm audit --prod --audit-level high
 
       - name: Check Supabase functions
         shell: bash

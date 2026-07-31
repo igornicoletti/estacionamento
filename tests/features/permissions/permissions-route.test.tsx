@@ -3,7 +3,7 @@ import { describe, expect, it } from "vitest"
 
 import { PermissionsRoute } from "@/features/permissions"
 
-const auditPermissionLabel = "Auditoria - Consultar"
+const auditPermissionLabel = "Visualizar auditoria"
 
 async function findAuditPermissionTrigger() {
   const searchInput = await screen.findByLabelText("Buscar permissões...")

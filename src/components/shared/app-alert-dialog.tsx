@@ -19,13 +19,10 @@ import { Button, buttonVariants } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { useControllableOpen } from "@/hooks/use-controllable-open"
 import { cn } from "@/lib/utils"
+import { isRenderable } from "@/lib/is-renderable"
 
 type AppAlertDialogSize = "default" | "sm"
 type AppAlertDialogTone = "default" | "destructive" | "warning"
-
-function isRenderable(value: React.ReactNode) {
-  return value !== null && value !== undefined && typeof value !== "boolean"
-}
 
 export type AppAlertDialogProps = Omit<
   React.ComponentProps<typeof AlertDialog>,

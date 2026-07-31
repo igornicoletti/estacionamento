@@ -65,7 +65,6 @@ export {
   type UpsertUnitYardConfigInput,
   type YardStatusFormValue
 } from "./model"
-export { UnitsRoute, UnitUsersRoute } from "./routes"
 export {
   configureUnitsGateway, configureUnitSyncHistoryGateway,
   configureUnitUserStatsGateway,

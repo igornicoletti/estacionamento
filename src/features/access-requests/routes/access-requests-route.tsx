@@ -1,8 +1,5 @@
 import { DatabaseIcon, ShieldAlertIcon } from "lucide-react"
 import * as React from "react"
-import { Navigate } from "react-router"
-
-import { appRoutePaths } from "@/app/router/route-registry"
 import { DataTable } from "@/components/data-table"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
@@ -289,10 +286,6 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
 
 export function AccessRequestsRoute() {
   return <AccessRequestsPanel />
-}
-
-export function AccessRequestsRedirectRoute() {
-  return <Navigate to={`${appRoutePaths.users}?tab=solicitacoes`} replace />
 }
 
 export default AccessRequestsRoute

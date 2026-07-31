@@ -127,6 +127,7 @@ export {
   formatSelectedRows,
   formatDisplayedRows,
   formatPageOf,
+  formatResultCount,
   dataTableCopy,
 } from "./data-table-copy"
 export {

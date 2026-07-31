@@ -19,7 +19,6 @@ import {
   type VisibilityState,
 } from "@tanstack/react-table"
 import {
-  ChevronsUpDownIcon,
   DatabaseIcon,
   ListRestartIcon,
   PlusIcon,
@@ -30,11 +29,6 @@ import * as React from "react"
 
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from "@/components/ui/collapsible"
-import {
   Table,
   TableBody,
   TableCell,
@@ -44,7 +38,6 @@ import {
 } from "@/components/ui/table"
 import { cn } from "@/lib/utils"
 
-import { Button } from '@/components/ui/button'
 import { DataTableColumnHeader } from "./data-table-column-header"
 import {
   DATA_TABLE_INITIAL_PAGE_SIZE,
@@ -277,7 +270,7 @@ function DataTableStatePanel({
     <div
       role={kind === "error" ? "alert" : kind === "loading" ? "status" : undefined}
       aria-live={kind === "error" ? "assertive" : kind === "loading" ? "polite" : undefined}
-      className="flex items-center justify-center px-3 py-8 sm:px-4 sm:py-10"
+      className="flex justify-center px-3 py-8 sm:px-4 sm:py-10"
     >
       <div className="w-full max-w-sm sm:max-w-md">{children}</div>
     </div>
@@ -419,7 +412,6 @@ export function DataTable<TData extends RowData, TValue>({
   manualSorting = false,
   pageCount,
   rowCount,
-  sourceRowCount,
   selectedRowCount: controlledSelectedRowCount,
   selectionRowCount,
   canPreviousPage,
@@ -500,6 +492,7 @@ export function DataTable<TData extends RowData, TValue>({
       storageKey: tableStateStorageKey,
       storageAdapter: dataTablePaginationStateAdapter,
     })
+  const [toolbarResetKey, setToolbarResetKey] = React.useState(0)
 
   const normalizedPagination = React.useMemo(
     () =>
@@ -617,6 +610,7 @@ export function DataTable<TData extends RowData, TValue>({
   const handleClearFilters = React.useCallback(() => {
     setColumnFilters([])
     setGlobalFilter("")
+    setToolbarResetKey((previous) => previous + 1)
     resetPageIndex()
   }, [resetPageIndex, setColumnFilters, setGlobalFilter])
 
@@ -682,44 +676,29 @@ export function DataTable<TData extends RowData, TValue>({
 
   const visibleRows = table.getRowModel().rows
   const hasVisibleRows = visibleRows.length > 0
-  const sourceTotalRowCount = normalizeOptionalRowCount(
-    sourceRowCount,
-    tableData.length
-  )
   const currentRowCount = manualPagination || manualFiltering
     ? normalizeOptionalRowCount(rowCount, tableData.length)
     : table.getFilteredRowModel().rows.length
-  const hasKnownRows =
-    sourceTotalRowCount > 0 || currentRowCount > 0 || hasVisibleRows
   const hasError = Boolean(error)
   const hasBlockingError = hasError && !isLoading && !hasVisibleRows
   const hasNonBlockingError = hasError && !isLoading && hasVisibleRows
   const isInitialLoading = isLoading && !hasVisibleRows
   const shouldRenderInitialSkeleton =
     isInitialLoading && loadingState === undefined
-  const shouldRenderFilteredStructure =
-    isFiltered &&
-    hasKnownRows &&
-    !isLoading &&
-    !hasBlockingError &&
-    !hasVisibleRows
-
-  const hasToolbarSurface =
+  const hasPersistentToolbarControls =
     Boolean(normalizedGlobalSearch) ||
     normalizedSearchFields.length > 0 ||
     normalizedFilterFields.length > 0 ||
-    React.Children.toArray(toolbarActions).length > 0 ||
-    enableViewOptions ||
-    enableExport
+    React.Children.toArray(toolbarActions).length > 0
+  const hasToolbarSurface =
+    hasPersistentToolbarControls || enableViewOptions || enableExport
   const shouldRenderToolbar =
     !hasBlockingError &&
     !isInitialLoading &&
     hasToolbarSurface &&
-    (hasKnownRows || isFiltered)
+    (hasVisibleRows || isFiltered || hasPersistentToolbarControls)
   const shouldRenderPagination =
-    enablePagination &&
-    !hasBlockingError &&
-    (hasVisibleRows || shouldRenderFilteredStructure)
+    enablePagination && !hasBlockingError && hasVisibleRows
 
   const errorAction = React.useMemo<DataTableStateAction | undefined>(
     () =>
@@ -812,10 +791,7 @@ export function DataTable<TData extends RowData, TValue>({
     surface === "card" ? "bg-card" : "bg-background"
   const caption = `${resolvedAriaLabel}. ${currentRowCount} ${currentRowCount === 1 ? "registro" : "registros"
     }${isFiltered ? " filtrados" : ""}.`
-  const shouldRenderTable =
-    shouldRenderInitialSkeleton ||
-    hasVisibleRows ||
-    shouldRenderFilteredStructure
+  const shouldRenderTable = shouldRenderInitialSkeleton || hasVisibleRows
 
   const tableSurfaceContent = (
     <>
@@ -916,7 +892,6 @@ export function DataTable<TData extends RowData, TValue>({
           selectedRowCount={selectedRowCount}
           selectionRowCount={selectionRowCount}
           showSelectedCount={enableRowSelection}
-          showWhenEmpty={shouldRenderFilteredStructure}
           canPreviousPage={canPreviousPage}
           canNextPage={canNextPage}
         />
@@ -940,54 +915,26 @@ export function DataTable<TData extends RowData, TValue>({
       ) : null}
 
       {shouldRenderToolbar ? (
-        <Card size="sm">
-          <Collapsible
-            defaultOpen
-            className="group/data-table-controls"
-          >
-            <div className="flex items-center justify-between gap-2 px-4 py-3">
-              <div className="flex flex-col gap-1">
-                <h4 className="text-sm font-medium leading-none">
-                  {dataTableCopy.toolbar.controlsTitle}
-                </h4>
-                <p className="text-sm text-muted-foreground">
-                  {dataTableCopy.toolbar.controlsDescription}
-                </p>
-              </div>
-              <CollapsibleTrigger asChild>
-                <Button variant="ghost" size="icon" className="size-8">
-                  <ChevronsUpDownIcon />
-                  <span className="sr-only">{dataTableCopy.toolbar.toggleControls}</span>
-                </Button>
-              </CollapsibleTrigger>
-            </div>
-            <CollapsibleContent className="pt-3">
-              <CardContent>
-                <DataTableToolbar
-                  table={table}
-                  globalSearch={normalizedGlobalSearch}
-                  globalSearchAriaLabel={
-                    normalizedGlobalSearch?.ariaLabel
-                  }
-                  searchFields={normalizedSearchFields}
-                  filterFields={normalizedFilterFields}
-                  actions={toolbarActions}
-                  enableViewOptions={enableViewOptions}
-                  enableExport={enableExport}
-                  exportConfig={exportConfig}
-                  canExport={(canExport ?? true) && hasVisibleRows}
-                  manualFiltering={manualFiltering}
-                  isLoading={isLoading}
-                  allowExportWhileLoading={allowExportWhileLoading}
-                  isExternallyFiltered={isExternallyFiltered}
-                  globalFilterValue={globalFilter}
-                  onGlobalFilterChange={handleGlobalFilterChange}
-                  onClearFilters={handleClearFilters}
-                />
-              </CardContent>
-            </CollapsibleContent>
-          </Collapsible>
-        </Card>
+        <DataTableToolbar
+          key={toolbarResetKey}
+          table={table}
+          globalSearch={normalizedGlobalSearch}
+          globalSearchAriaLabel={normalizedGlobalSearch?.ariaLabel}
+          searchFields={normalizedSearchFields}
+          filterFields={normalizedFilterFields}
+          actions={toolbarActions}
+          enableViewOptions={enableViewOptions}
+          enableExport={enableExport}
+          exportConfig={exportConfig}
+          canExport={(canExport ?? true) && hasVisibleRows}
+          manualFiltering={manualFiltering}
+          isLoading={isLoading}
+          allowExportWhileLoading={allowExportWhileLoading}
+          isExternallyFiltered={isExternallyFiltered}
+          globalFilterValue={globalFilter}
+          resultCount={currentRowCount}
+          onGlobalFilterChange={handleGlobalFilterChange}
+        />
       ) : null}
 
       {isLoading && loadingState === undefined ? (

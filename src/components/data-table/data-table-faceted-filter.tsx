@@ -1,25 +1,24 @@
 import { type Column } from "@tanstack/react-table"
-import { XIcon } from "lucide-react"
+import { XIcon, type LucideIcon } from "lucide-react"
 import * as React from "react"
 
 import { Button } from "@/components/ui/button"
 import {
   Combobox,
-  ComboboxChip,
-  ComboboxChips,
-  ComboboxChipsInput,
   ComboboxCollection,
   ComboboxContent,
   ComboboxEmpty,
   ComboboxGroup,
+  ComboboxInput,
   ComboboxItem,
   ComboboxLabel,
   ComboboxList,
-  ComboboxValue,
-  useComboboxAnchor,
+  ComboboxSeparator,
+  ComboboxTrigger,
 } from "@/components/ui/combobox"
 
 import { dataTableCopy } from "./data-table-copy"
+import { DataTableFilterIcon } from "./data-table-filter-icon"
 import { dedupeFilterOptions } from "./data-table-filter-utils"
 import {
   type DataTableFacetCountSource,
@@ -29,6 +28,7 @@ import {
 
 interface DataTableFacetedFilterProps<TData, TValue> {
   column: Column<TData, TValue>
+  icon?: LucideIcon
   title: string
   options: readonly DataTableFilterOption[]
   groups?: readonly DataTableFilterOptionGroup[]
@@ -36,7 +36,8 @@ interface DataTableFacetedFilterProps<TData, TValue> {
   showCounts?: boolean
   facetCountSource?: DataTableFacetCountSource
   facetValueToOptionValue?: (value: unknown) => string | null
-  maxVisibleChips?: number
+  defaultOpen?: boolean
+  onRemove: () => void
 }
 
 interface ResolvedFilterOptionGroup {
@@ -50,12 +51,8 @@ interface ResolvedFilterOptionLayout {
   ungroupedOptions: readonly DataTableFilterOption[]
 }
 
-const DEFAULT_MAX_VISIBLE_CHIPS = 3
-
-function normalizeMaxVisibleChips(value: number): number {
-  return Number.isFinite(value)
-    ? Math.max(1, Math.trunc(value))
-    : DEFAULT_MAX_VISIBLE_CHIPS
+function normalizeVisibleText(value: string | undefined): string {
+  return value?.trim().replace(/\s+/gu, " ").normalize("NFC") ?? ""
 }
 
 function normalizeFacetCount(value: unknown): number | undefined {
@@ -76,6 +73,7 @@ function normalizeSelectedFilterValues(
       unique.add(value)
     }
   }
+
   return Array.from(unique)
 }
 
@@ -84,6 +82,7 @@ function resolveNextFilterValue(
 ): string[] | undefined {
   const options = Array.isArray(value) ? value : value ? [value] : []
   const values = Array.from(new Set(options.map((option) => option.value)))
+
   return values.length ? values : undefined
 }
 
@@ -130,7 +129,7 @@ function resolveFilterOptionLayout(
   const seenGroupKeys = new Set<string>()
 
   for (const group of groups) {
-    const label = group.label.trim().replace(/\s+/gu, " ")
+    const label = normalizeVisibleText(group.label)
     const explicitId = group.id?.trim() ?? ""
     const key = explicitId || label
     if (!label || !key || seenGroupKeys.has(key)) continue
@@ -169,9 +168,21 @@ function resolveOptionCount({
   columnFacetCounts?: ReadonlyMap<string, number>
 }): number | undefined {
   if (!showCounts) return undefined
+
   return facetCountSource === "options"
     ? normalizeFacetCount(option.count)
     : columnFacetCounts?.get(option.value)
+}
+
+export function resolveDataTableFacetedFilterTriggerLabel(
+  title: string,
+  selectedOptions: readonly DataTableFilterOption[]
+): string {
+  if (selectedOptions.length === 0) return title
+  if (selectedOptions.length === 1) return selectedOptions[0]?.label ?? title
+
+  const firstLabel = selectedOptions[0]?.label ?? title
+  return `${firstLabel} +${selectedOptions.length - 1}`
 }
 
 function DataTableFacetedFilterItem({
@@ -182,11 +193,19 @@ function DataTableFacetedFilterItem({
   count?: number
 }) {
   return (
-    <ComboboxItem value={option}>
+    <ComboboxItem
+      value={option}
+      className="pr-8"
+    >
       <span className="min-w-0 flex-1 truncate">{option.label}</span>
       {count !== undefined ? (
-        <span className="ml-auto text-xs tabular-nums text-muted-foreground">
-          {count}
+        <span
+          className="mr-6 ml-auto flex shrink-0 items-center"
+          data-slot="data-table-filter-item-meta"
+        >
+          <span className="text-xs tabular-nums text-muted-foreground">
+            {count}
+          </span>
         </span>
       ) : null}
     </ComboboxItem>
@@ -195,6 +214,7 @@ function DataTableFacetedFilterItem({
 
 export function DataTableFacetedFilter<TData, TValue>({
   column,
+  icon,
   title,
   options,
   groups = [],
@@ -202,7 +222,8 @@ export function DataTableFacetedFilter<TData, TValue>({
   showCounts = true,
   facetCountSource = "column",
   facetValueToOptionValue,
-  maxVisibleChips = DEFAULT_MAX_VISIBLE_CHIPS,
+  defaultOpen = false,
+  onRemove,
 }: DataTableFacetedFilterProps<TData, TValue>) {
   const uniqueOptions = React.useMemo(
     () => dedupeFilterOptions(options),
@@ -216,36 +237,30 @@ export function DataTableFacetedFilter<TData, TValue>({
     () => new Set(optionsByValue.keys()),
     [optionsByValue]
   )
-  const selectedValues = React.useMemo(
-    () =>
-      normalizeSelectedFilterValues(
-        column.getFilterValue(),
-        validOptionValues
-      ),
-    [column, validOptionValues]
+  const selectedValues = normalizeSelectedFilterValues(
+    column.getFilterValue(),
+    validOptionValues
   )
-  const selectedOptions = React.useMemo(
-    () =>
-      selectedValues.flatMap((value) => {
-        const option = optionsByValue.get(value)
-        return option ? [option] : []
-      }),
-    [optionsByValue, selectedValues]
-  )
+  const selectedOptions = selectedValues.flatMap((value) => {
+    const option = optionsByValue.get(value)
+    return option ? [option] : []
+  })
   const optionLayout = React.useMemo(
     () => resolveFilterOptionLayout(uniqueOptions, groups),
     [groups, uniqueOptions]
   )
-  const visibleSelectedOptions = selectedOptions.slice(
-    0,
-    normalizeMaxVisibleChips(maxVisibleChips)
-  )
-  const hiddenSelectedOptionCount =
-    selectedOptions.length - visibleSelectedOptions.length
-  const filterLabel = title.trim()
+  const filterLabel =
+    normalizeVisibleText(title) || dataTableCopy.toolbar.addFilter
   const filterPlaceholder =
-    placeholder?.trim() ||
-    `${dataTableCopy.toolbar.filterPlaceholderPrefix} ${title}`
+    normalizeVisibleText(placeholder) ||
+    `${dataTableCopy.toolbar.searchFilterPlaceholderPrefix} ${filterLabel.toLocaleLowerCase("pt-BR")}`
+  const triggerLabel = resolveDataTableFacetedFilterTriggerLabel(
+    filterLabel,
+    selectedOptions
+  )
+  const hasSelection = selectedOptions.length > 0
+  const triggerAriaLabel = `${dataTableCopy.toolbar.filterPlaceholderPrefix} ${filterLabel}`
+  const inputAriaLabel = `${dataTableCopy.toolbar.searchFilterPlaceholderPrefix} ${filterLabel}`
   const facets =
     showCounts && facetCountSource === "column"
       ? column.getFacetedUniqueValues()
@@ -261,7 +276,15 @@ export function DataTableFacetedFilter<TData, TValue>({
         : undefined,
     [facets, facetValueToOptionValue, validOptionValues]
   )
-  const anchorRef = useComboboxAnchor()
+
+  const handleRemove = React.useCallback(() => {
+    column.setFilterValue(undefined)
+    onRemove()
+  }, [column, onRemove])
+
+  const handleClearSelection = React.useCallback(() => {
+    column.setFilterValue(undefined)
+  }, [column])
 
   if (!uniqueOptions.length) return null
 
@@ -279,121 +302,109 @@ export function DataTableFacetedFilter<TData, TValue>({
   )
 
   return (
-    <Combobox
-      items={uniqueOptions}
-      multiple
-      value={selectedOptions}
-      onValueChange={(
-        value: DataTableFilterOption | DataTableFilterOption[] | null
-      ) => column.setFilterValue(resolveNextFilterValue(value))}
-      itemToStringValue={(option: DataTableFilterOption) => option.label}
-    >
-      <ComboboxChips
-        ref={anchorRef}
-        data-no-drag-scroll="true"
-        showTrigger
-        className="h-9 min-h-9 w-full min-w-40 flex-nowrap overflow-hidden pr-1 lg:w-44 xl:w-48 2xl:w-56"
+    <div className="relative max-w-full shrink-0">
+      <Combobox
+        items={uniqueOptions}
+        multiple
+        defaultOpen={defaultOpen}
+        value={selectedOptions}
+        onValueChange={(
+          value: DataTableFilterOption | DataTableFilterOption[] | null
+        ) => column.setFilterValue(resolveNextFilterValue(value))}
+        itemToStringValue={(option: DataTableFilterOption) => option.label}
       >
-        <ComboboxValue>
-          {visibleSelectedOptions.map((option) => (
-            <ComboboxChip
-              key={option.value}
-              showRemove={false}
-              className="max-w-28 shrink-0"
-            >
-              <span className="truncate">{option.label}</span>
-              <Button
-                data-no-drag-scroll="true"
-                type="button"
-                variant="ghost"
-                size="icon-xs"
-                className="-mr-1 -ml-0.5 opacity-60 hover:opacity-100"
-                aria-label={`Remover ${option.label}`}
-                onClick={(event) => {
-                  event.preventDefault()
-                  event.stopPropagation()
-                  const nextValues = selectedValues.filter(
-                    (value) => value !== option.value
-                  )
-                  column.setFilterValue(
-                    nextValues.length ? nextValues : undefined
-                  )
-                }}
-              >
-                <XIcon aria-hidden="true" />
-              </Button>
-            </ComboboxChip>
-          ))}
-          {hiddenSelectedOptionCount > 0 ? (
+        <ComboboxTrigger
+          data-no-drag-scroll="true"
+          data-slot="data-table-filter-trigger"
+          render={
+            <Button
+              type="button"
+              variant={hasSelection ? "secondary" : "outline"}
+              className="h-9 w-fit max-w-72 rounded-full px-3 pr-9"
+            />
+          }
+          aria-label={triggerAriaLabel}
+        >
+          <DataTableFilterIcon
+            icon={icon}
+            kind="faceted"
+          />
+          <span className="max-w-56 truncate">{triggerLabel}</span>
+        </ComboboxTrigger>
+
+        <ComboboxContent className="w-72 max-w-[calc(100vw-2rem)] min-w-56">
+          <ComboboxInput
+            aria-label={inputAriaLabel}
+            placeholder={filterPlaceholder}
+            showTrigger={false}
+          />
+          <ComboboxEmpty>{dataTableCopy.facetedFilter.noResults}</ComboboxEmpty>
+          <ComboboxList>
+            {optionLayout.groups.length ? (
+              <>
+                {optionLayout.groups.map((group) => (
+                  <ComboboxGroup key={group.key} items={group.options}>
+                    <ComboboxLabel>{group.label}</ComboboxLabel>
+                    <ComboboxCollection>
+                      {(option: DataTableFilterOption) => renderOption(option)}
+                    </ComboboxCollection>
+                  </ComboboxGroup>
+                ))}
+                {optionLayout.ungroupedOptions.length ? (
+                  <ComboboxGroup items={optionLayout.ungroupedOptions}>
+                    <ComboboxCollection>
+                      {(option: DataTableFilterOption) => renderOption(option)}
+                    </ComboboxCollection>
+                  </ComboboxGroup>
+                ) : null}
+              </>
+            ) : (
+              <ComboboxCollection>
+                {(option: DataTableFilterOption) => renderOption(option)}
+              </ComboboxCollection>
+            )}
+          </ComboboxList>
+
+          {hasSelection ? (
             <>
-              <span
-                aria-hidden="true"
-                className="shrink-0 text-xs font-medium text-muted-foreground"
-              >
-                +{hiddenSelectedOptionCount}
-              </span>
-              <span className="sr-only">
-                {hiddenSelectedOptionCount} opções adicionais selecionadas
-              </span>
+              <ComboboxSeparator />
+              <div className="p-1">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="w-full justify-center"
+                  aria-label={`${dataTableCopy.facetedFilter.clearFilterAriaLabelPrefix}: ${filterLabel}`}
+                  onPointerDown={(event) => event.preventDefault()}
+                  onClick={handleClearSelection}
+                >
+                  {dataTableCopy.facetedFilter.clearFilter}
+                </Button>
+              </div>
             </>
           ) : null}
-        </ComboboxValue>
-        <ComboboxChipsInput
-          aria-label={filterLabel}
-          className="min-w-8 flex-1 text-left"
-          placeholder={selectedOptions.length ? "" : filterPlaceholder}
-        />
-        {selectedOptions.length ? (
-          <Button
-            data-no-drag-scroll="true"
-            type="button"
-            variant="ghost"
-            size="icon-xs"
-            className="shrink-0 text-muted-foreground hover:text-foreground"
-            aria-label={dataTableCopy.facetedFilter.clearFilters}
-            onClick={(event) => {
-              event.preventDefault()
-              event.stopPropagation()
-              column.setFilterValue(undefined)
-            }}
-          >
-            <XIcon aria-hidden="true" />
-          </Button>
-        ) : null}
-      </ComboboxChips>
+        </ComboboxContent>
+      </Combobox>
 
-      <ComboboxContent
-        anchor={anchorRef}
+      <Button
         data-no-drag-scroll="true"
-        className="w-(--anchor-width) min-w-(--anchor-width)"
+        type="button"
+        variant="ghost"
+        size="icon-xs"
+        className="absolute top-1/2 right-1 -translate-y-1/2 rounded-full text-muted-foreground hover:text-foreground"
+        aria-label={`${dataTableCopy.toolbar.removeFilterPrefix}: ${filterLabel}`}
+        onPointerDown={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+        }}
+        onClick={(event) => {
+          event.preventDefault()
+          event.stopPropagation()
+          handleRemove()
+        }}
       >
-        <ComboboxEmpty>{dataTableCopy.facetedFilter.noResults}</ComboboxEmpty>
-        <ComboboxList>
-          {optionLayout.groups.length ? (
-            <>
-              {optionLayout.groups.map((group) => (
-                <ComboboxGroup key={group.key} items={group.options}>
-                  <ComboboxLabel>{group.label}</ComboboxLabel>
-                  <ComboboxCollection>
-                    {(option: DataTableFilterOption) => renderOption(option)}
-                  </ComboboxCollection>
-                </ComboboxGroup>
-              ))}
-              {optionLayout.ungroupedOptions.length ? (
-                <ComboboxGroup items={optionLayout.ungroupedOptions}>
-                  <ComboboxCollection>
-                    {(option: DataTableFilterOption) => renderOption(option)}
-                  </ComboboxCollection>
-                </ComboboxGroup>
-              ) : null}
-            </>
-          ) : (
-            <ComboboxCollection>
-              {(option: DataTableFilterOption) => renderOption(option)}
-            </ComboboxCollection>
-          )}
-        </ComboboxList>
-      </ComboboxContent>
-    </Combobox>
+        <XIcon aria-hidden="true" data-icon="icon-only" />
+      </Button>
+    </div>
   )
 }

@@ -79,7 +79,9 @@ describe("AccessRequestsRoute", () => {
   })
 
   it("renders pending recovery rows", async () => {
-    const { AccessRequestsRoute } = await import("@/features/access-requests")
+    const { AccessRequestsRoute } = await import(
+      "@/features/access-requests/routes/access-requests-route"
+    )
 
     render(
       <MemoryRouter>
@@ -105,7 +107,9 @@ describe("AccessRequestsRoute", () => {
   }, 15_000)
 
   it("filters access requests by reason with counters", async () => {
-    const { AccessRequestsRoute } = await import("@/features/access-requests")
+    const { AccessRequestsRoute } = await import(
+      "@/features/access-requests/routes/access-requests-route"
+    )
 
     const { baseElement } = render(
       <MemoryRouter>
@@ -117,10 +121,23 @@ describe("AccessRequestsRoute", () => {
       expect(screen.getByText("Erro no aplicativo autenticador")).toBeInTheDocument()
     })
 
-    const reasonFilter = screen.getByRole("combobox", { name: "Motivos" })
+    fireEvent.pointerDown(
+      screen.getByRole("button", { name: "Abrir filtros da tabela" }),
+      { button: 0, ctrlKey: false, pointerType: "mouse" }
+    )
+    fireEvent.click(await screen.findByRole("menuitem", { name: "Motivos" }))
 
-    fireEvent.click(reasonFilter)
-    fireEvent.keyDown(reasonFilter, { key: "ArrowDown" })
+    const reasonFilter = await screen.findByRole("combobox", {
+      name: "Filtrar por Motivos",
+    })
+
+    if (reasonFilter.getAttribute("aria-expanded") !== "true") {
+      fireEvent.click(reasonFilter)
+    }
+
+    expect(
+      await screen.findByRole("combobox", { name: "Buscar em Motivos" })
+    ).toBeInTheDocument()
 
     await waitFor(() => {
       const content = baseElement.querySelector('[data-slot="combobox-content"]')
@@ -131,14 +148,22 @@ describe("AccessRequestsRoute", () => {
         item.textContent?.includes("Outro motivo")
       )
 
-      expect(otherReason?.textContent).toContain("1")
+      expect(otherReason).toBeDefined()
+      expect(otherReason).toHaveTextContent("1")
+      expect(
+        otherReason?.querySelector(
+          '[data-slot="data-table-filter-selection"]'
+        )
+      ).toBeNull()
     })
   }, 15_000)
 
   it("submits a recovery review action", async () => {
     invokeMock.mockResolvedValue({ data: { message: "ok" }, error: null })
 
-    const { AccessRequestsRoute } = await import("@/features/access-requests")
+    const { AccessRequestsRoute } = await import(
+      "@/features/access-requests/routes/access-requests-route"
+    )
 
     render(
       <MemoryRouter>
@@ -175,7 +200,9 @@ describe("AccessRequestsRoute", () => {
   it("submits a recovery denial action after destructive confirmation", async () => {
     invokeMock.mockResolvedValue({ data: { message: "ok" }, error: null })
 
-    const { AccessRequestsRoute } = await import("@/features/access-requests")
+    const { AccessRequestsRoute } = await import(
+      "@/features/access-requests/routes/access-requests-route"
+    )
 
     render(
       <MemoryRouter>
@@ -207,7 +234,9 @@ describe("AccessRequestsRoute", () => {
   })
 
   it("redirects the standalone route to the users access requests tab", async () => {
-    const { AccessRequestsRedirectRoute } = await import("@/features/access-requests")
+    const { AccessRequestsRedirectRoute } = await import(
+      "@/features/access-requests/routes/access-requests-redirect-route"
+    )
 
     render(
       <MemoryRouter initialEntries={["/solicitacoes-acesso"]}>

@@ -3,7 +3,12 @@ export {
   createAuditColumns,
 } from "./table"
 export { useAudit } from "./hooks/use-audit"
-export { listAuditEvents } from "./services/audit-service"
+export {
+  configureAuditGateway,
+  listAuditEvents,
+  resetAuditGateway,
+  type AuditGateway,
+} from "./services"
 export {
   sanitizeAuditEventPayload,
   sanitizeAuditEventsPayload,

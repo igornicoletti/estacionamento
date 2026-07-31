@@ -14,7 +14,6 @@ export default tseslint.config(
       ".quality-gate-logs/**",
       "src/components/ui/carousel.tsx",
       "src/components/ui/chart.tsx",
-      "src/hooks/use-mobile.ts",
     ],
   },
   {
