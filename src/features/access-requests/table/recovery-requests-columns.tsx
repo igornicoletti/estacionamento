@@ -2,7 +2,7 @@ import type { ColumnDef } from "@tanstack/react-table"
 
 import { createActionsColumn, DataTableSensitiveValue, DataTableTextAction } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { formatDateTime, getBadgeToneClassName, onlyDigits, type BadgeTone } from "@/lib"
+import { formatDateTime, onlyDigits } from "@/lib"
 
 import { accessRequestsCopy } from "../constants"
 import {
@@ -15,15 +15,6 @@ interface CreateRecoveryRequestsColumnsOptions {
   canReview?: boolean
   onOpenDetails: (request: AccessRecoveryRequestRecord) => void
   onReview: (request: AccessRecoveryRequestRecord, decision: AccessRequestReviewDecision) => void
-}
-
-const verificationToneByStatus: Record<
-  AccessRecoveryRequestRecord["verificationStatus"],
-  BadgeTone | null
-> = {
-  matched: "success",
-  mismatch: "warning",
-  unverified: "info",
 }
 
 function maskRecoveryPhone(value: string) {
@@ -103,6 +94,7 @@ export function createRecoveryRequestsColumns({
         <DataTableSensitiveValue
           value={row.original.phoneMasked}
           kind="phone"
+          canReveal
           fallback={accessRequestsCopy.shared.emptyValue}
           maskValue={maskRecoveryPhone}
         />
@@ -120,9 +112,6 @@ export function createRecoveryRequestsColumns({
         <div className="flex justify-center">
           <Badge
             variant="secondary"
-            className={getBadgeToneClassName(
-              verificationToneByStatus[row.original.verificationStatus]
-            )}
           >
             {row.original.verificationLabel}
           </Badge>
@@ -130,7 +119,7 @@ export function createRecoveryRequestsColumns({
       ),
       enableSorting: false,
       header: () => (
-        <div className="text-center font-medium">
+        <div className="text-center">
           {accessRequestsCopy.tables.recovery.columns.verification}
         </div>
       ),
@@ -146,22 +135,22 @@ export function createRecoveryRequestsColumns({
       },
       ...(canReview
         ? [
-            {
-              id: "approve-recovery" as const,
-              label: accessRequestsCopy.actions.approve,
-              onSelect: (row: { original: AccessRecoveryRequestRecord }) => {
-                onReview(row.original, "approved")
-              },
+          {
+            id: "approve-recovery" as const,
+            label: accessRequestsCopy.actions.approve,
+            onSelect: (row: { original: AccessRecoveryRequestRecord }) => {
+              onReview(row.original, "approved")
             },
-            {
-              id: "deny-recovery" as const,
-              label: accessRequestsCopy.actions.deny,
-              onSelect: (row: { original: AccessRecoveryRequestRecord }) => {
-                onReview(row.original, "denied")
-              },
-              variant: "destructive" as const,
+          },
+          {
+            id: "deny-recovery" as const,
+            label: accessRequestsCopy.actions.deny,
+            onSelect: (row: { original: AccessRecoveryRequestRecord }) => {
+              onReview(row.original, "denied")
             },
-          ]
+            variant: "destructive" as const,
+          },
+        ]
         : []),
     ]),
   ]

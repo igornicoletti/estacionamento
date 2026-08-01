@@ -1,66 +1,33 @@
 import * as React from "react"
 
-import {
-  createDataTableFilterOptions,
-  DataTable,
-} from "@/components/data-table"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppPage } from "@/components/shared/app-page"
 
-import { createPermissionsColumns } from "../table"
+import { PermissionsTable } from "../components/permissions-table"
+import { permissionsCopy } from "../constants/permissions-copy"
 import { usePermissions } from "../hooks/use-permissions"
-import {
-  getPermissionDetailItems,
-  type PermissionMatrixRow,
-} from "../model"
+import { getPermissionDetailItems } from "../model/permissions-details-model"
+import { type PermissionTableRow } from "../model/permissions-types"
 
 export function PermissionsRoute() {
-  const { data: permissions, error, isLoading, refetch } = usePermissions()
+  const { data: matrix, error, isLoading, refetch } = usePermissions()
   const [selectedPermission, setSelectedPermission] =
-    React.useState<PermissionMatrixRow | null>(null)
-  const columns = React.useMemo(
-    () => createPermissionsColumns({ onOpenDetails: setSelectedPermission }),
-    []
-  )
-
-  const groupOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        permissions,
-        (permission) => permission.groupLabel,
-        (permission) => permission.groupLabel
-      ),
-    [permissions]
-  )
+    React.useState<PermissionTableRow | null>(null)
 
   return (
     <AppPage
-      title="Perfil e Permissões"
-      subtitle="Consulte a matriz de perfis e as permissões concedidas a cada nível de acesso do sistema."
+      title={permissionsCopy.page.title}
+      subtitle={permissionsCopy.page.subtitle}
       headingClassName="max-w-2xl"
     >
-      <DataTable
-        columns={columns}
-        data={permissions}
-        getRowId={(permission) => permission.key}
-        globalSearch={{
-          columnIds: ["key", "label", "groupLabel"],
-          placeholder: "Buscar permissões...",
-        }}
-        filterFields={[
-          {
-            id: "groupLabel",
-            title: "Grupos",
-            options: groupOptions,
-          },
-        ]}
+      <PermissionsTable
+        matrix={matrix}
         isLoading={isLoading}
         error={error}
+        onOpenDetails={setSelectedPermission}
         onRetry={() => {
           void refetch()
         }}
-        enablePagination
-        enableViewOptions
       />
 
       <AppDetailsSheet
@@ -70,14 +37,16 @@ export function PermissionsRoute() {
             setSelectedPermission(null)
           }
         }}
-        title={selectedPermission ? "Detalhes da permissão" : undefined}
+        title={selectedPermission ? permissionsCopy.details.title : undefined}
         description={
           selectedPermission
-            ? "Consulte a classificação e os perfis com acesso à permissão selecionada."
+            ? permissionsCopy.details.description
             : undefined
         }
         items={
-          selectedPermission ? getPermissionDetailItems(selectedPermission) : []
+          selectedPermission
+            ? getPermissionDetailItems(selectedPermission, matrix.roles)
+            : []
         }
       />
     </AppPage>

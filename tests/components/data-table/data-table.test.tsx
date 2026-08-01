@@ -1,4 +1,5 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { CircleDotIcon } from "lucide-react"
 import { describe, expect, it } from "vitest"
 
 import { DataTable } from "@/components/data-table/data-table"
@@ -40,6 +41,7 @@ const globalSearch = {
 const filterFields = [
   {
     id: "status",
+    icon: CircleDotIcon,
     title: "Status",
     options: [
       { label: "Ativo", value: "active", count: 1 },
@@ -85,6 +87,47 @@ describe("DataTable", () => {
     expect(screen.getByLabelText("Buscar linhas...")).toBeInTheDocument()
     expectResultCount("0 resultados")
     expect(screen.queryByRole("table")).not.toBeInTheDocument()
+  })
+
+  it("preserves the final toolbar layout during the initial skeleton", () => {
+    const { rerender } = render(
+      <DataTable
+        columns={columns}
+        data={[]}
+        getRowId={(row) => row.id}
+        globalSearch={globalSearch}
+        filterFields={filterFields}
+        isLoading
+        enableExport
+      />
+    )
+
+    expect(screen.getByLabelText("Buscar linhas...")).toBeDisabled()
+    expect(
+      screen.getByRole("button", { name: "Abrir filtros da tabela" })
+    ).toBeDisabled()
+    expect(screen.getByRole("button", { name: "Colunas" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Abrir menu de exportação" })
+    ).toBeDisabled()
+    expect(screen.getByRole("table")).toBeInTheDocument()
+
+    rerender(
+      <DataTable
+        columns={columns}
+        data={rows}
+        getRowId={(row) => row.id}
+        globalSearch={globalSearch}
+        filterFields={filterFields}
+        enableExport
+      />
+    )
+
+    expect(screen.getByLabelText("Buscar linhas...")).toBeEnabled()
+    expect(
+      screen.getByRole("button", { name: "Abrir filtros da tabela" })
+    ).toBeEnabled()
+    expect(screen.getByRole("button", { name: "Colunas" })).toBeInTheDocument()
   })
 
   it("renders a filtered empty state without table or pagination", () => {
@@ -157,7 +200,12 @@ describe("DataTable", () => {
       screen.getByRole("button", { name: "Abrir filtros da tabela" }),
       { button: 0, ctrlKey: false, pointerType: "mouse" }
     )
-    fireEvent.click(await screen.findByRole("menuitem", { name: "Status" }))
+    const statusMenuItem = await screen.findByRole("menuitem", {
+      name: "Status",
+    })
+    expect(statusMenuItem.querySelector(".lucide-circle-dot")).not.toBeNull()
+    expect(statusMenuItem.querySelector(".lucide-list-filter")).toBeNull()
+    fireEvent.click(statusMenuItem)
 
     const statusFilter = await screen.findByRole("combobox", {
       name: "Filtrar por Status",
@@ -206,6 +254,12 @@ describe("DataTable", () => {
       ).find((candidate) => candidate.textContent?.includes("Inativo"))
 
       expect(selectedItem).toHaveAttribute("aria-selected", "true")
+      expect(selectedItem).toHaveClass("[&>span:last-child]:order-2")
+      expect(
+        selectedItem?.querySelector(
+          '[data-slot="data-table-filter-item-meta"]'
+        )
+      ).toHaveClass("order-3")
     })
 
     fireEvent.click(
@@ -291,8 +345,9 @@ describe("DataTable", () => {
 
     const action = screen.getByRole("button", { name: "Ver detalhes" })
 
-    expect(action).toHaveClass("text-foreground")
-    expect(action).toHaveClass("hover:text-muted-foreground")
+    expect(action).toHaveClass("font-semibold")
+    expect(action).not.toHaveClass("text-foreground")
+    expect(action).not.toHaveClass("hover:text-muted-foreground")
     expect(action).not.toHaveClass("text-primary")
     expect(action).not.toHaveClass("hover:underline")
   })
@@ -330,4 +385,34 @@ describe("DataTable", () => {
     fireEvent.pointerUp(value, { pointerId: 1 })
     expect(value).toHaveTextContent("**.***.***/****-44")
   })
+
+  it("reveals CPF temporarily without changing the table text size", () => {
+    render(
+      <DataTableSensitiveValue
+        value="11144477735"
+        kind="cpf"
+        canReveal
+      />
+    )
+
+    const value = screen.getByRole("button", {
+      name: "Mantenha pressionado para exibir o conteúdo completo",
+    })
+
+    expect(value).toHaveClass("text-sm")
+    expect(value).toHaveClass("font-medium")
+    expect(value).not.toHaveClass("text-[0.8rem]")
+    expect(value).toHaveTextContent("***.***.***-**")
+
+    fireEvent.pointerDown(value, {
+      button: 0,
+      isPrimary: true,
+      pointerId: 2,
+    })
+    expect(value).toHaveTextContent("111.444.777-35")
+
+    fireEvent.pointerUp(value, { pointerId: 2 })
+    expect(value).toHaveTextContent("***.***.***-**")
+  })
+
 })

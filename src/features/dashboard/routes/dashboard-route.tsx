@@ -1,4 +1,4 @@
-import { LayoutDashboardIcon } from "lucide-react"
+import { LayoutDashboardIcon, RotateCwIcon } from "lucide-react"
 import * as React from "react"
 
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
@@ -61,6 +61,7 @@ export function DashboardRoute() {
             description="Tente novamente para recarregar os indicadores da unidade selecionada."
             actions={(
               <Button type="button" variant="secondary" size="lg" onClick={() => { void refetch() }}>
+                <RotateCwIcon aria-hidden="true" />
                 Recarregar
               </Button>
             )}

@@ -182,7 +182,7 @@ export function DataTableSensitiveValue({
     resolvedValueState === "masked"
       ? normalizedValue
       : customMaskedValue ||
-        maskDataTableSensitiveValue(normalizedValue, kind, maskMode)
+      maskDataTableSensitiveValue(normalizedValue, kind, maskMode)
   const canInteract =
     canReveal &&
     resolvedValueState === "raw" &&
@@ -193,7 +193,7 @@ export function DataTableSensitiveValue({
 
   if (!canInteract) {
     return (
-      <span className={cn("inline-block max-w-full break-all", baseClassName)}>
+      <span className={cn("inline-block max-w-full truncate", baseClassName)}>
         {maskedValue}
       </span>
     )
@@ -232,7 +232,7 @@ export function DataTableSensitiveValue({
       data-no-drag-scroll="true"
       type="button"
       variant="ghost"
-      size="sm"
+      size="default"
       aria-label={
         normalizeAccessibleText(revealLabel) ||
         "Mantenha pressionado para exibir o conteúdo completo"
@@ -241,7 +241,7 @@ export function DataTableSensitiveValue({
       aria-pressed={isRevealed}
       title="Mantenha pressionado para exibir; solte para ocultar"
       className={cn(
-        "h-auto max-w-full justify-start whitespace-normal break-all px-1 py-0.5 text-left font-normal",
+        "h-auto max-w-full justify-start overflow-hidden px-1 py-0.5 text-left font-medium",
         baseClassName
       )}
       onPointerDown={(event) => {
@@ -288,7 +288,7 @@ export function DataTableSensitiveValue({
       }}
       onBlur={hideValue}
     >
-      <span aria-hidden="true">{currentValue}</span>
+      <span aria-hidden="true" className="truncate">{currentValue}</span>
       <span id={descriptionId} className="sr-only">
         {stateDescription}
       </span>

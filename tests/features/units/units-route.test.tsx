@@ -2,7 +2,6 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
-import { UnitsRoute } from "@/features/units/routes/units-route"
 import {
   resetUnitYardGateway,
   setUnitYardGateway,
@@ -11,6 +10,7 @@ import {
   resetUnitsGateway,
   setUnitsGateway,
 } from "@/features/units/gateways/units-gateway"
+import { UnitsRoute } from "@/features/units/routes/units-route"
 
 const unitRow = {
   cod_empresa: 1,
@@ -55,7 +55,10 @@ describe("UnitsRoute", () => {
 
     expect(screen.getByRole("heading", { name: "Unidades" })).toBeInTheDocument()
     expect(
-      screen.getByRole("button", { name: "Atualizar dados" })
+      screen.getByRole("button", { name: "Histórico" })
+    ).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Sincronizar" })
     ).toBeInTheDocument()
 
     await waitFor(() => {
@@ -69,5 +72,29 @@ describe("UnitsRoute", () => {
     })
     expect(screen.getAllByText("Código").length).toBeGreaterThan(0)
     expect(screen.getAllByRole("button", { name: "Fechar" }).length).toBeGreaterThan(0)
+  })
+
+  it("reveals the CNPJ only while the value is pressed", async () => {
+    render(
+      <MemoryRouter>
+        <UnitsRoute />
+      </MemoryRouter>
+    )
+
+    const cnpj = await screen.findByRole("button", {
+      name: "Mantenha pressionado para exibir o conteúdo completo",
+    })
+
+    expect(cnpj).toHaveTextContent("**.***.***/****-**")
+
+    fireEvent.pointerDown(cnpj, {
+      button: 0,
+      isPrimary: true,
+      pointerId: 1,
+    })
+    expect(cnpj).toHaveTextContent("00.000.000/0001-00")
+
+    fireEvent.pointerUp(cnpj, { pointerId: 1 })
+    expect(cnpj).toHaveTextContent("**.***.***/****-**")
   })
 })

@@ -25,7 +25,7 @@ interface DataTableTextLinkProps
 }
 
 const dataTableTextActionClassName =
-  "inline-flex h-auto max-w-full min-w-0 cursor-pointer items-center justify-start gap-1 rounded-sm px-0.5 py-0.5 text-left font-medium text-foreground transition-colors hover:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
+  "inline-flex h-auto max-w-full min-w-0 cursor-pointer items-center justify-start gap-1 rounded-sm px-0.5 py-0.5 text-left font-semibold focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:pointer-events-none disabled:cursor-not-allowed disabled:opacity-50"
 
 export function DataTableTextAction({
   children,

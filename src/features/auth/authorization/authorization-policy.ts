@@ -2,7 +2,6 @@ import {
   AUTH_PERMISSION,
   AUTH_PERMISSION_WILDCARD,
   AUTH_ROLE_KEY,
-  getRoleFallbackPermissions,
   type AuthPermission,
   type AuthRoleKey,
   type AuthStatus,
@@ -65,7 +64,6 @@ export const authCapabilityLabels: Record<AuthCapability, string> = {
   [AUTH_PERMISSION.unitsYardManage]: "Gerenciar configuração de pátio",
   [AUTH_PERMISSION.clientsRead]: "Consultar clientes",
   [AUTH_PERMISSION.clientVehiclesRead]: "Consultar veículos de clientes",
-  [AUTH_PERMISSION.clientsSyncRead]: "Consultar sincronização de clientes",
   [AUTH_PERMISSION.pricesRead]: "Consultar preços",
   [AUTH_PERMISSION.pricesManage]: "Gerenciar preços",
   [AUTH_PERMISSION.rulesRead]: "Consultar regras",
@@ -78,10 +76,6 @@ export const authCapabilityLabels: Record<AuthCapability, string> = {
   [AUTH_PERMISSION.auditRead]: "Consultar auditoria",
   [AUTH_PERMISSION.syncExecute]: "Executar sincronizações",
 }
-
-export const permissionsByRole = Object.fromEntries(
-  allRoles.map((role) => [role, getRoleFallbackPermissions(role)])
-) as Record<UserRole, readonly AuthCapability[]>
 
 const roleRank: Record<UserRole, number> = {
   owner: 5,
@@ -105,31 +99,6 @@ export function isGlobalRole(value: unknown) {
 
 export function requiresSingleUnit(value: unknown) {
   return isUserRole(value) && unitScopedRoles.has(value)
-}
-
-export function hasCapability(role: UserRole, capability: AuthCapability) {
-  const permissions = permissionsByRole[role] ?? []
-
-  return (
-    permissions.includes(AUTH_PERMISSION_WILDCARD) ||
-    permissions.includes(capability)
-  )
-}
-
-export function hasAllCapabilities(
-  role: UserRole,
-  capabilities: readonly AuthCapability[]
-) {
-  return capabilities.every((capability) => hasCapability(role, capability))
-}
-
-export function hasAnyCapability(
-  role: UserRole,
-  capabilities: readonly AuthCapability[]
-) {
-  return capabilities.length === 0 || capabilities.some((capability) => {
-    return hasCapability(role, capability)
-  })
 }
 
 export function hasAllPermissions(

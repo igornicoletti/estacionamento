@@ -28,7 +28,7 @@ export function AuthPageCard({
       <img
         src={montecarloLogo}
         alt="Rede Monte Carlo"
-        className="mx-auto h-auto w-full max-w-xs object-contain"
+        className="mx-auto h-auto w-full max-w-sm object-contain"
       />
       <Card className={cn("w-full", className)}>
         <CardHeader className="text-center">

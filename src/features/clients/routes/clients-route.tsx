@@ -1,10 +1,9 @@
-import { RefreshCcwIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate } from "react-router"
 
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppPage } from "@/components/shared/app-page"
-import { Button } from "@/components/ui/button"
+import { SyncOperations } from "@/features/sync"
 
 import { ClientsTable } from "../components/clients-table"
 import { clientsCopy } from "../constants/clients-copy"
@@ -33,20 +32,7 @@ export function ClientsRoute() {
       title={clientsCopy.pages.clients.title}
       subtitle={clientsCopy.pages.clients.subtitle}
       actions={(
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={isLoading}
-          onClick={() => {
-            void refetch()
-          }}
-        >
-          <RefreshCcwIcon
-            data-icon="inline-start"
-            aria-hidden="true"
-          />
-          {clientsCopy.actions.refresh}
-        </Button>
+        <SyncOperations resource="clients" onSynchronized={refetch} />
       )}
     >
       <ClientsTable

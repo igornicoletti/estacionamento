@@ -1,6 +1,6 @@
-import type { ReactNode } from "react"
 import type { RowData } from "@tanstack/react-table"
 import type { LucideIcon } from "lucide-react"
+import type { ReactNode } from "react"
 
 export type DataTableExportCellValue =
   | string
@@ -62,7 +62,7 @@ export type DataTableFacetCountSource = "column" | "options"
 
 export interface DataTableFilterField<TData> {
   id: DataTableColumnId<TData>
-  icon?: LucideIcon
+  icon: LucideIcon
   title: string
   options: readonly DataTableFilterOption[]
   groups?: readonly DataTableFilterOptionGroup[]
@@ -74,7 +74,7 @@ export interface DataTableFilterField<TData> {
 
 export interface DataTableSearchField<TData> {
   id: DataTableColumnId<TData>
-  icon?: LucideIcon
+  icon: LucideIcon
   label?: string
   ariaLabel?: string
   placeholder?: string

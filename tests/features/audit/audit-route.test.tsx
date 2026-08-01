@@ -29,7 +29,7 @@ describe("AuditRoute", () => {
 
     expect(
       await screen.findByRole("menuitem", {
-        name: /Exportar registros carregados/i,
+        name: /Exportar todo o conteúdo/i,
       })
     ).toBeInTheDocument()
   })

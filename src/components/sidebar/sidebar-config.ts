@@ -10,14 +10,13 @@ import {
   ShieldCheckIcon,
   TagsIcon,
   TicketCheckIcon,
-  type LucideIcon,
   UsersIcon,
+  type LucideIcon,
 } from "lucide-react"
 
 import {
-  authenticatedRouteRegistry,
-  appRouteGroupIds,
   appRouteIds,
+  authenticatedRouteRegistry,
   navigationGroups as routeNavigationGroups,
   type AppRouteGroupId,
   type AppRouteRegistryItem,
@@ -94,13 +93,13 @@ const navigableRoutes = authenticatedRouteRegistry.filter(
 ) as readonly NavigableRoute[]
 
 const navigationItemsByGroup = navigableRoutes.reduce((groups, route) => {
-    const groupId = route.navigation.group
-    const items = groups.get(groupId) ?? []
+  const groupId = route.navigation.group
+  const items = groups.get(groupId) ?? []
 
-    groups.set(groupId, [...items, route])
+  groups.set(groupId, [...items, route])
 
-    return groups
-  }, new Map<AppRouteGroupId, readonly NavigableRoute[]>())
+  return groups
+}, new Map<AppRouteGroupId, readonly NavigableRoute[]>())
 
 export const navigationGroups: readonly SidebarNavigationGroup[] = routeNavigationGroups
   .map((group) => ({
@@ -113,6 +112,5 @@ export const navigationGroups: readonly SidebarNavigationGroup[] = routeNavigati
       .map(toSidebarNavigationItem),
   }))
   .filter((group) => group.items.length > 0)
-  .filter((group) => group.id !== appRouteGroupIds.workspace || group.label?.trim())
 
 export const notifications: readonly SidebarNotification[] = []

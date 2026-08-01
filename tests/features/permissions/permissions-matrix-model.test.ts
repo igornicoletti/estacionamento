@@ -1,54 +1,42 @@
 import { describe, expect, it } from "vitest"
 
 import {
-  createPermissionRoleAccess,
   formatPermissionRoles,
   formatPermissionRolesWithoutAccess,
-  normalizePermissionMatrixRow,
-} from "@/features/permissions"
+  toPermissionMatrix,
+  toPermissionTableRow,
+} from "@/features/permissions/model/permissions-models"
+import { createPermissionMatrixPayload } from "../../helpers/permissions-memory-gateway"
 
 describe("permissions matrix model", () => {
-  it("builds role access maps from canonical role ordering", () => {
-    expect(createPermissionRoleAccess(["operator", "admin"])).toEqual({
-      admin: true,
-      auditor: false,
-      manager: false,
-      operator: true,
-      owner: false,
-    })
-  })
+  it("maps the wire payload to domain data without presentation metadata", () => {
+    const matrix = toPermissionMatrix(createPermissionMatrixPayload())
 
-  it("formats role labels consistently for access and no-access views", () => {
-    expect(formatPermissionRoles(["admin"])).toBe("Administrador")
-    expect(formatPermissionRoles([])).toBe("Nenhum perfil")
-
-    const noAccess = formatPermissionRolesWithoutAccess(["admin"])
-    expect(noAccess).toContain("Proprietário")
-    expect(noAccess).toContain("Auditor")
-    expect(noAccess).toContain("Gestor")
-    expect(noAccess).toContain("Operador")
-  })
-
-  it("normalizes fetched matrix rows with counts, labels and filters", () => {
-    const row = normalizePermissionMatrixRow({
-      accessFilters: [],
-      description: null,
-      groupKey: "audit",
-      groupLabel: "Auditoria",
-      id: "permission-audit-read",
-      isCritical: true,
+    expect(matrix.permissions[0]).toEqual({
+      description: "Permite visualizar eventos de auditoria.",
       key: "audit.read",
       label: "Visualizar auditoria",
-      roleAccess: createPermissionRoleAccess([]),
-      roleCount: 0,
-      roleLabels: "",
-      roles: ["operator", "admin"],
-      source: "system",
+      roleKeys: ["owner", "admin", "auditor"],
     })
+  })
 
-    expect(row.roles).toEqual(["admin", "operator"])
-    expect(row.roleCount).toBe(2)
-    expect(row.roleLabels).toBe("Administrador, Operador")
-    expect(row.accessFilters).toEqual(["with_access", "without_access"])
+  it("derives the table group and role count from domain data", () => {
+    const matrix = toPermissionMatrix(createPermissionMatrixPayload())
+    const row = toPermissionTableRow(matrix.permissions[0])
+
+    expect(row.groupKey).toBe("audit")
+    expect(row.groupLabel).toBe("Auditoria")
+    expect(row.roleCount).toBe(3)
+  })
+
+  it("formats roles from labels returned by the backend", () => {
+    const matrix = toPermissionMatrix(createPermissionMatrixPayload())
+
+    expect(formatPermissionRoles(["admin"], matrix.roles)).toEqual([
+      "Administrador",
+    ])
+    expect(
+      formatPermissionRolesWithoutAccess(["admin"], matrix.roles)
+    ).toEqual(["Proprietário", "Auditor", "Gestor", "Operador"])
   })
 })

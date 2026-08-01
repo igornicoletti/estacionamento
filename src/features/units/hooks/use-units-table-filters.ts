@@ -1,3 +1,4 @@
+import { FlagIcon, MapPinIcon } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -79,11 +80,13 @@ export function useUnitsTableFilters(units: readonly UnitsTableFilterSource[]) {
   return [
     {
       id: "des_bandeira",
+      icon: FlagIcon,
       title: unitsCopy.filters.brands,
       options: brandOptions,
     },
     {
       id: cityStateColumnId,
+      icon: MapPinIcon,
       title: unitsCopy.filters.cities,
       options: cityOptions,
       groups: cityGroups,

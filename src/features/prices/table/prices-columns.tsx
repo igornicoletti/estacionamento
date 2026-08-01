@@ -1,8 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 
 import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
-import { getBadgeToneClassName } from "@/lib"
+import { AppStatusBadge } from "@/components/shared"
 
 import { pricesCopy } from "../constants"
 import {
@@ -11,21 +10,8 @@ import {
   formatNullableDateTime,
   priceScopeLabels,
   priceStatusLabels,
-  type PriceStatus,
   type PriceTableRecord,
 } from "../model"
-
-function resolveStatusTone(status: PriceStatus) {
-  if (status === "active") {
-    return "success" as const
-  }
-
-  if (status === "draft") {
-    return "warning" as const
-  }
-
-  return undefined
-}
 
 export function createPricesColumns(options: {
   onEdit?: (record: PriceTableRecord) => void
@@ -98,16 +84,13 @@ export function createPricesColumns(options: {
     {
       accessorKey: "status",
       meta: { label: pricesCopy.table.status },
-      header: () => <div className="text-center font-medium">{pricesCopy.table.status}</div>,
+      header: () => <div className="text-center">{pricesCopy.table.status}</div>,
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
-          <Badge
-            variant="secondary"
-            className={getBadgeToneClassName(resolveStatusTone(row.original.status))}
-          >
+          <AppStatusBadge tone={row.original.status === "active" ? "success" : "secondary"}>
             {priceStatusLabels[row.original.status]}
-          </Badge>
+          </AppStatusBadge>
         </div>
       ),
     },

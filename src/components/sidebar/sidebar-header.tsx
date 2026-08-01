@@ -20,7 +20,7 @@ export function AppHeader() {
   }
 
   return (
-    <header className="z-10 sticky top-0 flex h-16 shrink-0 items-center gap-2 bg-background border-b">
+    <header className="sticky top-0 z-30 flex h-16 shrink-0 items-center gap-2 border-b bg-background">
       <div className="flex flex-1 items-center gap-2 px-4">
         <SidebarTrigger className="lg:hidden" />
         <div className="ml-auto flex items-center gap-2">

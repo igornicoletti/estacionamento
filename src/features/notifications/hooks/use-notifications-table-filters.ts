@@ -1,3 +1,4 @@
+import { BellIcon, CircleDotIcon } from "lucide-react"
 import * as React from "react"
 
 import { type DataTableFilterField } from "@/components/data-table"
@@ -25,11 +26,13 @@ export function useNotificationsTableFilters(
     () => [
       {
         id: "type",
+        icon: BellIcon,
         options: typeOptions,
         title: notificationsCopy.filters.type,
       },
       {
         id: "status",
+        icon: CircleDotIcon,
         options: statusOptions,
         title: notificationsCopy.filters.status,
       },

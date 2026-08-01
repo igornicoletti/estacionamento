@@ -1,7 +1,7 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
 import { createActionsColumn, DataTableSensitiveValue, DataTableTextAction } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
+import { AppStatusBadge } from "@/components/shared"
 import {
   appUserStatusLabels,
   resolveLastAccessLabel,
@@ -9,12 +9,18 @@ import {
   type UserRecord,
   userRoleLabels,
 } from "@/features/users"
-import { getBadgeToneClassName } from "@/lib"
 
 import { unitsCopy } from "../constants/units-copy"
 
 interface CreateUnitUsersColumnsOptions {
   onOpenDetails: (user: UserRecord) => void
+}
+
+function resolveUserStatusTone(status: UserRecord["status"]) {
+  if (status === "active") return "success" as const
+  if (status === "inactive") return "secondary" as const
+  if (status === "pending") return "info" as const
+  return "warning" as const
 }
 
 function resolveCpfValue(user: UserRecord) {
@@ -27,10 +33,6 @@ function resolveEmailValue(user: UserRecord) {
 
 function resolvePhoneValue(user: UserRecord) {
   return user.phoneMasked || unitsCopy.details.emptyValue
-}
-
-function resolveActiveBadgeClassName(isActive: boolean) {
-  return getBadgeToneClassName(isActive ? "success" : undefined)
 }
 
 export function createUnitUsersColumns(
@@ -82,6 +84,7 @@ export function createUnitUsersColumns(
         <DataTableSensitiveValue
           value={resolvePhoneValue(row.original)}
           kind="phone"
+          canReveal
           fallback={unitsCopy.details.emptyValue}
         />
       ),
@@ -103,17 +106,13 @@ export function createUnitUsersColumns(
         exportValue: (_value, row) => appUserStatusLabels[row.status],
       },
       header: () => <div className="text-center">{unitsCopy.table.status}</div>,
-      cell: ({ row }) => {
-        const isActive = row.original.status === "active"
-
-        return (
-          <div className="flex justify-center">
-            <Badge variant="secondary" className={resolveActiveBadgeClassName(isActive)}>
-              {appUserStatusLabels[row.original.status]}
-            </Badge>
-          </div>
-        )
-      },
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <AppStatusBadge tone={resolveUserStatusTone(row.original.status)}>
+            {appUserStatusLabels[row.original.status]}
+          </AppStatusBadge>
+        </div>
+      ),
     },
     {
       accessorKey: "passkeyStatus",
@@ -123,17 +122,15 @@ export function createUnitUsersColumns(
         exportValue: (_value, row) => resolvePasskeyLabel(row.passkeyStatus),
       },
       header: () => <div className="text-center">{unitsCopy.table.passkey}</div>,
-      cell: ({ row }) => {
-        const isActive = row.original.passkeyStatus === "active"
-
-        return (
-          <div className="flex justify-center">
-            <Badge variant="secondary" className={resolveActiveBadgeClassName(isActive)}>
-              {resolvePasskeyLabel(row.original.passkeyStatus)}
-            </Badge>
-          </div>
-        )
-      },
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <AppStatusBadge
+            tone={row.original.passkeyStatus === "active" ? "success" : "secondary"}
+          >
+            {resolvePasskeyLabel(row.original.passkeyStatus)}
+          </AppStatusBadge>
+        </div>
+      ),
     },
     {
       accessorKey: "lastAccessAt",

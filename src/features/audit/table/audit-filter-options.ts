@@ -1,4 +1,11 @@
 import {
+  ActivityIcon,
+  Layers3Icon,
+  TriangleAlertIcon,
+  UserRoundIcon,
+} from "lucide-react"
+
+import {
   createDataTableFilterOptions,
   type DataTableFilterField,
 } from "@/components/data-table"
@@ -18,6 +25,7 @@ export function createAuditFilterFields(
   return [
     {
       id: "actor",
+      icon: UserRoundIcon,
       title: auditCopy.filters.responsible,
       options: createDataTableFilterOptions(
         events,
@@ -28,6 +36,7 @@ export function createAuditFilterFields(
     },
     {
       id: "scope",
+      icon: Layers3Icon,
       title: auditCopy.filters.scopes,
       options: createDataTableFilterOptions(
         events,
@@ -38,6 +47,7 @@ export function createAuditFilterFields(
     },
     {
       id: "event",
+      icon: ActivityIcon,
       title: auditCopy.filters.events,
       options: createDataTableFilterOptions(
         events,
@@ -48,6 +58,7 @@ export function createAuditFilterFields(
     },
     {
       id: "severity",
+      icon: TriangleAlertIcon,
       title: auditCopy.table.severity,
       options: createDataTableFilterOptions(
         events,

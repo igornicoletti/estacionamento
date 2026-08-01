@@ -416,6 +416,221 @@ $$;
 
 do $$
 declare
+  expected_permission_keys text[] := array[
+    '*',
+    'access_requests.read',
+    'access_requests.review',
+    'audit.read',
+    'client_vehicles.read',
+    'clients.read',
+    'notifications.read',
+    'permissions.read',
+    'prices.manage',
+    'prices.read',
+    'profile.read_self',
+    'rules.manage',
+    'rules.read',
+    'settings.read_self',
+    'sync.execute',
+    'units.read',
+    'units.yard.manage',
+    'users.manage',
+    'users.read'
+  ];
+  permission_table text;
+begin
+  foreach permission_table in array array[
+    'public.app_roles',
+    'public.app_permissions',
+    'public.app_role_permissions'
+  ] loop
+    if has_table_privilege('authenticated', permission_table, 'SELECT')
+      or has_table_privilege('anon', permission_table, 'SELECT')
+      or has_table_privilege('public', permission_table, 'SELECT')
+      or not has_table_privilege('service_role', permission_table, 'SELECT')
+      or has_table_privilege('service_role', permission_table, 'INSERT')
+      or has_table_privilege('service_role', permission_table, 'UPDATE')
+      or has_table_privilege('service_role', permission_table, 'DELETE')
+      or has_table_privilege('service_role', permission_table, 'TRUNCATE')
+      or has_table_privilege('service_role', permission_table, 'REFERENCES')
+      or has_table_privilege('service_role', permission_table, 'TRIGGER') then
+      raise exception 'Matriz de permissões deve ser legível somente pelo service_role: %', permission_table;
+    end if;
+  end loop;
+
+  if exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename in ('app_roles', 'app_permissions', 'app_role_permissions')
+      and cmd = 'SELECT'
+  ) then
+    raise exception 'Tabelas da matriz não devem possuir policy de leitura pela Data API.';
+  end if;
+
+  if exists (
+    select permission.key
+    from public.app_permissions permission
+    where not (permission.key = any(expected_permission_keys))
+  ) or exists (
+    select expected.key
+    from unnest(expected_permission_keys) as expected(key)
+    where not exists (
+      select 1
+      from public.app_permissions permission
+      where permission.key = expected.key
+    )
+  ) then
+    raise exception 'Catálogo ativo diverge da matriz normativa de permissões.';
+  end if;
+
+  if not exists (
+    select 1
+    from public.app_role_permissions
+    where role_key = 'owner'
+      and permission_key = '*'
+  ) or not exists (
+    select 1
+    from public.app_role_permissions
+    where role_key = 'admin'
+      and permission_key = 'prices.manage'
+  ) or not exists (
+    select 1
+    from public.app_role_permissions
+    where role_key = 'admin'
+      and permission_key = 'rules.manage'
+  ) then
+    raise exception 'Owner/admin não possuem as capabilities administrativas aprovadas.';
+  end if;
+
+  if exists (
+    with expected_role_permissions(role_key, permission_key) as (
+      values
+        ('owner', '*'),
+        ('owner', 'sync.execute'),
+        ('admin', 'access_requests.read'),
+        ('admin', 'access_requests.review'),
+        ('admin', 'audit.read'),
+        ('admin', 'client_vehicles.read'),
+        ('admin', 'clients.read'),
+        ('admin', 'notifications.read'),
+        ('admin', 'permissions.read'),
+        ('admin', 'prices.manage'),
+        ('admin', 'prices.read'),
+        ('admin', 'profile.read_self'),
+        ('admin', 'rules.manage'),
+        ('admin', 'rules.read'),
+        ('admin', 'settings.read_self'),
+        ('admin', 'sync.execute'),
+        ('admin', 'units.read'),
+        ('admin', 'units.yard.manage'),
+        ('admin', 'users.manage'),
+        ('admin', 'users.read'),
+        ('auditor', 'audit.read'),
+        ('auditor', 'client_vehicles.read'),
+        ('auditor', 'clients.read'),
+        ('auditor', 'notifications.read'),
+        ('auditor', 'permissions.read'),
+        ('auditor', 'prices.read'),
+        ('auditor', 'profile.read_self'),
+        ('auditor', 'rules.read'),
+        ('auditor', 'settings.read_self'),
+        ('auditor', 'units.read'),
+        ('auditor', 'users.read'),
+        ('manager', 'client_vehicles.read'),
+        ('manager', 'clients.read'),
+        ('manager', 'notifications.read'),
+        ('manager', 'prices.read'),
+        ('manager', 'profile.read_self'),
+        ('manager', 'rules.read'),
+        ('manager', 'settings.read_self'),
+        ('manager', 'units.read'),
+        ('operator', 'client_vehicles.read'),
+        ('operator', 'clients.read'),
+        ('operator', 'notifications.read'),
+        ('operator', 'profile.read_self'),
+        ('operator', 'settings.read_self'),
+        ('operator', 'units.read')
+    )
+    select 1
+    from (
+      (
+        select role_key::text, permission_key
+        from public.app_role_permissions
+        except
+        select role_key, permission_key
+        from expected_role_permissions
+      )
+      union all
+      (
+        select role_key, permission_key
+        from expected_role_permissions
+        except
+        select role_key::text, permission_key
+        from public.app_role_permissions
+      )
+    ) permission_drift
+  ) then
+    raise exception 'Vínculos por papel divergem da matriz normativa de permissões.';
+  end if;
+
+  if exists (
+    select 1
+    from public.app_role_permissions
+    where permission_key = 'clients.sync.read'
+  ) or exists (
+    select 1
+    from pg_policies
+    where coalesce(qual, '') like '%clients.sync.read%'
+      or coalesce(with_check, '') like '%clients.sync.read%'
+  ) then
+    raise exception 'clients.sync.read não pode permanecer no catálogo ou nas policies.';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'client_sync_runs'
+      and cmd = 'SELECT'
+      and qual like '%sync.execute%'
+      and qual like '%audit.read%'
+  ) or not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'client_sync_state'
+      and cmd = 'SELECT'
+      and qual like '%sync.execute%'
+      and qual like '%audit.read%'
+  ) then
+    raise exception 'Histórico de sync deve exigir sync.execute ou audit.read.';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'unit_sync_runs'
+      and cmd = 'SELECT'
+      and qual like '%sync.execute%'
+      and qual like '%audit.read%'
+  ) or not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'unit_sync_state'
+      and cmd = 'SELECT'
+      and qual like '%sync.execute%'
+      and qual like '%audit.read%'
+  ) then
+    raise exception 'Histórico de unidades deve exigir sync.execute ou audit.read.';
+  end if;
+end;
+$$;
+
+do $$
+declare
   audit_function oid := to_regprocedure('private.audit_unit_yard_config_change()');
   fields_function oid := to_regprocedure('private.set_unit_yard_config_audit_fields()');
 begin

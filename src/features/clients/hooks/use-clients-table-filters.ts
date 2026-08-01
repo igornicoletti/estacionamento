@@ -1,3 +1,4 @@
+import { CircleDotIcon, MapPinIcon } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -46,11 +47,13 @@ export function useClientsTableFilters(
   return [
     {
       id: clientCityStateColumnId,
+      icon: MapPinIcon,
       title: clientsCopy.filters.cities,
       options: cityOptions,
     },
     {
       id: "status",
+      icon: CircleDotIcon,
       title: clientsCopy.filters.status,
       options: statusOptions,
     },

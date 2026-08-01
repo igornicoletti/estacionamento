@@ -69,11 +69,11 @@ describe("units-service", () => {
     ])
   })
 
-  it("preserves ERP meaning while formatting technical fields", async () => {
+  it("formats human ERP text while preserving technical fields", async () => {
     const row = createUnitRow({
       cod_empresa: 7,
-      nom_cidade: "SAO JOSE DO RIO PRETO",
-      nom_estado: "SAO PAULO",
+      nom_cidade: "SÃO JOSÉ DO RIO PRETO",
+      nom_estado: "SÃO PAULO",
       nom_fantasia: "ONDA VERDE",
       nom_razao_social: "ONDA VERDE",
       num_cnpj: "05867856000182",
@@ -87,10 +87,10 @@ describe("units-service", () => {
     await expect(listUnits()).resolves.toEqual([
       expect.objectContaining({
         cod_empresa: 7,
-        nom_cidade: "SAO JOSE DO RIO PRETO",
-        nom_estado: "SAO PAULO",
-        nom_fantasia: "ONDA VERDE",
-        nom_razao_social: "ONDA VERDE",
+        nom_cidade: "São José do Rio Preto",
+        nom_estado: "São Paulo",
+        nom_fantasia: "Onda Verde",
+        nom_razao_social: "Onda Verde",
         num_cnpj: "05.867.856/0001-82",
         sgl_estado: "SP",
       }),
@@ -114,8 +114,8 @@ describe("units-service", () => {
 
     await expect(findUnitById(53)).resolves.toMatchObject({
       cod_empresa: 53,
-      nom_estado: "PARANA",
-      nom_fantasia: "PONTA GROSSA BR-376",
+      nom_estado: "Parana",
+      nom_fantasia: "Ponta Grossa BR-376",
     })
     expect(listCalled).toBe(false)
   })

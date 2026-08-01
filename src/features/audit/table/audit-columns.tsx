@@ -1,8 +1,8 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
 import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
-import { formatDateTime, getBadgeToneClassName } from "@/lib"
+import { AppStatusBadge } from "@/components/shared"
+import { formatDateTime } from "@/lib"
 
 import { auditCopy } from "../constants/audit-copy"
 import {
@@ -80,14 +80,9 @@ export function createAuditColumns({
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
-          <Badge
-            variant="secondary"
-            className={getBadgeToneClassName(
-              resolveAuditOutcomeVariant(row.original)
-            )}
-          >
+          <AppStatusBadge tone={resolveAuditOutcomeVariant(row.original)}>
             {getAuditOutcomeLabel(row.original)}
-          </Badge>
+          </AppStatusBadge>
         </div>
       ),
     },
@@ -102,14 +97,9 @@ export function createAuditColumns({
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
-          <Badge
-            variant="secondary"
-            className={getBadgeToneClassName(
-              resolveAuditSeverityVariant(row.original.severity)
-            )}
-          >
+          <AppStatusBadge tone={resolveAuditSeverityVariant(row.original.severity)}>
             {auditSeverityLabels[row.original.severity]}
-          </Badge>
+          </AppStatusBadge>
         </div>
       ),
     },

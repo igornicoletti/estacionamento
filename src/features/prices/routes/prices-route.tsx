@@ -1,5 +1,11 @@
 import type { ColumnFiltersState, SortingState } from "@tanstack/react-table"
-import { BadgeDollarSignIcon, PlusIcon } from "lucide-react"
+import {
+  BadgeDollarSignIcon,
+  Building2Icon,
+  CircleDotIcon,
+  NetworkIcon,
+  PlusIcon,
+} from "lucide-react"
 import * as React from "react"
 
 import { DataTable } from "@/components/data-table"
@@ -118,9 +124,9 @@ export function PricesRoute() {
         sorting={sorting}
         onSortingChange={setSorting}
         filterFields={[
-          { id: "status", title: pricesCopy.filters.status, options: statusOptions, showCounts: true },
-          { id: "scope", title: pricesCopy.filters.scope, options: scopeOptions, showCounts: true },
-          { id: "unitId", title: pricesCopy.filters.unit, options: unitOptions, showCounts: true },
+          { id: "status", icon: CircleDotIcon, title: pricesCopy.filters.status, options: statusOptions, showCounts: true },
+          { id: "scope", icon: NetworkIcon, title: pricesCopy.filters.scope, options: scopeOptions, showCounts: true },
+          { id: "unitId", icon: Building2Icon, title: pricesCopy.filters.unit, options: unitOptions, showCounts: true },
         ]}
         emptyState={<AppEmptyState media={<BadgeDollarSignIcon />} title={pricesCopy.empty.title} description={pricesCopy.empty.description} actions={<Button type="button" variant="secondary" size="lg" onClick={() => { setEditingRecord(null); setIsFormOpen(true) }}>{pricesCopy.actions.add}</Button>} />}
         filteredEmptyState={<AppEmptyState media={<BadgeDollarSignIcon />} title={pricesCopy.filteredEmpty.title} description={pricesCopy.filteredEmpty.description} />}

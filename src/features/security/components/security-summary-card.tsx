@@ -70,7 +70,7 @@ function SecurityScoreRing({ score }: { score: SecurityScore }) {
   const circumference = 2 * Math.PI * 42
   const dashOffset = circumference - (score.value / 100) * circumference
   const ringClassName = {
-    destructive: "text-destructive",
+    error: "text-error",
     info: "text-primary",
     success: "text-success",
     warning: "text-warning",

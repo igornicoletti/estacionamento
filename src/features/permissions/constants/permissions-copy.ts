@@ -6,29 +6,28 @@ export const permissionsCopy = {
   },
   filters: {
     groups: "Grupos",
-    source: "Origem",
+  },
+  table: {
+    ariaLabel: "Matriz de permissões por perfil",
     searchPlaceholder: "Buscar permissões...",
   },
   labels: {
     permission: "Permissão",
     group: "Grupo",
-    source: "Origem",
     rolesWithAccess: "Perfis com acesso",
     rolesWithoutAccess: "Perfis sem acesso",
     totalRoles: "Total de perfis",
-    critical: "Crítica",
     description: "Descrição",
     key: "Chave",
     emptyValue: "—",
+    unknownGroup: "Grupo não classificado",
     noneRole: "Nenhum perfil",
     noRoleWithoutAccess: "Nenhum",
-    yes: "Sim",
-    no: "Não",
   },
   details: {
     title: "Detalhes da permissão",
     description:
-      "Consulte a classificação e os perfis com acesso à permissão selecionada.",
+      "Consulte a chave técnica e os perfis com acesso à permissão selecionada.",
   },
   accessibility: {
     withAccess: "Perfil com acesso",
@@ -51,7 +50,6 @@ export const permissionsCopy = {
   error: {
     load: "Não foi possível carregar a matriz de permissões.",
     invalidResponse: "A resposta da matriz de permissões é inválida.",
-    sessionRequired: "Sua sessão expirou. Faça login novamente para continuar.",
     unavailable: "O serviço de permissões não está configurado.",
   },
 } as const

@@ -1,3 +1,4 @@
+import { CircleDotIcon, ShieldCheckIcon } from "lucide-react"
 import * as React from "react"
 
 import { createDataTableFilterOptions, type DataTableFilterField } from "@/components/data-table"
@@ -16,7 +17,17 @@ export function useUnitUsersTableFilters(users: readonly UserRecord[]) {
   )
 
   return [
-    { id: "role", title: unitsCopy.filters.roles, options: roleOptions },
-    { id: "status", title: unitsCopy.filters.status, options: statusOptions },
+    {
+      id: "role",
+      icon: ShieldCheckIcon,
+      title: unitsCopy.filters.roles,
+      options: roleOptions,
+    },
+    {
+      id: "status",
+      icon: CircleDotIcon,
+      title: unitsCopy.filters.status,
+      options: statusOptions,
+    },
   ] satisfies readonly DataTableFilterField<UserRecord>[]
 }

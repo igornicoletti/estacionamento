@@ -25,7 +25,7 @@ export const appCopy = {
       description: "Acompanhar clientes sincronizados do ERP.",
     },
     clientVehicles: {
-      label: "Veículos do Cliente",
+      label: "Veículos do cliente",
       description: "Acompanhar veículos vinculados ao cliente.",
     },
     prices: {
@@ -41,11 +41,11 @@ export const appCopy = {
       description: "Gerenciar usuários e acessos ao sistema.",
     },
     accessRequests: {
-      label: "Solicitações de Acesso",
+      label: "Solicitações de acesso",
       description: "Analisar solicitações administrativas de recuperação e acesso.",
     },
     permissions: {
-      label: "Perfis e Permissões",
+      label: "Perfis e permissões",
       description: "Consultar políticas, permissões e perfis disponíveis.",
     },
     audit: {
@@ -57,7 +57,7 @@ export const appCopy = {
       description: "Acompanhar notificações e alertas recentes.",
     },
     profile: {
-      label: "Meu Perfil",
+      label: "Meu perfil",
       description: "Gerenciar dados pessoais, contato e foto da conta.",
     },
     security: {
@@ -69,11 +69,11 @@ export const appCopy = {
       description: "Autenticação por CPF e senha.",
     },
     recovery: {
-      label: "Recuperar Acesso",
+      label: "Recuperar acesso",
       description: "Solicitação de recuperação de acesso.",
     },
     yard: {
-      label: "Pátio Virtual",
+      label: "Pátio virtual",
       description: "Visualizar ocupação e movimentação do pátio em tempo real.",
     },
     reports: {
@@ -98,6 +98,11 @@ export const appCopy = {
       title: "Área autenticada",
       description:
         "Use a navegação lateral para acessar os módulos liberados para sua conta.",
+    },
+    moduleUnavailable: {
+      title: "Módulo indisponível",
+      description:
+        "Esta funcionalidade ainda não possui uma fonte de dados produtiva.",
     },
   },
   routeError: {

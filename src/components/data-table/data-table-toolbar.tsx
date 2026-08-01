@@ -42,6 +42,7 @@ export interface DataTableToolbarProps<TData> {
   canExport?: boolean
   manualFiltering?: boolean
   isLoading?: boolean
+  isInitialLoading?: boolean
   allowExportWhileLoading?: boolean
   isExternallyFiltered?: boolean
   globalFilterValue?: string
@@ -52,19 +53,19 @@ export interface DataTableToolbarProps<TData> {
 
 type DataTableToolbarFilterDefinition<TData> =
   | {
-      id: string
-      kind: "faceted"
-      label: string
-      icon: DataTableFilterField<TData>["icon"]
-      field: DataTableFilterField<TData>
-    }
+    id: string
+    kind: "faceted"
+    label: string
+    icon: DataTableFilterField<TData>["icon"]
+    field: DataTableFilterField<TData>
+  }
   | {
-      id: string
-      kind: "search"
-      label: string
-      icon: DataTableSearchField<TData>["icon"]
-      field: DataTableSearchField<TData>
-    }
+    id: string
+    kind: "search"
+    label: string
+    icon: DataTableSearchField<TData>["icon"]
+    field: DataTableSearchField<TData>
+  }
 
 function normalizeVisibleText(value: string | undefined): string {
   return (
@@ -163,6 +164,7 @@ export function DataTableToolbar<TData>({
   canExport,
   manualFiltering = false,
   isLoading = false,
+  isInitialLoading = false,
   allowExportWhileLoading = false,
   isExternallyFiltered = false,
   globalFilterValue,
@@ -254,7 +256,6 @@ export function DataTableToolbar<TData>({
         .map((definition) => ({
           id: definition.id,
           icon: definition.icon,
-          kind: definition.kind,
           label: definition.label,
         })),
     [activeFilterIds, filterDefinitions]
@@ -304,6 +305,7 @@ export function DataTableToolbar<TData>({
           }
           value={resolvedGlobalFilterValue}
           isLoading={isLoading}
+          disabled={isInitialLoading}
           className="w-full sm:w-64 lg:w-72 xl:w-80"
           onValueChange={updateGlobalFilter}
           onClear={() => updateGlobalFilter("")}
@@ -350,6 +352,7 @@ export function DataTableToolbar<TData>({
       {filterDefinitions.length ? (
         <DataTableFilterMenu
           items={availableFilterItems}
+          disabled={isInitialLoading}
           onSelect={addFilter}
         />
       ) : null}

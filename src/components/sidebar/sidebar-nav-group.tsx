@@ -38,7 +38,7 @@ export function SidebarNavGroup({
   className,
 }: SidebarNavGroupProps) {
   const { isMobile, setOpenMobile } = useSidebar()
-  const groupLabel = label?.trim() ? label.trim().toUpperCase() : null
+  const groupLabel = label?.trim() || null
   const hasActiveItem = items.some((item) =>
     isActiveRoute(activePathname, item.href)
   )
@@ -59,7 +59,7 @@ export function SidebarNavGroup({
                 <SidebarMenuButton
                   size="sm"
                   tooltip={groupLabel}
-                  className="rounded-none bg-transparent px-0 uppercase tracking-normal text-sidebar-foreground/70 hover:bg-transparent hover:text-sidebar-foreground/90 active:bg-transparent active:text-sidebar-foreground/70 data-[active=false]:bg-transparent data-[active=false]:text-sidebar-foreground/70 data-[state=open]:bg-transparent data-[state=open]:text-sidebar-foreground/70"
+                  className="rounded-none bg-transparent px-0 tracking-normal text-sidebar-foreground/70 hover:bg-transparent hover:text-sidebar-foreground/90 active:bg-transparent active:text-sidebar-foreground/70 data-[active=false]:bg-transparent data-[active=false]:text-sidebar-foreground/70 data-[state=open]:bg-transparent data-[state=open]:text-sidebar-foreground/70"
                 >
                   <span>{groupLabel}</span>
                   <ChevronRightIcon className="ml-auto size-3.5 transition-transform group-data-[state=open]/collapsible:rotate-90" />

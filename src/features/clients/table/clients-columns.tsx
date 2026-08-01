@@ -5,8 +5,7 @@ import {
   DataTableSensitiveValue,
   DataTableTextAction,
 } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
-import { getBadgeToneClassName } from "@/lib"
+import { AppStatusBadge } from "@/components/shared"
 
 import { clientsCopy } from "../constants/clients-copy"
 import { formatClientCityState } from "../model/clients-formatters"
@@ -53,7 +52,7 @@ export function createClientsColumns(
     {
       accessorKey: "num_cnpj_cpf",
       header: clientsCopy.table.document,
-      meta: { label: clientsCopy.table.document },
+      meta: { label: clientsCopy.table.document, enableExport: false },
       size: 160,
       cell: ({ row }) => (
         <DataTableSensitiveValue
@@ -66,7 +65,7 @@ export function createClientsColumns(
     {
       accessorKey: "des_email_1",
       header: clientsCopy.table.email,
-      meta: { label: clientsCopy.table.email },
+      meta: { label: clientsCopy.table.email, enableExport: false },
       size: 180,
       cell: ({ row }) =>
         row.original.des_email_1 || clientsCopy.shared.emptyValue,
@@ -74,12 +73,13 @@ export function createClientsColumns(
     {
       accessorKey: "num_telefone_1",
       header: clientsCopy.table.phone,
-      meta: { label: clientsCopy.table.phone },
+      meta: { label: clientsCopy.table.phone, enableExport: false },
       size: 140,
       cell: ({ row }) => (
         <DataTableSensitiveValue
           value={row.original.num_telefone_1 ?? ""}
           kind="phone"
+          canReveal
           fallback={clientsCopy.shared.emptyValue}
         />
       ),
@@ -100,7 +100,7 @@ export function createClientsColumns(
     {
       accessorKey: "status",
       header: () => (
-        <div className="text-center font-medium">
+        <div className="text-center">
           {clientsCopy.table.status}
         </div>
       ),
@@ -112,12 +112,9 @@ export function createClientsColumns(
 
         return (
           <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(isActive ? "success" : undefined)}
-            >
+            <AppStatusBadge tone={isActive ? "success" : "secondary"}>
               {isActive ? clientsCopy.table.active : clientsCopy.table.inactive}
-            </Badge>
+            </AppStatusBadge>
           </div>
         )
       },

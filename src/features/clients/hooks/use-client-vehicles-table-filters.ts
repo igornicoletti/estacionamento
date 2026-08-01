@@ -1,3 +1,4 @@
+import { CarFrontIcon } from "lucide-react"
 import * as React from "react"
 
 import {
@@ -29,6 +30,7 @@ export function useClientVehiclesTableFilters(
   return [
     {
       id: "num_placa",
+      icon: CarFrontIcon,
       title: clientsCopy.filters.plates,
       options: plateOptions,
     },

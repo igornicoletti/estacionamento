@@ -16,7 +16,7 @@ import { DataTableSearchInput } from "./data-table-search-input"
 
 interface DataTableSearchFilterProps<TData, TValue> {
   column: Column<TData, TValue>
-  icon?: LucideIcon
+  icon: LucideIcon
   title: string
   ariaLabel?: string
   placeholder?: string
@@ -75,7 +75,6 @@ export function DataTableSearchFilter<TData, TValue>({
           >
             <DataTableFilterIcon
               icon={icon}
-              kind="search"
             />
             <span className="max-w-56 truncate">{triggerLabel}</span>
           </Button>

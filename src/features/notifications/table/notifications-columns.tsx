@@ -7,7 +7,7 @@ import {
   DataTableTextAction,
   type DataTableRowAction,
 } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
+import { AppStatusBadge } from "@/components/shared"
 import { formatDateTime } from "@/lib"
 
 import {
@@ -27,7 +27,7 @@ interface CreateNotificationsColumnsOptions {
   onOpenDetails?: (notification: NotificationRecord) => void
 }
 
-function resolveNotificationStatusBadge(
+function resolveNotificationStatusTone(
   status: NotificationRecord["status"]
 ) {
   return status === "read" ? ("info" as const) : ("warning" as const)
@@ -79,15 +79,13 @@ export function createNotificationsColumns(
     {
       accessorKey: "status",
       cell: ({ row }) => {
-        const variant = resolveNotificationStatusBadge(row.original.status)
+        const tone = resolveNotificationStatusTone(row.original.status)
 
         return (
           <div className="flex justify-center">
-            <Badge
-              variant={variant}
-            >
+            <AppStatusBadge tone={tone}>
               {notificationStatusLabels[row.original.status]}
-            </Badge>
+            </AppStatusBadge>
           </div>
         )
       },
@@ -107,7 +105,7 @@ export function createNotificationsColumns(
         return (
           <Link
             to={href}
-            className="font-medium text-foreground transition-colors hover:text-muted-foreground"
+            className="font-medium"
           >
             {href}
           </Link>

@@ -19,11 +19,11 @@ describe("Clients routes", () => {
 
     expect(screen.getByRole("heading", { name: "Clientes" })).toBeInTheDocument()
     expect(
-      screen.getByRole("button", { name: "Atualizar dados" })
+      screen.getByRole("button", { name: "Histórico" })
     ).toBeInTheDocument()
     expect(
-      screen.queryByRole("button", { name: /sincronizar/i })
-    ).not.toBeInTheDocument()
+      screen.getByRole("button", { name: "Sincronizar" })
+    ).toBeInTheDocument()
 
     await waitFor(() => {
       expect(screen.getByText("Auto Center Alfa Ltda")).toBeInTheDocument()

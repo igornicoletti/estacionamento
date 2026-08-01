@@ -1,57 +1,29 @@
 import { type AppDetailsSheetItem } from "@/components/shared/app-details-sheet"
 
+import { permissionsCopy } from "../constants/permissions-copy"
 import {
-  permissionsCopy,
-  permissionActionLabels,
-  permissionObjectLabels,
-  permissionGroupLabels as permissionScopeLabels,
-  permissionSourceLabels,
-} from "../constants"
-import { formatPermissionRolesWithoutAccess } from "./permissions-rules"
-import { type PermissionMatrixRow } from "./permissions-types"
-
-function toSentenceCase(value: string) {
-  const normalized = value.trim()
-
-  if (!normalized) {
-    return permissionsCopy.labels.emptyValue
-  }
-
-  return `${normalized.charAt(0).toLocaleUpperCase("pt-BR")}${normalized.slice(1)}`
-}
-
-export function formatTechnicalPermissionKey(value: string) {
-  const [scopeToken, ...actionTokens] = value
-    .split(".")
-    .flatMap((part) => part.split("_"))
-    .map((part) => part.trim().toLowerCase())
-    .filter(Boolean)
-
-  const scope = scopeToken ? permissionScopeLabels[scopeToken] : null
-  const action = actionTokens[0] ? permissionActionLabels[actionTokens[0]] : null
-  const object = actionTokens
-    .slice(1)
-    .map((token) => permissionObjectLabels[token] ?? token)
-    .join(" ")
-
-  if (scope && action) {
-    return object ? `${scope} - ${action} ${object}` : `${scope} - ${action}`
-  }
-
-  if (scope) {
-    return scope
-  }
-
-  return toSentenceCase(value.replace(/[._-]+/g, " "))
-}
+  formatPermissionRoles,
+  formatPermissionRolesWithoutAccess,
+} from "./permissions-models"
+import {
+  type PermissionRole,
+  type PermissionTableRow,
+} from "./permissions-types"
 
 function PermissionKeyValue({ value }: { value: string }) {
-  return <span className="break-words text-sm">{formatTechnicalPermissionKey(value)}</span>
+  return <code className="break-all text-xs">{value}</code>
 }
 
 export function getPermissionDetailItems(
-  permission: PermissionMatrixRow
+  permission: PermissionTableRow,
+  roles: readonly PermissionRole[]
 ): readonly AppDetailsSheetItem[] {
+  const rolesWithAccess = formatPermissionRoles(permission.roleKeys, roles)
+  const rolesWithoutAccess = formatPermissionRolesWithoutAccess(
+    permission.roleKeys,
+    roles
+  )
+
   return [
     { label: permissionsCopy.labels.permission, value: permission.label },
     {
@@ -64,17 +36,14 @@ export function getPermissionDetailItems(
     },
     { label: permissionsCopy.labels.group, value: permission.groupLabel },
     {
-      label: permissionsCopy.labels.source,
-      value: permissionSourceLabels[permission.source],
+      label: permissionsCopy.labels.rolesWithAccess,
+      value: rolesWithAccess.join(", ") || permissionsCopy.labels.noneRole,
     },
-    {
-      label: permissionsCopy.labels.critical,
-      value: permission.isCritical ? permissionsCopy.labels.yes : permissionsCopy.labels.no,
-    },
-    { label: permissionsCopy.labels.rolesWithAccess, value: permission.roleLabels },
     {
       label: permissionsCopy.labels.rolesWithoutAccess,
-      value: formatPermissionRolesWithoutAccess(permission.roles),
+      value:
+        rolesWithoutAccess.join(", ") ||
+        permissionsCopy.labels.noRoleWithoutAccess,
     },
   ]
 }

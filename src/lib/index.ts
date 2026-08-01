@@ -1,31 +1,32 @@
 export {
+  getBadgeToneClassName,
+  type BadgeTone
+} from "./badge"
+export {
   formatCnpj,
   formatCpf,
   formatCpfCnpj,
   isValidCpf,
-  onlyDigits,
+  onlyDigits
 } from "./cpf"
 export {
   AppError,
   readResponseErrorMessage,
-  toError,
+  toError
 } from "./errors"
 export {
   formatDate,
   formatDateTime,
-  formatNullableText,
+  formatHumanReadableText,
+  formatNullableText
 } from "./formatters"
-export {
-  getBadgeToneClassName,
-  type BadgeTone,
-} from "./badge"
+export { isRenderable } from "./is-renderable"
 export { normalizeOptionalText } from "./normalize"
 export {
   formatPhone,
-  isValidPhone,
+  isValidPhone
 } from "./phone"
 export { resolveVisibleSensitiveValue } from "./sensitive-display"
-export { cn } from "./utils"
 export { getValidatedSupabaseAccessToken } from "./supabase-auth-session"
 export { getSupabaseBrowserClient } from "./supabase-browser"
-export { isRenderable } from "./is-renderable"
+export { cn } from "./utils"

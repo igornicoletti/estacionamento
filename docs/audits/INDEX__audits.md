@@ -4,17 +4,19 @@ Data de atualização: 2026-08-01
 
 ## Auditoria vigente
 
-1. `docs/audits/2026-08-01-users-audit-forensic-review.md`
+1. `docs/audits/2026-08-01-permissions-feature-forensic-review.md`
+   - Revisão individual dos 22 arquivos de `permissions`, fluxo real de autorização, schema local, divergências do catálogo e plano de migração para o padrão vigente.
+2. `docs/audits/2026-08-01-users-audit-forensic-review.md`
    - Revisão por arquivo, comparação arquitetural, correções e evidências reais de `users` e `audit`.
-2. `src/features/users/README.md`
+3. `src/features/users/README.md`
    - Matriz individual e contrato normativo dos 26 arquivos da feature de usuários.
-3. `src/features/audit/README.md`
+4. `src/features/audit/README.md`
    - Matriz individual e contrato normativo dos 20 arquivos da feature de auditoria.
-4. `docs/audits/2026-07-31-forensic-project-audit.md`
+5. `docs/audits/2026-07-31-forensic-project-audit.md`
    - Achados, decisões, ondas de modernização e validações executadas.
-5. `docs/audits/2026-07-31-forensic-file-inventory.csv`
+6. `docs/audits/2026-07-31-forensic-file-inventory.csv`
    - Matriz tabular por arquivo para revisão humana e automação.
-6. `docs/audits/2026-07-31-forensic-file-inventory.json`
+7. `docs/audits/2026-07-31-forensic-file-inventory.json`
    - Versão estruturada do mesmo inventário.
 
 ## Regra de manutenção

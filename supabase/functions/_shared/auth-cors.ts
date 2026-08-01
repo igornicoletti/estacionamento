@@ -3,6 +3,7 @@ const defaultAllowedHeaders = [
   "x-client-info",
   "apikey",
   "content-type",
+  "x-request-id",
   "x-sync-secret",
 ].join(", ")
 
@@ -61,6 +62,7 @@ export function getCorsHeaders(req: Request) {
   const headers: Record<string, string> = {
     "Access-Control-Allow-Headers": defaultAllowedHeaders,
     "Access-Control-Allow-Methods": "GET, POST, PUT, PATCH, DELETE, OPTIONS",
+    "Access-Control-Expose-Headers": "x-request-id",
     "Access-Control-Max-Age": "86400",
     "Vary": "Origin",
   }

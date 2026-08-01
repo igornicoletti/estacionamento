@@ -1,4 +1,4 @@
-import { formatCnpj } from "@/lib"
+import { formatCnpj, formatHumanReadableText } from "@/lib"
 
 import {
   type ErpUnitRow,
@@ -18,14 +18,14 @@ function normalizeCnpj(value: string | null) {
 export function mapErpUnit(row: ErpUnitRow): Unit {
   return {
     cod_empresa: row.cod_empresa,
-    nom_razao_social: normalizeText(row.nom_razao_social),
-    nom_fantasia: normalizeText(row.nom_fantasia),
+    nom_razao_social: formatHumanReadableText(row.nom_razao_social),
+    nom_fantasia: formatHumanReadableText(row.nom_fantasia),
     num_cnpj: normalizeCnpj(row.num_cnpj),
     cod_bandeira: row.cod_bandeira,
-    des_bandeira: normalizeText(row.des_bandeira),
+    des_bandeira: formatHumanReadableText(row.des_bandeira),
     cod_cidade: row.cod_cidade,
-    nom_cidade: normalizeText(row.nom_cidade),
-    nom_estado: normalizeText(row.nom_estado),
+    nom_cidade: formatHumanReadableText(row.nom_cidade),
+    nom_estado: formatHumanReadableText(row.nom_estado),
     sgl_estado: normalizeText(row.sgl_estado).toLocaleUpperCase("pt-BR"),
     des_coordenada_empresa: normalizeText(row.des_coordenada_empresa),
     ip_rede: normalizeText(row.ip_rede),

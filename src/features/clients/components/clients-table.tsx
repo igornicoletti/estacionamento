@@ -75,6 +75,8 @@ export function ClientsTable({
       isLoading={isLoading}
       error={error}
       onRetry={onRetry}
+      enableExport
+      exportConfig={{ filename: "clientes", sheetName: "Clientes" }}
       enablePagination
       enableViewOptions
     />

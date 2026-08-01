@@ -82,6 +82,8 @@ export function UnitsTable({
       isLoading={isLoading}
       error={error}
       onRetry={onRetry}
+      enableExport
+      exportConfig={{ filename: "unidades", sheetName: "Unidades" }}
       enablePagination
       enableViewOptions
     />

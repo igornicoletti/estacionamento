@@ -26,7 +26,7 @@ export const securityCopy = {
           ? "Conclua 1 item para chegar à proteção máxima suportada."
           : `Conclua ${score.remaining} itens para chegar à proteção máxima suportada.`,
     labels: {
-      destructive: "Crítica",
+      error: "Crítica",
       info: "Boa",
       success: "Alta",
       warning: "Moderada",

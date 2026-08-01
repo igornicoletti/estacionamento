@@ -1,14 +1,14 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import {
+  resetClientsGateway,
+  setClientsGateway,
+} from "@/features/clients/gateways/clients-gateway"
+import {
   findClientById,
   listClients,
   listClientVehiclesByClientId,
 } from "@/features/clients/services/clients-service"
-import {
-  resetClientsGateway,
-  setClientsGateway,
-} from "@/features/clients/gateways/clients-gateway"
 
 describe("clients-service", () => {
   beforeEach(() => {
@@ -37,6 +37,30 @@ describe("clients-service", () => {
       sgl_estado: "SP",
       qtd_veiculos: 2,
     })
+  })
+
+  it("formats uppercase ERP text before exposing it to the table", async () => {
+    setClientsGateway({
+      findClientById: () => Promise.resolve(null),
+      listClients: () =>
+        Promise.resolve([
+          {
+            ...clientPayload,
+            nom_cidade: "SÃO PAULO",
+            nom_fantasia: "AUTO CENTER ALFA",
+            nom_pessoa: "AUTO CENTER ALFA LTDA",
+          },
+        ]),
+      listVehiclesByClientId: () => Promise.resolve([]),
+    })
+
+    await expect(listClients()).resolves.toEqual([
+      expect.objectContaining({
+        nom_cidade: "São Paulo",
+        nom_fantasia: "Auto Center Alfa",
+        nom_pessoa: "Auto Center Alfa LTDA",
+      }),
+    ])
   })
 
   it("returns vehicles linked to client code", async () => {

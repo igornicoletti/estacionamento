@@ -8,7 +8,7 @@ export {
   signInWithPasskey,
   signInWithPassword,
   signOutCurrentSession,
-  subscribeToAuthSessionChanges,
+  subscribeToAuthSessionChanges
 } from "./api"
 export {
   allRoles,
@@ -17,50 +17,19 @@ export {
   authCapabilityLabels,
   canManageRole,
   getAssignableRoles,
-  hasAllCapabilities,
   hasAllPermissions,
-  hasAnyCapability,
   hasAnyPermission,
-  hasCapability,
   isGlobalRole,
   isRoleSuperior,
   isUserRole,
-  permissionsByRole,
   requiresSingleUnit,
-  routeCapabilities,
-  unitScopedRoleValues,
-  unitScopedRoles,
-  userRoleLabels,
+  routeCapabilities, unitScopedRoles, unitScopedRoleValues, userRoleLabels,
   userRoleValues,
   type AppUserStatus,
   type AuthCapability,
-  type UserRole,
+  type UserRole
 } from "./authorization"
 export { AuthPageCard } from "./components"
-export {
-  AUTH_FUNCTIONS,
-  AUTH_INACTIVITY,
-  AUTH_NEXT_ACTION,
-  AUTH_PERMISSION,
-  AUTH_PERMISSION_WILDCARD,
-  AUTH_ROLE_KEY,
-  AUTH_SESSION_TIMEOUTS,
-  AUTH_STATUS,
-  AUTH_STORAGE_KEYS,
-  canAccessProtectedApp,
-  getRoleFallbackPermissions,
-  isAuthPermission,
-  isAuthStatus,
-  normalizeAuthPermission,
-  normalizeAuthPermissions,
-  normalizeAuthStatus,
-  requiresAccountRecovery,
-  resolveAuthProfilePermissions,
-  type AuthNextAction,
-  type AuthPermission,
-  type AuthRoleKey,
-  type AuthStatus,
-} from "./contracts"
 export { authCopy } from "./constants"
 export {
   AuthContext,
@@ -79,8 +48,31 @@ export {
   type AuthInactivityState,
   type AuthSessionStatus,
   type AuthSessionValue,
-  type RequiredPasswordChallenge,
+  type RequiredPasswordChallenge
 } from "./context"
+export {
+  AUTH_FUNCTIONS,
+  AUTH_INACTIVITY,
+  AUTH_NEXT_ACTION,
+  AUTH_PERMISSION,
+  AUTH_PERMISSION_WILDCARD,
+  AUTH_ROLE_KEY,
+  AUTH_SESSION_TIMEOUTS,
+  AUTH_STATUS,
+  AUTH_STORAGE_KEYS,
+  canAccessProtectedApp,
+  isAuthPermission,
+  isAuthStatus,
+  normalizeAuthPermission,
+  normalizeAuthPermissions,
+  normalizeAuthStatus,
+  requiresAccountRecovery,
+  resolveAuthProfilePermissions,
+  type AuthNextAction,
+  type AuthPermission,
+  type AuthRoleKey,
+  type AuthStatus
+} from "./contracts"
 export type {
   AppUserProfile,
   AuthFlowActionResponse,
@@ -93,7 +85,7 @@ export type {
   AuthSessionPayload,
   AuthStartResponse,
   ProfileActionResponse,
-  RecoveryRequestResponse,
+  RecoveryRequestResponse
 } from "./types"
 export {
   authCpfSchema,
@@ -113,5 +105,5 @@ export {
   type AuthRecoveryPayload,
   type FieldErrors,
   type RecoveryReason,
-  type RequiredPasswordValues,
+  type RequiredPasswordValues
 } from "./validation"

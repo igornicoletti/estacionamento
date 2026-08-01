@@ -1,11 +1,10 @@
-import { RefreshCcwIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate } from "react-router"
 
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppPage } from "@/components/shared/app-page"
-import { Button } from "@/components/ui/button"
 import { AUTH_PERMISSION, useAuth } from "@/features/auth"
+import { SyncOperations } from "@/features/sync"
 
 import { UnitsTable } from "../components/units-table"
 import { unitsCopy } from "../constants/units-copy"
@@ -40,20 +39,7 @@ export function UnitsRoute() {
       title={unitsCopy.pages.units.title}
       subtitle={unitsCopy.pages.units.subtitle}
       actions={(
-        <Button
-          type="button"
-          variant="secondary"
-          disabled={isLoading}
-          onClick={() => {
-            void refetch()
-          }}
-        >
-          <RefreshCcwIcon
-            data-icon="inline-start"
-            aria-hidden="true"
-          />
-          {unitsCopy.actions.refresh}
-        </Button>
+        <SyncOperations resource="units" onSynchronized={refetch} />
       )}
     >
       <UnitsTable

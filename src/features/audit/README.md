@@ -78,7 +78,7 @@ src/features/audit
 ```
 
 | Arquivo | Responsabilidade | Decisão de manutenção |
-|---|---|---|
+| --- | --- | --- |
 | `components/audit-table.tsx` | Compor DataTable, estados vazios, filtros, exportação e persistência visual | Não mover regra de negócio ou I/O para este arquivo |
 | `constants/audit-copy.ts` | Centralizar textos e mensagens da feature | Copy variável deve continuar fora de JSX e serviços |
 | `constants/audit-labels.ts` | Definir enums visuais, labels de eventos atuais e aliases históricos identificados | Alias histórico só pode ser removido após confirmar ausência no período de retenção e no banco remoto |
@@ -189,7 +189,7 @@ No retry:
 Os testes específicos ficam em `tests/features/audit` e as fixtures injetáveis em `tests/helpers/audit-memory-gateway.ts`.
 
 | Arquivo | Cobertura principal |
-|---|---|
+| --- | --- |
 | `audit-gateway-schema.test.ts` | Contrato válido, UUID, timestamp, enums e propriedades não permitidas |
 | `audit-models.test.ts` | Preservação canônica, redação visual, allowlist, labels atuais/históricas e ordenação |
 | `audit-service.test.ts` | Mapeamento do gateway e propagação de truncamento |
@@ -209,7 +209,7 @@ Os testes específicos ficam em `tests/features/audit` e as fixtures injetáveis
 ### Evidência de validação em 2026-08-01
 
 | Gate | Resultado |
-|---|---|
+| --- | --- |
 | ESLint completo | Aprovado |
 | TypeScript da aplicação | Aprovado |
 | TypeScript dos testes | Aprovado |

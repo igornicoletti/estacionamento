@@ -694,9 +694,11 @@ export function DataTable<TData extends RowData, TValue>({
     hasPersistentToolbarControls || enableViewOptions || enableExport
   const shouldRenderToolbar =
     !hasBlockingError &&
-    !isInitialLoading &&
     hasToolbarSurface &&
-    (hasVisibleRows || isFiltered || hasPersistentToolbarControls)
+    (hasVisibleRows ||
+      isFiltered ||
+      hasPersistentToolbarControls ||
+      isInitialLoading)
   const shouldRenderPagination =
     enablePagination && !hasBlockingError && hasVisibleRows
 
@@ -862,7 +864,14 @@ export function DataTable<TData extends RowData, TValue>({
                       className={isLoading ? "opacity-60" : undefined}
                     >
                       {row.getVisibleCells().map((cell) => (
-                        <TableCell key={cell.id}>
+                        <TableCell
+                          key={cell.id}
+                          className="truncate"
+                          style={{
+                            width: cell.column.getSize(),
+                            maxWidth: cell.column.getSize(),
+                          }}
+                        >
                           {flexRender(
                             cell.column.columnDef.cell,
                             cell.getContext()
@@ -929,6 +938,7 @@ export function DataTable<TData extends RowData, TValue>({
           canExport={(canExport ?? true) && hasVisibleRows}
           manualFiltering={manualFiltering}
           isLoading={isLoading}
+          isInitialLoading={isInitialLoading}
           allowExportWhileLoading={allowExportWhileLoading}
           isExternallyFiltered={isExternallyFiltered}
           globalFilterValue={globalFilter}

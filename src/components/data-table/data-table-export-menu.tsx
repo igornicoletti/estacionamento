@@ -33,12 +33,15 @@ interface DataTableExportOption {
   columnScope: ExportColumnScope
 }
 
-export interface DataTableFilteredExportContext<TData> {
+export interface DataTableRemoteExportContext<TData> {
   table: Table<TData>
   columns: readonly Column<TData, unknown>[]
   filename: string
   sheetName: string
 }
+
+export type DataTableFilteredExportContext<TData> =
+  DataTableRemoteExportContext<TData>
 
 export interface DataTableExportMenuProps<TData> {
   table: Table<TData>
@@ -50,6 +53,9 @@ export interface DataTableExportMenuProps<TData> {
   canExportColumn?: (column: Column<TData, unknown>) => boolean
   onExportFilteredRows?: (
     context: DataTableFilteredExportContext<TData>
+  ) => void | Promise<void>
+  onExportAllRows?: (
+    context: DataTableRemoteExportContext<TData>
   ) => void | Promise<void>
   onExportSuccess?: (optionId: DataTableExportOptionId) => void
   onExportError?: (error: Error) => void
@@ -85,8 +91,8 @@ const exportOptions = [
   },
   {
     id: "loaded",
-    label: dataTableCopy.exportMenu.loadedRows,
-    description: dataTableCopy.exportMenu.loadedRowsDescription,
+    label: dataTableCopy.exportMenu.allRows,
+    description: dataTableCopy.exportMenu.allRowsDescription,
     rowScope: "loaded",
     columnScope: "all",
   },
@@ -127,8 +133,8 @@ function toError(error: unknown): Error {
   return error instanceof Error
     ? error
     : new DataTableExportError(
-        "Ocorreu um erro desconhecido durante a exportação."
-      )
+      "Ocorreu um erro desconhecido durante a exportação."
+    )
 }
 
 function replaceRestrictedCharacters(
@@ -394,22 +400,21 @@ function getAvailableExportOptions({
   usesManualFiltering,
   usesManualPagination,
   hasRemoteFilteredExport,
+  hasRemoteAllExport,
 }: {
   usesManualFiltering: boolean
   usesManualPagination: boolean
   hasRemoteFilteredExport: boolean
+  hasRemoteAllExport: boolean
 }): readonly DataTableExportOption[] {
-  if (usesManualPagination) {
-    return exportOptions.filter(
-      (option) =>
-        option.rowScope === "current" ||
-        (option.rowScope === "filtered" && hasRemoteFilteredExport)
-    )
-  }
-  if (usesManualFiltering) {
-    return exportOptions.filter((option) => option.rowScope !== "loaded")
-  }
-  return exportOptions
+  const requiresRemoteDataset = usesManualFiltering || usesManualPagination
+
+  return exportOptions.filter((option) => {
+    if (option.rowScope === "current") return true
+    if (!requiresRemoteDataset) return true
+    if (option.rowScope === "filtered") return hasRemoteFilteredExport
+    return hasRemoteAllExport
+  })
 }
 
 export function DataTableExportMenu<TData>({
@@ -421,6 +426,7 @@ export function DataTableExportMenu<TData>({
   columnExportPolicy = "opt-out",
   canExportColumn,
   onExportFilteredRows,
+  onExportAllRows,
   onExportSuccess,
   onExportError,
 }: DataTableExportMenuProps<TData>) {
@@ -436,6 +442,7 @@ export function DataTableExportMenu<TData>({
     usesManualFiltering,
     usesManualPagination,
     hasRemoteFilteredExport: typeof onExportFilteredRows === "function",
+    hasRemoteAllExport: typeof onExportAllRows === "function",
   })
   const optionStates: readonly ExportOptionState<TData>[] = options.map(
     (option) => {
@@ -446,7 +453,8 @@ export function DataTableExportMenu<TData>({
         canExportColumn,
       })
       const isRemote =
-        option.rowScope === "filtered" && usesManualPagination
+        (usesManualFiltering || usesManualPagination) &&
+        option.rowScope !== "current"
       const hasRows = isRemote
         ? true
         : getExportRows(table, option.rowScope).length > 0
@@ -469,12 +477,17 @@ export function DataTableExportMenu<TData>({
     setActiveOptionId(state.option.id)
     try {
       if (state.isRemote) {
-        if (!onExportFilteredRows) {
+        const remoteExport =
+          state.option.rowScope === "filtered"
+            ? onExportFilteredRows
+            : onExportAllRows
+
+        if (!remoteExport) {
           throw new DataTableExportError(
-            "A exportação remota dos resultados filtrados não foi configurada."
+            "A exportação remota deste conjunto de dados não foi configurada."
           )
         }
-        await onExportFilteredRows({
+        await remoteExport({
           table,
           columns: state.columns,
           filename: normalizedFilename,

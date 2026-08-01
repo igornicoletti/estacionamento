@@ -28,7 +28,7 @@ import {
 
 interface DataTableFacetedFilterProps<TData, TValue> {
   column: Column<TData, TValue>
-  icon?: LucideIcon
+  icon: LucideIcon
   title: string
   options: readonly DataTableFilterOption[]
   groups?: readonly DataTableFilterOptionGroup[]
@@ -195,12 +195,17 @@ function DataTableFacetedFilterItem({
   return (
     <ComboboxItem
       value={option}
-      className="pr-8"
+      className="pr-1.5 [&>span:last-child]:static [&>span:last-child]:right-auto [&>span:last-child]:order-2 [&>span:last-child]:ml-auto"
     >
-      <span className="min-w-0 flex-1 truncate">{option.label}</span>
+      <span
+        className="min-w-0 flex-1 truncate"
+        data-slot="data-table-filter-item-label"
+      >
+        {option.label}
+      </span>
       {count !== undefined ? (
         <span
-          className="mr-6 ml-auto flex shrink-0 items-center"
+          className="order-3 flex shrink-0 items-center"
           data-slot="data-table-filter-item-meta"
         >
           <span className="text-xs tabular-nums text-muted-foreground">
@@ -269,10 +274,10 @@ export function DataTableFacetedFilter<TData, TValue>({
     () =>
       facets
         ? resolveColumnFacetCounts({
-            facets,
-            validOptionValues,
-            facetValueToOptionValue,
-          })
+          facets,
+          validOptionValues,
+          facetValueToOptionValue,
+        })
         : undefined,
     [facets, facetValueToOptionValue, validOptionValues]
   )
@@ -327,7 +332,6 @@ export function DataTableFacetedFilter<TData, TValue>({
         >
           <DataTableFilterIcon
             icon={icon}
-            kind="faceted"
           />
           <span className="max-w-56 truncate">{triggerLabel}</span>
         </ComboboxTrigger>

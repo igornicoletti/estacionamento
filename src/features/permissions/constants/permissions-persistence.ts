@@ -1,5 +1,5 @@
 export const PERMISSIONS_TABLE_COLUMN_VISIBILITY_KEY =
-  "rmc.table.permissions.columns.v2"
+  "rmc.table.permissions.columns.v3"
 
 export const PERMISSIONS_DEFAULT_COLUMN_VISIBILITY = {
   groupLabel: false,

@@ -50,7 +50,6 @@ export const AUTH_PERMISSION = {
   unitsYardManage: "units.yard.manage",
   clientsRead: "clients.read",
   clientVehiclesRead: "client_vehicles.read",
-  clientsSyncRead: "clients.sync.read",
   pricesRead: "prices.read",
   pricesManage: "prices.manage",
   rulesRead: "rules.read",
@@ -78,45 +77,6 @@ export type AuthRoleKey = (typeof AUTH_ROLE_KEY)[keyof typeof AUTH_ROLE_KEY]
 export type AuthPermission = (typeof AUTH_PERMISSION)[keyof typeof AUTH_PERMISSION]
 
 const knownAuthPermissions = new Set<string>(Object.values(AUTH_PERMISSION))
-
-const operatorPermissions = [
-  AUTH_PERMISSION.profileReadSelf,
-  AUTH_PERMISSION.settingsReadSelf,
-  AUTH_PERMISSION.notificationsRead,
-  AUTH_PERMISSION.unitsRead,
-  AUTH_PERMISSION.clientsRead,
-  AUTH_PERMISSION.clientVehiclesRead,
-  AUTH_PERMISSION.pricesRead,
-  AUTH_PERMISSION.rulesRead,
-] as const
-
-const managerPermissions = [...operatorPermissions, AUTH_PERMISSION.usersRead] as const
-
-const auditorPermissions = [
-  ...managerPermissions,
-  AUTH_PERMISSION.clientsSyncRead,
-  AUTH_PERMISSION.accessRequestsRead,
-  AUTH_PERMISSION.permissionsRead,
-  AUTH_PERMISSION.auditRead,
-] as const
-
-const adminPermissions = [
-  ...auditorPermissions,
-  AUTH_PERMISSION.pricesManage,
-  AUTH_PERMISSION.rulesManage,
-  AUTH_PERMISSION.unitsYardManage,
-  AUTH_PERMISSION.usersManage,
-  AUTH_PERMISSION.accessRequestsReview,
-  AUTH_PERMISSION.syncExecute,
-] as const
-
-const fallbackPermissionsByRole: Record<AuthRoleKey, readonly AuthPermission[]> = {
-  owner: [AUTH_PERMISSION_WILDCARD],
-  admin: adminPermissions,
-  auditor: auditorPermissions,
-  manager: managerPermissions,
-  operator: operatorPermissions,
-}
 
 export function isAuthStatus(value: unknown): value is AuthStatus {
   return (
@@ -162,22 +122,6 @@ export function normalizeAuthPermissions(value: unknown): readonly AuthPermissio
   }
 
   return Array.from(permissions)
-}
-
-export function getRoleFallbackPermissions(
-  roleKey: string | null | undefined
-): readonly AuthPermission[] {
-  if (
-    roleKey === AUTH_ROLE_KEY.owner ||
-    roleKey === AUTH_ROLE_KEY.admin ||
-    roleKey === AUTH_ROLE_KEY.auditor ||
-    roleKey === AUTH_ROLE_KEY.manager ||
-    roleKey === AUTH_ROLE_KEY.operator
-  ) {
-    return fallbackPermissionsByRole[roleKey]
-  }
-
-  return []
 }
 
 export function resolveAuthProfilePermissions({

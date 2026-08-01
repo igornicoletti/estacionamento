@@ -9,13 +9,13 @@ export type LazyRouteLoader = () => Promise<LazyRouteModule>
 export const routeLazyLoaders = {
   home: import.meta.env.PROD
     ? () =>
-        import("./components/production-home-route").then((module) => ({
-          Component: module.ProductionHomeRoute,
-        }))
+      import("./components/production-unavailable-routes").then((module) => ({
+        Component: module.ProductionDashboardRoute,
+      }))
     : () =>
-        import("@/features/dashboard/routes/dashboard-route").then((module) => ({
-          Component: module.DashboardRoute,
-        })),
+      import("@/features/dashboard/routes/dashboard-route").then((module) => ({
+        Component: module.DashboardRoute,
+      })),
   login: () =>
     import("@/features/auth/routes/auth-login-route").then((module) => ({
       Component: module.AuthLoginRoute,
@@ -78,14 +78,20 @@ export const routeLazyLoaders = {
     })),
   yard: import.meta.env.DEV
     ? () =>
-        import("@/features/yard/routes/yard-route").then((module) => ({
-          Component: module.YardRoute,
-        }))
-    : undefined,
+      import("@/features/yard/routes/yard-route").then((module) => ({
+        Component: module.YardRoute,
+      }))
+    : () =>
+      import("./components/production-unavailable-routes").then((module) => ({
+        Component: module.ProductionYardRoute,
+      })),
   reports: import.meta.env.DEV
     ? () =>
-        import("@/features/reports/routes/reports-route").then((module) => ({
-          Component: module.ReportsRoute,
-        }))
-    : undefined,
+      import("@/features/reports/routes/reports-route").then((module) => ({
+        Component: module.ReportsRoute,
+      }))
+    : () =>
+      import("./components/production-unavailable-routes").then((module) => ({
+        Component: module.ProductionReportsRoute,
+      })),
 } as const satisfies Record<string, LazyRouteLoader | undefined>

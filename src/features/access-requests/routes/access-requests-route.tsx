@@ -1,5 +1,3 @@
-import { DatabaseIcon, ShieldAlertIcon } from "lucide-react"
-import * as React from "react"
 import { DataTable } from "@/components/data-table"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
@@ -11,6 +9,12 @@ import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
 import { newPasswordSchema } from "@/features/auth/validation"
+import {
+  CircleHelpIcon,
+  DatabaseIcon,
+  ShieldAlertIcon,
+} from "lucide-react"
+import * as React from "react"
 
 import { ACCESS_REQUESTS_RECOVERY_TABLE_STATE_KEY, accessRequestsCopy } from "../constants"
 import { useAccessRequests } from "../hooks"
@@ -148,6 +152,7 @@ export function AccessRequestsPanel({ canReview = true, showHeader = true }: Acc
         filterFields={[
           {
             id: "reason",
+            icon: CircleHelpIcon,
             title: accessRequestsCopy.filters.reason,
             options: recoveryReasonOptions,
             showCounts: true,

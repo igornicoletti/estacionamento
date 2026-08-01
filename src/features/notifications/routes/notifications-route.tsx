@@ -1,22 +1,21 @@
-import { CheckCheckIcon } from "lucide-react"
+import { BellIcon, CheckCheckIcon, CircleDotIcon } from "lucide-react"
 import * as React from "react"
 
-import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
-import { AppPage } from "@/components/shared/app-page"
-import { notify } from "@/components/toast"
 import {
   createDataTableFilterOptions,
   DataTable,
 } from "@/components/data-table"
+import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppPage } from "@/components/shared/app-page"
+import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 
-import { createNotificationsColumns } from "../table"
-import { useNotifications } from "../context"
 import {
-  notificationStatusLabels,
   notificationsCopy,
+  notificationStatusLabels,
   notificationTypeLabels,
 } from "../constants"
+import { useNotifications } from "../context"
 import {
   getNotificationDetailItems,
   resolveNotificationDetailsDescription,
@@ -24,6 +23,7 @@ import {
   type NotificationRecord,
   type NotificationStatus,
 } from "../model"
+import { createNotificationsColumns } from "../table"
 
 export function NotificationsRoute() {
   const {
@@ -115,7 +115,7 @@ export function NotificationsRoute() {
       actions={
         <Button
           type="button"
-          variant="outline"
+          variant="secondary"
           disabled={isUpdatingBatch || unreadCount === 0}
           aria-busy={isUpdatingBatch || undefined}
           onClick={() => {
@@ -152,11 +152,13 @@ export function NotificationsRoute() {
         filterFields={[
           {
             id: "type",
+            icon: BellIcon,
             title: notificationsCopy.filters.type,
             options: typeOptions,
           },
           {
             id: "status",
+            icon: CircleDotIcon,
             title: notificationsCopy.filters.status,
             options: statusOptions,
           },

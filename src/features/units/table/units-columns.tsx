@@ -1,5 +1,5 @@
 import { type ColumnDef } from "@tanstack/react-table"
-import { ExternalLinkIcon } from "lucide-react"
+import { ArrowUpRightIcon } from "lucide-react"
 
 import {
   createActionsColumn,
@@ -7,8 +7,8 @@ import {
   DataTableTextAction,
   DataTableTextLink,
 } from "@/components/data-table"
+import { AppStatusBadge } from "@/components/shared"
 import { Badge } from "@/components/ui/badge"
-import { getBadgeToneClassName } from "@/lib"
 
 import { unitsCopy } from "../constants/units-copy"
 import {
@@ -67,13 +67,14 @@ export function createUnitsColumns({
     },
     {
       accessorKey: "num_cnpj",
-      meta: { label: unitsCopy.table.cnpj },
+      meta: { label: unitsCopy.table.cnpj, enableExport: false },
       header: unitsCopy.table.cnpj,
-      size: 170,
+      size: 220,
       cell: ({ row }) => (
         <DataTableSensitiveValue
           value={row.original.num_cnpj}
           kind="cnpj"
+          canReveal
           fallback={unitsCopy.details.emptyValue}
         />
       ),
@@ -98,18 +99,19 @@ export function createUnitsColumns({
         exportValue: (_value, row) => formatUnitCityState(row),
       },
       header: unitsCopy.table.cityState,
-      size: 170,
+      size: 220,
       cell: ({ row }) => formatUnitCityState(row.original),
     },
     {
       accessorKey: "des_coordenada_empresa",
       meta: {
         label: unitsCopy.table.coordinates,
+        enableExport: false,
         exportValue: (_value, row) =>
           resolveTextExportValue(row.des_coordenada_empresa),
       },
       header: unitsCopy.table.coordinates,
-      size: 210,
+      size: 360,
       cell: ({ row }) => {
         const href = createUnitMapHref(
           row.original.des_coordenada_empresa
@@ -122,9 +124,10 @@ export function createUnitsColumns({
         return (
           <DataTableTextLink href={href} target="_blank" rel="noreferrer">
             {row.original.des_coordenada_empresa}
-            <ExternalLinkIcon
+            <ArrowUpRightIcon
               data-icon="inline-end"
               aria-hidden="true"
+              className="size-3.5 text-muted-foreground"
             />
           </DataTableTextLink>
         )
@@ -134,6 +137,7 @@ export function createUnitsColumns({
       accessorKey: "ip_rede",
       meta: {
         label: unitsCopy.table.networkIp,
+        enableExport: false,
         exportValue: (_value, row) =>
           resolveTextExportValue(row.ip_rede),
       },
@@ -187,14 +191,11 @@ export function createUnitsColumns({
 
         return (
           <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(
-                isActive === true ? "success" : undefined
-              )}
+            <AppStatusBadge
+              tone={isActive === true ? "success" : "secondary"}
             >
               {resolveYardStatusLabel(isActive)}
-            </Badge>
+            </AppStatusBadge>
           </div>
         )
       },
@@ -208,11 +209,19 @@ export function createUnitsColumns({
           row.yardConfig?.parkingSpots ??
           unitsCopy.details.notConfigured,
       },
-      header: unitsCopy.table.spots,
+      enableSorting: false,
+      header: () => (
+        <div className="text-center">{unitsCopy.table.spots}</div>
+      ),
       size: 110,
-      cell: ({ row }) =>
-        row.original.yardConfig?.parkingSpots ??
-        unitsCopy.details.notConfigured,
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <Badge variant="secondary">
+            {row.original.yardConfig?.parkingSpots ??
+              unitsCopy.details.notConfigured}
+          </Badge>
+        </div>
+      ),
     },
     createActionsColumn<UnitTableRow>((row) => [
       {
@@ -222,12 +231,12 @@ export function createUnitsColumns({
       },
       ...(showUserStats && onSelectUsers
         ? [
-            {
-              id: "users" as const,
-              label: unitsCopy.actions.users,
-              onSelect: () => onSelectUsers(row.original),
-            },
-          ]
+          {
+            id: "users" as const,
+            label: unitsCopy.actions.users,
+            onSelect: () => onSelectUsers(row.original),
+          },
+        ]
         : []),
     ])
   )

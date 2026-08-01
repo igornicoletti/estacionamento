@@ -1,19 +1,11 @@
 import { fireEvent, render, screen } from "@testing-library/react"
 import { describe, expect, it } from "vitest"
 
-import { PermissionsRoute } from "@/features/permissions"
+import { PermissionsRoute } from "@/features/permissions/routes/permissions-route"
 
 const auditPermissionLabel = "Visualizar auditoria"
 
 async function findAuditPermissionTrigger() {
-  const searchInput = await screen.findByLabelText("Buscar permissões...")
-
-  fireEvent.change(searchInput, {
-    target: {
-      value: auditPermissionLabel,
-    },
-  })
-
   return screen.findByRole("button", {
     name: auditPermissionLabel,
   })
@@ -24,7 +16,7 @@ describe("PermissionsRoute", () => {
     render(<PermissionsRoute />)
 
     expect(
-      screen.getByRole("heading", { name: "Perfil e Permissões" })
+      screen.getByRole("heading", { name: "Perfis e permissões" })
     ).toBeInTheDocument()
 
     expect(await findAuditPermissionTrigger()).toBeInTheDocument()
@@ -43,8 +35,6 @@ describe("PermissionsRoute", () => {
 
     expect(screen.getByText("Chave")).toBeInTheDocument()
 
-    expect(
-      screen.getAllByText(auditPermissionLabel).length
-    ).toBeGreaterThan(0)
+    expect(screen.getByText("audit.read")).toBeInTheDocument()
   })
 })

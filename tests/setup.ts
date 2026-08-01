@@ -4,31 +4,31 @@ import * as React from "react"
 import { beforeEach, vi } from "vitest"
 
 import { setAuditGateway } from "@/features/audit/gateways/audit-gateway"
+import { setClientsGateway } from "@/features/clients/gateways/clients-gateway"
 import {
   setNotificationsGateway,
   type NotificationRecord,
 } from "@/features/notifications"
 import {
-  configurePermissionsGateway,
-  type PermissionMatrixRow,
-} from "@/features/permissions"
-import { setClientsGateway } from "@/features/clients/gateways/clients-gateway"
+  setPermissionsGateway,
+} from "@/features/permissions/gateways/permissions-gateway"
 import {
   resetUnitUserStatsGateway,
   setUnitUserStatsGateway,
 } from "@/features/units/gateways/unit-user-stats-gateway"
+import { type UserRecord } from "@/features/users"
 import {
   resetUsersGateway,
   setUsersGateway,
 } from "@/features/users/gateways/users-gateway"
-import { type UserRecord } from "@/features/users"
 
-import { createMemoryNotificationsGateway } from "./helpers/notifications-memory-gateway"
-import { createMemoryClientsGateway } from "./helpers/clients-memory-gateway"
 import {
   createAuditEventRow,
   createMemoryAuditGateway,
 } from "./helpers/audit-memory-gateway"
+import { createMemoryClientsGateway } from "./helpers/clients-memory-gateway"
+import { createMemoryNotificationsGateway } from "./helpers/notifications-memory-gateway"
+import { createMemoryPermissionsGateway } from "./helpers/permissions-memory-gateway"
 import { createMemoryUsersGateway } from "./helpers/users-memory-gateway"
 
 if (!HTMLElement.prototype.hasPointerCapture) {
@@ -76,9 +76,9 @@ if (!globalThis.ResizeObserver) {
       )
     }
 
-    unobserve() {}
+    unobserve() { }
 
-    disconnect() {}
+    disconnect() { }
   }
 
   Object.defineProperty(globalThis, "ResizeObserver", {
@@ -249,30 +249,6 @@ const seedNotifications: NotificationRecord[] = [
 
 const seedAuditEvents = [createAuditEventRow()]
 
-const seedPermissionMatrix: PermissionMatrixRow[] = [
-  {
-    accessFilters: ["with_access", "without_access"],
-    description: "Permite visualizar eventos de auditoria.",
-    groupKey: "audit",
-    groupLabel: "Auditoria",
-    id: "audit.read",
-    isCritical: true,
-    key: "audit.read",
-    label: "Visualizar auditoria",
-    roleAccess: {
-      admin: true,
-      auditor: true,
-      manager: false,
-      operator: false,
-      owner: true,
-    },
-    roleCount: 3,
-    roleLabels: "Proprietário, Administrador, Auditor",
-    roles: ["owner", "admin", "auditor"],
-    source: "system",
-  },
-]
-
 vi.mock("@/features/auth", async (importOriginal) => {
   const actual = await importOriginal<typeof import("@/features/auth")>()
 
@@ -312,9 +288,7 @@ vi.mock("@/components/ui/tooltip", async (importOriginal) => {
 beforeEach(() => {
   setClientsGateway(createMemoryClientsGateway())
   setAuditGateway(createMemoryAuditGateway(seedAuditEvents))
-  configurePermissionsGateway({
-    listMatrix: () => Promise.resolve(seedPermissionMatrix),
-  })
+  setPermissionsGateway(createMemoryPermissionsGateway())
   setNotificationsGateway(createMemoryNotificationsGateway(seedNotifications))
 
   resetUsersGateway()

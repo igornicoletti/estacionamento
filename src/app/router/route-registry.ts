@@ -1,7 +1,7 @@
-import { AUTH_PERMISSION, type AuthPermission } from "@/features/auth";
-import { appCopy } from "../constants/app-copy";
+import { AUTH_PERMISSION, type AuthPermission } from "@/features/auth"
+import { appCopy } from "../constants/app-copy"
 
-import { routeLazyLoaders, type LazyRouteLoader } from "./route-lazy-loaders";
+import { routeLazyLoaders, type LazyRouteLoader } from "./route-lazy-loaders"
 
 export const appRouteIds = {
   root: "root",
@@ -26,7 +26,7 @@ export const appRouteIds = {
   yard: "app.yard",
   reports: "app.reports",
   notFound: "not-found",
-} as const;
+} as const
 
 export const appRoutePaths = {
   home: "/",
@@ -45,7 +45,7 @@ export const appRoutePaths = {
   security: "/seguranca",
   yard: "/patio-virtual",
   reports: "/relatorios",
-} as const satisfies Record<string, `/${string}`>;
+} as const satisfies Record<string, `/${string}`>
 
 export const appRouteSegments = {
   login: "login",
@@ -65,37 +65,37 @@ export const appRouteSegments = {
   security: "seguranca",
   yard: "patio-virtual",
   reports: "relatorios",
-} as const;
+} as const
 
 export const appRouteGroupIds = {
   workspace: "workspace",
   records: "records",
   monitoring: "monitoring",
   utilities: "utilities",
-} as const;
+} as const
 
-export const appPermissionKeys = AUTH_PERMISSION;
+export const appPermissionKeys = AUTH_PERMISSION
 
-export type AppRouteId = (typeof appRouteIds)[keyof typeof appRouteIds];
-export type AppRoutePath = (typeof appRoutePaths)[keyof typeof appRoutePaths];
+export type AppRouteId = (typeof appRouteIds)[keyof typeof appRouteIds]
+export type AppRoutePath = (typeof appRoutePaths)[keyof typeof appRoutePaths]
 export type AppRouteGroupId =
-  (typeof appRouteGroupIds)[keyof typeof appRouteGroupIds];
-export type AppRouteAvailability = "all" | "development";
+  (typeof appRouteGroupIds)[keyof typeof appRouteGroupIds]
+export type AppRouteAvailability = "all" | "development"
 
 export interface AppRouteRegistryItem {
-  id: AppRouteId;
-  path?: string;
-  href?: AppRoutePath;
-  index?: boolean;
-  label: string;
-  description: string;
-  availability?: AppRouteAvailability;
-  requiredPermissions?: readonly AuthPermission[];
-  lazy?: LazyRouteLoader;
+  id: AppRouteId
+  path?: string
+  href?: AppRoutePath
+  index?: boolean
+  label: string
+  description: string
+  availability?: AppRouteAvailability
+  requiredPermissions?: readonly AuthPermission[]
+  lazy?: LazyRouteLoader
   navigation?: {
-    group: AppRouteGroupId;
-    order: number;
-  };
+    group: AppRouteGroupId
+    order: number
+  }
 }
 
 export const publicRouteRegistry = [
@@ -115,7 +115,7 @@ export const publicRouteRegistry = [
     description: appCopy.routes.recovery.description,
     lazy: routeLazyLoaders.recovery,
   },
-] as const satisfies readonly AppRouteRegistryItem[];
+] as const satisfies readonly AppRouteRegistryItem[]
 
 const registeredAuthenticatedRoutes = [
   {
@@ -125,16 +125,13 @@ const registeredAuthenticatedRoutes = [
     label: appCopy.routes.home.label,
     description: appCopy.routes.home.description,
     lazy: routeLazyLoaders.home,
-    navigation: import.meta.env.DEV
-      ? {
-          group: appRouteGroupIds.workspace,
-          order: 0,
-        }
-      : undefined,
+    navigation: {
+      group: appRouteGroupIds.workspace,
+      order: 0,
+    },
   },
   {
     id: appRouteIds.yard,
-    availability: "development",
     path: appRouteSegments.yard,
     href: appRoutePaths.yard,
     label: appCopy.routes.yard.label,
@@ -148,7 +145,6 @@ const registeredAuthenticatedRoutes = [
   },
   {
     id: appRouteIds.reports,
-    availability: "development",
     path: appRouteSegments.reports,
     href: appRoutePaths.reports,
     label: appCopy.routes.reports.label,
@@ -318,18 +314,18 @@ const registeredAuthenticatedRoutes = [
     ],
     lazy: routeLazyLoaders.unitUsers,
   },
-] as const satisfies readonly AppRouteRegistryItem[];
+] as const satisfies readonly AppRouteRegistryItem[]
 
 export function isRouteAvailable(
   route: Pick<AppRouteRegistryItem, "id" | "availability">,
   isDevelopment = import.meta.env.DEV
 ) {
-  return route.availability !== "development" || isDevelopment;
+  return route.availability !== "development" || isDevelopment
 }
 
 export const authenticatedRouteRegistry = registeredAuthenticatedRoutes.filter(
   (route) => isRouteAvailable(route)
-);
+)
 
 export const navigationGroups = [
   {
@@ -352,4 +348,4 @@ export const navigationGroups = [
     label: appCopy.routeGroups.utilities,
     order: 50,
   },
-] as const;
+] as const

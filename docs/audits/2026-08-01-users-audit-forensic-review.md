@@ -22,7 +22,7 @@ Não existe fallback sintético no bundle produtivo de nenhuma das duas features
 ## Comparação estrutural
 
 | Responsabilidade | `users` | `audit` | Decisão comum |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Rota | autenticação, tabs e coordenação | seleção e detalhes | sem I/O ou regra de domínio |
 | UI específica | formulário, ações, detalhes e tabela | tabela | compor shared/shadcn sem editar primitives |
 | Hook | leitura e mutações concorrentes | leitura, retry e descarte de resposta obsoleta | generation guard; estado técnico não vaza para a UI |
@@ -36,7 +36,7 @@ Não existe fallback sintético no bundle produtivo de nenhuma das duas features
 ## Achados de `users`
 
 | Severidade | Achado confirmado | Correção e evidência |
-|---|---|---|
+| --- | --- | --- |
 | crítica | implementações históricas podiam aparentar mutação sem contrato produtivo verificável | gateway Supabase real, resultado relido do backend e memory gateway restrito ao setup de teste |
 | alta | respostas de mutação e fatores aceitavam shape amplo demais | schemas Zod estritos e adapter wire → domínio; UUID, papel, status e identidades inválidas falham fechadas |
 | alta | regras administrativas estavam distribuídas entre rota, coluna e backend | política pura ator/alvo e factory única de ações; Edge Function continua autoritativa |
@@ -49,7 +49,7 @@ Não existe fallback sintético no bundle produtivo de nenhuma das duas features
 ## Achados de `audit`
 
 | Severidade | Achado confirmado | Correção e evidência |
-|---|---|---|
+| --- | --- | --- |
 | crítica | serviço anterior produzia eventos sintéticos mesmo existindo `audit_events` | gateway Supabase read-only real; fixture apenas por injeção explícita nos testes |
 | alta | normalização permissiva convertia payload inválido em evidência aparente | projeção mínima, schema estrito e falha fechada; registro canônico não é reescrito |
 | alta | policy repetia função de autorização por linha e a ordenação global não tinha índice correspondente | migration aditiva com initplan por statement e índice `(occurred_at desc, id desc)`; contratos local/remoto passaram |
@@ -61,7 +61,7 @@ Não existe fallback sintético no bundle produtivo de nenhuma das duas features
 ## Segurança
 
 | Vetor | Resultado |
-|---|---|
+| --- | --- |
 | SQL injection | não há SQL ou filtro PostgREST construído com entrada livre nas features; constantes definem fontes e projeções |
 | XSS | React escapa saída; não há `dangerouslySetInnerHTML`, `innerHTML`, `eval` ou navegação derivada de payload |
 | CSRF | `audit` é leitura; mutações de `users` usam JWT, `verify_jwt=true`, validação de sessão e autorização no handler |
@@ -101,7 +101,7 @@ Em desktop e 390 × 844:
 ## Evidência final de qualidade
 
 | Gate | Resultado final |
-|---|---|
+| --- | --- |
 | inventário/arquitetura | `pnpm validate` aprovado: 794 arquivos, 471 fontes e 62 migrations |
 | ESLint | aprovado em todo o repositório |
 | TypeScript | aplicação e testes aprovados |

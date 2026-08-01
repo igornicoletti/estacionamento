@@ -28,7 +28,8 @@ describe("NotificationsRoute", () => {
     const destination = screen.getByRole("link", { name: "/clientes" })
     const description = screen.getByText("Clientes e unidades foram sincronizados com sucesso.")
 
-    expect(destination).toHaveClass("hover:text-muted-foreground")
+    expect(destination).toHaveClass("font-medium")
+    expect(destination).not.toHaveClass("hover:text-muted-foreground")
     expect(destination).not.toHaveClass("hover:underline")
     expect(description).toHaveClass("truncate")
 
@@ -47,7 +48,7 @@ describe("NotificationsRoute", () => {
     await flushReactUpdates()
   })
 
-  it("uses primary badge for read notifications and warning badge for unread notifications", async () => {
+  it("uses semantic tones for read and unread notification badges", async () => {
     render(
       <MemoryRouter>
         <NotificationsProvider>
@@ -63,9 +64,9 @@ describe("NotificationsRoute", () => {
     const unreadBadge = screen.getAllByText("Não lida")[0]?.closest("[data-slot='badge']")
     const readBadge = screen.getByText("Lida").closest("[data-slot='badge']")
 
-    expect(unreadBadge).toHaveAttribute("data-variant", "warning")
+    expect(unreadBadge).toHaveAttribute("data-tone", "warning")
     expect(unreadBadge).toHaveClass("bg-warning/10")
-    expect(readBadge).toHaveAttribute("data-variant", "info")
+    expect(readBadge).toHaveAttribute("data-tone", "info")
     expect(readBadge).toHaveClass("bg-info/10")
   })
 

@@ -69,7 +69,7 @@ describe("audit models", () => {
   })
 
   it("distinguishes critical severity from warning", () => {
-    expect(resolveAuditSeverityVariant("critical")).toBe("destructive")
+    expect(resolveAuditSeverityVariant("critical")).toBe("error")
     expect(resolveAuditSeverityVariant("warning")).toBe("warning")
     expect(resolveAuditSeverityVariant("info")).toBe("info")
   })

@@ -94,9 +94,9 @@ export const dataTableCopy = {
     filteredRows: "Exportar resultados filtrados",
     filteredRowsDescription:
       "Exportar todas as linhas correspondentes aos filtros e as colunas visíveis.",
-    loadedRows: "Exportar registros carregados",
-    loadedRowsDescription:
-      "Exportar todos os registros carregados na tabela e as colunas marcadas como exportáveis.",
+    allRows: "Exportar todo o conteúdo",
+    allRowsDescription:
+      "Exportar todos os registros disponíveis e as colunas marcadas como exportáveis.",
   },
   facetedFilter: {
     noResults: "Nenhuma opção encontrada.",

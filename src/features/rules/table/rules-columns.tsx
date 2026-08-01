@@ -1,8 +1,7 @@
 import type { ColumnDef } from "@tanstack/react-table"
 
 import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
-import { getBadgeToneClassName } from "@/lib"
+import { AppStatusBadge } from "@/components/shared"
 
 import { rulesCopy } from "../constants"
 import {
@@ -71,16 +70,13 @@ export function createRulesColumns(options: {
     {
       accessorKey: "active",
       meta: { label: rulesCopy.table.status },
-      header: () => <div className="text-center font-medium">{rulesCopy.table.status}</div>,
+      header: () => <div className="text-center">{rulesCopy.table.status}</div>,
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
-          <Badge
-            variant="secondary"
-            className={getBadgeToneClassName(row.original.active ? "success" : undefined)}
-          >
+          <AppStatusBadge tone={row.original.active ? "success" : "secondary"}>
             {row.original.active ? rulesCopy.labels.active : rulesCopy.labels.inactive}
-          </Badge>
+          </AppStatusBadge>
         </div>
       ),
     },

@@ -1,5 +1,6 @@
 import * as React from "react"
 
+import { Separator } from "@/components/ui/separator"
 import { cn } from "@/lib"
 
 interface AppPageProps
@@ -45,44 +46,47 @@ export function AppPage({
       {...props}
     >
       {hasHeader ? (
-        <div
-          className={cn(
-            "grid min-w-0 auto-rows-min gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-start",
-            headerClassName
-          )}
-        >
-          {hasHeading ? (
-            <div className={cn("min-w-0 space-y-0.5", headingClassName)}>
-              {headingContent ? (
-                headingContent
-              ) : (
-                <>
-                  <h1 className="text-lg font-semibold tracking-tight sm:text-xl">
-                    {title}
-                  </h1>
-                  {subtitle ? (
-                    <p className="text-sm text-muted-foreground">
-                      {subtitle}
-                    </p>
-                  ) : null}
-                </>
-              )}
-            </div>
-          ) : (
-            <div aria-hidden="true" />
-          )}
+        <>
+          <div
+            className={cn(
+              "grid min-w-0 auto-rows-min gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:items-end",
+              headerClassName
+            )}
+          >
+            {hasHeading ? (
+              <div className={cn("min-w-0 space-y-0.5", headingClassName)}>
+                {headingContent ? (
+                  headingContent
+                ) : (
+                  <>
+                    <h1 className="text-2xl font-semibold tracking-tight">
+                      {title}
+                    </h1>
+                    {subtitle ? (
+                      <p className="text-sm text-muted-foreground">
+                        {subtitle}
+                      </p>
+                    ) : null}
+                  </>
+                )}
+              </div>
+            ) : (
+              <div aria-hidden="true" />
+            )}
 
-          {hasActions ? (
-            <div
-              className={cn(
-                "grid min-w-0 w-full gap-2 sm:grid-cols-2 md:flex md:w-auto md:flex-wrap md:items-center md:justify-end",
-                actionsClassName
-              )}
-            >
-              {actions}
-            </div>
-          ) : null}
-        </div>
+            {hasActions ? (
+              <div
+                className={cn(
+                  "grid min-w-0 w-full gap-2 sm:grid-cols-2 md:flex md:w-auto md:flex-wrap md:items-end md:justify-end md:self-end",
+                  actionsClassName
+                )}
+              >
+                {actions}
+              </div>
+            ) : null}
+          </div>
+          <Separator className="h-px w-full" />
+        </>
       ) : null}
 
       <div

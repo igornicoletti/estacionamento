@@ -402,7 +402,7 @@ for (const [file, needles] of [
   ],
   [
     "src/components/data-table/data-table-export-menu.tsx",
-    ["exportRowsToXlsx", "currentView", "filteredRows", "loadedRows"],
+    ["exportRowsToXlsx", "currentView", "filteredRows", "allRows"],
   ],
   [
     "src/components/data-table/data-table-scroll-container.tsx",

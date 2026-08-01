@@ -6,16 +6,16 @@ import {
   DataTableStackedCell,
   DataTableTextAction,
 } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
-import { cn, getBadgeToneClassName } from "@/lib"
+import { AppStatusBadge } from "@/components/shared"
+import { cn } from "@/lib"
 
 import { usersCopy } from "../constants/users-copy"
 import {
   hasRecentUserAccess,
   resolveEmailLabel,
   resolveLastAccessLabel,
-  resolveRecentAccessLabel,
   resolvePasskeyLabel,
+  resolveRecentAccessLabel,
   resolveUnitLabel,
 } from "../model/users-models"
 import {
@@ -31,14 +31,11 @@ import { USER_RECENT_ACCESS_COLUMN_ID } from "./users-table-ids"
 
 export type CreateUsersColumnsOptions = UsersTableActionOptions
 
-function resolveStatusBadgeTone(status: UserRecord["status"]) {
+function resolveUserStatusTone(status: UserRecord["status"]) {
   if (status === "active") return "success" as const
+  if (status === "inactive") return "secondary" as const
   if (status === "pending") return "info" as const
-  if (status === "password_reset" || status === "passkey_reset") {
-    return "warning" as const
-  }
-
-  return undefined
+  return "warning" as const
 }
 
 function CenteredHeader({ children }: { children: string }) {
@@ -94,7 +91,10 @@ export function createUsersColumns(
       meta: { label: usersCopy.form.fields.cpf },
       header: usersCopy.form.fields.cpf,
       cell: ({ row }) => (
-        <DataTableSensitiveValue value={row.original.cpf} kind="cpf" />
+        <DataTableSensitiveValue
+          value={row.original.cpf}
+          kind="cpf"
+        />
       ),
     },
     {
@@ -105,6 +105,7 @@ export function createUsersColumns(
         <DataTableSensitiveValue
           value={row.original.phoneMasked}
           kind="phone"
+          canReveal
           fallback={usersCopy.details.emptyValue}
         />
       ),
@@ -124,14 +125,9 @@ export function createUsersColumns(
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
-          <Badge
-            variant="secondary"
-            className={getBadgeToneClassName(
-              resolveStatusBadgeTone(row.original.status)
-            )}
-          >
+          <AppStatusBadge tone={resolveUserStatusTone(row.original.status)}>
             {appUserStatusLabels[row.original.status]}
-          </Badge>
+          </AppStatusBadge>
         </div>
       ),
     },
@@ -148,22 +144,15 @@ export function createUsersColumns(
         <CenteredHeader>{usersCopy.details.passkeyLabel}</CenteredHeader>
       ),
       enableSorting: false,
-      cell: ({ row }) => {
-        const isActive = row.original.passkeyStatus === "active"
-
-        return (
-          <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(
-                isActive ? "success" : undefined
-              )}
-            >
-              {resolvePasskeyLabel(row.original.passkeyStatus)}
-            </Badge>
-          </div>
-        )
-      },
+      cell: ({ row }) => (
+        <div className="flex justify-center">
+          <AppStatusBadge
+            tone={row.original.passkeyStatus === "active" ? "success" : "secondary"}
+          >
+            {resolvePasskeyLabel(row.original.passkeyStatus)}
+          </AppStatusBadge>
+        </div>
+      ),
     },
     {
       accessorKey: "lastAccessAt",
@@ -196,16 +185,11 @@ export function createUsersColumns(
 
         return (
           <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(
-                hasRecentAccess ? "success" : undefined
-              )}
-            >
+            <AppStatusBadge tone={hasRecentAccess ? "success" : "secondary"}>
               {hasRecentAccess
                 ? usersCopy.filters.recentAccessValue
                 : usersCopy.filters.noRecentAccessValue}
-            </Badge>
+            </AppStatusBadge>
           </div>
         )
       },

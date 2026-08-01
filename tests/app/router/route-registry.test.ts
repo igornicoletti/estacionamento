@@ -7,19 +7,9 @@ import {
 } from "@/app/router/route-registry"
 
 describe("route registry availability", () => {
-  it("exclui previews quando avaliado para produção", () => {
-    expect(
-      isRouteAvailable(
-        { id: appRouteIds.reports, availability: "development" },
-        false
-      )
-    ).toBe(false)
-    expect(
-      isRouteAvailable(
-        { id: appRouteIds.yard, availability: "development" },
-        false
-      )
-    ).toBe(false)
+  it("mantém módulos conhecidos registrados com fallback em produção", () => {
+    expect(isRouteAvailable({ id: appRouteIds.reports }, false)).toBe(true)
+    expect(isRouteAvailable({ id: appRouteIds.yard }, false)).toBe(true)
   })
 
   it("mantém capacidades reais disponíveis em qualquer ambiente", () => {

@@ -1,4 +1,11 @@
-import { PlusIcon, UsersIcon } from "lucide-react"
+import {
+  Building2Icon,
+  CircleDotIcon,
+  ClockIcon,
+  PlusIcon,
+  ShieldCheckIcon,
+  UsersIcon,
+} from "lucide-react"
 import * as React from "react"
 
 import {
@@ -68,21 +75,25 @@ export function UsersTable({
     () => [
       {
         id: "role",
+        icon: ShieldCheckIcon,
         options: createUserRoleFilterOptions(data),
         title: usersCopy.filters.role,
       },
       {
         id: "status",
+        icon: CircleDotIcon,
         options: createUserStatusFilterOptions(data),
         title: usersCopy.filters.status,
       },
       {
         id: "unitName",
+        icon: Building2Icon,
         options: createUserUnitFilterOptions(data),
         title: usersCopy.filters.unit,
       },
       {
         id: USER_RECENT_ACCESS_COLUMN_ID,
+        icon: ClockIcon,
         options: createUserRecentAccessFilterOptions(data),
         title: usersCopy.filters.recentAccess,
       },

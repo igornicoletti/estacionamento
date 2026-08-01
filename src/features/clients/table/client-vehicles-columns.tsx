@@ -20,7 +20,7 @@ export function createClientVehiclesColumns(
       accessorKey: "cod_veiculo",
       header: clientsCopy.table.code,
       meta: { label: clientsCopy.table.code },
-      size: 120,
+      size: 96,
     },
     {
       accessorKey: "nom_pessoa",
@@ -41,7 +41,7 @@ export function createClientVehiclesColumns(
       accessorKey: "num_cnpj_cpf",
       header: clientsCopy.table.document,
       meta: { label: clientsCopy.table.document },
-      size: 160,
+      size: 220,
       cell: ({ row }) => (
         <DataTableSensitiveValue
           value={row.original.num_cnpj_cpf ?? ""}

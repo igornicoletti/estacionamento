@@ -6,12 +6,12 @@ export function resolveAuditOutcomeVariant(event: AuditEvent) {
     return "success" as const
   }
 
-  return event.severity === "warning" ? "warning" as const : "destructive" as const
+  return event.severity === "warning" ? "warning" as const : "error" as const
 }
 
 export function resolveAuditSeverityVariant(severity: AuditSeverity) {
   if (severity === "critical") {
-    return "destructive" as const
+    return "error" as const
   }
 
   if (severity === "warning") {

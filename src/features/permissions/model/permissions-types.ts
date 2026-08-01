@@ -1,42 +1,26 @@
-export const permissionRoleValues = [
-  "owner",
-  "admin",
-  "auditor",
-  "manager",
-  "operator",
-] as const
+import { type AuthRoleKey } from "@/features/auth/contracts"
 
-export type PermissionRole = (typeof permissionRoleValues)[number]
+export type PermissionRoleKey = AuthRoleKey
 
-export const permissionSourceValues = ["system", "custom"] as const
+export interface PermissionRole {
+  key: PermissionRoleKey
+  label: string
+}
 
-export type PermissionSource = (typeof permissionSourceValues)[number]
-
-export const permissionAccessFilterValues = [
-  "with_access",
-  "without_access",
-] as const
-
-export type PermissionAccessFilter = (typeof permissionAccessFilterValues)[number]
-
-export type PermissionRoleAccess = Record<PermissionRole, boolean>
-
-export interface PermissionMatrixRow {
-  id: string
+export interface Permission {
   key: string
   label: string
   description: string | null
-  groupKey: string
-  groupLabel: string
-  source: PermissionSource
-  isCritical: boolean
-  roles: PermissionRole[]
-  accessFilters: PermissionAccessFilter[]
-  roleAccess: PermissionRoleAccess
-  roleLabels: string
-  roleCount: number
+  roleKeys: PermissionRoleKey[]
 }
 
-export interface PermissionMatrixResponse {
-  permissions: PermissionMatrixRow[]
+export interface PermissionMatrix {
+  permissions: Permission[]
+  roles: PermissionRole[]
+}
+
+export interface PermissionTableRow extends Permission {
+  groupKey: string
+  groupLabel: string
+  roleCount: number
 }

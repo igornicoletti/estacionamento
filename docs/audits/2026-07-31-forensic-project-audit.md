@@ -32,7 +32,7 @@ Cada arquivo de propriedade do projeto possui caminho, categoria, estado Git, st
 ### Integridade produtiva
 
 | Contrato | Antes | Implementação atual | Proteção contra falso sucesso |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | Clientes | serviço retornava fixtures e ignorava o gateway existente | `clients-service.ts` consome exclusivamente `getClientsGateway()` | falha do gateway rejeita o caso de uso |
 | Auditoria | eventos sempre simulados | novo `AuditGateway` consulta `audit_events`, valida com Zod e normaliza o domínio | não existe fallback produtivo |
 | Permissões | matriz local mascarava falha da função protegida | novo `PermissionsGateway` invoca `list-permission-matrix` e valida a resposta | erro/autorização são propagados |
@@ -93,7 +93,7 @@ O update do React Router remove a dependência afetada pelo [GHSA-qwww-vcr4-c8h2
 ## Achados por área e estado da refatoração
 
 | Área/feature | Achado confirmado | Estado nesta onda | Próxima ação segura |
-|---|---|---|---|
+| --- | --- | --- | --- |
 | `access-requests` | rota ampla e superfície de barrels extensa | preservado | separar controller/painel em commit próprio |
 | `audit` | serviço sintético | corrigido | adicionar paginação e filtros server-side ao gateway |
 | `auth` | fronteira de segurança madura; contratos passkey sensíveis ao domínio | domínio alinhado | executar plano explícito de recadastro e testes de origins |
@@ -118,7 +118,7 @@ O update do React Router remove a dependência afetada pelo [GHSA-qwww-vcr4-c8h2
 Esta matriz deriva de `supabase/config.toml` e do alcance estático dos chamadores. Ela não substitui os testes negativos nem a inspeção do ambiente efetivo.
 
 | Função | `verify_jwt` | Classe | Requisito da próxima validação |
-|---|---:|---|---|
+| --- | --- | --- | --- |
 | `auth-password` | false | autenticação pública | CORS, HMAC/CPF, rate limit e resposta genérica |
 | `auth-recovery-request` | false | recuperação pública | rate limit, enumeração e auditoria redigida |
 | `auth-passkey-login` | false | início WebAuthn público | challenge, origin, RP ID e replay |
@@ -144,7 +144,7 @@ A configuração segue a distinção atual entre [autenticação de Edge Functio
 ## Validações executadas nesta onda
 
 | Gate | Resultado |
-|---|---|
+| --- | --- |
 | Inventário/validador estrutural | passou; contagem final regenerada junto com os inventários |
 | TypeScript aplicação após gateways/config | passou |
 | TypeScript testes após adapters explícitos | passou |

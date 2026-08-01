@@ -11,11 +11,6 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import {
-  Tooltip,
-  TooltipContent,
-  TooltipTrigger,
-} from "@/components/ui/tooltip"
 
 import { dataTableCopy } from "./data-table-copy"
 
@@ -27,7 +22,6 @@ export interface DataTableViewOptionsProps<TData> {
   table: Table<TData>
   triggerLabel?: string
   ariaLabel?: string
-  tooltipLabel?: string
   menuLabel?: string
   showAllLabel?: string
   resetLabel?: string
@@ -52,8 +46,8 @@ function humanizeColumnId(columnId: string): string {
     .replace(/\s+/gu, " ")
   return normalized
     ? normalized.replace(/^./u, (character) =>
-        character.toLocaleUpperCase("pt-BR")
-      )
+      character.toLocaleUpperCase("pt-BR")
+    )
     : columnId
 }
 
@@ -86,7 +80,6 @@ export function DataTableViewOptions<TData>({
   table,
   triggerLabel = dataTableCopy.viewOptions.trigger,
   ariaLabel,
-  tooltipLabel = dataTableCopy.viewOptions.tooltip,
   menuLabel = "Colunas visíveis",
   showAllLabel = "Mostrar todas",
   resetLabel = "Restaurar padrão",
@@ -102,8 +95,6 @@ export function DataTableViewOptions<TData>({
     normalizeVisibleText(triggerLabel) || dataTableCopy.viewOptions.trigger
   const resolvedAriaLabel =
     normalizeVisibleText(ariaLabel) || resolvedTriggerLabel
-  const resolvedTooltipLabel =
-    normalizeVisibleText(tooltipLabel) || resolvedTriggerLabel
   const resolvedMenuLabel =
     normalizeVisibleText(menuLabel) || resolvedTriggerLabel
   const resolvedShowAllLabel =
@@ -117,74 +108,67 @@ export function DataTableViewOptions<TData>({
   )
 
   return (
-    <Tooltip>
-      <DropdownMenu>
-        <TooltipTrigger asChild>
-          <DropdownMenuTrigger asChild>
-            <Button
-              data-no-drag-scroll="true"
-              type="button"
-              variant="outline"
-              size="default"
-              className="w-full justify-center sm:w-auto"
-              aria-label={resolvedAriaLabel}
-            >
-              <Settings2
-                data-icon="inline-start"
-                aria-hidden="true"
-                focusable="false"
-              />
-              <span aria-hidden="true">{resolvedTriggerLabel}</span>
-            </Button>
-          </DropdownMenuTrigger>
-        </TooltipTrigger>
-
-        <DropdownMenuContent
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
           data-no-drag-scroll="true"
-          align="end"
-          collisionPadding={16}
-          className="w-[calc(100vw-2rem)] sm:w-64"
+          type="button"
+          variant="outline"
+          size="default"
+          className="w-full justify-center sm:w-auto"
+          aria-label={resolvedAriaLabel}
         >
-          <DropdownMenuLabel>{resolvedMenuLabel}</DropdownMenuLabel>
-          <DropdownMenuSeparator />
-          {columns.map((column) => {
-            const label = resolveColumnLabel(column, getColumnLabel)
-            return (
-              <DropdownMenuCheckboxItem
-                key={column.id}
-                checked={column.getIsVisible()}
-                textValue={label}
-                onSelect={(event) => {
-                  if (keepOpenOnToggle) event.preventDefault()
-                }}
-                onCheckedChange={(value) =>
-                  column.toggleVisibility(value === true)
-                }
-              >
-                {label}
-              </DropdownMenuCheckboxItem>
-            )
-          })}
-          <DropdownMenuSeparator />
-          <DropdownMenuItem
-            disabled={areAllVisible}
-            onSelect={() => table.toggleAllColumnsVisible(true)}
-          >
-            <EyeIcon aria-hidden="true" focusable="false" />
-            {resolvedShowAllLabel}
-          </DropdownMenuItem>
-          <DropdownMenuItem
-            disabled={!hasChanges}
-            onSelect={() => table.resetColumnVisibility()}
-          >
-            <RotateCcwIcon aria-hidden="true" focusable="false" />
-            {resolvedResetLabel}
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-      <TooltipContent>
-        <p>{resolvedTooltipLabel}</p>
-      </TooltipContent>
-    </Tooltip>
+          <Settings2
+            data-icon="inline-start"
+            aria-hidden="true"
+            focusable="false"
+          />
+          <span aria-hidden="true">{resolvedTriggerLabel}</span>
+        </Button>
+      </DropdownMenuTrigger>
+
+      <DropdownMenuContent
+        data-no-drag-scroll="true"
+        align="end"
+        collisionPadding={16}
+        className="w-[calc(100vw-2rem)] sm:w-64"
+      >
+        <DropdownMenuLabel>{resolvedMenuLabel}</DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {columns.map((column) => {
+          const label = resolveColumnLabel(column, getColumnLabel)
+          return (
+            <DropdownMenuCheckboxItem
+              key={column.id}
+              checked={column.getIsVisible()}
+              textValue={label}
+              onSelect={(event) => {
+                if (keepOpenOnToggle) event.preventDefault()
+              }}
+              onCheckedChange={(value) =>
+                column.toggleVisibility(value === true)
+              }
+            >
+              {label}
+            </DropdownMenuCheckboxItem>
+          )
+        })}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem
+          disabled={areAllVisible}
+          onSelect={() => table.toggleAllColumnsVisible(true)}
+        >
+          <EyeIcon aria-hidden="true" focusable="false" />
+          {resolvedShowAllLabel}
+        </DropdownMenuItem>
+        <DropdownMenuItem
+          disabled={!hasChanges}
+          onSelect={() => table.resetColumnVisibility()}
+        >
+          <RotateCcwIcon aria-hidden="true" focusable="false" />
+          {resolvedResetLabel}
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
   )
 }

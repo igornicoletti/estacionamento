@@ -1,53 +1,49 @@
 import { type ColumnDef } from "@tanstack/react-table"
 
 import { createActionsColumn, DataTableTextAction } from "@/components/data-table"
-import { Badge } from "@/components/ui/badge"
-
-import { PermissionAccessIcon } from "../components"
+import { PermissionAccessIcon } from "../components/permission-access-icon"
+import { permissionsCopy } from "../constants/permissions-copy"
 import {
-  permissionsCopy,
-  permissionRoleLabels,
-  permissionSourceLabels,
-} from "../constants"
-import {
-  permissionRoleValues,
-  type PermissionMatrixRow,
   type PermissionRole,
-} from "../model"
+  type PermissionTableRow,
+} from "../model/permissions-types"
 
 interface CreatePermissionsColumnsOptions {
-  onOpenDetails?: (permission: PermissionMatrixRow) => void
+  onOpenDetails: (permission: PermissionTableRow) => void
+  roles: readonly PermissionRole[]
 }
 
 function createRoleAccessColumn(
   role: PermissionRole
-): ColumnDef<PermissionMatrixRow> {
+): ColumnDef<PermissionTableRow> {
   return {
-    id: role,
-    accessorFn: (row) => (row.roleAccess[role] ? "with_access" : "without_access"),
+    id: role.key,
+    accessorFn: (row) =>
+      row.roleKeys.includes(role.key)
+        ? "with_access"
+        : "without_access",
     cell: ({ row }) => (
-      <PermissionAccessIcon hasAccess={row.original.roleAccess[role]} />
+      <PermissionAccessIcon
+        hasAccess={row.original.roleKeys.includes(role.key)}
+      />
     ),
     enableSorting: false,
-    header: () => <div className="text-center">{permissionRoleLabels[role]}</div>,
-    meta: { label: permissionRoleLabels[role] },
+    header: () => <div className="text-center">{role.label}</div>,
+    meta: { label: role.label },
   }
-}
-
-function getSourceBadgeVariant(source: PermissionMatrixRow["source"]) {
-  return source === "custom" ? "default" : "secondary"
 }
 
 export function createPermissionsColumns({
   onOpenDetails,
-}: CreatePermissionsColumnsOptions = {}): ColumnDef<PermissionMatrixRow>[] {
+  roles,
+}: CreatePermissionsColumnsOptions): ColumnDef<PermissionTableRow>[] {
   return [
     {
       accessorKey: "label",
       cell: ({ row }) => (
         <DataTableTextAction
           onClick={() => {
-            onOpenDetails?.(row.original)
+            onOpenDetails(row.original)
           }}
         >
           {row.original.label}
@@ -58,26 +54,9 @@ export function createPermissionsColumns({
     },
     {
       accessorKey: "groupLabel",
-      cell: ({ row }) => (
-        <span className="font-medium text-muted-foreground">
-          {row.original.groupLabel}
-        </span>
-      ),
+      cell: ({ row }) => row.original.groupLabel,
       header: permissionsCopy.labels.group,
       meta: { label: permissionsCopy.labels.group },
-    },
-    {
-      accessorKey: "source",
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          <Badge variant={getSourceBadgeVariant(row.original.source)}>
-            {permissionSourceLabels[row.original.source]}
-          </Badge>
-        </div>
-      ),
-      enableSorting: false,
-      header: () => <div className="text-center">{permissionsCopy.labels.source}</div>,
-      meta: { label: permissionsCopy.labels.source },
     },
     {
       accessorKey: "roleCount",
@@ -87,13 +66,13 @@ export function createPermissionsColumns({
       header: () => <div className="text-center">{permissionsCopy.labels.totalRoles}</div>,
       meta: { label: permissionsCopy.labels.totalRoles },
     },
-    ...permissionRoleValues.map(createRoleAccessColumn),
-    createActionsColumn<PermissionMatrixRow>([
+    ...roles.map(createRoleAccessColumn),
+    createActionsColumn<PermissionTableRow>([
       {
         id: "details",
         label: permissionsCopy.actions.details,
         onSelect: (row) => {
-          onOpenDetails?.(row.original)
+          onOpenDetails(row.original)
         },
       },
     ]),

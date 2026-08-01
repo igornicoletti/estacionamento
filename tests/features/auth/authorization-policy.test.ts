@@ -2,8 +2,7 @@ import { describe, expect, it } from "vitest"
 
 import {
   AUTH_PERMISSION,
-  AUTH_PERMISSION_WILDCARD,
-  AUTH_ROLE_KEY,
+  AUTH_PERMISSION_WILDCARD
 } from "@/features/auth"
 import {
   allRoles,
@@ -13,7 +12,6 @@ import {
   hasAnyPermission,
   isGlobalRole,
   isRoleSuperior,
-  permissionsByRole,
   unitScopedRoles,
 } from "@/features/auth/authorization/authorization-policy"
 
@@ -125,56 +123,6 @@ describe("authorization-policy", () => {
           [AUTH_PERMISSION.pricesManage, AUTH_PERMISSION.auditRead]
         )
       ).toBe(false)
-    })
-  })
-
-  describe("role permissions mapping", () => {
-    it("owner has wildcard permission only", () => {
-      expect(permissionsByRole[AUTH_ROLE_KEY.owner]).toEqual([AUTH_PERMISSION_WILDCARD])
-    })
-
-    it("admin has all non-wildcard permissions", () => {
-      const adminPerms = permissionsByRole[AUTH_ROLE_KEY.admin]
-      expect(adminPerms).toContain(AUTH_PERMISSION.pricesManage)
-      expect(adminPerms).toContain(AUTH_PERMISSION.rulesManage)
-      expect(adminPerms).toContain(AUTH_PERMISSION.usersManage)
-      expect(adminPerms).toContain(AUTH_PERMISSION.syncExecute)
-      expect(adminPerms).not.toContain(AUTH_PERMISSION_WILDCARD)
-    })
-
-    it("operator has only read-level permissions", () => {
-      const operatorPerms = permissionsByRole[AUTH_ROLE_KEY.operator]
-      expect(operatorPerms).toContain(AUTH_PERMISSION.unitsRead)
-      expect(operatorPerms).toContain(AUTH_PERMISSION.clientsRead)
-      expect(operatorPerms).toContain(AUTH_PERMISSION.pricesRead)
-      expect(operatorPerms).not.toContain(AUTH_PERMISSION.pricesManage)
-      expect(operatorPerms).not.toContain(AUTH_PERMISSION.usersRead)
-    })
-
-    it("manager inherits all operator permissions plus usersRead", () => {
-      const managerPerms = permissionsByRole[AUTH_ROLE_KEY.manager]
-      const operatorPerms = permissionsByRole[AUTH_ROLE_KEY.operator]
-      for (const perm of operatorPerms) {
-        expect(managerPerms).toContain(perm)
-      }
-      expect(managerPerms).toContain(AUTH_PERMISSION.usersRead)
-    })
-
-    it("each role level inherits all permissions from lower levels", () => {
-      const hierarchy: (typeof AUTH_ROLE_KEY)[keyof typeof AUTH_ROLE_KEY][] = [
-        "operator",
-        "manager",
-        "auditor",
-        "admin",
-      ]
-
-      for (let i = 1; i < hierarchy.length; i++) {
-        const lowerPerms = permissionsByRole[hierarchy[i - 1]]
-        const upperPerms = permissionsByRole[hierarchy[i]]
-        for (const perm of lowerPerms) {
-          expect(upperPerms).toContain(perm)
-        }
-      }
     })
   })
 

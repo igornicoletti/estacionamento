@@ -125,7 +125,7 @@ describe("DataTable export", () => {
     )
 
     fireEvent.pointerDown(screen.getByRole("button", { name: "Abrir menu de exportação" }))
-    fireEvent.click(await screen.findByRole("menuitem", { name: /Exportar registros carregados/i }))
+    fireEvent.click(await screen.findByRole("menuitem", { name: /Exportar todo o conteúdo/i }))
 
     const exportOptions = exportRowsToXlsxMock.mock.calls[0]?.[0]
 
@@ -139,5 +139,49 @@ describe("DataTable export", () => {
       { name: "Beta", status: "Inativo", secret: "B2" },
       { name: "Gamma", status: "Ativo", secret: "C3" },
     ])
+  })
+
+  it("delegates filtered and complete server-side exports explicitly", async () => {
+    const onExportFilteredRows = vi.fn().mockResolvedValue(undefined)
+    const onExportAllRows = vi.fn().mockResolvedValue(undefined)
+
+    render(
+      <DataTable
+        columns={exportColumns}
+        data={exportRows.slice(0, 1)}
+        getRowId={(row) => row.id}
+        manualFiltering
+        manualPagination
+        rowCount={100}
+        enableExport
+        exportConfig={{ onExportFilteredRows, onExportAllRows }}
+      />
+    )
+
+    const columnsButton = screen.getByRole("button", { name: "Colunas" })
+    const exportButton = screen.getByRole("button", {
+      name: "Abrir menu de exportação",
+    })
+    expect(columnsButton.parentElement).toBe(exportButton.parentElement)
+    expect(
+      columnsButton.compareDocumentPosition(exportButton) &
+      Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy()
+
+    fireEvent.pointerDown(exportButton)
+    fireEvent.click(
+      await screen.findByRole("menuitem", {
+        name: /Exportar resultados filtrados/i,
+      })
+    )
+    await waitFor(() => expect(onExportFilteredRows).toHaveBeenCalledOnce())
+
+    fireEvent.pointerDown(exportButton)
+    fireEvent.click(
+      await screen.findByRole("menuitem", {
+        name: /Exportar todo o conteúdo/i,
+      })
+    )
+    await waitFor(() => expect(onExportAllRows).toHaveBeenCalledOnce())
   })
 })

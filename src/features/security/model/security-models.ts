@@ -48,11 +48,13 @@ export function createSecurityScore(
   }
 }
 
-export function getSecurityScoreTone(score: SecurityScore): BadgeTone {
+export function getSecurityScoreTone(
+  score: SecurityScore
+): Exclude<BadgeTone, "secondary"> {
   if (score.value === 100) return "success"
   if (score.value >= 67) return "info"
   if (score.value >= 34) return "warning"
-  return "destructive"
+  return "error"
 }
 
 export function getRecentSecurityEvents(

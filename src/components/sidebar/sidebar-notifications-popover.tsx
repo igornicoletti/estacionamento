@@ -25,6 +25,7 @@ import {
   PopoverTrigger,
 } from "@/components/ui/popover"
 import { notificationTypeLabels, useNotifications } from "@/features/notifications"
+import { formatDateTime } from "@/lib"
 
 import { sidebarCopy } from "./sidebar-copy"
 
@@ -95,7 +96,9 @@ export function NotificationsPopover() {
         ) : (
           <div className="flex flex-col gap-2 p-2.5">
             <PopoverHeader className="flex-row items-center justify-between gap-2">
-              <PopoverTitle>{sidebarCopy.notifications.panelTitle}</PopoverTitle>
+              <PopoverTitle className="text-base font-semibold">
+                {sidebarCopy.notifications.panelTitle}
+              </PopoverTitle>
               <Button
                 type="button"
                 variant="ghost"
@@ -147,7 +150,7 @@ export function NotificationsPopover() {
                               {notification.title}
                             </span>
                             <span className="shrink-0 text-xs text-muted-foreground">
-                              {notification.occurredAt}
+                              {formatDateTime(notification.occurredAt)}
                             </span>
                           </span>
                           <span className="line-clamp-2 text-xs text-muted-foreground">

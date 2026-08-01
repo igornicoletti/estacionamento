@@ -1,5 +1,11 @@
 import type { ColumnFiltersState, SortingState } from "@tanstack/react-table"
-import { ClipboardListIcon, PlusIcon } from "lucide-react"
+import {
+  CircleDotIcon,
+  ClipboardListIcon,
+  CrosshairIcon,
+  ListTreeIcon,
+  PlusIcon,
+} from "lucide-react"
 import * as React from "react"
 
 import { DataTable } from "@/components/data-table"
@@ -136,14 +142,15 @@ export function RulesRoute() {
         sorting={sorting}
         onSortingChange={setSorting}
         filterFields={[
-          { id: "type", title: rulesCopy.filters.type, options: typeOptions, showCounts: true },
+          { id: "type", icon: ListTreeIcon, title: rulesCopy.filters.type, options: typeOptions, showCounts: true },
           {
             id: "targetType",
+            icon: CrosshairIcon,
             title: rulesCopy.filters.targetType,
             options: targetTypeOptions,
             showCounts: true,
           },
-          { id: "active", title: rulesCopy.filters.active, options: statusOptions, showCounts: true },
+          { id: "active", icon: CircleDotIcon, title: rulesCopy.filters.active, options: statusOptions, showCounts: true },
         ]}
         emptyState={
           <AppEmptyState

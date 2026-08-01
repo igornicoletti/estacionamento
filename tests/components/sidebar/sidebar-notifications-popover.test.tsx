@@ -13,6 +13,7 @@ import {
 
 import { NotificationsPopover } from "@/components/sidebar/sidebar-notifications-popover"
 import { NotificationsProvider } from "@/features/notifications/context/notifications-provider"
+import { formatDateTime } from "@/lib"
 
 describe("NotificationsPopover", () => {
   it("abre o popover e exibe as acoes principais de notificacoes", async () => {
@@ -29,6 +30,13 @@ describe("NotificationsPopover", () => {
     await waitFor(() => {
       expect(screen.getByText("Notificações")).toBeInTheDocument()
     })
+
+    expect(
+      screen.getByText("Notificações").closest('[data-slot="popover-title"]')
+    ).toHaveClass("text-base", "font-semibold")
+    expect(
+      screen.getByText(formatDateTime("2026-07-01T08:25:00.000Z"))
+    ).toBeInTheDocument()
 
     expect(
       screen.getByRole("button", { name: "Marcar todas como lidas" })

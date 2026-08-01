@@ -89,7 +89,7 @@ Outras features devem reutilizar esse arranjo conceitual, não copiar arquivos n
 ### Controles confirmados
 
 | Risco | Evidência e avaliação |
-|---|---|
+| --- | --- |
 | SQL injection | Não há SQL montado por concatenação. Filtros usam o query builder Supabase e nomes de tabela, RPC, select e Edge Functions são constantes estáticas. Valores seguem separados do comando. |
 | XSS | Dados externos são renderizados como children React; não há `dangerouslySetInnerHTML`, `innerHTML`, `eval` ou URL construída com entrada do usuário nesta feature. Texto livre não é mutilado por blacklist; validação e codificação de saída continuam responsabilidades complementares. |
 | CSRF | Mutações usam `supabase.functions.invoke`, que envia o JWT no header de autorização, e as oito funções administrativas estão com `verify_jwt = true`. CORS/origin e autorização do handler continuam obrigatórios no backend. XSS ainda pode contornar controles de CSRF e precisa ser evitado. |
@@ -142,7 +142,7 @@ A leitura ainda busca todos os usuários, todos os últimos acessos e todos os f
 ## Dependências e compatibilidade
 
 | Dependência declarada | Versão | Uso em `users` | Avaliação |
-|---|---:|---|---|
+| --- | ---:| --- | --- |
 | React | `^19.2.7` | estado, memoização, efeitos e IDs acessíveis | necessária |
 | React Router | `^8.3.0` | estado da aba por query string | necessária e já na versão que corrigiu o advisory anterior |
 | TanStack Table | `^8.21.3` | tipos de colunas via DataTable | necessária |
@@ -160,7 +160,7 @@ A feature pressupõe browser moderno do aplicativo Vite. Datas inválidas degrad
 ## Inventário forense por arquivo
 
 | Arquivo | Responsabilidade | Achado e decisão |
-|---|---|---|
+| --- | --- | --- |
 | `README.md` | Documento normativo da feature | Novo; substitui dois documentos curtos e defasados no antigo diretório `docs`. |
 | `components/user-admin-action-dialog.tsx` | Confirmação única para cinco ações administrativas | Novo; elimina dialogs duplicados. Vistoriado, sem achado pendente. |
 | `components/user-details-sheet.tsx` | Adaptação de usuário para o Sheet compartilhado | Duplicação da rota removida. Vistoriado, sem achado pendente. |
@@ -193,7 +193,7 @@ Arquivos removidos após confirmação de alcance: `constants/index.ts`, `model/
 ## Testes associados
 
 | Teste | Cobertura |
-|---|---|
+| --- | --- |
 | `user-form-dialog.test.tsx` | falha remota segura, dialog permanece aberto e mensagem técnica não vaza |
 | `users-route.test.tsx` | tabela/detalhes sem IDs crus, validação/foco/ARIA, cadastro e aba de solicitações |
 | `users-service.test.ts` | unidade canônica, senha forte, bloqueio pré-gateway, identidade sem consulta extra e degradação do catálogo |
@@ -210,7 +210,7 @@ Os gateways em memória ficam em `tests/helpers`, nunca no bundle produtivo. O s
 ### Resultado dos gates em 01/08/2026
 
 | Gate | Resultado |
-|---|---|
+| --- | --- |
 | ESLint global | passou |
 | TypeScript da aplicação | passou |
 | TypeScript dos testes | passou |

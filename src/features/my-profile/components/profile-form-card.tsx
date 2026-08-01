@@ -141,7 +141,7 @@ function getProfileStatusTone(status: ProfileSummary["status"]): BadgeTone {
   }
 
   if (status === "inactive") {
-    return "destructive"
+    return "secondary"
   }
 
   if (status === "pending") {

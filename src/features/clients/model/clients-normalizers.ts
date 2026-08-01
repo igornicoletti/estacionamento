@@ -1,4 +1,9 @@
-import { formatCpfCnpj, formatPhone, onlyDigits } from "@/lib"
+import {
+  formatCpfCnpj,
+  formatHumanReadableText,
+  formatPhone,
+  onlyDigits,
+} from "@/lib"
 
 import {
   type ErpClientRow,
@@ -80,9 +85,9 @@ export function mapErpClient(row: ErpClientRow): Client {
     dta_cadastro: normalizeOptionalText(row.dta_cadastro),
     dta_ultima_compra: normalizeOptionalText(row.dta_ultima_compra),
     ind_pessoa_ativa: normalizeSourceFlag(row.ind_pessoa_ativa),
-    nom_cidade: normalizeText(row.nom_cidade),
-    nom_fantasia: normalizeText(row.nom_fantasia),
-    nom_pessoa: normalizeText(row.nom_pessoa),
+    nom_cidade: formatHumanReadableText(row.nom_cidade),
+    nom_fantasia: formatHumanReadableText(row.nom_fantasia),
+    nom_pessoa: formatHumanReadableText(row.nom_pessoa),
     num_cnpj_cpf: normalizeDocument(row.num_cnpj_cpf),
     num_telefone_1: normalizePhone(row.num_telefone_1),
     qtd_veiculos: row.qtd_veiculos,
@@ -96,10 +101,10 @@ export function mapErpClientVehicle(
   return {
     cod_pessoa: row.cod_pessoa,
     cod_veiculo: row.cod_veiculo,
-    des_veiculo: normalizeText(row.des_veiculo),
-    nom_fantasia: normalizeText(row.nom_fantasia),
-    nom_motorista: normalizeText(row.nom_motorista),
-    nom_pessoa: normalizeText(row.nom_pessoa),
+    des_veiculo: formatHumanReadableText(row.des_veiculo),
+    nom_fantasia: formatHumanReadableText(row.nom_fantasia),
+    nom_motorista: formatHumanReadableText(row.nom_motorista),
+    nom_pessoa: formatHumanReadableText(row.nom_pessoa),
     num_cnpj_cpf: normalizeDocument(row.num_cnpj_cpf),
     num_placa: row.num_placa,
   }
