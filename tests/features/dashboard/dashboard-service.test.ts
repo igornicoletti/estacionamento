@@ -2,30 +2,22 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { getDashboardSnapshotByUnitId } from "@/features/dashboard/services/dashboard-service"
 import {
-  configureUnitYardGateway,
   resetUnitYardGateway,
-  type UnitYardConfig,
-  type UpsertUnitYardConfigInput,
-} from "@/features/units"
+  setUnitYardGateway,
+} from "@/features/units/gateways/unit-yard-gateway"
+import { type UnitYardConfigRow } from "@/features/units/schemas/units-gateway-schemas"
 
-function configureMemoryYardGateway(seed: UnitYardConfig[] = []) {
+function configureMemoryYardGateway(seed: UnitYardConfigRow[] = []) {
   const store = seed.map((item) => ({ ...item }))
 
-  configureUnitYardGateway({
+  setUnitYardGateway({
+    async findConfigByUnitId(unitId) {
+      await Promise.resolve()
+      return store.find((item) => String(item.unit_id) === unitId) ?? null
+    },
     async listConfigs() {
       await Promise.resolve()
       return store.map((item) => ({ ...item }))
-    },
-    async upsertConfig(input: UpsertUnitYardConfigInput) {
-      await Promise.resolve()
-      const config: UnitYardConfig = {
-        parkingSpots: input.parkingSpots,
-        patioActive: input.patioActive,
-        unitId: input.unitId,
-        updatedAt: "2026-07-21T12:00:00.000Z",
-      }
-      store.push(config)
-      return { ...config }
     },
   })
 }
@@ -34,10 +26,10 @@ describe("dashboard-service", () => {
   beforeEach(() => {
     configureMemoryYardGateway([
       {
-        parkingSpots: 82,
-        patioActive: true,
-        unitId: "7",
-        updatedAt: "2026-07-21T12:00:00.000Z",
+        parking_spots: 82,
+        patio_active: true,
+        unit_id: 7,
+        updated_at: "2026-07-21T12:00:00.000Z",
       },
     ])
   })

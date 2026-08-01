@@ -1,117 +1,71 @@
-import { HistoryIcon, RefreshCcwIcon } from "lucide-react"
+import { RefreshCcwIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate } from "react-router"
 
-import {
-  createDataTableFilterOptions,
-  DataTable,
-} from "@/components/data-table"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppPage } from "@/components/shared/app-page"
 import { Button } from "@/components/ui/button"
+import { AUTH_PERMISSION, useAuth } from "@/features/auth"
 
-import {
-  getUnitDetailItems,
-} from "../model"
-import { createUnitsColumns, type UnitTableRow } from "../table"
-import { useUnits } from "../hooks/use-units"
+import { UnitsTable } from "../components/units-table"
+import { unitsCopy } from "../constants/units-copy"
+import { unitsRoutePaths } from "../constants/units-routes"
+import { useUnitTableRows } from "../hooks/use-unit-table-rows"
+import { getUnitDetailItems } from "../model/units-details"
+import { type UnitTableRow } from "../model/units-table-model"
 
 export function UnitsRoute() {
+  const auth = useAuth()
   const navigate = useNavigate()
-  const { data: units, error, isLoading, refetch } = useUnits()
-  const [selectedUnit, setSelectedUnit] = React.useState<UnitTableRow | null>(null)
-  const columns = React.useMemo(
-    () =>
-      createUnitsColumns({
-        onOpenDetails: setSelectedUnit,
-        onSelectUsers: (unit) => {
-          void navigate(`/unidades/${unit.cod_empresa}/usuarios`)
-        },
-      }),
+  const canReadUsers = auth.access.hasPermission(
+    AUTH_PERMISSION.usersRead
+  )
+  const { data, error, isLoading, refetch } = useUnitTableRows({
+    includeUserStats: canReadUsers,
+  })
+  const [selectedUnit, setSelectedUnit] =
+    React.useState<UnitTableRow | null>(null)
+  const openUnitDetails = React.useCallback((unit: UnitTableRow) => {
+    setSelectedUnit(unit)
+  }, [])
+  const openUnitUsers = React.useCallback(
+    (unit: UnitTableRow) => {
+      void navigate(unitsRoutePaths.users(unit.cod_empresa))
+    },
     [navigate]
-  )
-  const brandOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        units,
-        (unit) => unit.des_bandeira,
-        (unit) => unit.des_bandeira
-      ),
-    [units]
-  )
-  const stateOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        units,
-        (unit) => unit.sgl_estado,
-        (unit) => unit.sgl_estado
-      ),
-    [units]
   )
 
   return (
     <AppPage
-      title="Unidades"
-      subtitle="Consulte as unidades sincronizadas a partir do ERP."
-      actions={
-        <>
-          <Button type="button" variant="secondary" >
-            <HistoryIcon aria-hidden="true" />
-            Histórico
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-
-            disabled={isLoading}
-            onClick={() => {
-              void refetch()
-            }}
-          >
-            <RefreshCcwIcon aria-hidden="true" />
-            Sincronizar
-          </Button>
-        </>
-      }
+      title={unitsCopy.pages.units.title}
+      subtitle={unitsCopy.pages.units.subtitle}
+      actions={(
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isLoading}
+          onClick={() => {
+            void refetch()
+          }}
+        >
+          <RefreshCcwIcon
+            data-icon="inline-start"
+            aria-hidden="true"
+          />
+          {unitsCopy.actions.refresh}
+        </Button>
+      )}
     >
-      <DataTable
-        columns={columns}
-        data={units}
-        getRowId={(unit) => String(unit.cod_empresa)}
-        globalSearch={{
-          columnIds: [
-            "cod_empresa",
-            "nom_razao_social",
-            "nom_fantasia",
-            "num_cnpj",
-            "des_bandeira",
-            "nom_cidade",
-            "nom_estado",
-            "sgl_estado",
-            "ip_rede",
-            "nom_banco_dados",
-          ],
-          placeholder: "Buscar unidades...",
-        }}
-        filterFields={[
-          {
-            id: "des_bandeira",
-            title: "Bandeiras",
-            options: brandOptions,
-          },
-          {
-            id: "sgl_estado",
-            title: "Estados",
-            options: stateOptions,
-          },
-        ]}
-        isLoading={isLoading}
+      <UnitsTable
+        data={data}
         error={error}
+        isLoading={isLoading}
+        onOpenDetails={openUnitDetails}
         onRetry={() => {
           void refetch()
         }}
-        enablePagination
-        enableViewOptions
+        onSelectUsers={canReadUsers ? openUnitUsers : undefined}
+        showUserStats={canReadUsers}
       />
 
       <AppDetailsSheet
@@ -121,19 +75,16 @@ export function UnitsRoute() {
             setSelectedUnit(null)
           }
         }}
-        title={selectedUnit ? "Detalhes da unidade" : undefined}
+        title={selectedUnit ? unitsCopy.details.unitTitle : undefined}
         description={
-          selectedUnit
-            ? "Consulte os dados cadastrais, operacionais e de pátio da unidade."
-            : undefined
+          selectedUnit ? unitsCopy.details.unitDescription : undefined
         }
         items={
           selectedUnit
-            ? getUnitDetailItems(
-                selectedUnit,
-                selectedUnit.yardConfig,
-                selectedUnit.userStats
-              )
+            ? getUnitDetailItems(selectedUnit, {
+                userStats: selectedUnit.userStats,
+                yardConfig: selectedUnit.yardConfig,
+              })
             : []
         }
       />

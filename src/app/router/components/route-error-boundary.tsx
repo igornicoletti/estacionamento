@@ -80,7 +80,7 @@ export function RouteErrorBoundary() {
   return (
     <section
       role="alert"
-      className="flex min-h-64 flex-1 items-center justify-center bg-background p-6 text-foreground"
+      className="flex min-h-svh w-full flex-1 items-center justify-center bg-background p-6 text-foreground"
     >
       <AppEmptyState
         className="mx-auto max-w-xl"

@@ -1,25 +1,25 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import {
+  findClientById,
   listClients,
-  listClientVehicles,
+  listClientVehiclesByClientId,
 } from "@/features/clients/services/clients-service"
 import {
-  configureClientsGateway,
   resetClientsGateway,
-} from "@/features/clients/services/clients-gateway"
+  setClientsGateway,
+} from "@/features/clients/gateways/clients-gateway"
 
 describe("clients-service", () => {
   beforeEach(() => {
-    configureClientsGateway({
-      listClientPayloadById: (clientId) =>
+    setClientsGateway({
+      findClientById: (clientId) =>
         Promise.resolve(clientId === 1001 ? clientPayload : null),
-      listClientVehiclesPayload: () => Promise.resolve(vehiclePayload),
-      listClientVehiclesPayloadByClientId: (clientId) =>
+      listClients: () => Promise.resolve([clientPayload]),
+      listVehiclesByClientId: (clientId) =>
         Promise.resolve(
           vehiclePayload.filter((vehicle) => vehicle.cod_pessoa === clientId)
         ),
-      listClientsPayload: () => Promise.resolve([clientPayload]),
     })
   })
 
@@ -40,8 +40,7 @@ describe("clients-service", () => {
   })
 
   it("returns vehicles linked to client code", async () => {
-    const vehicles = await listClientVehicles()
-    const linkedVehicles = vehicles.filter((vehicle) => vehicle.cod_pessoa === 1001)
+    const linkedVehicles = await listClientVehiclesByClientId(1001)
 
     expect(linkedVehicles).toHaveLength(1)
     expect(linkedVehicles[0]).toMatchObject({
@@ -49,6 +48,14 @@ describe("clients-service", () => {
       cod_pessoa: 1001,
       num_placa: "ABC1D23",
     })
+  })
+
+  it("returns one client through the direct lookup contract", async () => {
+    await expect(findClientById(1001)).resolves.toMatchObject({
+      cod_pessoa: 1001,
+      nom_pessoa: "Auto Center Alfa Ltda",
+    })
+    await expect(findClientById(9999)).resolves.toBeNull()
   })
 })
 

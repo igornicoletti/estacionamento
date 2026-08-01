@@ -53,6 +53,7 @@ describe("RouteErrorBoundary", () => {
     )
 
     expect(screen.getByText("Erro inesperado")).toBeInTheDocument()
+    expect(screen.getByRole("alert")).toHaveClass("min-h-svh", "w-full")
     expect(
       screen.getByText(
         /A aplicação encontrou uma falha inesperada ao renderizar esta rota./

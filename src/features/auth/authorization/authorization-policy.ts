@@ -62,6 +62,7 @@ export const authCapabilityLabels: Record<AuthCapability, string> = {
   [AUTH_PERMISSION.settingsReadSelf]: "Gerenciar próprias configurações",
   [AUTH_PERMISSION.notificationsRead]: "Ler notificações",
   [AUTH_PERMISSION.unitsRead]: "Consultar unidades",
+  [AUTH_PERMISSION.unitsYardManage]: "Gerenciar configuração de pátio",
   [AUTH_PERMISSION.clientsRead]: "Consultar clientes",
   [AUTH_PERMISSION.clientVehiclesRead]: "Consultar veículos de clientes",
   [AUTH_PERMISSION.clientsSyncRead]: "Consultar sincronização de clientes",

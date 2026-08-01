@@ -9,22 +9,22 @@ import {
 } from "vitest"
 
 import {
-  configureUnitUserStatsGateway,
-  configureUnitYardGateway,
-  configureUnitsGateway,
   resetUnitUserStatsGateway,
+  setUnitUserStatsGateway,
+} from "@/features/units/gateways/unit-user-stats-gateway"
+import {
   resetUnitYardGateway,
+  setUnitYardGateway,
+} from "@/features/units/gateways/unit-yard-gateway"
+import {
   resetUnitsGateway,
-} from "@/features/units"
+  setUnitsGateway,
+} from "@/features/units/gateways/units-gateway"
 import { UnitUsersRoute } from "@/features/units/routes/unit-users-route"
 import { UnitsRoute } from "@/features/units/routes/units-route"
 
 beforeEach(() => {
-  configureUnitsGateway({
-    async listUnitsPayload() {
-      await Promise.resolve()
-      return [
-        {
+  const unitRow = {
           cod_empresa: 1,
           nom_razao_social: "Posto Monte Carlo Centro Ltda",
           nom_fantasia: "Monte Carlo Centro",
@@ -38,28 +38,21 @@ beforeEach(() => {
           des_coordenada_empresa: "-23.550520, -46.633308",
           ip_rede: "192.168.0.10",
           nom_banco_dados: "erp_montecarlo_centro",
-        },
-      ]
-    },
+        } as const
+  setUnitsGateway({
+    findUnitById: (unitId) =>
+      Promise.resolve(unitId === unitRow.cod_empresa ? unitRow : null),
+    listUnits: () => Promise.resolve([unitRow]),
   })
-  configureUnitUserStatsGateway({
+  setUnitUserStatsGateway({
     async listStats() {
       await Promise.resolve()
-      return new Map([["1", { managers: 1, operators: 1 }]])
+      return [{ managers: 1, operators: 1, unit_id: 1 }]
     },
   })
-  configureUnitYardGateway({
-    async listConfigs() {
-      await Promise.resolve()
-      return []
-    },
-    async upsertConfig(input) {
-      await Promise.resolve()
-      return {
-        ...input,
-        updatedAt: new Date(0).toISOString(),
-      }
-    },
+  setUnitYardGateway({
+    findConfigByUnitId: () => Promise.resolve(null),
+    listConfigs: () => Promise.resolve([]),
   })
 })
 
@@ -87,7 +80,11 @@ describe("Unit users route", () => {
       expect(screen.getByText("Monte Carlo Centro")).toBeInTheDocument()
     })
 
-    fireEvent.click(screen.getByRole("button", { name: "2" }))
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Funcionários: Monte Carlo Centro",
+      })
+    )
 
     await waitFor(() => {
       expect(

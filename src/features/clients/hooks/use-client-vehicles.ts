@@ -1,120 +1,39 @@
 import * as React from "react"
 
+import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
+
+import { clientsCopy } from "../constants/clients-copy"
+import { CLIENT_VEHICLES_CACHE_KEY_PREFIX } from "../constants/clients-persistence"
+import { type ClientVehiclesSnapshot } from "../model/clients-types"
 import {
-  listClients,
-  listClientVehicles,
+  findClientById,
+  listClientVehiclesByClientId,
 } from "../services/clients-service"
-import {
-  type Client,
-  mapClientVehicleToTableRow,
-  type ClientVehicleTableRow,
-} from "../model"
 
-const vehiclesLoadError = "Nao foi possivel carregar os veiculos do cliente."
+const emptySnapshot: ClientVehiclesSnapshot = {
+  client: null,
+  vehicles: [],
+}
 
-export function useClientVehicles(codPessoa: number) {
-  const [data, setData] = React.useState<ClientVehicleTableRow[]>([])
-  const [client, setClient] = React.useState<Client | null>(null)
-  const [isLoading, setIsLoading] = React.useState(true)
-  const [error, setError] = React.useState<Error | null>(null)
+export function useClientVehicles(clientId: number) {
+  const loadData = React.useCallback(async () => {
+    const [client, vehicles] = await Promise.all([
+      findClientById(clientId),
+      listClientVehiclesByClientId(clientId),
+    ])
 
-  const loadVehicles = React.useCallback(async (isCurrent: () => boolean) => {
-    try {
-      setIsLoading(true)
-      setError(null)
-
-      const [clients, vehicles] = await Promise.all([
-        listClients(),
-        listClientVehicles(),
-      ])
-
-      if (!isCurrent()) {
-        return
-      }
-
-      setClient(
-        clients.find((currentClient) => currentClient.cod_pessoa === codPessoa) ??
-          null
-      )
-      setData(
-        vehicles
-          .filter((vehicle) => vehicle.cod_pessoa === codPessoa)
-          .map((vehicle) =>
-            mapClientVehicleToTableRow(vehicle, { isVipEnabled: false })
-          )
-      )
-    } catch (caughtError) {
-      if (isCurrent()) {
-        setError(
-          caughtError instanceof Error
-            ? caughtError
-            : new Error(vehiclesLoadError)
-        )
-      }
-    } finally {
-      if (isCurrent()) {
-        setIsLoading(false)
-      }
-    }
-  }, [codPessoa])
-
-  const refetch = React.useCallback(async () => {
-    await loadVehicles(() => true)
-  }, [loadVehicles])
-
-  React.useEffect(() => {
-    let isMounted = true
-
-    async function loadInitialVehicles() {
-      try {
-        const [clients, vehicles] = await Promise.all([
-          listClients(),
-          listClientVehicles(),
-        ])
-
-        if (!isMounted) {
-          return
-        }
-
-        setClient(
-          clients.find((currentClient) => currentClient.cod_pessoa === codPessoa) ??
-            null
-        )
-        setData(
-          vehicles
-            .filter((vehicle) => vehicle.cod_pessoa === codPessoa)
-            .map((vehicle) =>
-              mapClientVehicleToTableRow(vehicle, { isVipEnabled: false })
-            )
-        )
-        setError(null)
-      } catch (caughtError) {
-        if (isMounted) {
-          setError(
-            caughtError instanceof Error
-              ? caughtError
-              : new Error(vehiclesLoadError)
-          )
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void loadInitialVehicles()
-
-    return () => {
-      isMounted = false
-    }
-  }, [codPessoa])
+    return { client, vehicles }
+  }, [clientId])
+  const snapshot = useAsyncSnapshot<ClientVehiclesSnapshot>({
+    cacheKey: `${CLIENT_VEHICLES_CACHE_KEY_PREFIX}:${clientId}`,
+    errorMessage: clientsCopy.errors.vehiclesLoad,
+    initialData: emptySnapshot,
+    loadData,
+  })
 
   return {
-    client,
-    data,
-    error,
-    isLoading,
-    refetch,
+    ...snapshot,
+    client: snapshot.data.client,
+    data: snapshot.data.vehicles,
   }
 }

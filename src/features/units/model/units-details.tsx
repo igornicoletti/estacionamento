@@ -8,12 +8,24 @@ import {
 } from "@/features/users"
 
 import { unitsCopy } from "../constants/units-copy"
-import { createUnitMapHref, formatUnitCityState, formatUnitSystemLabel, resolveYardStatusLabel } from "./units-formatting"
+import {
+  createUnitMapHref,
+  formatUnitCityState,
+  formatUnitSystemLabel,
+  resolveYardStatusLabel,
+} from "./units-formatting"
 import { type Unit, type UnitUserStats, type UnitYardConfig } from "./units-types"
 
-export function getUnitDetailItems(unit: Unit, yardConfig: UnitYardConfig, userStats: UnitUserStats): readonly AppDetailsSheetItem[] {
+export function getUnitDetailItems(
+  unit: Unit,
+  options: {
+    yardConfig: UnitYardConfig | null
+    userStats: UnitUserStats | null
+  }
+): readonly AppDetailsSheetItem[] {
+  const { userStats, yardConfig } = options
   const mapHref = createUnitMapHref(unit.des_coordenada_empresa)
-  return [
+  const items: AppDetailsSheetItem[] = [
     { label: unitsCopy.table.companyCode, value: unit.cod_empresa },
     { label: unitsCopy.table.legalName, value: unit.nom_razao_social },
     { label: unitsCopy.table.tradeName, value: unit.nom_fantasia },
@@ -23,18 +35,36 @@ export function getUnitDetailItems(unit: Unit, yardConfig: UnitYardConfig, userS
     {
       label: unitsCopy.table.coordinates,
       value: mapHref ? (
-        <a href={mapHref} target="_blank" rel="noreferrer" className="font-medium underline-offset-4 hover:underline">
+        <a
+          href={mapHref}
+          target="_blank"
+          rel="noreferrer"
+          className="font-medium text-foreground hover:text-muted-foreground"
+        >
           {unit.des_coordenada_empresa}
         </a>
       ) : unitsCopy.details.noMap,
     },
     { label: unitsCopy.table.networkIp, value: unit.ip_rede || unitsCopy.details.emptyValue },
     { label: unitsCopy.table.erpSystem, value: formatUnitSystemLabel(unit.nom_banco_dados) },
-    { label: unitsCopy.table.yard, value: resolveYardStatusLabel(yardConfig.patioActive) },
-    { label: unitsCopy.table.spots, value: yardConfig.parkingSpots },
-    { label: unitsCopy.table.managers, value: userStats.managers },
-    { label: unitsCopy.table.operators, value: userStats.operators },
+    {
+      label: unitsCopy.table.yard,
+      value: resolveYardStatusLabel(yardConfig?.patioActive ?? null),
+    },
+    {
+      label: unitsCopy.table.spots,
+      value: yardConfig?.parkingSpots ?? unitsCopy.details.notConfigured,
+    },
   ]
+
+  if (userStats) {
+    items.push(
+      { label: unitsCopy.table.managers, value: userStats.managers },
+      { label: unitsCopy.table.operators, value: userStats.operators }
+    )
+  }
+
+  return items
 }
 
 export function getUnitUserDetailItems(user: UserRecord): readonly AppDetailsSheetItem[] {

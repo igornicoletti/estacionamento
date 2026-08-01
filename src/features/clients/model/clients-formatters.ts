@@ -1,14 +1,5 @@
 import { formatCpfCnpj, formatPhone, onlyDigits } from "@/lib"
 
-export function normalizeDisplayName(value: string) {
-  return value
-    .toLocaleLowerCase("pt-BR")
-    .split(" ")
-    .filter(Boolean)
-    .map((part) => part.charAt(0).toLocaleUpperCase("pt-BR") + part.slice(1))
-    .join(" ")
-}
-
 export function parseClientRouteId(value: string | undefined) {
   if (!value || !/^\d+$/.test(value)) {
     return null
@@ -18,7 +9,20 @@ export function parseClientRouteId(value: string | undefined) {
   return Number.isSafeInteger(parsed) && parsed > 0 ? parsed : null
 }
 
-export function formatClientDate(value: string | null | undefined, fallback: string) {
+export function formatClientCityState(
+  value: { nom_cidade: string; sgl_estado: string },
+  fallback = ""
+) {
+  return (
+    [value.nom_cidade, value.sgl_estado].filter(Boolean).join("/") ||
+    fallback
+  )
+}
+
+export function formatClientDate(
+  value: string | null | undefined,
+  fallback: string
+) {
   if (!value) {
     return fallback
   }
@@ -29,7 +33,9 @@ export function formatClientDate(value: string | null | undefined, fallback: str
     return value
   }
 
-  return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(date)
+  return new Intl.DateTimeFormat("pt-BR", {
+    timeZone: "America/Sao_Paulo",
+  }).format(date)
 }
 
 export function formatClientDocument(

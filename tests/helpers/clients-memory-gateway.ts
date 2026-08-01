@@ -1,10 +1,10 @@
-import { type ClientsGateway } from "@/features/clients/services/clients-gateway"
+import { type ClientsGateway } from "@/features/clients/gateways/clients-gateway-contracts"
 import {
-  type ErpClientPayload,
-  type ErpClientVehiclePayload,
-} from "@/features/clients/model"
+  type ErpClientRow,
+  type ErpClientVehicleRow,
+} from "@/features/clients/schemas/clients-gateway-schemas"
 
-const seedClients: readonly ErpClientPayload[] = [
+const seedClients: readonly ErpClientRow[] = [
   {
     bloqueio_financeiro: "N",
     cod_pessoa: 1001,
@@ -23,7 +23,7 @@ const seedClients: readonly ErpClientPayload[] = [
   },
 ]
 
-const seedVehicles: readonly ErpClientVehiclePayload[] = [
+const seedVehicles: readonly ErpClientVehicleRow[] = [
   {
     cod_pessoa: 1001,
     cod_veiculo: 5001,
@@ -38,11 +38,10 @@ const seedVehicles: readonly ErpClientVehiclePayload[] = [
 
 export function createMemoryClientsGateway(): ClientsGateway {
   return {
-    listClientsPayload: () => Promise.resolve(seedClients),
-    listClientPayloadById: (clientId) =>
+    findClientById: (clientId) =>
       Promise.resolve(seedClients.find((client) => client.cod_pessoa === clientId) ?? null),
-    listClientVehiclesPayload: () => Promise.resolve(seedVehicles),
-    listClientVehiclesPayloadByClientId: (clientId) =>
+    listClients: () => Promise.resolve(seedClients),
+    listVehiclesByClientId: (clientId) =>
       Promise.resolve(
         seedVehicles.filter((vehicle) => vehicle.cod_pessoa === clientId)
       ),

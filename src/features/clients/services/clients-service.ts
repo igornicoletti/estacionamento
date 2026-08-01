@@ -1,45 +1,28 @@
+import { getClientsGateway } from "../gateways/clients-gateway"
 import {
-  sanitizeErpClientsPayload,
-  sanitizeErpClientVehiclesPayload,
-} from "../model"
-import { type Client, type ClientVehicle } from "../model"
-import { getClientsGateway } from "./clients-gateway"
+  mapErpClient,
+  mapErpClientVehicle,
+} from "../model/clients-normalizers"
+import {
+  type Client,
+  type ClientVehicle,
+} from "../model/clients-types"
 
 export async function listClients(): Promise<Client[]> {
-  const payload = await getClientsGateway().listClientsPayload()
-
-  return sanitizeErpClientsPayload(payload)
+  return (await getClientsGateway().listClients()).map(mapErpClient)
 }
 
-export async function listClientVehicles(): Promise<ClientVehicle[]> {
-  const payload = await getClientsGateway().listClientVehiclesPayload()
-
-  return sanitizeErpClientVehiclesPayload(payload)
-}
-
-export async function listClientById(
-  codPessoa: number
+export async function findClientById(
+  clientId: number
 ): Promise<Client | null> {
-  const payload = await getClientsGateway().listClientPayloadById(codPessoa)
-
-  return payload ? sanitizeErpClientsPayload([payload])[0] ?? null : null
+  const row = await getClientsGateway().findClientById(clientId)
+  return row ? mapErpClient(row) : null
 }
 
 export async function listClientVehiclesByClientId(
-  codPessoa: number
+  clientId: number
 ): Promise<ClientVehicle[]> {
-  const payload = await getClientsGateway().listClientVehiclesPayloadByClientId(
-    codPessoa
+  return (await getClientsGateway().listVehiclesByClientId(clientId)).map(
+    mapErpClientVehicle
   )
-
-  return sanitizeErpClientVehiclesPayload(payload)
-}
-
-export async function listClientsSnapshot() {
-  const [clients, vehicles] = await Promise.all([
-    listClients(),
-    listClientVehicles(),
-  ])
-
-  return { clients, vehicles }
 }

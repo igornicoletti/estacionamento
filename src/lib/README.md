@@ -7,6 +7,8 @@ Utilitarios compartilhados de baixo nivel.
 - Formatacao: `formatters.ts`, `phone.ts`, `cpf.ts`.
 - Normalizacao e seguranca de exibicao: `normalize.ts`, `sensitive-display.ts`.
 - Infra compartilhada: `supabase-browser.ts` e `errors.ts`.
+- Contratos de dados externos: `schemas/source-safe-integer-schema.ts`.
+- Paginação segura do PostgREST: `supabase/fetch-all-postgrest-batches.ts`.
 - Predicados React reutilizáveis: `is-renderable.ts`.
 - Estilo e composicao: `badge.ts`, `utils.ts`.
 - `index.ts`: superficie publica do diretorio.

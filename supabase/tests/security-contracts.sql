@@ -305,4 +305,142 @@ begin
 end;
 $$;
 
+do $$
+declare
+  public_function oid := to_regprocedure('public.list_unit_user_stats()');
+  private_function oid := to_regprocedure('private.list_unit_user_stats()');
+begin
+  if public_function is null or private_function is null then
+    raise exception 'Contrato agregado de funcionários por unidade ausente.';
+  end if;
+
+  if (select prosecdef from pg_proc where oid = public_function)
+    or not (select prosecdef from pg_proc where oid = private_function) then
+    raise exception 'RPC de estatísticas deve usar wrapper invoker e implementação privada definer.';
+  end if;
+
+  if has_function_privilege('public', public_function, 'EXECUTE')
+    or has_function_privilege('anon', public_function, 'EXECUTE')
+    or not has_function_privilege('authenticated', public_function, 'EXECUTE') then
+    raise exception 'Wrapper de estatísticas possui grants inválidos.';
+  end if;
+
+  if has_function_privilege('public', private_function, 'EXECUTE')
+    or has_function_privilege('anon', private_function, 'EXECUTE')
+    or not has_function_privilege('authenticated', private_function, 'EXECUTE')
+    or has_function_privilege('service_role', private_function, 'EXECUTE')
+    or position('users.read' in (select prosrc from pg_proc where oid = private_function)) = 0 then
+    raise exception 'Implementação privada de estatísticas possui grants ou autorização inválidos.';
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if not exists (
+    select 1
+    from public.app_permissions
+    where key = 'units.yard.manage'
+  ) or not exists (
+    select 1
+    from public.app_role_permissions
+    where role_key = 'admin'
+      and permission_key = 'units.yard.manage'
+  ) then
+    raise exception 'Permissão de gestão do pátio não foi registrada para administradores.';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'erp_units'
+      and cmd = 'SELECT'
+      and qual like '%units.read%'
+  ) or not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'unit_yard_configs'
+      and cmd = 'SELECT'
+      and qual like '%units.read%'
+  ) then
+    raise exception 'Leituras de unidades e pátio devem exigir units.read.';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'unit_yard_configs'
+      and cmd = 'UPDATE'
+      and qual like '%units.yard.manage%'
+      and with_check like '%units.yard.manage%'
+  ) then
+    raise exception 'Atualização de pátio deve exigir units.yard.manage.';
+  end if;
+
+  if exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'unit_yard_configs'
+      and cmd = 'DELETE'
+  ) then
+    raise exception 'A aplicação não deve expor exclusão de configuração de pátio.';
+  end if;
+
+  if has_table_privilege('anon', 'public.erp_clients', 'SELECT')
+    or has_table_privilege('anon', 'public.erp_client_vehicles', 'SELECT')
+    or has_table_privilege('anon', 'public.erp_units', 'SELECT')
+    or has_table_privilege('anon', 'public.unit_yard_configs', 'SELECT')
+    or has_table_privilege('authenticated', 'public.erp_clients', 'TRUNCATE')
+    or has_table_privilege('authenticated', 'public.erp_client_vehicles', 'TRUNCATE')
+    or has_table_privilege('authenticated', 'public.erp_units', 'TRUNCATE')
+    or has_table_privilege('authenticated', 'public.unit_yard_configs', 'TRUNCATE')
+    or has_table_privilege('authenticated', 'public.unit_yard_configs', 'DELETE') then
+    raise exception 'Grants de clientes/unidades excedem o privilégio mínimo.';
+  end if;
+
+  if not has_table_privilege('service_role', 'public.erp_clients', 'SELECT,INSERT,UPDATE')
+    or not has_table_privilege('service_role', 'public.erp_client_vehicles', 'SELECT,INSERT,UPDATE')
+    or not has_table_privilege('service_role', 'public.erp_units', 'SELECT,INSERT,UPDATE')
+    or not has_table_privilege('service_role', 'public.client_sync_runs', 'SELECT,INSERT,UPDATE')
+    or not has_table_privilege('service_role', 'public.client_sync_state', 'SELECT,INSERT,UPDATE')
+    or not has_table_privilege('service_role', 'public.unit_sync_runs', 'SELECT,INSERT,UPDATE')
+    or not has_table_privilege('service_role', 'public.unit_sync_state', 'SELECT,INSERT,UPDATE') then
+    raise exception 'Edge Functions de sincronização não possuem os grants mínimos exigidos.';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  audit_function oid := to_regprocedure('private.audit_unit_yard_config_change()');
+  fields_function oid := to_regprocedure('private.set_unit_yard_config_audit_fields()');
+begin
+  if audit_function is null or fields_function is null then
+    raise exception 'Funções de autoria/auditoria do pátio estão ausentes.';
+  end if;
+
+  if not (select prosecdef from pg_proc where oid = audit_function)
+    or not exists (
+      select 1
+      from unnest(coalesce((select proconfig from pg_proc where oid = audit_function), array[]::text[])) setting
+      where setting = 'search_path=""'
+    )
+    or has_function_privilege('public', audit_function, 'EXECUTE')
+    or has_function_privilege('anon', audit_function, 'EXECUTE')
+    or has_function_privilege('authenticated', audit_function, 'EXECUTE')
+    or has_function_privilege('service_role', audit_function, 'EXECUTE') then
+    raise exception 'Função de auditoria do pátio possui contexto ou grants inválidos.';
+  end if;
+
+  if position('updated_by' in (select prosrc from pg_proc where oid = fields_function)) = 0
+    or position('auth.uid()' in (select prosrc from pg_proc where oid = fields_function)) = 0 then
+    raise exception 'Trigger do pátio deve registrar autoria autenticada.';
+  end if;
+end;
+$$;
+
 select 'security contracts passed' as result;

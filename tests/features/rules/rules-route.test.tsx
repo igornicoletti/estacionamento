@@ -10,20 +10,22 @@ import {
 } from "vitest"
 
 import {
-  configureClientsGateway,
   resetClientsGateway,
-} from "@/features/clients"
+  setClientsGateway,
+} from "@/features/clients/gateways/clients-gateway"
 import {
   RulesRoute,
   type SaveVipRuleInput,
   type VipRule,
 } from "@/features/rules"
 import {
-  configureUnitYardGateway,
-  configureUnitsGateway,
   resetUnitYardGateway,
+  setUnitYardGateway,
+} from "@/features/units/gateways/unit-yard-gateway"
+import {
   resetUnitsGateway,
-} from "@/features/units"
+  setUnitsGateway,
+} from "@/features/units/gateways/units-gateway"
 import { clearAsyncSnapshotCache } from "@/hooks/use-async-snapshot"
 
 const {
@@ -73,8 +75,8 @@ const inactiveVipRule: VipRule = {
 }
 
 function configureCatalogGateways() {
-  configureClientsGateway({
-    async listClientsPayload() {
+  setClientsGateway({
+    async listClients() {
       await Promise.resolve()
       return [
         {
@@ -95,7 +97,7 @@ function configureCatalogGateways() {
         },
       ]
     },
-    async listClientPayloadById(clientId) {
+    async findClientById(clientId) {
       await Promise.resolve()
       return clientId === 1001
         ? {
@@ -116,22 +118,7 @@ function configureCatalogGateways() {
         }
         : null
     },
-    async listClientVehiclesPayload() {
-      await Promise.resolve()
-      return [
-        {
-          cod_pessoa: 1001,
-          cod_veiculo: 5001,
-          des_veiculo: "Fiat Strada 1.4",
-          nom_fantasia: "Auto Center Alfa",
-          nom_motorista: "Joao Carlos",
-          nom_pessoa: "Auto Center Alfa Ltda",
-          num_cnpj_cpf: "12.345.678/0001-10",
-          num_placa: "ABC1D23",
-        },
-      ]
-    },
-    async listClientVehiclesPayloadByClientId(clientId) {
+    async listVehiclesByClientId(clientId) {
       await Promise.resolve()
       return clientId === 1001
         ? [
@@ -150,8 +137,28 @@ function configureCatalogGateways() {
     },
   })
 
-  configureUnitsGateway({
-    async listUnitsPayload() {
+  setUnitsGateway({
+    async findUnitById(unitId) {
+      await Promise.resolve()
+      return unitId === 1
+        ? {
+            cod_bandeira: 10,
+            cod_cidade: 3550308,
+            cod_empresa: 1,
+            des_bandeira: "Shell",
+            des_coordenada_empresa: "-23.550520, -46.633308",
+            ip_rede: "192.168.0.10",
+            nom_banco_dados: "erp_montecarlo_centro",
+            nom_cidade: "Sao Paulo",
+            nom_estado: "Sao Paulo",
+            nom_fantasia: "Monte Carlo Centro",
+            nom_razao_social: "Posto Monte Carlo Centro Ltda",
+            num_cnpj: "00.000.000/0001-00",
+            sgl_estado: "SP",
+          }
+        : null
+    },
+    async listUnits() {
       await Promise.resolve()
       return [
         {
@@ -173,21 +180,28 @@ function configureCatalogGateways() {
     },
   })
 
-  configureUnitYardGateway({
+  setUnitYardGateway({
+    async findConfigByUnitId(unitId) {
+      await Promise.resolve()
+      return unitId === "1"
+        ? {
+            parking_spots: 42,
+            patio_active: true,
+            unit_id: 1,
+            updated_at: "2026-07-17T12:00:00.000Z",
+          }
+        : null
+    },
     async listConfigs() {
       await Promise.resolve()
       return [
         {
-          parkingSpots: 42,
-          patioActive: true,
-          unitId: "1",
-          updatedAt: "2026-07-17T12:00:00.000Z",
+          parking_spots: 42,
+          patio_active: true,
+          unit_id: 1,
+          updated_at: "2026-07-17T12:00:00.000Z",
         },
       ]
-    },
-    async upsertConfig() {
-      await Promise.resolve()
-      throw new Error("Unexpected yard config write")
     },
   })
 }

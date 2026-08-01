@@ -1,4 +1,4 @@
-import { getUnitYardConfig } from "@/features/units/services/unit-yard-service"
+import { getUnitYardConfig } from "@/features/units"
 
 import { reportsMockByUnitId } from "../model/reports-mock-data"
 import { type ReportsSnapshot } from "../model/reports-types"

@@ -4,47 +4,39 @@ import { afterEach, beforeEach, describe, expect, it } from "vitest"
 
 import { UnitsRoute } from "@/features/units/routes/units-route"
 import {
-  configureUnitYardGateway,
-  configureUnitsGateway,
   resetUnitYardGateway,
+  setUnitYardGateway,
+} from "@/features/units/gateways/unit-yard-gateway"
+import {
   resetUnitsGateway,
-} from "@/features/units"
+  setUnitsGateway,
+} from "@/features/units/gateways/units-gateway"
+
+const unitRow = {
+  cod_empresa: 1,
+  nom_razao_social: "Posto Monte Carlo Centro Ltda",
+  nom_fantasia: "Monte Carlo Centro",
+  num_cnpj: "00.000.000/0001-00",
+  cod_bandeira: 10,
+  des_bandeira: "Shell",
+  cod_cidade: 3550308,
+  nom_cidade: "São Paulo",
+  nom_estado: "São Paulo",
+  sgl_estado: "SP",
+  des_coordenada_empresa: "-23.550520, -46.633308",
+  ip_rede: "192.168.0.10",
+  nom_banco_dados: "erp_montecarlo_centro",
+} as const
 
 beforeEach(() => {
-  configureUnitsGateway({
-    async listUnitsPayload() {
-      await Promise.resolve()
-      return [
-        {
-          cod_empresa: 1,
-          nom_razao_social: "Posto Monte Carlo Centro Ltda",
-          nom_fantasia: "Monte Carlo Centro",
-          num_cnpj: "00.000.000/0001-00",
-          cod_bandeira: 10,
-          des_bandeira: "Shell",
-          cod_cidade: 3550308,
-          nom_cidade: "São Paulo",
-          nom_estado: "São Paulo",
-          sgl_estado: "SP",
-          des_coordenada_empresa: "-23.550520, -46.633308",
-          ip_rede: "192.168.0.10",
-          nom_banco_dados: "erp_montecarlo_centro",
-        },
-      ]
-    },
+  setUnitsGateway({
+    findUnitById: (unitId) =>
+      Promise.resolve(unitId === unitRow.cod_empresa ? unitRow : null),
+    listUnits: () => Promise.resolve([unitRow]),
   })
-  configureUnitYardGateway({
-    async listConfigs() {
-      await Promise.resolve()
-      return []
-    },
-    async upsertConfig(input) {
-      await Promise.resolve()
-      return {
-        ...input,
-        updatedAt: new Date(0).toISOString(),
-      }
-    },
+  setUnitYardGateway({
+    findConfigByUnitId: () => Promise.resolve(null),
+    listConfigs: () => Promise.resolve([]),
   })
 })
 
@@ -62,7 +54,9 @@ describe("UnitsRoute", () => {
     )
 
     expect(screen.getByRole("heading", { name: "Unidades" })).toBeInTheDocument()
-    expect(screen.getByRole("button", { name: "Histórico" })).toBeInTheDocument()
+    expect(
+      screen.getByRole("button", { name: "Atualizar dados" })
+    ).toBeInTheDocument()
 
     await waitFor(() => {
       expect(screen.getByText("Monte Carlo Centro")).toBeInTheDocument()

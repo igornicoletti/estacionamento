@@ -1,8 +1,12 @@
-import { sanitizeErpUnitsPayload, type Unit } from "../model"
-import { getUnitsGateway } from "./units-gateway"
+import { getUnitsGateway } from "../gateways/units-gateway"
+import { mapErpUnit } from "../model/units-normalization"
+import { type Unit } from "../model/units-types"
 
 export async function listUnits(): Promise<Unit[]> {
-  const payload = await getUnitsGateway().listUnitsPayload()
+  return (await getUnitsGateway().listUnits()).map(mapErpUnit)
+}
 
-  return sanitizeErpUnitsPayload(payload)
+export async function findUnitById(unitId: number): Promise<Unit | null> {
+  const row = await getUnitsGateway().findUnitById(unitId)
+  return row ? mapErpUnit(row) : null
 }

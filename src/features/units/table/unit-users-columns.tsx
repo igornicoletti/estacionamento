@@ -12,7 +12,6 @@ import {
 import { getBadgeToneClassName } from "@/lib"
 
 import { unitsCopy } from "../constants/units-copy"
-import { UNIT_SUCCESS_BADGE_TONE } from "../constants/units-ui"
 
 interface CreateUnitUsersColumnsOptions {
   onOpenDetails: (user: UserRecord) => void
@@ -31,7 +30,7 @@ function resolvePhoneValue(user: UserRecord) {
 }
 
 function resolveActiveBadgeClassName(isActive: boolean) {
-  return getBadgeToneClassName(isActive ? UNIT_SUCCESS_BADGE_TONE : undefined)
+  return getBadgeToneClassName(isActive ? "success" : undefined)
 }
 
 export function createUnitUsersColumns(

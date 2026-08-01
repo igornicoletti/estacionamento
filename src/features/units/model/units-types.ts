@@ -1,19 +1,3 @@
-export interface ErpUnitPayload {
-  cod_empresa: unknown
-  nom_razao_social: unknown
-  nom_fantasia: unknown
-  num_cnpj: unknown
-  cod_bandeira: unknown
-  des_bandeira: unknown
-  cod_cidade: unknown
-  nom_cidade: unknown
-  nom_estado: unknown
-  sgl_estado: unknown
-  des_coordenada_empresa: unknown
-  ip_rede: unknown
-  nom_banco_dados: unknown
-}
-
 export interface Unit {
   cod_empresa: number
   nom_razao_social: string
@@ -37,24 +21,7 @@ export interface UnitYardConfig {
   updatedAt: string
 }
 
-export interface UpsertUnitYardConfigInput {
-  unitId: string
-  patioActive: boolean
-  parkingSpots: number
-}
-
 export interface UnitUserStats {
   managers: number
   operators: number
 }
-
-export type UnitSyncRunMode = "full" | "incremental"
-export type UnitSyncRunStatus = "success" | "warning" | "failed"
-
-export interface TriggerUnitsSyncResult {
-  runId: string | null
-  status: UnitSyncRunStatus
-  message: string
-}
-
-export type YardStatusFormValue = "active" | "inactive"

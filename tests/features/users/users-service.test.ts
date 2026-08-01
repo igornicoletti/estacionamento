@@ -8,9 +8,9 @@ import {
 } from "vitest"
 
 import {
-  configureUnitsGateway,
   resetUnitsGateway,
-} from "@/features/units"
+  setUnitsGateway,
+} from "@/features/units/gateways/units-gateway"
 import {
   resetUsersGateway,
   setUsersGateway,
@@ -43,24 +43,13 @@ const existingUser: UserRecord = {
 
 describe("users service", () => {
   beforeEach(() => {
-    configureUnitsGateway({
-      listUnitsPayload() {
+    setUnitsGateway({
+      findUnitById(unitId) {
+        return Promise.resolve(unitId === 2 ? unitRow : null)
+      },
+      listUnits() {
         return Promise.resolve([
-          {
-            cod_empresa: 2,
-            nom_razao_social: "Posto Monte Carlo Norte Ltda",
-            nom_fantasia: "Monte Carlo Norte",
-            num_cnpj: "12.345.678/0001-90",
-            cod_bandeira: 1,
-            des_bandeira: "Monte Carlo",
-            cod_cidade: 3550308,
-            nom_cidade: "Sao Paulo",
-            nom_estado: "Sao Paulo",
-            sgl_estado: "SP",
-            des_coordenada_empresa: "",
-            ip_rede: "",
-            nom_banco_dados: "",
-          },
+          unitRow,
         ])
       },
     })
@@ -162,8 +151,9 @@ describe("users service", () => {
   })
 
   it("keeps user data available when the optional unit catalog fails", async () => {
-    configureUnitsGateway({
-      listUnitsPayload() {
+    setUnitsGateway({
+      findUnitById: () => Promise.reject(new Error("unit backend unavailable")),
+      listUnits() {
         return Promise.reject(new Error("unit backend unavailable"))
       },
     })
@@ -177,3 +167,19 @@ describe("users service", () => {
     expect(snapshot.unitCatalogError).toBeInstanceOf(Error)
   })
 })
+
+const unitRow = {
+  cod_empresa: 2,
+  nom_razao_social: "Posto Monte Carlo Norte Ltda",
+  nom_fantasia: "Monte Carlo Norte",
+  num_cnpj: "12.345.678/0001-90",
+  cod_bandeira: 1,
+  des_bandeira: "Monte Carlo",
+  cod_cidade: 3550308,
+  nom_cidade: "Sao Paulo",
+  nom_estado: "Sao Paulo",
+  sgl_estado: "SP",
+  des_coordenada_empresa: "",
+  ip_rede: "",
+  nom_banco_dados: "",
+} as const

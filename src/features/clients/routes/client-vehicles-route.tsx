@@ -1,124 +1,159 @@
-import { ArrowLeftIcon } from "lucide-react"
+import {
+  ArrowLeftIcon,
+  RefreshCcwIcon,
+  TriangleAlertIcon,
+} from "lucide-react"
 import * as React from "react"
 import { useNavigate, useParams } from "react-router"
 
-import { appRoutePaths } from "@/app/router/route-registry"
-import {
-  createDataTableFilterOptions,
-  DataTable,
-} from "@/components/data-table"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
+import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { AppPage } from "@/components/shared/app-page"
 import { Button } from "@/components/ui/button"
 
-import { clientsCopy } from "../constants"
+import { ClientVehiclesTable } from "../components/client-vehicles-table"
+import { clientsCopy } from "../constants/clients-copy"
+import { clientsRoutePaths } from "../constants/clients-routes"
 import { useClientVehicles } from "../hooks/use-client-vehicles"
+import { getClientVehicleDetailItems } from "../model/clients-details-model"
 import {
   formatClientDocument,
-  getClientVehicleDetailItems,
-  normalizeDisplayName,
   parseClientRouteId,
-  type ClientVehicleTableRow,
-} from "../model"
-import { createClientVehiclesColumns } from "../table"
+} from "../model/clients-formatters"
+import { type ClientVehicleTableRow } from "../model/clients-types"
 
 export function ClientVehiclesRoute() {
+  const { cod_pessoa: clientIdParam } = useParams<{
+    cod_pessoa: string
+  }>()
+  const clientId = parseClientRouteId(clientIdParam)
+
+  if (clientId === null) {
+    return <InvalidClientRoute />
+  }
+
+  return <ResolvedClientVehiclesRoute clientId={clientId} />
+}
+
+function InvalidClientRoute() {
   const navigate = useNavigate()
-  const { cod_pessoa: codPessoaParam } = useParams<{ cod_pessoa: string }>()
-  const codPessoa = React.useMemo(
-    () => parseClientRouteId(codPessoaParam) ?? 0,
-    [codPessoaParam]
+
+  return (
+    <AppPage
+      title={clientsCopy.pages.clientVehicles.invalidTitle}
+      subtitle={clientsCopy.pages.clientVehicles.invalidDescription}
+    >
+      <AppEmptyState
+        media={<TriangleAlertIcon aria-hidden="true" />}
+        title={clientsCopy.pages.clientVehicles.invalidTitle}
+        description={clientsCopy.pages.clientVehicles.invalidDescription}
+        actions={(
+          <Button
+            type="button"
+            variant="secondary"
+            onClick={() => {
+              void navigate(clientsRoutePaths.list)
+            }}
+          >
+            <ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />
+            {clientsCopy.actions.backToClients}
+          </Button>
+        )}
+      />
+    </AppPage>
   )
-  const { client, data, error, isLoading, refetch } = useClientVehicles(codPessoa)
+}
+
+function ResolvedClientVehiclesRoute({ clientId }: { clientId: number }) {
+  const navigate = useNavigate()
+  const { client, data, error, isLoading, refetch } =
+    useClientVehicles(clientId)
   const [selectedVehicle, setSelectedVehicle] =
     React.useState<ClientVehicleTableRow | null>(null)
-  const columns = React.useMemo(
-    () => createClientVehiclesColumns({ onOpenDetails: setSelectedVehicle }),
+  const openVehicleDetails = React.useCallback(
+    (vehicle: ClientVehicleTableRow) => {
+      setSelectedVehicle(vehicle)
+    },
     []
   )
-  const plateOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        data,
-        (vehicle) => vehicle.num_placa,
-        (vehicle) => vehicle.num_placa
-      ),
-    [data]
-  )
-  const pageTitle = client?.nom_pessoa
-    ? normalizeDisplayName(client.nom_pessoa)
-    : clientsCopy.pages.clientVehicles.fallbackTitle
-  const pageSubtitle = formatClientDocument(
-    client?.num_cnpj_cpf,
-    clientsCopy.pages.clientVehicles.fallbackDescription
-  )
+  const isClientUnavailable = !isLoading && !error && !client
+  const pageTitle =
+    client?.nom_pessoa ??
+    (isLoading
+      ? clientsCopy.pages.clients.title
+      : clientsCopy.pages.clientVehicles.fallbackTitle)
+  const pageSubtitle = client
+    ? formatClientDocument(
+        client.num_cnpj_cpf,
+        clientsCopy.pages.clientVehicles.fallbackDescription
+      )
+    : isLoading
+      ? clientsCopy.pages.clients.subtitle
+      : clientsCopy.pages.clientVehicles.fallbackDescription
 
   return (
     <AppPage
       title={pageTitle}
       subtitle={pageSubtitle}
-      actions={
+      actions={(
         <>
           <Button
             type="button"
             variant="secondary"
-            aria-label={clientsCopy.actions.backToClients}
             onClick={() => {
-              void navigate(appRoutePaths.clients)
+              void navigate(clientsRoutePaths.list)
             }}
           >
-            <ArrowLeftIcon aria-hidden="true" focusable="false" />
+            <ArrowLeftIcon data-icon="inline-start" aria-hidden="true" />
             {clientsCopy.actions.backToClients}
           </Button>
+          <Button
+            type="button"
+            variant="secondary"
+            disabled={isLoading}
+            onClick={() => {
+              void refetch()
+            }}
+          >
+            <RefreshCcwIcon
+              data-icon="inline-start"
+              aria-hidden="true"
+            />
+            {clientsCopy.actions.refresh}
+          </Button>
         </>
-      }
+      )}
     >
-      <DataTable
-        columns={columns}
-        data={data}
-        getRowId={(vehicle) => String(vehicle.cod_veiculo)}
-        globalSearch={{
-          columnIds: [
-            "cod_veiculo",
-            "cod_pessoa",
-            "nom_pessoa",
-            "nom_fantasia",
-            "num_cnpj_cpf",
-            "num_placa",
-            "des_veiculo",
-            "nom_motorista",
-          ],
-          placeholder: clientsCopy.pages.clientVehicles.searchPlaceholder,
-        }}
-        filterFields={[
-          {
-            id: "num_placa",
-            title: clientsCopy.filters.plates,
-            options: plateOptions,
-          },
-        ]}
-        isLoading={isLoading}
+      <ClientVehiclesTable
+        data={client ? data : []}
         error={error}
+        isClientUnavailable={isClientUnavailable}
+        isLoading={isLoading}
+        onOpenDetails={openVehicleDetails}
         onRetry={() => {
           void refetch()
         }}
-        enablePagination
-        enableViewOptions
       />
 
       <AppDetailsSheet
         open={Boolean(selectedVehicle)}
         onOpenChange={(open) => {
-          if (!open) setSelectedVehicle(null)
+          if (!open) {
+            setSelectedVehicle(null)
+          }
         }}
-        title={selectedVehicle ? "Detalhes do veículo" : undefined}
+        title={
+          selectedVehicle ? clientsCopy.details.vehicleTitle : undefined
+        }
         description={
           selectedVehicle
-            ? "Consulte os dados do veículo vinculado ao cliente."
+            ? clientsCopy.details.vehicleDescription
             : undefined
         }
         items={
-          selectedVehicle ? getClientVehicleDetailItems(selectedVehicle) : []
+          selectedVehicle
+            ? getClientVehicleDetailItems(selectedVehicle)
+            : []
         }
       />
     </AppPage>

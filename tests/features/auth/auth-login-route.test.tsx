@@ -119,6 +119,25 @@ describe("AuthLoginRoute", () => {
     expect(screen.queryByRole("button", { name: "Cancelar" })).not.toBeInTheDocument()
   })
 
+  it("allows the credential password to be shown and hidden", async () => {
+    await renderRoute()
+
+    const passwordInput = screen.getByLabelText("Senha*")
+    const visibilityButton = screen.getByRole("button", {
+      name: "Mostrar senha",
+    })
+
+    expect(passwordInput).toHaveAttribute("type", "password")
+    expect(visibilityButton).toHaveAttribute("aria-pressed", "false")
+
+    fireEvent.click(visibilityButton)
+
+    expect(passwordInput).toHaveAttribute("type", "text")
+    expect(
+      screen.getByRole("button", { name: "Ocultar senha" })
+    ).toHaveAttribute("aria-pressed", "true")
+  })
+
   it("completes the required password step and opens the authenticated route", async () => {
     mocks.authContext.actions.signInWithPassword.mockResolvedValueOnce({
       flowId: "password-flow",

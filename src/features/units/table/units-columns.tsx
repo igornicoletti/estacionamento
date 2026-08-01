@@ -11,41 +11,35 @@ import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
 import { unitsCopy } from "../constants/units-copy"
-import { UNIT_SUCCESS_BADGE_TONE } from "../constants/units-ui"
 import {
   createUnitMapHref,
   formatUnitCityState,
   resolveYardStatusLabel,
-  type Unit,
-  type UnitUserStats,
-  type UnitYardConfig,
-} from "../model"
-
-export type UnitTableRow = Unit & {
-  userStats: UnitUserStats
-  yardConfig: UnitYardConfig
-}
+} from "../model/units-formatting"
+import { type UnitTableRow } from "../model/units-table-model"
 
 interface CreateUnitsColumnsOptions {
   onOpenDetails: (unit: UnitTableRow) => void
   onSelectUsers?: (unit: UnitTableRow) => void
-  onConfigureYard?: (unit: UnitTableRow) => void
+  showUserStats: boolean
 }
 
 function getTotalUsers(unit: UnitTableRow) {
-  return unit.userStats.managers + unit.userStats.operators
+  return unit.userStats
+    ? unit.userStats.managers + unit.userStats.operators
+    : null
 }
 
 function resolveTextExportValue(value: string) {
   return value.trim() || unitsCopy.details.emptyValue
 }
 
-function resolveActiveBadgeClassName(isActive: boolean) {
-  return getBadgeToneClassName(isActive ? UNIT_SUCCESS_BADGE_TONE : undefined)
-}
-
-export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDef<UnitTableRow>[] {
-  return [
+export function createUnitsColumns({
+  onOpenDetails,
+  onSelectUsers,
+  showUserStats,
+}: CreateUnitsColumnsOptions): ColumnDef<UnitTableRow>[] {
+  const columns: ColumnDef<UnitTableRow>[] = [
     {
       accessorKey: "cod_empresa",
       meta: { label: unitsCopy.table.companyCode },
@@ -58,7 +52,9 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
       header: unitsCopy.table.tradeName,
       size: 220,
       cell: ({ row }) => (
-        <DataTableTextAction onClick={() => options.onOpenDetails(row.original)}>
+        <DataTableTextAction
+          onClick={() => onOpenDetails(row.original)}
+        >
           {row.original.nom_fantasia}
         </DataTableTextAction>
       ),
@@ -75,7 +71,11 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
       header: unitsCopy.table.cnpj,
       size: 170,
       cell: ({ row }) => (
-        <DataTableSensitiveValue value={row.original.num_cnpj} kind="cnpj" />
+        <DataTableSensitiveValue
+          value={row.original.num_cnpj}
+          kind="cnpj"
+          fallback={unitsCopy.details.emptyValue}
+        />
       ),
     },
     {
@@ -89,11 +89,10 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
       meta: { label: unitsCopy.table.state },
       header: unitsCopy.table.state,
       size: 90,
-      cell: ({ row }) => row.original.sgl_estado.toUpperCase(),
     },
     {
       id: "cidadeUf",
-      accessorFn: (unit) => formatUnitCityState(unit),
+      accessorFn: formatUnitCityState,
       meta: {
         label: unitsCopy.table.cityState,
         exportValue: (_value, row) => formatUnitCityState(row),
@@ -106,12 +105,15 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
       accessorKey: "des_coordenada_empresa",
       meta: {
         label: unitsCopy.table.coordinates,
-        exportValue: (_value, row) => resolveTextExportValue(row.des_coordenada_empresa),
+        exportValue: (_value, row) =>
+          resolveTextExportValue(row.des_coordenada_empresa),
       },
       header: unitsCopy.table.coordinates,
       size: 210,
       cell: ({ row }) => {
-        const href = createUnitMapHref(row.original.des_coordenada_empresa)
+        const href = createUnitMapHref(
+          row.original.des_coordenada_empresa
+        )
 
         if (!href) {
           return unitsCopy.details.emptyValue
@@ -120,7 +122,10 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
         return (
           <DataTableTextLink href={href} target="_blank" rel="noreferrer">
             {row.original.des_coordenada_empresa}
-            <ExternalLinkIcon aria-hidden="true" className="size-3.5 text-muted-foreground" />
+            <ExternalLinkIcon
+              data-icon="inline-end"
+              aria-hidden="true"
+            />
           </DataTableTextLink>
         )
       },
@@ -129,94 +134,103 @@ export function createUnitsColumns(options: CreateUnitsColumnsOptions): ColumnDe
       accessorKey: "ip_rede",
       meta: {
         label: unitsCopy.table.networkIp,
-        exportValue: (_value, row) => resolveTextExportValue(row.ip_rede),
+        exportValue: (_value, row) =>
+          resolveTextExportValue(row.ip_rede),
       },
       header: unitsCopy.table.networkIp,
       size: 140,
     },
-    {
+  ]
+
+  if (showUserStats) {
+    columns.push({
       id: "unitUsers",
-      accessorFn: (unit) => getTotalUsers(unit),
+      accessorFn: (unit) => getTotalUsers(unit) ?? 0,
       meta: {
         label: unitsCopy.table.users,
-        exportValue: (_value, row) => getTotalUsers(row),
+        exportValue: (_value, row) => getTotalUsers(row) ?? 0,
       },
       header: unitsCopy.table.users,
       size: 120,
       cell: ({ row }) => {
-        const totalUsers = getTotalUsers(row.original)
+        const totalUsers = getTotalUsers(row.original) ?? 0
 
-        if (!options.onSelectUsers || totalUsers === 0) {
-          return totalUsers === 0 ? unitsCopy.details.emptyValue : totalUsers
-        }
-
-        return (
-          <DataTableTextAction onClick={() => options.onSelectUsers?.(row.original)}>
+        return onSelectUsers ? (
+          <DataTableTextAction
+            aria-label={`${unitsCopy.actions.users}: ${row.original.nom_fantasia}`}
+            onClick={() => onSelectUsers(row.original)}
+          >
             {totalUsers}
           </DataTableTextAction>
+        ) : totalUsers
+      },
+    })
+  }
+
+  columns.push(
+    {
+      id: "yardStatus",
+      accessorFn: (unit) =>
+        resolveYardStatusLabel(unit.yardConfig?.patioActive ?? null),
+      enableSorting: false,
+      meta: {
+        label: unitsCopy.table.yard,
+        exportValue: (_value, row) =>
+          resolveYardStatusLabel(row.yardConfig?.patioActive ?? null),
+      },
+      header: () => (
+        <div className="text-center">{unitsCopy.table.yard}</div>
+      ),
+      size: 130,
+      cell: ({ row }) => {
+        const isActive = row.original.yardConfig?.patioActive ?? null
+
+        return (
+          <div className="flex justify-center">
+            <Badge
+              variant="secondary"
+              className={getBadgeToneClassName(
+                isActive === true ? "success" : undefined
+              )}
+            >
+              {resolveYardStatusLabel(isActive)}
+            </Badge>
+          </div>
         )
       },
     },
     {
-      id: "yardStatus",
-      accessorFn: (unit) => resolveYardStatusLabel(unit.yardConfig.patioActive),
-      enableSorting: false,
-      meta: {
-        label: unitsCopy.table.yard,
-        exportValue: (_value, row) => resolveYardStatusLabel(row.yardConfig.patioActive),
-      },
-      header: () => <div className="text-center">{unitsCopy.table.yard}</div>,
-      size: 110,
-      cell: ({ row }) => (
-        <div className="flex justify-center">
-          <Badge
-            variant="secondary"
-            className={resolveActiveBadgeClassName(row.original.yardConfig.patioActive)}
-          >
-            {resolveYardStatusLabel(row.original.yardConfig.patioActive)}
-          </Badge>
-        </div>
-      ),
-    },
-    {
       id: "yardSpots",
-      accessorFn: (unit) => unit.yardConfig.parkingSpots,
+      accessorFn: (unit) => unit.yardConfig?.parkingSpots ?? null,
       meta: {
         label: unitsCopy.table.spots,
-        exportValue: (_value, row) => row.yardConfig.parkingSpots,
+        exportValue: (_value, row) =>
+          row.yardConfig?.parkingSpots ??
+          unitsCopy.details.notConfigured,
       },
       header: unitsCopy.table.spots,
-      size: 90,
-      cell: ({ row }) => row.original.yardConfig.parkingSpots,
+      size: 110,
+      cell: ({ row }) =>
+        row.original.yardConfig?.parkingSpots ??
+        unitsCopy.details.notConfigured,
     },
-    createActionsColumn<UnitTableRow>((row) => {
-      const totalUsers = getTotalUsers(row.original)
-
-      return [
-        {
-          id: "details",
-          label: unitsCopy.actions.details,
-          onSelect: () => options.onOpenDetails(row.original),
-        },
-        ...(options.onConfigureYard
-          ? [
-            {
-              id: "yard-settings" as const,
-              label: unitsCopy.actions.configureYard,
-              onSelect: () => options.onConfigureYard?.(row.original),
-            },
-          ]
-          : []),
-        ...(options.onSelectUsers && totalUsers > 0
-          ? [
+    createActionsColumn<UnitTableRow>((row) => [
+      {
+        id: "details",
+        label: unitsCopy.actions.details,
+        onSelect: () => onOpenDetails(row.original),
+      },
+      ...(showUserStats && onSelectUsers
+        ? [
             {
               id: "users" as const,
               label: unitsCopy.actions.users,
-              onSelect: () => options.onSelectUsers?.(row.original),
+              onSelect: () => onSelectUsers(row.original),
             },
           ]
-          : []),
-      ]
-    }),
-  ]
+        : []),
+    ])
+  )
+
+  return columns
 }

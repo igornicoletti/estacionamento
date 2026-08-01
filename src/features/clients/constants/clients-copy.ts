@@ -2,53 +2,29 @@ export const clientsCopy = {
   pages: {
     clients: {
       title: "Clientes",
-      subtitle: "Consulte clientes ativos sincronizados do ERP.",
+      subtitle: "Consulte os clientes ativos sincronizados do ERP.",
       searchPlaceholder: "Buscar clientes...",
-      accessDeniedTitle: "Acesso restrito a clientes",
-      accessDeniedDescription: "Seu perfil não possui permissão para consultar clientes sincronizados.",
+      tableAriaLabel: "Lista de clientes",
     },
     clientVehicles: {
       fallbackTitle: "Cliente não encontrado",
       fallbackDescription: "O cliente solicitado não existe ou ainda não foi sincronizado.",
       invalidTitle: "Código de cliente inválido",
       invalidDescription: "Verifique o endereço acessado e tente novamente.",
-      loadingTitle: "Carregando cliente",
-      loadingDescription: "Aguarde enquanto os veículos vinculados são consultados.",
-      accessDeniedTitle: "Acesso restrito a veículos",
-      accessDeniedDescription: "Seu perfil não possui permissão para consultar veículos de clientes.",
       searchPlaceholder: "Buscar veículos...",
+      tableAriaLabel: "Lista de veículos do cliente",
     },
   },
   actions: {
     backToClients: "Voltar",
     details: "Detalhes",
-    history: "Histórico",
-    addClientVip: "Adicionar VIP",
-    addVehicleVip: "Adicionar veículo como VIP",
     openVehicles: "Exibir veículos",
-    removeClientVip: "Remover VIP",
-    removeVehicleVip: "Remover veículo VIP",
-    retry: "Tentar novamente",
-    sync: "Sincronizar",
-    toggleClientVip: "Cliente VIP",
-    toggleVehicleVip: "Veículo VIP",
-    updating: "Atualizando...",
-  },
-  accessibility: {
-    clientVip: "Cliente VIP",
-    vehicleVip: "Veículo VIP",
-  },
-  sync: {
-    feedback: {
-      success: "Sincronização concluída.",
-      error: "Não foi possível sincronizar os clientes.",
-      inProgress: "Já existe uma sincronização de clientes em andamento.",
-    },
+    refresh: "Atualizar dados",
   },
   filters: {
+    cities: "Cidades",
     plates: "Placas",
     status: "Status",
-    vip: "VIP",
   },
   table: {
     active: "Ativo",
@@ -61,7 +37,6 @@ export const clientsCopy = {
     email: "E-mail",
     financialBlock: "Bloqueio financeiro",
     inactive: "Inativo",
-    invalid: "Inválido",
     lastPurchase: "Data da última compra",
     legalName: "Nome/Razão social",
     no: "Não",
@@ -73,7 +48,6 @@ export const clientsCopy = {
     vehicle: "Veículo",
     vehicleCode: "Código do veículo",
     vehicles: "Veículos",
-    vip: "VIP",
     yes: "Sim",
   },
   empty: {
@@ -88,15 +62,11 @@ export const clientsCopy = {
     vehiclesTitle: "Nenhum veículo encontrado",
     vehiclesDescription: "Ajuste a busca ou os filtros para localizar um veículo.",
   },
-  feedback: {
-    clientVip: {
-      success: "Status VIP do cliente atualizado.",
-      error: "Não foi possível atualizar o status VIP do cliente.",
-    },
-    vehicleVip: {
-      success: "Status VIP do veículo atualizado.",
-      error: "Não foi possível atualizar o status VIP do veículo.",
-    },
+  details: {
+    clientTitle: "Detalhes do cliente",
+    clientDescription: "Consulte os dados cadastrais e comerciais do cliente selecionado.",
+    vehicleTitle: "Detalhes do veículo",
+    vehicleDescription: "Consulte os dados do veículo vinculado ao cliente.",
   },
   errors: {
     clientIdInvalid: "O código do cliente informado é inválido.",
@@ -104,10 +74,7 @@ export const clientsCopy = {
     clientsUnavailable: "O serviço de clientes não está configurado.",
     invalidClientsResponse: "A resposta de clientes retornou em formato inválido.",
     invalidVehiclesResponse: "A resposta de veículos retornou em formato inválido.",
-    vipRulesLoad: "Não foi possível carregar as regras VIP de clientes.",
-    vipRulesUnavailable: "O serviço de regras VIP de clientes não está configurado.",
-    syncLimitExceeded: "A busca de clientes excedeu o limite seguro de páginas.",
-    syncUnavailable: "Não foi possível conectar ao serviço de sincronização. Verifique sua conexão e tente novamente.",
+    queryLimitExceeded: "A consulta excedeu o limite seguro de registros.",
     vehiclesLoad: "Não foi possível carregar os veículos do cliente.",
   },
   shared: {

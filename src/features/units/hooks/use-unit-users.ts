@@ -2,7 +2,7 @@ import * as React from "react"
 
 import { useUsers, type UserRecord } from "@/features/users"
 
-import { resolveUnitUsersSnapshot } from "../model"
+import { resolveUnitUsersSnapshot } from "../model/units-formatting"
 
 interface UseUnitUsersOptions {
   enabled?: boolean

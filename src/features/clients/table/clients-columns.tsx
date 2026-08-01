@@ -1,25 +1,20 @@
-import { type ColumnDef, type Row } from "@tanstack/react-table"
-import { CrownIcon } from "lucide-react"
+import { type ColumnDef } from "@tanstack/react-table"
 
-import { createActionsColumn, DataTableSensitiveValue, DataTableTextAction } from "@/components/data-table"
+import {
+  createActionsColumn,
+  DataTableSensitiveValue,
+  DataTableTextAction,
+} from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
 import { getBadgeToneClassName } from "@/lib"
 
 import { clientsCopy } from "../constants/clients-copy"
-import { CLIENT_SUCCESS_BADGE_TONE } from "../constants/clients-ui"
-import { type ClientTableRow } from "../model"
+import { formatClientCityState } from "../model/clients-formatters"
+import { type ClientTableRow } from "../model/clients-types"
 
 interface CreateClientsColumnsOptions {
   onOpenDetails: (client: ClientTableRow) => void
   onSelectVehicles?: (client: ClientTableRow) => void
-  onToggleVip?: (client: ClientTableRow) => void
-  pendingVipClientId?: number | null
-}
-
-function formatCityState(client: ClientTableRow) {
-  return [client.nom_cidade, client.sgl_estado]
-    .filter(Boolean)
-    .join("/") || clientsCopy.shared.emptyValue
 }
 
 export function createClientsColumns(
@@ -43,15 +38,7 @@ export function createClientsColumns(
             options.onOpenDetails(row.original)
           }}
         >
-          <span className="inline-flex items-center gap-1">
-            {row.original.nom_pessoa}
-            {row.original.vip === "sim" ? (
-              <CrownIcon
-                aria-label={clientsCopy.accessibility.clientVip}
-                className="size-4 text-amber-500"
-              />
-            ) : null}
-          </span>
+          {row.original.nom_pessoa}
         </DataTableTextAction>
       ),
     },
@@ -60,7 +47,8 @@ export function createClientsColumns(
       header: clientsCopy.table.tradeName,
       meta: { label: clientsCopy.table.tradeName },
       size: 180,
-      cell: ({ row }) => row.original.nom_fantasia || clientsCopy.shared.emptyValue,
+      cell: ({ row }) =>
+        row.original.nom_fantasia || clientsCopy.shared.emptyValue,
     },
     {
       accessorKey: "num_cnpj_cpf",
@@ -68,7 +56,11 @@ export function createClientsColumns(
       meta: { label: clientsCopy.table.document },
       size: 160,
       cell: ({ row }) => (
-        <DataTableSensitiveValue value={row.original.num_cnpj_cpf} kind="cpfCnpj" />
+        <DataTableSensitiveValue
+          value={row.original.num_cnpj_cpf ?? ""}
+          kind="cpfCnpj"
+          fallback={clientsCopy.shared.emptyValue}
+        />
       ),
     },
     {
@@ -76,7 +68,8 @@ export function createClientsColumns(
       header: clientsCopy.table.email,
       meta: { label: clientsCopy.table.email },
       size: 180,
-      cell: ({ row }) => row.original.des_email_1 || clientsCopy.shared.emptyValue,
+      cell: ({ row }) =>
+        row.original.des_email_1 || clientsCopy.shared.emptyValue,
     },
     {
       accessorKey: "num_telefone_1",
@@ -85,7 +78,7 @@ export function createClientsColumns(
       size: 140,
       cell: ({ row }) => (
         <DataTableSensitiveValue
-          value={row.original.num_telefone_1}
+          value={row.original.num_telefone_1 ?? ""}
           kind="phone"
           fallback={clientsCopy.shared.emptyValue}
         />
@@ -93,15 +86,24 @@ export function createClientsColumns(
     },
     {
       id: "cidadeUf",
-      accessorFn: (client) => formatCityState(client),
+      accessorFn: (client) =>
+        formatClientCityState(client, clientsCopy.shared.emptyValue),
       header: clientsCopy.table.cityState,
       meta: { label: clientsCopy.table.cityState },
       size: 120,
-      cell: ({ row }) => formatCityState(row.original),
+      cell: ({ row }) =>
+        formatClientCityState(
+          row.original,
+          clientsCopy.shared.emptyValue
+        ),
     },
     {
       accessorKey: "status",
-      header: () => <div className="text-center font-medium">{clientsCopy.table.status}</div>,
+      header: () => (
+        <div className="text-center font-medium">
+          {clientsCopy.table.status}
+        </div>
+      ),
       meta: { label: clientsCopy.table.status },
       size: 96,
       enableSorting: false,
@@ -112,7 +114,7 @@ export function createClientsColumns(
           <div className="flex justify-center">
             <Badge
               variant="secondary"
-              className={getBadgeToneClassName(isActive ? CLIENT_SUCCESS_BADGE_TONE : undefined)}
+              className={getBadgeToneClassName(isActive ? "success" : undefined)}
             >
               {isActive ? clientsCopy.table.active : clientsCopy.table.inactive}
             </Badge>
@@ -143,37 +145,13 @@ export function createClientsColumns(
         )
       },
     },
-    {
-      accessorKey: "vip",
-      header: () => <div className="text-center font-medium">{clientsCopy.table.vip}</div>,
-      meta: { label: clientsCopy.table.vip },
-      size: 80,
-      enableSorting: false,
-      cell: ({ row }) => {
-        const isVip = row.original.vip === "sim"
-
-        return (
-          <div className="flex justify-center">
-            <Badge
-              variant="secondary"
-              className={getBadgeToneClassName(isVip ? CLIENT_SUCCESS_BADGE_TONE : undefined)}
-            >
-              {isVip ? clientsCopy.table.yes : clientsCopy.table.no}
-            </Badge>
-          </div>
-        )
-      },
-    },
     createActionsColumn<ClientTableRow>((row) => {
-      const isPendingVip = options.pendingVipClientId === row.original.cod_pessoa
-      const isVip = row.original.vip === "sim"
-
       return [
         {
           id: "details",
           label: clientsCopy.actions.details,
-          onSelect: (selectedRow) => {
-            options.onOpenDetails(selectedRow.original)
+          onSelect: () => {
+            options.onOpenDetails(row.original)
           },
         },
         ...(options.onSelectVehicles && row.original.qtd_veiculos > 0
@@ -181,24 +159,8 @@ export function createClientsColumns(
             {
               id: "vehicles" as const,
               label: clientsCopy.actions.openVehicles,
-              onSelect: (selectedRow: Row<ClientTableRow>) => {
-                options.onSelectVehicles?.(selectedRow.original)
-              },
-            },
-          ]
-          : []),
-        ...(options.onToggleVip
-          ? [
-            {
-              id: "vip" as const,
-              label: isPendingVip
-                ? clientsCopy.actions.updating
-                : isVip
-                  ? clientsCopy.actions.removeClientVip
-                  : clientsCopy.actions.addClientVip,
-              disabled: isPendingVip,
-              onSelect: (selectedRow: Row<ClientTableRow>) => {
-                options.onToggleVip?.(selectedRow.original)
+              onSelect: () => {
+                options.onSelectVehicles?.(row.original)
               },
             },
           ]

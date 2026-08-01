@@ -254,12 +254,16 @@ export function AuthLoginRoute() {
             </Field>
 
             {step === "credentials" ? (
-              <Field data-invalid={Boolean(errors.password)}>
-                <div className="flex items-center justify-between gap-3">
-                  <FieldLabel htmlFor="login-password">
-                    {copy.passwordLabel}
-                    <RequiredMark />
-                  </FieldLabel>
+              <AppPasswordField
+                id="login-password"
+                label={copy.passwordLabel}
+                value={values.password}
+                onChange={updateValue("password")}
+                placeholder={copy.passwordPlaceholder}
+                autoComplete="current-password"
+                disabled={isBusy}
+                error={errors.password}
+                labelAction={
                   <Button
                     asChild
                     type="button"
@@ -269,20 +273,8 @@ export function AuthLoginRoute() {
                   >
                     <Link to={appRoutePaths.recovery}>{copy.recoveryAction}</Link>
                   </Button>
-                </div>
-                <Input
-                  id="login-password"
-                  value={values.password}
-                  onChange={updateValue("password")}
-                  placeholder={copy.passwordPlaceholder}
-                  type="password"
-                  autoComplete="current-password"
-                  className="h-9"
-                  disabled={isBusy}
-                  aria-invalid={Boolean(errors.password)}
-                />
-                {errors.password ? <FieldError>{errors.password}</FieldError> : null}
-              </Field>
+                }
+              />
             ) : null}
 
             {step === "required-password" ? (

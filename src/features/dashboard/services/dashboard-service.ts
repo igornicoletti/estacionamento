@@ -1,4 +1,4 @@
-import { getUnitYardConfig } from "@/features/units/services/unit-yard-service"
+import { getUnitYardConfig } from "@/features/units"
 
 import { dashboardMockByUnitId } from "../model/dashboard-mock-data"
 import { type DashboardDataSnapshot } from "../model/dashboard-types"

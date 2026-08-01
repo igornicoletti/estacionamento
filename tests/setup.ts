@@ -12,11 +12,11 @@ import {
   configurePermissionsGateway,
   type PermissionMatrixRow,
 } from "@/features/permissions"
-import { configureClientsGateway } from "@/features/clients/services/clients-gateway"
+import { setClientsGateway } from "@/features/clients/gateways/clients-gateway"
 import {
-  configureUnitUserStatsGateway,
   resetUnitUserStatsGateway,
-} from "@/features/units/services/unit-user-stats-service"
+  setUnitUserStatsGateway,
+} from "@/features/units/gateways/unit-user-stats-gateway"
 import {
   resetUsersGateway,
   setUsersGateway,
@@ -310,7 +310,7 @@ vi.mock("@/components/ui/tooltip", async (importOriginal) => {
 })
 
 beforeEach(() => {
-  configureClientsGateway(createMemoryClientsGateway())
+  setClientsGateway(createMemoryClientsGateway())
   setAuditGateway(createMemoryAuditGateway(seedAuditEvents))
   configurePermissionsGateway({
     listMatrix: () => Promise.resolve(seedPermissionMatrix),
@@ -322,7 +322,7 @@ beforeEach(() => {
   setUsersGateway(usersGateway)
 
   resetUnitUserStatsGateway()
-  configureUnitUserStatsGateway({
+  setUnitUserStatsGateway({
     async listStats() {
       await Promise.resolve()
       const stats = new Map<string, { managers: number; operators: number }>()
@@ -339,7 +339,11 @@ beforeEach(() => {
         }
         stats.set(user.unitId, current)
       }
-      return stats
+      return Array.from(stats, ([unitId, values]) => ({
+        managers: values.managers,
+        operators: values.operators,
+        unit_id: Number(unitId),
+      }))
     },
   })
 })

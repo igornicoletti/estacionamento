@@ -2,9 +2,9 @@ import { act, renderHook, waitFor } from "@testing-library/react"
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest"
 
 import {
-  configureUnitsGateway,
   resetUnitsGateway,
-} from "@/features/units"
+  setUnitsGateway,
+} from "@/features/units/gateways/units-gateway"
 import {
   resetUsersGateway,
   setUsersGateway,
@@ -54,8 +54,9 @@ function createUser(id: string, name: string): UserRecord {
 
 describe("useUsers", () => {
   beforeEach(() => {
-    configureUnitsGateway({
-      listUnitsPayload: () => Promise.resolve([]),
+    setUnitsGateway({
+      findUnitById: () => Promise.resolve(null),
+      listUnits: () => Promise.resolve([]),
     })
   })
 

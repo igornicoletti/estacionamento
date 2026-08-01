@@ -1,129 +1,63 @@
-import { HistoryIcon, RefreshCcwIcon } from "lucide-react"
+import { RefreshCcwIcon } from "lucide-react"
 import * as React from "react"
 import { useNavigate } from "react-router"
 
-import {
-  createDataTableFilterOptions,
-  defineDataTableCustomColumnId,
-  DataTable,
-} from "@/components/data-table"
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 import { AppPage } from "@/components/shared/app-page"
 import { Button } from "@/components/ui/button"
 
-import {
-  getClientDetailItems,
-  type ClientTableRow,
-} from "../model"
-import { createClientsColumns } from "../table"
+import { ClientsTable } from "../components/clients-table"
+import { clientsCopy } from "../constants/clients-copy"
+import { clientsRoutePaths } from "../constants/clients-routes"
 import { useClients } from "../hooks/use-clients"
-
-const cityStateColumnId = defineDataTableCustomColumnId("cidadeUf")
-
-function formatCityState(client: ClientTableRow) {
-  return [client.nom_cidade, client.sgl_estado].filter(Boolean).join("/")
-}
+import { getClientDetailItems } from "../model/clients-details-model"
+import { type ClientTableRow } from "../model/clients-types"
 
 export function ClientsRoute() {
   const navigate = useNavigate()
-  const { data: clients, error, isLoading, refetch } = useClients()
+  const { data, error, isLoading, refetch } = useClients()
   const [selectedClient, setSelectedClient] =
     React.useState<ClientTableRow | null>(null)
-  const columns = React.useMemo(
-    () =>
-      createClientsColumns({
-        onOpenDetails: setSelectedClient,
-        onSelectVehicles: (client) => {
-          void navigate(`/clientes/${client.cod_pessoa}`)
-        },
-      }),
+  const openClientDetails = React.useCallback((client: ClientTableRow) => {
+    setSelectedClient(client)
+  }, [])
+  const openClientVehicles = React.useCallback(
+    (client: ClientTableRow) => {
+      void navigate(clientsRoutePaths.vehicles(client.cod_pessoa))
+    },
     [navigate]
-  )
-  const stateOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        clients,
-        (client) => formatCityState(client),
-        (client) => formatCityState(client)
-      ),
-    [clients]
-  )
-  const activeOptions = React.useMemo(
-    () =>
-      createDataTableFilterOptions(
-        clients,
-        (client) => client.status,
-        (client) => (client.status === "ativo" ? "Ativo" : "Inativo")
-      ),
-    [clients]
   )
 
   return (
     <AppPage
-      title="Clientes"
-      subtitle="Consulte os clientes sincronizados a partir do ERP."
-      actions={
-        <>
-          <Button type="button" variant="secondary" >
-            <HistoryIcon aria-hidden="true" />
-            Historico
-          </Button>
-          <Button
-            type="button"
-            variant="secondary"
-
-            disabled={isLoading}
-            onClick={() => {
-              void refetch()
-            }}
-          >
-            <RefreshCcwIcon aria-hidden="true" />
-            Sincronizar
-          </Button>
-        </>
-      }
+      title={clientsCopy.pages.clients.title}
+      subtitle={clientsCopy.pages.clients.subtitle}
+      actions={(
+        <Button
+          type="button"
+          variant="secondary"
+          disabled={isLoading}
+          onClick={() => {
+            void refetch()
+          }}
+        >
+          <RefreshCcwIcon
+            data-icon="inline-start"
+            aria-hidden="true"
+          />
+          {clientsCopy.actions.refresh}
+        </Button>
+      )}
     >
-      <DataTable
-        columns={columns}
-        data={clients}
-        getRowId={(client) => String(client.cod_pessoa)}
-        globalSearch={{
-          columnIds: [
-            "cod_pessoa",
-            "nom_pessoa",
-            "nom_fantasia",
-            "num_cnpj_cpf",
-            "des_email_1",
-            "num_telefone_1",
-            "nom_cidade",
-            "sgl_estado",
-            "dta_cadastro",
-            "ind_pessoa_ativa",
-            "bloqueio_financeiro",
-            "qtd_veiculos",
-            "dta_ultima_compra",
-          ],
-          placeholder: "Buscar clientes...",
-        }}
-        filterFields={[
-          {
-            id: cityStateColumnId,
-            title: "Cidades",
-            options: stateOptions,
-          },
-          {
-            id: "status",
-            title: "Ativo",
-            options: activeOptions,
-          },
-        ]}
-        isLoading={isLoading}
+      <ClientsTable
+        data={data}
         error={error}
+        isLoading={isLoading}
+        onOpenDetails={openClientDetails}
+        onSelectVehicles={openClientVehicles}
         onRetry={() => {
           void refetch()
         }}
-        enablePagination
-        enableViewOptions
       />
 
       <AppDetailsSheet
@@ -133,10 +67,12 @@ export function ClientsRoute() {
             setSelectedClient(null)
           }
         }}
-        title={selectedClient ? "Detalhes do cliente" : undefined}
+        title={
+          selectedClient ? clientsCopy.details.clientTitle : undefined
+        }
         description={
           selectedClient
-            ? "Consulte os dados cadastrais e comerciais do cliente selecionado."
+            ? clientsCopy.details.clientDescription
             : undefined
         }
         items={selectedClient ? getClientDetailItems(selectedClient) : []}

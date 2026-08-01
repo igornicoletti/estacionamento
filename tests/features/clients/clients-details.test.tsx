@@ -2,7 +2,7 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
 import { describe, expect, it } from "vitest"
 
-import { ClientsRoute } from "@/features/clients"
+import { ClientsRoute } from "@/features/clients/routes/clients-route"
 import { flushReactUpdates } from "../../helpers/flush-react-updates"
 
 describe("ClientsRoute details", () => {

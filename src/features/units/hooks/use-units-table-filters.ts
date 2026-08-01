@@ -9,14 +9,14 @@ import {
 } from "@/components/data-table"
 
 import { unitsCopy } from "../constants/units-copy"
-import { type Unit } from "../model"
+import { formatUnitCityState } from "../model/units-formatting"
+import { type Unit } from "../model/units-types"
 
-type UnitsTableFilterSource = Pick<Unit, "des_bandeira" | "nom_cidade" | "sgl_estado">
+type UnitsTableFilterSource = Pick<
+  Unit,
+  "des_bandeira" | "nom_cidade" | "sgl_estado"
+>
 const cityStateColumnId = defineDataTableCustomColumnId("cidadeUf")
-
-function formatCityState(unit: UnitsTableFilterSource) {
-  return [unit.nom_cidade, unit.sgl_estado].filter(Boolean).join("/")
-}
 
 function createCityFilterGroups(
   units: readonly UnitsTableFilterSource[],
@@ -26,7 +26,7 @@ function createCityFilterGroups(
   const groupedOptions = new Map<string, DataTableFilterOption[]>()
 
   units.forEach((unit) => {
-    const value = formatCityState(unit)
+    const value = formatUnitCityState(unit)
     const option = optionByValue.get(value)
 
     if (!option) {
@@ -54,15 +54,21 @@ function createCityFilterGroups(
 
 export function useUnitsTableFilters(units: readonly UnitsTableFilterSource[]) {
   const brandOptions = React.useMemo(
-    () => createDataTableFilterOptions(units, (unit) => unit.des_bandeira, (unit) => unit.des_bandeira),
+    () =>
+      createDataTableFilterOptions(
+        units,
+        (unit) => unit.des_bandeira,
+        (unit) => unit.des_bandeira
+      ),
     [units]
   )
   const cityOptions = React.useMemo(
-    () => createDataTableFilterOptions(
-      units,
-      (unit) => formatCityState(unit),
-      (unit) => unit.nom_cidade || formatCityState(unit)
-    ),
+    () =>
+      createDataTableFilterOptions(
+        units,
+        formatUnitCityState,
+        (unit) => unit.nom_cidade || formatUnitCityState(unit)
+      ),
     [units]
   )
   const cityGroups = React.useMemo(
@@ -71,7 +77,16 @@ export function useUnitsTableFilters(units: readonly UnitsTableFilterSource[]) {
   )
 
   return [
-    { id: "des_bandeira", title: unitsCopy.filters.brands, options: brandOptions },
-    { id: cityStateColumnId, title: unitsCopy.filters.cities, options: cityOptions, groups: cityGroups },
+    {
+      id: "des_bandeira",
+      title: unitsCopy.filters.brands,
+      options: brandOptions,
+    },
+    {
+      id: cityStateColumnId,
+      title: unitsCopy.filters.cities,
+      options: cityOptions,
+      groups: cityGroups,
+    },
   ] satisfies readonly DataTableFilterField<UnitsTableFilterSource>[]
 }
