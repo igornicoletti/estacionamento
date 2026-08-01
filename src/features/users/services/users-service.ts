@@ -1,27 +1,41 @@
-import { newPasswordSchema } from "@/features/auth/validation"
 import { listUnits } from "@/features/units"
 import { onlyDigits } from "@/lib"
 
-import { usersCopy } from "../constants"
+import { usersCopy } from "../constants/users-copy"
+import { getUsersGateway } from "../gateways/users-gateway"
+import { type UserIdentity } from "../gateways/users-gateway-contracts"
+import { resolveCanonicalUnitId } from "../model/users-models"
 import {
   isGlobalRole,
-  normalizeUnitScope,
   type CreateUserInput,
+  type UnitCatalogItem,
   type UpdateUserInput,
   type UserRecord,
-} from "../model"
-import { getUsersGateway } from "./users-gateway"
+} from "../model/users-types"
+import {
+  getFirstUsersFormError,
+  usersFormSchema,
+} from "../schemas/users-form-schema"
 
-async function getUnitCatalog() {
+export interface UsersWorkspaceSnapshot {
+  unitCatalog: readonly UnitCatalogItem[]
+  unitCatalogError: Error | null
+  users: UserRecord[]
+}
+
+type UserActionTarget = string | Pick<UserRecord, "authUserId" | "id">
+
+async function getUnitCatalog(): Promise<UnitCatalogItem[]> {
   return (await listUnits()).map((unit) => ({
     id: String(unit.cod_empresa),
     name: unit.nom_fantasia || unit.nom_razao_social,
   }))
 }
 
-export async function listUsers(): Promise<UserRecord[]> {
-  const users = await getUsersGateway().list()
-  const units = await getUnitCatalog().catch(() => [])
+function hydrateUnitNames(
+  users: readonly UserRecord[],
+  units: readonly UnitCatalogItem[]
+) {
   const unitNameById = new Map(units.map((unit) => [unit.id, unit.name]))
 
   return users.map((user) => ({
@@ -32,21 +46,57 @@ export async function listUsers(): Promise<UserRecord[]> {
   }))
 }
 
-async function getCurrentUser(userId: string) {
-  const user = (await listUsers()).find((item) => item.id === userId)
+function toError(value: unknown, fallback: string) {
+  return value instanceof Error ? value : new Error(fallback)
+}
 
-  if (!user) {
+export async function loadUsersWorkspace(): Promise<UsersWorkspaceSnapshot> {
+  const unitsPromise = getUnitCatalog()
+    .then((unitCatalog) => ({
+      unitCatalog,
+      unitCatalogError: null,
+    }))
+    .catch((caughtError: unknown) => ({
+      unitCatalog: [] as UnitCatalogItem[],
+      unitCatalogError: toError(caughtError, usersCopy.form.unitUnavailable),
+    }))
+  const [users, unitsResult] = await Promise.all([
+    getUsersGateway().list(),
+    unitsPromise,
+  ])
+
+  return {
+    unitCatalog: unitsResult.unitCatalog,
+    unitCatalogError: unitsResult.unitCatalogError,
+    users: hydrateUnitNames(users, unitsResult.unitCatalog),
+  }
+}
+
+export async function listUsers(): Promise<UserRecord[]> {
+  return (await loadUsersWorkspace()).users
+}
+
+async function resolveUserIdentity(
+  target: UserActionTarget
+): Promise<UserIdentity> {
+  if (typeof target !== "string") {
+    if (!target.authUserId) {
+      throw new Error(usersCopy.errors.adminActionUnavailable)
+    }
+
+    return {
+      authUserId: target.authUserId,
+      id: target.id,
+    }
+  }
+
+  const identity = await getUsersGateway().findIdentity(target)
+
+  if (!identity) {
     throw new Error(usersCopy.errors.userNotFound)
   }
 
-  if (!user.authUserId) {
-    throw new Error(usersCopy.errors.adminActionUnavailable)
-  }
-
-  return {
-    ...user,
-    authUserId: user.authUserId,
-  }
+  return identity
 }
 
 async function getPersistedUser(userId: string) {
@@ -59,95 +109,118 @@ async function getPersistedUser(userId: string) {
   return user
 }
 
+function parseCreateInput(input: CreateUserInput) {
+  const result = usersFormSchema.safeParse({
+    ...input,
+    email: input.email ?? "",
+    mode: "create",
+    phone: input.phone ?? "",
+    unitId: input.unitId ?? "",
+  })
+
+  if (!result.success) {
+    throw new Error(getFirstUsersFormError(result.error))
+  }
+
+  return result.data
+}
+
+function parseUpdateInput(input: UpdateUserInput) {
+  const result = usersFormSchema.safeParse({
+    ...input,
+    email: input.email ?? "",
+    firstAccessPassword: "",
+    mode: "edit",
+    phone: input.phone ?? "",
+    unitId: input.unitId ?? "",
+  })
+
+  if (!result.success) {
+    throw new Error(getFirstUsersFormError(result.error))
+  }
+
+  return result.data
+}
+
 export async function createUser(input: CreateUserInput): Promise<UserRecord> {
-  const password = input.firstAccessPassword.trim()
-
-  if (!password) {
-    throw new Error(usersCopy.errors.requiredFirstAccessPassword)
-  }
-
-  if (!input.cpf.trim()) {
-    throw new Error(usersCopy.errors.requiredCpf)
-  }
-
-  const passwordResult = newPasswordSchema.safeParse(password)
-
-  if (!passwordResult.success) {
-    throw new Error(
-      passwordResult.error.issues[0]?.message ?? usersCopy.errors.invalidPassword
-    )
-  }
-
-  const units = isGlobalRole(input.role) ? [] : await getUnitCatalog()
-  const unitScope = normalizeUnitScope(input, units)
+  const parsedInput = parseCreateInput(input)
+  const units = isGlobalRole(parsedInput.role) ? [] : await getUnitCatalog()
+  const unitId = resolveCanonicalUnitId(parsedInput, units)
   const result = await getUsersGateway().create({
-    cpf: onlyDigits(input.cpf),
-    email: input.email?.trim() || null,
-    name: input.name.trim(),
-    phone: onlyDigits(input.phone ?? ""),
-    role: input.role,
-    temporaryPassword: password,
-    unitId: unitScope.unitId,
+    cpf: onlyDigits(parsedInput.cpf),
+    email: parsedInput.email || null,
+    name: parsedInput.name,
+    phone: onlyDigits(parsedInput.phone),
+    role: parsedInput.role,
+    temporaryPassword: parsedInput.firstAccessPassword.trim(),
+    unitId,
   })
 
   return getPersistedUser(result.id)
 }
 
 export async function updateUser(input: UpdateUserInput): Promise<UserRecord> {
-  const currentUser = await getCurrentUser(input.id)
-  const units = isGlobalRole(input.role) ? [] : await getUnitCatalog()
-  const unitScope = normalizeUnitScope(input, units)
+  const parsedInput = parseUpdateInput(input)
+  const identity = await resolveUserIdentity(input.id)
+  const units = isGlobalRole(parsedInput.role) ? [] : await getUnitCatalog()
+  const unitId = resolveCanonicalUnitId(parsedInput, units)
   const result = await getUsersGateway().update({
-    cpf: onlyDigits(input.cpf),
-    email: input.email?.trim() || null,
-    name: input.name.trim(),
-    phone: onlyDigits(input.phone ?? ""),
-    role: input.role,
-    targetAuthUserId: currentUser.authUserId,
-    unitId: unitScope.unitId,
+    cpf: onlyDigits(parsedInput.cpf),
+    email: parsedInput.email || null,
+    name: parsedInput.name,
+    phone: onlyDigits(parsedInput.phone),
+    role: parsedInput.role,
+    targetAuthUserId: identity.authUserId,
+    unitId,
   })
 
   return getPersistedUser(result.id)
 }
 
 async function runUserAction(
-  userId: string,
+  target: UserActionTarget,
   action: (targetAuthUserId: string) => Promise<{ id: string }>
 ) {
-  const currentUser = await getCurrentUser(userId)
-  const result = await action(currentUser.authUserId)
+  const identity = await resolveUserIdentity(target)
+  const result = await action(identity.authUserId)
 
   return getPersistedUser(result.id)
 }
 
-export function blockUser(userId: string): Promise<UserRecord> {
-  return runUserAction(userId, (targetAuthUserId) =>
+export function blockUser(target: UserActionTarget): Promise<UserRecord> {
+  return runUserAction(target, (targetAuthUserId) =>
     getUsersGateway().block(targetAuthUserId)
   )
 }
 
-export function resetUserAccess(userId: string): Promise<UserRecord> {
-  return runUserAction(userId, (targetAuthUserId) =>
+export function resetUserAccess(
+  target: UserActionTarget
+): Promise<UserRecord> {
+  return runUserAction(target, (targetAuthUserId) =>
     getUsersGateway().resetPassword(targetAuthUserId)
   )
 }
 
-export function resetUserPasskey(userId: string): Promise<UserRecord> {
-  return runUserAction(userId, (targetAuthUserId) =>
+export function resetUserPasskey(
+  target: UserActionTarget
+): Promise<UserRecord> {
+  return runUserAction(target, (targetAuthUserId) =>
     getUsersGateway().resetPasskey(targetAuthUserId)
   )
 }
 
-export function clearUserLock(userId: string): Promise<UserRecord> {
-  return runUserAction(userId, (targetAuthUserId) =>
+export function clearUserLock(
+  target: UserActionTarget
+): Promise<UserRecord> {
+  return runUserAction(target, (targetAuthUserId) =>
     getUsersGateway().clearLock(targetAuthUserId)
   )
 }
 
-export async function revokeUserSessions(userId: string): Promise<UserRecord> {
-  const currentUser = await getCurrentUser(userId)
-
-  await getUsersGateway().revokeSessions(currentUser.authUserId)
-
-  return currentUser
+export function revokeUserSessions(
+  target: UserActionTarget
+): Promise<UserRecord> {
+  return runUserAction(target, (targetAuthUserId) =>
+    getUsersGateway().revokeSessions(targetAuthUserId)
+  )
 }

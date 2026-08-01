@@ -1,10 +1,8 @@
 import { AppDetailsSheet } from "@/components/shared/app-details-sheet"
 
-import { usersCopy } from "../constants"
-import {
-  getUserDetailItems,
-  type UserRecord,
-} from "../model"
+import { usersCopy } from "../constants/users-copy"
+import { getUserDetailItems } from "../model/users-models"
+import { type UserRecord } from "../model/users-types"
 
 interface UserDetailsSheetProps {
   user: UserRecord | null
@@ -19,7 +17,7 @@ export function UserDetailsSheet({ user, onOpenChange }: UserDetailsSheetProps) 
       title={user ? usersCopy.details.title : undefined}
       description={
         user
-          ? "Consulte os dados de acesso e vínculo do usuário selecionado."
+          ? usersCopy.details.description
           : undefined
       }
       items={user ? getUserDetailItems(user) : []}

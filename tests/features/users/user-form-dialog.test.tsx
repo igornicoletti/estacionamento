@@ -2,8 +2,8 @@ import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { describe, expect, it, vi } from "vitest"
 
 import { UserFormDialog } from "@/features/users/components/user-form-dialog"
-import { usersCopy } from "@/features/users/constants"
-import type { UserRecord } from "@/features/users/model"
+import { usersCopy } from "@/features/users/constants/users-copy"
+import type { UserRecord } from "@/features/users"
 
 const editingUser: UserRecord = {
   authUserId: "auth-user-1",
@@ -37,23 +37,27 @@ describe("UserFormDialog", () => {
         onOpenChange={onOpenChange}
         onSubmit={onSubmit}
         open
-        unitOptions={[]}
+        unitCatalog={[]}
       />
     )
 
-    const form = document.getElementById("users-dialog-form")
+    const form = screen.getByRole("form", { name: usersCopy.dialogs.editTitle })
     expect(form).toBeInstanceOf(HTMLFormElement)
+    expect(
+      screen.queryByLabelText(/^Senha de primeiro acesso/)
+    ).not.toBeInTheDocument()
 
-    fireEvent.submit(form as HTMLFormElement)
+    fireEvent.submit(form)
 
     await waitFor(() => {
       expect(onSubmit).toHaveBeenCalledTimes(1)
     })
 
-    expect(await screen.findByText(usersCopy.feedback.update.error)).toHaveAttribute(
-      "role",
-      "alert"
-    )
+    expect(
+      (await screen.findByText(usersCopy.feedback.update.error)).closest(
+        '[role="alert"]'
+      )
+    ).not.toBeNull()
     expect(screen.queryByText(/Edge Function returned/i)).not.toBeInTheDocument()
     expect(onOpenChange).not.toHaveBeenCalledWith(false)
   })

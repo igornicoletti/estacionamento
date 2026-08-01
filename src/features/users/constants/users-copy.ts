@@ -40,12 +40,15 @@ export const usersCopy = {
     revokeSessionsTitle: "Revogar sessões",
     revokeSessionsDescription: "Tem certeza que deseja revogar todas as sessões ativas de {{name}}? O usuário será desconectado imediatamente.",
     revokeSessionsConfirm: "Revogar",
+    targetFallback: "este usuário",
   },
   filters: {
     role: "Perfis",
     status: "Status",
     unit: "Unidades",
-    online: "Conexão",
+    recentAccess: "Acesso recente",
+    recentAccessValue: "Recente",
+    noRecentAccessValue: "Sem acesso recente",
     searchPlaceholder: "Buscar usuários...",
   },
   form: {
@@ -56,6 +59,7 @@ export const usersCopy = {
     unitPlaceholder: "Buscar unidade...",
     globalUnitPlaceholder: "Global (todas as unidades)",
     unitEmpty: "Nenhuma unidade encontrada.",
+    unitUnavailable: "Não foi possível carregar as unidades.",
     passwordLabel: "Senha de primeiro acesso",
     passwordDescription: "A senha de primeiro acesso é usada apenas no primeiro login. Após acessar, o usuário deverá criar uma nova senha.",
     fields: {
@@ -73,6 +77,8 @@ export const usersCopy = {
   },
   details: {
     title: "Detalhes do usuário",
+    description: "Consulte os dados de acesso e vínculo do usuário selecionado.",
+    emptyValue: "—",
     noEmail: "Sem e-mail",
     noAccess: "Sem acesso",
     globalUnit: "Global",
@@ -83,7 +89,11 @@ export const usersCopy = {
     localUser: "Usuário local",
   },
   table: {
+    ariaLabel: "Lista de usuários",
     emptyAction: "Cadastrar usuário",
+  },
+  tabs: {
+    accessRequests: "Solicitações de acesso",
   },
   empty: {
     title: "Nenhum usuário cadastrado",
@@ -136,7 +146,9 @@ export const usersCopy = {
     update: "Não foi possível atualizar o usuário.",
     userNotFound: "Usuário não encontrado.",
     requiredUnit: "Selecione uma unidade para o perfil informado.",
+    invalidUnit: "Selecione uma unidade válida.",
     requiredName: "Informe o nome do usuário.",
+    invalidName: "Informe um nome com pelo menos 3 caracteres.",
     invalidCpf: "Informe um CPF válido.",
     invalidRole: "Selecione um perfil válido.",
     invalidEmail: "Informe um e-mail válido.",
@@ -146,5 +158,6 @@ export const usersCopy = {
     requiredPhone: "Informe o telefone do usuário.",
     invalidPassword: "Senha inválida.",
     adminActionUnavailable: "Esta ação só está disponível com o backend remoto configurado.",
+    operationInProgress: "Aguarde a conclusão da operação atual.",
   },
 } as const

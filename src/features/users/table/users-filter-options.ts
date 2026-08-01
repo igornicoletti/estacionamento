@@ -1,18 +1,26 @@
 import { createDataTableFilterOptions } from "@/components/data-table"
 
+import { usersCopy } from "../constants/users-copy"
+import {
+  hasRecentUserAccess,
+  resolveUnitLabel,
+} from "../model/users-models"
 import {
   appUserStatusLabels,
-  isUserOnline,
-  resolveUnitLabel,
   type UserRecord,
   userRoleLabels,
-} from "../model"
+} from "../model/users-types"
 
-export function createUserOnlineFilterOptions(users: readonly UserRecord[]) {
+export function createUserRecentAccessFilterOptions(
+  users: readonly UserRecord[]
+) {
   return createDataTableFilterOptions(
     users,
-    (user) => (isUserOnline(user.lastAccessAt) ? "online" : "offline"),
-    (user) => (isUserOnline(user.lastAccessAt) ? "Online" : "Offline")
+    (user) => (hasRecentUserAccess(user.lastAccessAt) ? "recent" : "not-recent"),
+    (user) =>
+      hasRecentUserAccess(user.lastAccessAt)
+        ? usersCopy.filters.recentAccessValue
+        : usersCopy.filters.noRecentAccessValue
   )
 }
 

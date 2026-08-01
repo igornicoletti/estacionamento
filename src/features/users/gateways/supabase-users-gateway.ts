@@ -1,98 +1,32 @@
-import { z } from "zod"
-
 import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
-import { usersCopy } from "../constants"
+import {
+  USER_IDENTITY_SELECT,
+  USERS_DATA_SOURCE,
+  USERS_EDGE_FUNCTION,
+  USERS_LIST_SELECT,
+} from "../constants/users-api"
+import { usersCopy } from "../constants/users-copy"
 import {
   isAppUserStatus,
   isUserRole,
   type UserRecord,
-  type UserRole,
-} from "../model"
+} from "../model/users-types"
+import {
+  appUserRowsSchema,
+  factorsResponseSchema,
+  invokeResponseSchema,
+  lastAccessRowsSchema,
+  mutationResponseSchema,
+  userIdentityRowSchema,
+  type UnitLinksPayload,
+} from "../schemas/users-gateway-schemas"
+import {
+  type UsersGateway,
+  type UserMutationResult,
+} from "./users-gateway-contracts"
 
-export interface CreateUserCommand {
-  cpf: string
-  email: string | null
-  name: string
-  phone: string
-  role: UserRole
-  temporaryPassword: string
-  unitId: string | null
-}
-
-export interface UpdateUserCommand {
-  cpf: string
-  email: string | null
-  name: string
-  phone: string
-  role: UserRole
-  targetAuthUserId: string
-  unitId: string | null
-}
-
-export interface UserMutationResult {
-  authUserId: string
-  id: string
-}
-
-export interface UsersGateway {
-  block(targetAuthUserId: string): Promise<UserMutationResult>
-  clearLock(targetAuthUserId: string): Promise<UserMutationResult>
-  create(command: CreateUserCommand): Promise<UserMutationResult>
-  list(): Promise<UserRecord[]>
-  resetPasskey(targetAuthUserId: string): Promise<UserMutationResult>
-  resetPassword(targetAuthUserId: string): Promise<UserMutationResult>
-  revokeSessions(targetAuthUserId: string): Promise<UserMutationResult>
-  update(command: UpdateUserCommand): Promise<UserMutationResult>
-}
-
-const unitLinkSchema = z.object({ unit_id: z.string() })
-const unitLinksSchema = z.union([
-  unitLinkSchema,
-  z.array(unitLinkSchema),
-  z.null(),
-])
-const appUserRowSchema = z.object({
-  app_user_units: unitLinksSchema.optional(),
-  auth_user_id: z.string(),
-  cpf_display: z.string().nullable(),
-  cpf_masked: z.string(),
-  email: z.string().nullable(),
-  id: z.string(),
-  locked_until: z.string().nullable(),
-  name: z.string(),
-  phone_display: z.string().nullable(),
-  phone_masked: z.string(),
-  role: z.string(),
-  status: z.string(),
-})
-const appUserRowsSchema = z.array(appUserRowSchema)
-const lastAccessRowsSchema = z.array(
-  z.object({
-    auth_user_id: z.string(),
-    last_sign_in_at: z.string().nullable(),
-  })
-)
-const factorsResponseSchema = z.object({
-  factors: z.array(
-    z.object({
-      auth_user_id: z.string(),
-      passkey_count: z.number().int().nonnegative(),
-    })
-  ),
-  ok: z.literal(true),
-})
-const invokeResponseSchema = z.object({
-  data: z.unknown(),
-  error: z.unknown().nullable(),
-})
-const mutationResponseSchema = z.object({
-  authUserId: z.string(),
-  id: z.string(),
-  ok: z.literal(true),
-})
-
-function resolveUnitId(value: z.infer<typeof unitLinksSchema> | undefined) {
+function resolveUnitId(value: UnitLinksPayload | undefined) {
   if (Array.isArray(value)) {
     return value[0]?.unit_id ?? null
   }
@@ -138,25 +72,25 @@ async function invokeMutation(
   return result.data
 }
 
-function createSupabaseUsersGateway(): UsersGateway {
+export function createSupabaseUsersGateway(): UsersGateway {
   return {
     block(targetAuthUserId) {
       return invokeMutation(
-        "admin-user-block",
+        USERS_EDGE_FUNCTION.block,
         { targetUserId: targetAuthUserId },
         usersCopy.feedback.block.error
       )
     },
     clearLock(targetAuthUserId) {
       return invokeMutation(
-        "admin-user-clear-lock",
+        USERS_EDGE_FUNCTION.clearLock,
         { targetUserId: targetAuthUserId },
         usersCopy.feedback.clearLock.error
       )
     },
     create(command) {
       return invokeMutation(
-        "admin-user-create",
+        USERS_EDGE_FUNCTION.create,
         {
           cpf: command.cpf,
           email: command.email ?? undefined,
@@ -170,34 +104,74 @@ function createSupabaseUsersGateway(): UsersGateway {
         usersCopy.errors.create
       )
     },
+    async findIdentity(userId) {
+      const supabase = getSupabaseOrThrow()
+      const response = await supabase
+        .from(USERS_DATA_SOURCE.appUsersTable)
+        .select(USER_IDENTITY_SELECT)
+        .eq("id", userId)
+        .maybeSingle()
+
+      if (response.error) {
+        throw new Error(usersCopy.errors.load, { cause: response.error })
+      }
+
+      if (!response.data) {
+        return null
+      }
+
+      const result = userIdentityRowSchema.safeParse(response.data)
+
+      if (!result.success) {
+        throw new Error(usersCopy.errors.load, { cause: result.error })
+      }
+
+      return {
+        authUserId: result.data.auth_user_id,
+        id: result.data.id,
+      }
+    },
     async list() {
       const supabase = getSupabaseOrThrow()
-      const [usersResponse, accessResponse, factorsResponse] = await Promise.all([
-        supabase
-          .from("app_users")
-          .select(
-            "id, auth_user_id, name, cpf_display, cpf_masked, email, phone_display, phone_masked, role, status, locked_until, app_user_units(unit_id)"
-          )
-          .order("name", { ascending: true }),
-        supabase.rpc("list_app_user_last_access"),
-        supabase.functions.invoke("admin-user-auth-factors", { body: {} }),
-      ])
+      const [usersResponse, accessResponse, factorsResponse] =
+        await Promise.all([
+          supabase
+            .from(USERS_DATA_SOURCE.appUsersTable)
+            .select(USERS_LIST_SELECT)
+            .order("name", { ascending: true }),
+          supabase.rpc(USERS_DATA_SOURCE.lastAccessRpc),
+          supabase.functions.invoke(USERS_EDGE_FUNCTION.authFactors, {
+            body: {},
+          }),
+        ])
 
       if (usersResponse.error || accessResponse.error || factorsResponse.error) {
         throw new Error(usersCopy.errors.load, {
           cause:
-            usersResponse.error ?? accessResponse.error ?? factorsResponse.error,
+            usersResponse.error ??
+            accessResponse.error ??
+            factorsResponse.error,
         })
       }
 
       const usersResult = appUserRowsSchema.safeParse(usersResponse.data ?? [])
-      const accessResult = lastAccessRowsSchema.safeParse(accessResponse.data ?? [])
-      const factorsResult = factorsResponseSchema.safeParse(factorsResponse.data)
+      const accessResult = lastAccessRowsSchema.safeParse(
+        accessResponse.data ?? []
+      )
+      const factorsResult = factorsResponseSchema.safeParse(
+        factorsResponse.data
+      )
 
-      if (!usersResult.success || !accessResult.success || !factorsResult.success) {
+      if (
+        !usersResult.success ||
+        !accessResult.success ||
+        !factorsResult.success
+      ) {
         throw new Error(usersCopy.errors.load, {
           cause:
-            usersResult.error ?? accessResult.error ?? factorsResult.error,
+            usersResult.error ??
+            accessResult.error ??
+            factorsResult.error,
         })
       }
 
@@ -214,19 +188,21 @@ function createSupabaseUsersGateway(): UsersGateway {
         ])
       )
 
-      return usersResult.data.map((row) => {
+      return usersResult.data.map<UserRecord>((row) => {
         if (!isUserRole(row.role) || !isAppUserStatus(row.status)) {
           throw new Error(usersCopy.errors.load)
         }
 
-        const passkeyCount = passkeyCountByUserId.get(row.auth_user_id) ?? 0
+        const passkeyCount =
+          passkeyCountByUserId.get(row.auth_user_id) ?? 0
 
         return {
           authUserId: row.auth_user_id,
           cpf: row.cpf_display ?? row.cpf_masked,
           email: row.email,
           id: row.id,
-          lastAccessAt: lastAccessByUserId.get(row.auth_user_id) ?? null,
+          lastAccessAt:
+            lastAccessByUserId.get(row.auth_user_id) ?? null,
           lockedUntil: row.locked_until,
           name: row.name,
           passkeyCount,
@@ -241,28 +217,28 @@ function createSupabaseUsersGateway(): UsersGateway {
     },
     resetPasskey(targetAuthUserId) {
       return invokeMutation(
-        "admin-user-reset-passkey",
+        USERS_EDGE_FUNCTION.resetPasskey,
         { targetUserId: targetAuthUserId },
         usersCopy.feedback.resetPasskey.error
       )
     },
     resetPassword(targetAuthUserId) {
       return invokeMutation(
-        "admin-user-reset-password",
+        USERS_EDGE_FUNCTION.resetPassword,
         { targetUserId: targetAuthUserId },
         usersCopy.feedback.reset.error
       )
     },
     revokeSessions(targetAuthUserId) {
       return invokeMutation(
-        "admin-user-revoke-sessions",
+        USERS_EDGE_FUNCTION.revokeSessions,
         { targetUserId: targetAuthUserId },
         usersCopy.feedback.revokeSessions.error
       )
     },
     update(command) {
       return invokeMutation(
-        "admin-user-update",
+        USERS_EDGE_FUNCTION.update,
         {
           cpf: command.cpf,
           email: command.email ?? undefined,
@@ -276,18 +252,4 @@ function createSupabaseUsersGateway(): UsersGateway {
       )
     },
   }
-}
-
-let activeUsersGateway: UsersGateway = createSupabaseUsersGateway()
-
-export function getUsersGateway() {
-  return activeUsersGateway
-}
-
-export function setUsersGateway(gateway: UsersGateway) {
-  activeUsersGateway = gateway
-}
-
-export function resetUsersGateway() {
-  activeUsersGateway = createSupabaseUsersGateway()
 }

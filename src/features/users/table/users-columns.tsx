@@ -1,56 +1,39 @@
-import { type ColumnDef, type Row } from "@tanstack/react-table"
+import { type ColumnDef } from "@tanstack/react-table"
 
 import {
   createActionsColumn,
   DataTableSensitiveValue,
   DataTableStackedCell,
   DataTableTextAction,
-  type DataTableRowAction,
 } from "@/components/data-table"
 import { Badge } from "@/components/ui/badge"
-import { getBadgeToneClassName } from "@/lib"
+import { cn, getBadgeToneClassName } from "@/lib"
 
-import { usersCopy } from "../constants"
+import { usersCopy } from "../constants/users-copy"
 import {
-  appUserStatusLabels,
-  isUserOnline,
+  hasRecentUserAccess,
   resolveEmailLabel,
   resolveLastAccessLabel,
-  resolveOnlineLabel,
+  resolveRecentAccessLabel,
   resolvePasskeyLabel,
   resolveUnitLabel,
-  userRoleLabels,
+} from "../model/users-models"
+import {
+  appUserStatusLabels,
   type UserRecord,
-} from "../model"
+  userRoleLabels,
+} from "../model/users-types"
+import {
+  createUserRowActions,
+  type UsersTableActionOptions,
+} from "./users-row-actions"
+import { USER_RECENT_ACCESS_COLUMN_ID } from "./users-table-ids"
 
-interface CreateUsersColumnsOptions {
-  canEditUser?: boolean
-  canBlockUser?: boolean
-  canResetPassword?: boolean
-  canResetPasskey?: boolean
-  canClearLock?: boolean
-  canRevokeSessions?: boolean
-  canManageOwnerUser?: boolean
-  currentAuthUserId?: string | null
-  onViewUserDetails?: (user: UserRecord) => void
-  onEditUser?: (user: UserRecord) => void
-  onBlockUser?: (user: UserRecord) => void
-  onResetAccess?: (user: UserRecord) => void
-  onResetPasskey?: (user: UserRecord) => void
-  onClearLock?: (user: UserRecord) => void
-  onRevokeSessions?: (user: UserRecord) => void
-  remoteMode?: boolean
-}
+export type CreateUsersColumnsOptions = UsersTableActionOptions
 
 function resolveStatusBadgeTone(status: UserRecord["status"]) {
-  if (status === "active") {
-    return "success" as const
-  }
-
-  if (status === "pending") {
-    return "info" as const
-  }
-
+  if (status === "active") return "success" as const
+  if (status === "pending") return "info" as const
   if (status === "password_reset" || status === "passkey_reset") {
     return "warning" as const
   }
@@ -58,21 +41,8 @@ function resolveStatusBadgeTone(status: UserRecord["status"]) {
   return undefined
 }
 
-function createDetailsAction(
-  row: Row<UserRecord>,
-  onViewUserDetails: ((user: UserRecord) => void) | undefined
-): DataTableRowAction<UserRecord>[] {
-  if (!onViewUserDetails) {
-    return []
-  }
-
-  return [
-    {
-      id: "details",
-      label: usersCopy.actions.details,
-      onSelect: () => onViewUserDetails(row.original),
-    },
-  ]
+function CenteredHeader({ children }: { children: string }) {
+  return <div className="text-center">{children}</div>
 }
 
 export function createUsersColumns(
@@ -84,19 +54,32 @@ export function createUsersColumns(
       meta: { label: usersCopy.form.fields.name },
       header: usersCopy.form.fields.name,
       cell: ({ row }) => {
-        const online = isUserOnline(row.original.lastAccessAt)
+        const user = row.original
+        const recentAccessLabel = resolveRecentAccessLabel(user.lastAccessAt)
+        const content = (
+          <span className="inline-flex items-center gap-2">
+            <span
+              className={cn(
+                "inline-block size-2 shrink-0 rounded-full",
+                hasRecentUserAccess(user.lastAccessAt)
+                  ? "bg-success"
+                  : "bg-muted-foreground/40"
+              )}
+              aria-hidden="true"
+            />
+            <span>{user.name}</span>
+            <span className="sr-only">({recentAccessLabel})</span>
+          </span>
+        )
 
-        return (
-          <DataTableTextAction onClick={() => options.onViewUserDetails?.(row.original)}>
-            <span className="inline-flex items-center gap-2">
-              <span
-                className={`inline-block size-2 shrink-0 rounded-full ${online ? "bg-emerald-500" : "bg-muted-foreground/40"}`}
-                aria-hidden="true"
-                title={resolveOnlineLabel(row.original.lastAccessAt)}
-              />
-              {row.original.name}
-            </span>
+        return options.onViewUserDetails ? (
+          <DataTableTextAction
+            onClick={() => options.onViewUserDetails?.(user)}
+          >
+            {content}
           </DataTableTextAction>
+        ) : (
+          content
         )
       },
     },
@@ -110,14 +93,20 @@ export function createUsersColumns(
       accessorKey: "cpf",
       meta: { label: usersCopy.form.fields.cpf },
       header: usersCopy.form.fields.cpf,
-      cell: ({ row }) => <DataTableSensitiveValue value={row.original.cpf} kind="cpf" />,
+      cell: ({ row }) => (
+        <DataTableSensitiveValue value={row.original.cpf} kind="cpf" />
+      ),
     },
     {
       accessorKey: "phoneMasked",
       meta: { label: usersCopy.form.fields.phone },
       header: usersCopy.form.fields.phone,
       cell: ({ row }) => (
-        <DataTableSensitiveValue value={row.original.phoneMasked} kind="phone" />
+        <DataTableSensitiveValue
+          value={row.original.phoneMasked}
+          kind="phone"
+          fallback={usersCopy.details.emptyValue}
+        />
       ),
     },
     {
@@ -129,13 +118,17 @@ export function createUsersColumns(
     {
       accessorKey: "status",
       meta: { label: usersCopy.filters.status },
-      header: () => <div className="text-center font-medium">{usersCopy.filters.status}</div>,
+      header: () => (
+        <CenteredHeader>{usersCopy.filters.status}</CenteredHeader>
+      ),
       enableSorting: false,
       cell: ({ row }) => (
         <div className="flex justify-center">
           <Badge
             variant="secondary"
-            className={getBadgeToneClassName(resolveStatusBadgeTone(row.original.status))}
+            className={getBadgeToneClassName(
+              resolveStatusBadgeTone(row.original.status)
+            )}
           >
             {appUserStatusLabels[row.original.status]}
           </Badge>
@@ -151,7 +144,9 @@ export function createUsersColumns(
     {
       accessorKey: "passkeyStatus",
       meta: { label: usersCopy.details.passkeyLabel },
-      header: () => <div className="text-center font-medium">{usersCopy.details.passkeyLabel}</div>,
+      header: () => (
+        <CenteredHeader>{usersCopy.details.passkeyLabel}</CenteredHeader>
+      ),
       enableSorting: false,
       cell: ({ row }) => {
         const isActive = row.original.passkeyStatus === "active"
@@ -160,7 +155,9 @@ export function createUsersColumns(
           <div className="flex justify-center">
             <Badge
               variant="secondary"
-              className={getBadgeToneClassName(isActive ? "success" : undefined)}
+              className={getBadgeToneClassName(
+                isActive ? "success" : undefined
+              )}
             >
               {resolvePasskeyLabel(row.original.passkeyStatus)}
             </Badge>
@@ -175,103 +172,46 @@ export function createUsersColumns(
       cell: ({ row }) => (
         <DataTableStackedCell
           primary={resolveLastAccessLabel(row.original.lastAccessAt)}
-          secondary={row.original.authUserId ? undefined : usersCopy.details.localUser}
+          secondary={
+            row.original.authUserId
+              ? undefined
+              : usersCopy.details.localUser
+          }
         />
       ),
     },
     {
-      id: "onlineStatus",
-      accessorFn: (user) => (isUserOnline(user.lastAccessAt) ? "online" : "offline"),
-      meta: { label: usersCopy.filters.online },
-      header: () => <div className="text-center font-medium">{usersCopy.filters.online}</div>,
+      id: USER_RECENT_ACCESS_COLUMN_ID,
+      accessorFn: (user) =>
+        hasRecentUserAccess(user.lastAccessAt) ? "recent" : "not-recent",
+      meta: { label: usersCopy.filters.recentAccess },
+      header: () => (
+        <CenteredHeader>{usersCopy.filters.recentAccess}</CenteredHeader>
+      ),
       enableHiding: true,
       enableSorting: false,
       cell: ({ row }) => {
-        const online = row.getValue<string>("onlineStatus") === "online"
+        const hasRecentAccess =
+          row.getValue<string>(USER_RECENT_ACCESS_COLUMN_ID) === "recent"
 
         return (
           <div className="flex justify-center">
             <Badge
               variant="secondary"
-              className={getBadgeToneClassName(online ? "success" : "info")}
+              className={getBadgeToneClassName(
+                hasRecentAccess ? "success" : undefined
+              )}
             >
-              {online ? "Online" : "Offline"}
+              {hasRecentAccess
+                ? usersCopy.filters.recentAccessValue
+                : usersCopy.filters.noRecentAccessValue}
             </Badge>
           </div>
         )
       },
     },
-    createActionsColumn<UserRecord>((row) => {
-      const isActive = row.original.status === "active"
-      const isBlocked = row.original.status === "inactive"
-      const isCurrentUser = Boolean(
-        options.currentAuthUserId && row.original.authUserId === options.currentAuthUserId
-      )
-      const isOwnerUser = row.original.role === "owner"
-      const isProtectedTarget = isCurrentUser || (isOwnerUser && !options.canManageOwnerUser)
-      const isTemporarilyLocked = row.original.lockedUntil
-        ? new Date(row.original.lockedUntil).getTime() > Date.now()
-        : false
-
-      return [
-        ...createDetailsAction(row, options.onViewUserDetails),
-        ...(options.canEditUser && options.onEditUser && !(isOwnerUser && !options.canManageOwnerUser)
-          ? [
-            {
-              id: "edit" as const,
-              label: usersCopy.actions.edit,
-              onSelect: () => options.onEditUser?.(row.original),
-            },
-          ]
-          : []),
-        ...(options.canResetPassword && options.onResetAccess && !isProtectedTarget
-          ? [
-            {
-              id: "reset-access" as const,
-              label: usersCopy.actions.resetPassword,
-              onSelect: () => options.onResetAccess?.(row.original),
-            },
-          ]
-          : []),
-        ...(options.remoteMode && options.canResetPasskey && options.onResetPasskey && !isProtectedTarget && row.original.passkeyStatus === "active"
-          ? [
-            {
-              id: "reset-passkey" as const,
-              label: usersCopy.actions.resetPasskey,
-              onSelect: () => options.onResetPasskey?.(row.original),
-            },
-          ]
-          : []),
-        ...(options.remoteMode && (isBlocked || isTemporarilyLocked) && options.canClearLock && options.onClearLock && !(isOwnerUser && !options.canManageOwnerUser)
-          ? [
-            {
-              id: "clear-lock" as const,
-              label: isBlocked ? usersCopy.actions.unblockUser : usersCopy.actions.clearLock,
-              onSelect: () => options.onClearLock?.(row.original),
-            },
-          ]
-          : []),
-        ...(options.remoteMode && options.canRevokeSessions && options.onRevokeSessions && !isProtectedTarget
-          ? [
-            {
-              id: "revoke-sessions" as const,
-              label: usersCopy.actions.revokeSessions,
-              onSelect: () => options.onRevokeSessions?.(row.original),
-            },
-          ]
-          : []),
-        ...(isActive && options.canBlockUser && options.onBlockUser && !isProtectedTarget
-          ? [
-            {
-              id: "block" as const,
-              label: usersCopy.actions.blockUser,
-              variant: "destructive" as const,
-              separatorBefore: true,
-              onSelect: () => options.onBlockUser?.(row.original),
-            },
-          ]
-          : []),
-      ]
-    }),
+    createActionsColumn<UserRecord>((row) =>
+      createUserRowActions(row.original, options)
+    ),
   ]
 }

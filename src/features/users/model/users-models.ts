@@ -1,7 +1,7 @@
 import { type AppDetailsSheetItem } from "@/components/shared/app-details-sheet"
 import { formatDateTime } from "@/lib"
 
-import { usersCopy } from "../constants"
+import { usersCopy } from "../constants/users-copy"
 import {
   appUserStatusLabels,
   isGlobalRole,
@@ -11,11 +11,6 @@ import {
   type UserRecord,
 } from "./users-types"
 
-interface NormalizedUnitScope {
-  unitId: string | null
-  unitName: string | null
-}
-
 export function resolvePasskeyLabel(value: UserRecord["passkeyStatus"]) {
   return value === "active"
     ? usersCopy.details.passkeyActive
@@ -23,7 +18,7 @@ export function resolvePasskeyLabel(value: UserRecord["passkeyStatus"]) {
 }
 
 export function resolveUnitLabel(unitName: string | null) {
-  return unitName || usersCopy.details.globalUnit
+  return unitName?.trim() || usersCopy.details.globalUnit
 }
 
 export function resolveLastAccessLabel(lastAccessAt: string | null) {
@@ -32,7 +27,7 @@ export function resolveLastAccessLabel(lastAccessAt: string | null) {
 
 const ONLINE_THRESHOLD_MS = 15 * 60 * 1000
 
-export function isUserOnline(lastAccessAt: string | null) {
+export function hasRecentUserAccess(lastAccessAt: string | null) {
   if (!lastAccessAt) {
     return false
   }
@@ -46,33 +41,22 @@ export function isUserOnline(lastAccessAt: string | null) {
   return Date.now() - lastAccess <= ONLINE_THRESHOLD_MS
 }
 
-export function resolveOnlineLabel(lastAccessAt: string | null) {
-  return isUserOnline(lastAccessAt) ? "Online" : "Offline"
+export function resolveRecentAccessLabel(lastAccessAt: string | null) {
+  return hasRecentUserAccess(lastAccessAt)
+    ? usersCopy.filters.recentAccessValue
+    : usersCopy.filters.noRecentAccessValue
 }
 
 export function resolveEmailLabel(email: string | null) {
   return email || usersCopy.details.noEmail
 }
 
-export function createNextUserId(users: readonly UserRecord[]) {
-  const nextNumber =
-    Math.max(
-      0,
-      ...users.map((user) => Number(user.id.replace("USR-", "")) || 0)
-    ) + 1
-
-  return `USR-${String(nextNumber).padStart(3, "0")}`
-}
-
-export function normalizeUnitScope(
-  input: Pick<CreateUserInput, "role" | "unitId" | "unitName">,
+export function resolveCanonicalUnitId(
+  input: Pick<CreateUserInput, "role" | "unitId">,
   unitsCatalog: readonly UnitCatalogItem[]
-): NormalizedUnitScope {
+): string | null {
   if (isGlobalRole(input.role)) {
-    return {
-      unitId: null,
-      unitName: null,
-    }
+    return null
   }
 
   const normalizedUnitId = input.unitId?.trim() || ""
@@ -83,10 +67,11 @@ export function normalizeUnitScope(
 
   const unitMatch = unitsCatalog.find((unit) => unit.id === normalizedUnitId)
 
-  return {
-    unitId: normalizedUnitId,
-    unitName: unitMatch?.name ?? (input.unitName?.trim() || null),
+  if (!unitMatch) {
+    throw new Error(usersCopy.errors.invalidUnit)
   }
+
+  return unitMatch.id
 }
 
 export function interpolateUserCopy(template: string, values: Record<string, string>) {
@@ -100,12 +85,24 @@ export function getUserDetailItems(user: UserRecord): readonly AppDetailsSheetIt
     { label: usersCopy.form.fields.name, value: user.name },
     { label: usersCopy.form.fields.cpf, value: user.cpf },
     { label: usersCopy.form.fields.email, value: resolveEmailLabel(user.email) },
-    { label: usersCopy.form.fields.phone, value: user.phoneMasked || "—" },
+    {
+      label: usersCopy.form.fields.phone,
+      value: user.phoneMasked || usersCopy.details.emptyValue,
+    },
     { label: usersCopy.form.roleLabel, value: userRoleLabels[user.role] },
     { label: usersCopy.filters.status, value: appUserStatusLabels[user.status] },
     { label: usersCopy.form.unitLabel, value: resolveUnitLabel(user.unitName) },
-    { label: usersCopy.details.passkeyLabel, value: resolvePasskeyLabel(user.passkeyStatus) },
-    { label: usersCopy.details.lastAccessLabel, value: resolveLastAccessLabel(user.lastAccessAt) },
-    { label: usersCopy.filters.online, value: resolveOnlineLabel(user.lastAccessAt) },
+    {
+      label: usersCopy.details.passkeyLabel,
+      value: resolvePasskeyLabel(user.passkeyStatus),
+    },
+    {
+      label: usersCopy.details.lastAccessLabel,
+      value: resolveLastAccessLabel(user.lastAccessAt),
+    },
+    {
+      label: usersCopy.filters.recentAccess,
+      value: resolveRecentAccessLabel(user.lastAccessAt),
+    },
   ]
 }

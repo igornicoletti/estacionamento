@@ -4,6 +4,7 @@ import {
   describe,
   expect,
   it,
+  vi,
 } from "vitest"
 
 import {
@@ -13,12 +14,32 @@ import {
 import {
   resetUsersGateway,
   setUsersGateway,
-} from "@/features/users/services/users-gateway"
+} from "@/features/users/gateways/users-gateway"
 import {
+  blockUser,
   createUser,
   listUsers,
+  loadUsersWorkspace,
 } from "@/features/users/services/users-service"
+import type { UserRecord } from "@/features/users"
 import { createMemoryUsersGateway } from "../../helpers/users-memory-gateway"
+
+const existingUser: UserRecord = {
+  authUserId: "auth-existing-user",
+  cpf: "529.982.247-25",
+  email: "existing.user@example.com",
+  id: "USR-001",
+  lastAccessAt: null,
+  lockedUntil: null,
+  name: "Existing User",
+  passkeyCount: 0,
+  passkeyStatus: "inactive",
+  phoneMasked: "(11) 98888-7777",
+  role: "operator",
+  status: "active",
+  unitId: "2",
+  unitName: "Monte Carlo Norte",
+}
 
 describe("users service", () => {
   beforeEach(() => {
@@ -86,5 +107,73 @@ describe("users service", () => {
         unitId: "2",
       })
     ).rejects.toThrow("A nova senha deve ter pelo menos 12 caracteres.")
+  })
+
+  it("validates and rejects malformed input before invoking the gateway", async () => {
+    const gateway = createMemoryUsersGateway()
+    const createSpy = vi.spyOn(gateway, "create")
+    setUsersGateway(gateway)
+
+    await expect(
+      createUser({
+        cpf: "52998224725",
+        email: "valid.user@example.com",
+        firstAccessPassword: "SenhaForte123!",
+        name: "X",
+        phone: "11987654321",
+        role: "owner",
+      })
+    ).rejects.toThrow("Informe um nome com pelo menos 3 caracteres.")
+
+    expect(createSpy).not.toHaveBeenCalled()
+  })
+
+  it("rejects a unit scope that is not present in the canonical catalog", async () => {
+    const gateway = createMemoryUsersGateway()
+    const createSpy = vi.spyOn(gateway, "create")
+    setUsersGateway(gateway)
+
+    await expect(
+      createUser({
+        cpf: "52998224725",
+        email: "valid.user@example.com",
+        firstAccessPassword: "SenhaForte123!",
+        name: "Valid User",
+        phone: "11987654321",
+        role: "operator",
+        unitId: "999",
+      })
+    ).rejects.toThrow("Selecione uma unidade válida.")
+
+    expect(createSpy).not.toHaveBeenCalled()
+  })
+
+  it("uses a supplied row identity without an extra identity lookup", async () => {
+    const gateway = createMemoryUsersGateway([existingUser])
+    const findIdentitySpy = vi.spyOn(gateway, "findIdentity")
+    const blockSpy = vi.spyOn(gateway, "block")
+    setUsersGateway(gateway)
+
+    const blockedUser = await blockUser(existingUser)
+
+    expect(findIdentitySpy).not.toHaveBeenCalled()
+    expect(blockSpy).toHaveBeenCalledWith(existingUser.authUserId)
+    expect(blockedUser.status).toBe("inactive")
+  })
+
+  it("keeps user data available when the optional unit catalog fails", async () => {
+    configureUnitsGateway({
+      listUnitsPayload() {
+        return Promise.reject(new Error("unit backend unavailable"))
+      },
+    })
+    setUsersGateway(createMemoryUsersGateway([existingUser]))
+
+    const snapshot = await loadUsersWorkspace()
+
+    expect(snapshot.users).toHaveLength(1)
+    expect(snapshot.users[0]?.unitName).toBe(existingUser.unitName)
+    expect(snapshot.unitCatalog).toEqual([])
+    expect(snapshot.unitCatalogError).toBeInstanceOf(Error)
   })
 })

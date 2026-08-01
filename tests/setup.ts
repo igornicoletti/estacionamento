@@ -23,8 +23,8 @@ import {
 import {
   resetUsersGateway,
   setUsersGateway,
-} from "@/features/users/services/users-gateway"
-import { type UserRecord } from "@/features/users/model"
+} from "@/features/users/gateways/users-gateway"
+import { type UserRecord } from "@/features/users"
 
 import { createMemoryNotificationsGateway } from "./helpers/notifications-memory-gateway"
 import { createMemoryClientsGateway } from "./helpers/clients-memory-gateway"

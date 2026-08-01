@@ -4,8 +4,8 @@ import {
   type UpdateUserCommand,
   type UserMutationResult,
   type UsersGateway,
-} from "@/features/users/services/users-gateway"
-import { type UserRecord } from "@/features/users/model"
+} from "@/features/users/gateways/users-gateway-contracts"
+import { type UserRecord } from "@/features/users"
 
 function cloneUsers(users: readonly UserRecord[]) {
   return users.map((user) => ({ ...user }))
@@ -80,6 +80,15 @@ export function createMemoryUsersGateway(
 
       users = [user, ...users]
       return Promise.resolve(result(user))
+    },
+    findIdentity(userId) {
+      const user = users.find((item) => item.id === userId)
+
+      return Promise.resolve(
+        user?.authUserId
+          ? { authUserId: user.authUserId, id: user.id }
+          : null
+      )
     },
     list() {
       return Promise.resolve(cloneUsers(users))

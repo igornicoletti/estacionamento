@@ -84,7 +84,9 @@ describe("UsersRoute", () => {
     })
     await flushReactUpdates()
 
-    fireEvent.click(screen.getByRole("button", { name: "Usuario Teste" }))
+    fireEvent.click(
+      screen.getByRole("button", { name: /Usuario Teste/ })
+    )
 
     expect(screen.getByRole("heading", { name: "Detalhes do usuário" })).toBeInTheDocument()
     expect(screen.getAllByText("Usuario Teste").length).toBeGreaterThan(0)
@@ -116,14 +118,18 @@ describe("UsersRoute", () => {
       expect(screen.getByRole("heading", { name: "Novo usuário" })).toBeInTheDocument()
     })
 
-    const form = document.getElementById("users-dialog-form")
-    expect(form).toBeTruthy()
+    const form = screen.getByRole("form", { name: "Novo usuário" })
 
-    fireEvent.submit(form as HTMLFormElement)
+    fireEvent.submit(form)
 
     await waitFor(() => {
       expect(screen.getByText("Informe o nome do usuário.")).toBeInTheDocument()
     })
+    expect(screen.getByLabelText(/^Nome/)).toHaveFocus()
+    expect(screen.getByLabelText(/^Nome/)).toHaveAttribute(
+      "aria-describedby",
+      "user-name-error"
+    )
   })
 
   it("cadastra um usuário com perfil global pelo formulário", async () => {
@@ -143,23 +149,23 @@ describe("UsersRoute", () => {
       expect(screen.getByRole("heading", { name: "Novo usuário" })).toBeInTheDocument()
     })
 
-    fireEvent.change(screen.getByLabelText("Nome*"), {
+    fireEvent.change(screen.getByLabelText(/^Nome/), {
       target: { value: "Nova Administradora" },
     })
-    fireEvent.change(screen.getByLabelText("CPF*"), {
+    fireEvent.change(screen.getByLabelText(/^CPF/), {
       target: { value: "52998224725" },
     })
     fireEvent.change(screen.getByLabelText("E-mail"), {
       target: { value: "nova.admin@example.com" },
     })
-    fireEvent.change(screen.getByLabelText("Telefone*"), {
+    fireEvent.change(screen.getByLabelText(/^Telefone/), {
       target: { value: "11988887777" },
     })
     fireEvent.keyDown(screen.getByRole("combobox", { name: "Perfil" }), {
       key: "ArrowDown",
     })
     fireEvent.click(await screen.findByRole("option", { name: "Administrador" }))
-    fireEvent.change(screen.getByLabelText("Senha de primeiro acesso*"), {
+    fireEvent.change(screen.getByLabelText(/^Senha de primeiro acesso/), {
       target: { value: "SenhaForte123!" },
     })
 
