@@ -32,7 +32,7 @@ export function AppTabs({
             key={item.value}
             value={item.value}
             disabled={item.disabled}
-            className="h-8 min-w-28 flex-1 rounded-md px-3 text-sm data-active:bg-background data-[state=active]:bg-background data-active:text-foreground data-[state=active]:text-foreground data-active:shadow-sm data-[state=active]:shadow-sm"
+            className="h-8 min-w-28 flex-1 rounded-md px-3 text-sm data-[state=inactive]:text-foreground/70 data-active:bg-background data-[state=active]:bg-background data-active:text-foreground data-[state=active]:text-foreground data-active:shadow-sm data-[state=active]:shadow-sm"
           >
             {item.label}
           </TabsTrigger>

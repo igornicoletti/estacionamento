@@ -1,9 +1,12 @@
-import { sanitizeAuditEventsPayload } from "../model"
-import { type AuditEvent } from "../model"
-import { getAuditGateway } from "./audit-gateway"
+import { getAuditGateway } from "../gateways/audit-gateway"
+import { sortAuditEvents, toAuditEvent } from "../model/audit-models"
+import { type AuditSnapshot } from "../model/audit-types"
 
-export async function listAuditEvents(): Promise<AuditEvent[]> {
-  const payload = await getAuditGateway().listEvents()
+export async function listAuditEvents(): Promise<AuditSnapshot> {
+  const result = await getAuditGateway().listEvents()
 
-  return sanitizeAuditEventsPayload(payload)
+  return {
+    events: sortAuditEvents(result.rows.map(toAuditEvent)),
+    isTruncated: result.isTruncated,
+  }
 }

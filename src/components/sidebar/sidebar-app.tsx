@@ -8,6 +8,7 @@ import {
 } from "@/components/ui/sidebar"
 
 import { SidebarBrand } from "./sidebar-brand"
+import { sidebarCopy } from "./sidebar-copy"
 import { SidebarNavigation } from "./sidebar-navigation"
 import { SidebarProfile } from "./sidebar-profile"
 
@@ -18,7 +19,9 @@ interface AppSidebarProps {
 export function AppSidebar({ homeHref }: AppSidebarProps) {
   return (
     <Sidebar
+      aria-label={sidebarCopy.navigation.landmark}
       collapsible="icon"
+      role="navigation"
       variant="sidebar"
       className="group-data-[side=left]:border-r-0 group-data-[side=right]:border-l-0"
     >

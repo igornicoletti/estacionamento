@@ -118,4 +118,191 @@ begin
 end;
 $$;
 
+do $$
+declare
+  public_signature text;
+  private_signature text;
+  public_function oid;
+  private_function oid;
+begin
+  foreach public_signature in array array[
+    'public.touch_current_auth_session(boolean)',
+    'public.revoke_current_auth_session(text)',
+    'public.get_current_auth_profile()'
+  ] loop
+    public_function := to_regprocedure(public_signature);
+
+    if public_function is null then
+      raise exception 'Wrapper público de sessão ausente: %', public_signature;
+    end if;
+
+    if (select prosecdef from pg_proc where oid = public_function) then
+      raise exception 'Wrapper público deve usar security invoker: %', public_signature;
+    end if;
+
+    if has_function_privilege('public', public_function, 'EXECUTE')
+      or has_function_privilege('anon', public_function, 'EXECUTE')
+      or not has_function_privilege('authenticated', public_function, 'EXECUTE') then
+      raise exception 'Wrapper público possui grants inválidos: %', public_signature;
+    end if;
+  end loop;
+
+  foreach private_signature in array array[
+    'private.touch_current_auth_session(boolean)',
+    'private.revoke_current_auth_session(text)',
+    'private.get_current_auth_profile()'
+  ] loop
+    private_function := to_regprocedure(private_signature);
+
+    if private_function is null then
+      raise exception 'Implementação privada de sessão ausente: %', private_signature;
+    end if;
+
+    if not (select prosecdef from pg_proc where oid = private_function) then
+      raise exception 'Implementação privada deve usar security definer: %', private_signature;
+    end if;
+
+    if has_function_privilege('public', private_function, 'EXECUTE')
+      or has_function_privilege('anon', private_function, 'EXECUTE')
+      or not has_function_privilege('authenticated', private_function, 'EXECUTE')
+      or not has_function_privilege('service_role', private_function, 'EXECUTE') then
+      raise exception 'Implementação privada possui grants inválidos: %', private_signature;
+    end if;
+  end loop;
+
+  if position(
+    'private.is_current_app_session_active()'
+    in (select prosrc from pg_proc where oid = to_regprocedure('private.get_current_auth_profile()'))
+  ) = 0 then
+    raise exception 'Perfil autenticado deve validar a sessão ativa dentro da implementação privada.';
+  end if;
+end;
+$$;
+
+do $$
+begin
+  if to_regclass('public.audit_events_occurred_id_idx') is null then
+    raise exception 'Índice determinístico da auditoria está ausente.';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_policies
+    where schemaname = 'public'
+      and tablename = 'audit_events'
+      and policyname = 'active privileged roles can read audit events'
+      and qual like '%SELECT private.has_current_user_permission%'
+  ) then
+    raise exception 'Policy de auditoria deve avaliar a permissão uma vez por statement.';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  function_oid oid;
+begin
+  function_oid := to_regprocedure('private.configure_units_sync_cron(text,text,text,text)');
+
+  if function_oid is null
+    or not (select prosecdef from pg_proc where oid = function_oid)
+    or not has_function_privilege('service_role', function_oid, 'EXECUTE')
+    or has_function_privilege('public', function_oid, 'EXECUTE')
+    or has_function_privilege('anon', function_oid, 'EXECUTE')
+    or has_function_privilege('authenticated', function_oid, 'EXECUTE')
+    or position('private.enqueue_units_sync' in (select prosrc from pg_proc where oid = function_oid)) = 0 then
+    raise exception 'Configuração de cron de unidades possui contexto, grants ou helper inválidos.';
+  end if;
+
+  function_oid := to_regprocedure('private.configure_clients_sync_cron(text,text,text,text)');
+
+  if function_oid is null
+    or not (select prosecdef from pg_proc where oid = function_oid)
+    or not has_function_privilege('service_role', function_oid, 'EXECUTE')
+    or has_function_privilege('public', function_oid, 'EXECUTE')
+    or has_function_privilege('anon', function_oid, 'EXECUTE')
+    or has_function_privilege('authenticated', function_oid, 'EXECUTE')
+    or position('private.enqueue_clients_sync_phase' in (select prosrc from pg_proc where oid = function_oid)) = 0 then
+    raise exception 'Configuração de cron de clientes possui contexto, grants ou fases inválidos.';
+  end if;
+
+  function_oid := to_regprocedure('private.enqueue_clients_sync_phase(text,text)');
+
+  if function_oid is null
+    or not (select prosecdef from pg_proc where oid = function_oid)
+    or has_function_privilege('public', function_oid, 'EXECUTE')
+    or has_function_privilege('anon', function_oid, 'EXECUTE')
+    or has_function_privilege('authenticated', function_oid, 'EXECUTE')
+    or has_function_privilege('service_role', function_oid, 'EXECUTE')
+    or position('vault.decrypted_secrets' in (select prosrc from pg_proc where oid = function_oid)) = 0 then
+    raise exception 'Enfileirador interno de clientes possui contexto, grants ou Vault inválidos.';
+  end if;
+
+  if position('timeout_milliseconds := 145000' in (select prosrc from pg_proc where oid = function_oid)) = 0 then
+    raise exception 'Enfileirador de clientes deve declarar timeout compatível com o Edge Runtime.';
+  end if;
+
+  function_oid := to_regprocedure('private.enqueue_pending_clients_vehicle_partition()');
+
+  if function_oid is null
+    or not (select prosecdef from pg_proc where oid = function_oid)
+    or has_function_privilege('public', function_oid, 'EXECUTE')
+    or has_function_privilege('anon', function_oid, 'EXECUTE')
+    or has_function_privilege('authenticated', function_oid, 'EXECUTE')
+    or has_function_privilege('service_role', function_oid, 'EXECUTE')
+    or position('vault.decrypted_secrets' in (select prosrc from pg_proc where oid = function_oid)) = 0
+    or position('timeout_milliseconds := 145000' in (select prosrc from pg_proc where oid = function_oid)) = 0
+    or position('last_cursor' in (select prosrc from pg_proc where oid = function_oid)) = 0 then
+    raise exception 'Retomador de veículos possui contexto, grants, Vault, cursor ou timeout inválidos.';
+  end if;
+
+  function_oid := to_regprocedure('private.enqueue_units_sync(text)');
+
+  if function_oid is null
+    or not (select prosecdef from pg_proc where oid = function_oid)
+    or has_function_privilege('public', function_oid, 'EXECUTE')
+    or has_function_privilege('anon', function_oid, 'EXECUTE')
+    or has_function_privilege('authenticated', function_oid, 'EXECUTE')
+    or has_function_privilege('service_role', function_oid, 'EXECUTE')
+    or position('vault.decrypted_secrets' in (select prosrc from pg_proc where oid = function_oid)) = 0
+    or position('timeout_milliseconds := 30000' in (select prosrc from pg_proc where oid = function_oid)) = 0 then
+    raise exception 'Enfileirador interno de unidades possui contexto, grants, Vault ou timeout inválidos.';
+  end if;
+
+  function_oid := to_regprocedure('private.upsert_sync_cron_secret(text,text,text)');
+
+  if function_oid is null
+    or has_function_privilege('public', function_oid, 'EXECUTE')
+    or has_function_privilege('anon', function_oid, 'EXECUTE')
+    or has_function_privilege('authenticated', function_oid, 'EXECUTE')
+    or has_function_privilege('service_role', function_oid, 'EXECUTE') then
+    raise exception 'Helper interno do Vault não deve ser chamável por roles da API.';
+  end if;
+
+  if has_table_privilege('anon', 'vault.decrypted_secrets', 'SELECT')
+    or has_table_privilege('authenticated', 'vault.decrypted_secrets', 'SELECT') then
+    raise exception 'Segredos descriptografados do Vault não podem ser lidos por clientes.';
+  end if;
+
+  if exists (
+    select 1
+    from cron.job
+    where jobname like 'unit-sync-%'
+      and command not like '%private.enqueue_units_sync%'
+  ) then
+    raise exception 'Jobs de unidades devem chamar somente o enfileirador interno.';
+  end if;
+
+  if exists (
+    select 1
+    from cron.job
+    where jobname like 'client-sync-%'
+      and command not like '%private.enqueue_clients_sync_phase%'
+      and command not like '%private.enqueue_pending_clients_vehicle_partition%'
+  ) then
+    raise exception 'Jobs de clientes devem chamar somente os enfileiradores internos.';
+  end if;
+end;
+$$;
+
 select 'security contracts passed' as result;

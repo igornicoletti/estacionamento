@@ -9,8 +9,21 @@ import {
   resolveErpBaseUrl,
   writeAuditEvent,
 } from "../_shared/index.ts"
+import { deduplicateVehicles } from "./deduplicate-vehicles.ts"
+import { buildSourceHash } from "./source-hash.ts"
+import {
+  isVehicleSyncCursorExpired,
+  parseVehicleSyncCursor,
+  serializeVehicleSyncCursor,
+  type VehicleSyncCursor,
+} from "./sync-cursor.ts"
+import {
+  DEFAULT_VEHICLE_PARTITION_COUNT,
+  resolveVehiclePartitionIndex,
+} from "./vehicle-partition.ts"
 
 type SyncMode = "full" | "incremental"
+type SyncScope = "clients" | "vehicles"
 type SyncTrigger = "automatic" | "manual"
 type SyncStatus = "success" | "warning" | "failed"
 
@@ -23,8 +36,9 @@ type UpsertableTable = {
 
 const clientsSyncLockResource = "clients-sync"
 const clientsSyncLockTtlSeconds = 300
-const syncUpsertChunkSize = 1000
+const syncUpsertChunkSize = 500
 const maxHashDiffIds = 5000
+const maxFailureDetails = 100
 const erpDefaultTimeoutMs = 30_000
 const erpMinTimeoutMs = 5_000
 const erpMaxTimeoutMs = 180_000
@@ -62,6 +76,11 @@ interface NormalizedVehicleRow {
   source_hash: string
   source_updated_at: string | null
   synced_at: string
+}
+
+interface NormalizedClientResult {
+  row: NormalizedClientRow | null
+  inactive: boolean
 }
 
 interface SyncStateRow {
@@ -140,13 +159,21 @@ function resolveSyncErrorResponse(message: string) {
   }
 }
 
-async function tryAcquireSyncLock(mode: SyncMode, trigger: SyncTrigger, requestedBy: string | null) {
+async function tryAcquireSyncLock(
+  mode: SyncMode,
+  scope: SyncScope,
+  partitionIndex: number | null,
+  trigger: SyncTrigger,
+  requestedBy: string | null
+) {
   const supabase = createAdminClient()
   const { data, error } = await supabase.rpc("acquire_sync_lock", {
     p_resource: clientsSyncLockResource,
     p_ttl_seconds: clientsSyncLockTtlSeconds,
     p_metadata: {
       mode,
+      partitionIndex,
+      scope,
       trigger,
       requestedBy,
     },
@@ -219,14 +246,14 @@ function resolveYesNoFlag(value: string) {
   return value.trim().toUpperCase() === "S"
 }
 
-function resolveActive120d(indPessoaAtiva: string, lastPurchaseDate: string | null) {
+function resolveActive120d(
+  indPessoaAtiva: string,
+  lastPurchaseDate: string | null,
+  activeThresholdMs: number
+) {
   if (!resolveYesNoFlag(indPessoaAtiva) || !lastPurchaseDate) {
     return false
   }
-
-  const threshold = new Date()
-  threshold.setHours(0, 0, 0, 0)
-  threshold.setDate(threshold.getDate() - 120)
 
   const purchaseDate = new Date(lastPurchaseDate)
 
@@ -236,11 +263,23 @@ function resolveActive120d(indPessoaAtiva: string, lastPurchaseDate: string | nu
 
   purchaseDate.setHours(0, 0, 0, 0)
 
-  return purchaseDate.getTime() >= threshold.getTime()
+  return purchaseDate.getTime() >= activeThresholdMs
 }
 
 function resolveSyncMode(value: unknown): SyncMode {
   return value === "full" ? "full" : "incremental"
+}
+
+function resolveSyncScope(value: unknown): SyncScope {
+  return value === "vehicles" ? "vehicles" : "clients"
+}
+
+function resolveRequestedPartition(value: unknown) {
+  if (typeof value !== "number" || !Number.isInteger(value) || value < 0) {
+    return null
+  }
+
+  return value
 }
 
 function resolveSyncTrigger(value: unknown): SyncTrigger {
@@ -265,25 +304,20 @@ function coercePayloadArray(raw: unknown, aliases: readonly string[]) {
   return [] as unknown[]
 }
 
-async function buildSourceHash(parts: readonly unknown[]) {
-  const raw = parts.map((part) => String(part ?? "")).join("|")
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(raw))
-
-  return Array.from(new Uint8Array(digest))
-    .map((byte) => byte.toString(16).padStart(2, "0"))
-    .join("")
-}
-
-async function normalizeClient(raw: unknown): Promise<NormalizedClientRow | null> {
+function normalizeClient(
+  raw: unknown,
+  syncedAt: string,
+  activeThresholdMs: number
+): NormalizedClientResult {
   if (!raw || typeof raw !== "object") {
-    return null
+    return { row: null, inactive: false }
   }
 
   const candidate = raw as Record<string, unknown>
   const codPessoa = normalizeNumber(candidate.cod_pessoa)
 
   if (codPessoa === null) {
-    return null
+    return { row: null, inactive: false }
   }
 
   const indPessoaAtiva = normalizeText(candidate.ind_pessoa_ativa).toUpperCase()
@@ -304,7 +338,11 @@ async function normalizeClient(raw: unknown): Promise<NormalizedClientRow | null
     bloqueio_financeiro: normalizeText(candidate.bloqueio_financeiro).toUpperCase(),
     qtd_veiculos: Math.max(0, normalizeNumber(candidate.qtd_veiculos) ?? 0),
     dta_ultima_compra: dtaUltimaCompra,
-    is_active_120d: resolveActive120d(indPessoaAtiva, dtaUltimaCompra),
+    is_active_120d: resolveActive120d(
+      indPessoaAtiva,
+      dtaUltimaCompra,
+      activeThresholdMs
+    ),
     source_updated_at:
       typeof candidate.updated_at === "string" && candidate.updated_at.trim().length > 0
         ? candidate.updated_at
@@ -312,33 +350,43 @@ async function normalizeClient(raw: unknown): Promise<NormalizedClientRow | null
   }
 
   if (!base.nom_pessoa) {
-    return null
+    return { row: null, inactive: false }
+  }
+
+  if (!base.is_active_120d) {
+    return { row: null, inactive: true }
   }
 
   return {
-    ...base,
-    source_hash: await buildSourceHash([
-      base.cod_pessoa,
-      base.nom_pessoa,
-      base.nom_fantasia,
-      base.num_cnpj_cpf,
-      base.des_email_1,
-      base.num_telefone_1,
-      base.nom_cidade,
-      base.sgl_estado,
-      base.dta_cadastro,
-      base.ind_pessoa_ativa,
-      base.bloqueio_financeiro,
-      base.qtd_veiculos,
-      base.dta_ultima_compra,
-      base.is_active_120d,
-      base.source_updated_at,
-    ]),
-    synced_at: new Date().toISOString(),
+    inactive: false,
+    row: {
+      ...base,
+      source_hash: buildSourceHash([
+        base.cod_pessoa,
+        base.nom_pessoa,
+        base.nom_fantasia,
+        base.num_cnpj_cpf,
+        base.des_email_1,
+        base.num_telefone_1,
+        base.nom_cidade,
+        base.sgl_estado,
+        base.dta_cadastro,
+        base.ind_pessoa_ativa,
+        base.bloqueio_financeiro,
+        base.qtd_veiculos,
+        base.dta_ultima_compra,
+        base.is_active_120d,
+        base.source_updated_at,
+      ]),
+      synced_at: syncedAt,
+    },
   }
 }
 
-async function normalizeVehicle(raw: unknown): Promise<Omit<NormalizedVehicleRow, "client_is_active_120d"> | null> {
+function normalizeVehicle(
+  raw: unknown,
+  syncedAt: string
+): Omit<NormalizedVehicleRow, "client_is_active_120d"> | null {
   if (!raw || typeof raw !== "object") {
     return null
   }
@@ -372,7 +420,7 @@ async function normalizeVehicle(raw: unknown): Promise<Omit<NormalizedVehicleRow
 
   return {
     ...base,
-    source_hash: await buildSourceHash([
+    source_hash: buildSourceHash([
       base.cod_veiculo,
       base.cod_pessoa,
       base.nom_pessoa,
@@ -383,7 +431,7 @@ async function normalizeVehicle(raw: unknown): Promise<Omit<NormalizedVehicleRow
       base.nom_motorista,
       base.source_updated_at,
     ]),
-    synced_at: new Date().toISOString(),
+    synced_at: syncedAt,
   }
 }
 
@@ -482,7 +530,12 @@ async function getSyncState() {
   return data as SyncStateRow
 }
 
-async function saveSyncState(mode: SyncMode, status: SyncStatus, startedAt: string) {
+async function saveSyncState(
+  mode: SyncMode,
+  status: SyncStatus,
+  checkpointAt: string,
+  clearCursor = false
+) {
   const supabase = createAdminClient()
   const success = status === "success" || status === "warning"
 
@@ -501,25 +554,50 @@ async function saveSyncState(mode: SyncMode, status: SyncStatus, startedAt: stri
     consecutive_failures: nextConsecutiveFailures,
   }
 
-  if (mode === "full") {
-    payload.last_full_sync_at = startedAt
-  } else {
-    payload.last_incremental_sync_at = startedAt
-  }
-
   if (success) {
-    payload.last_successful_sync_at = startedAt
+    if (mode === "full") {
+      payload.last_full_sync_at = checkpointAt
+    } else {
+      payload.last_incremental_sync_at = checkpointAt
+    }
+
+    payload.last_successful_sync_at = checkpointAt
   }
 
-  await supabase.from("client_sync_state").upsert(payload, { onConflict: "singleton_key" })
+  if (clearCursor) {
+    payload.last_cursor = null
+  }
+
+  const { error } = await supabase
+    .from("client_sync_state")
+    .upsert(payload, { onConflict: "singleton_key" })
+
+  if (error) {
+    throw new Error("client_sync_state_update_failed", { cause: error })
+  }
 
   return nextConsecutiveFailures
 }
 
-function computeUpsertCounters<T extends { source_hash: string }>(
+async function saveSyncCursor(cursor: VehicleSyncCursor) {
+  const supabase = createAdminClient()
+  const { error } = await supabase
+    .from("client_sync_state")
+    .update({ last_cursor: serializeVehicleSyncCursor(cursor) })
+    .eq("singleton_key", true)
+
+  if (error) {
+    throw new Error("client_sync_cursor_update_failed", { cause: error })
+  }
+}
+
+function computeUpsertCounters<
+  T extends { source_hash: string },
+  TKey extends number | string,
+>(
   incomingRows: readonly T[],
-  existingHashById: ReadonlyMap<number, string>,
-  resolveId: (row: T) => number
+  existingHashById: ReadonlyMap<TKey, string>,
+  resolveId: (row: T) => TKey
 ) {
   let created = 0
   let updated = 0
@@ -569,58 +647,139 @@ async function upsertRowsInChunks<T extends object>(
   }
 }
 
-async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string | null) {
+async function listActiveClientIds(
+  supabase: ReturnType<typeof createAdminClient>,
+  clientIds: readonly number[]
+) {
+  const activeIds = new Set<number>()
+  const uniqueClientIds = Array.from(new Set(clientIds))
+  const pageSize = 500
+
+  for (let offset = 0; offset < uniqueClientIds.length; offset += pageSize) {
+    const page = uniqueClientIds.slice(offset, offset + pageSize)
+    const { data, error } = await supabase
+      .from("erp_clients")
+      .select("cod_pessoa")
+      .in("cod_pessoa", page)
+      .eq("is_active_120d", true)
+
+    if (error) {
+      throw new Error("active_clients_lookup_failed", { cause: error })
+    }
+
+    for (const row of data ?? []) {
+      activeIds.add(Number(row.cod_pessoa))
+    }
+  }
+
+  return activeIds
+}
+
+async function runSync(
+  mode: SyncMode,
+  scope: SyncScope,
+  requestedPartition: number | null,
+  trigger: SyncTrigger,
+  requestedBy: string | null
+) {
   const supabase = createAdminClient()
-  const startedAt = new Date().toISOString()
+  const startedAtDate = new Date()
+  const startedAt = startedAtDate.toISOString()
+  const activeThreshold = new Date(startedAtDate)
+  activeThreshold.setHours(0, 0, 0, 0)
+  activeThreshold.setDate(activeThreshold.getDate() - 120)
   const state = await getSyncState()
+  const persistedCursor = parseVehicleSyncCursor(state.last_cursor)
+  let vehicleCursor: VehicleSyncCursor | null = null
+  let vehiclePartition = 0
 
-  const [rawClients, rawVehicles] = await Promise.all([
-    fetchErpClients(mode, state.last_successful_sync_at),
-    fetchErpVehicles(mode, state.last_successful_sync_at),
-  ])
+  if (
+    scope === "clients" &&
+    persistedCursor &&
+    !isVehicleSyncCursorExpired(persistedCursor, startedAtDate.getTime())
+  ) {
+    return {
+      runId: null,
+      status: "warning" as const,
+      message: "Já existe um ciclo de sincronização de veículos em andamento.",
+    }
+  }
 
-  const allNormalizedClients: NormalizedClientRow[] = []
-  const normalizedVehiclesBase: Array<Omit<NormalizedVehicleRow, "client_is_active_120d">> = []
+  if (scope === "vehicles") {
+    if (!persistedCursor || isVehicleSyncCursorExpired(persistedCursor, startedAtDate.getTime())) {
+      return {
+        runId: null,
+        status: "warning" as const,
+        message: "Não existe um ciclo de veículos ativo para continuar.",
+      }
+    }
+
+    if (persistedCursor.mode !== mode || requestedPartition === null) {
+      return {
+        runId: null,
+        status: "warning" as const,
+        message: "A fase solicitada não corresponde ao ciclo de sincronização ativo.",
+      }
+    }
+
+    if (requestedPartition < persistedCursor.nextPartition) {
+      return {
+        runId: null,
+        status: "warning" as const,
+        message: "Esta partição de veículos já foi processada.",
+      }
+    }
+
+    if (requestedPartition > persistedCursor.nextPartition) {
+      return {
+        runId: null,
+        status: "warning" as const,
+        message: "A partição anterior de veículos ainda não foi concluída.",
+      }
+    }
+
+    vehicleCursor = persistedCursor
+    vehiclePartition = requestedPartition
+    trigger = persistedCursor.trigger
+    requestedBy = persistedCursor.requestedBy
+  }
+
   const failedItems: Array<Record<string, unknown>> = []
+  let failedClientCount = 0
+  let failedVehicleCount = 0
   let skippedInactiveClients = 0
+  let skippedInactiveVehicles = 0
+
+  const recordFailure = (entity: "client" | "vehicle", index: number) => {
+    if (failedItems.length < maxFailureDetails) {
+      failedItems.push({ entity, index, reason: "invalid_payload" })
+    }
+  }
+
+  const rawClients = scope === "vehicles"
+    ? []
+    : await fetchErpClients(mode, state.last_successful_sync_at)
+  const clientsReceived = rawClients.length
+  const normalizedClients: NormalizedClientRow[] = []
 
   for (const [index, item] of rawClients.entries()) {
-    const normalized = await normalizeClient(item)
+    const normalized = normalizeClient(item, startedAt, activeThreshold.getTime())
 
-    if (!normalized) {
-      failedItems.push({ entity: "client", index, reason: "invalid_payload" })
+    if (normalized.inactive) {
+      skippedInactiveClients += 1
       continue
     }
 
-    allNormalizedClients.push(normalized)
-  }
-
-  // Only sync clients that are active with a purchase within the last 120 days.
-  // Inactive/old clients are skipped to reduce storage and keep the dataset
-  // relevant for operations. Vehicles are also filtered downstream to match.
-  const normalizedClients = allNormalizedClients.filter((client) => {
-    if (client.is_active_120d) {
-      return true
-    }
-
-    skippedInactiveClients += 1
-
-    return false
-  })
-
-  // Build a set of active client IDs for vehicle filtering
-  const activeClientCodPessoas = new Set(normalizedClients.map((c) => c.cod_pessoa))
-
-  for (const [index, item] of rawVehicles.entries()) {
-    const normalized = await normalizeVehicle(item)
-
-    if (!normalized) {
-      failedItems.push({ entity: "vehicle", index, reason: "invalid_payload" })
+    if (!normalized.row) {
+      failedClientCount += 1
+      recordFailure("client", index)
       continue
     }
 
-    normalizedVehiclesBase.push(normalized)
+    normalizedClients.push(normalized.row)
   }
+
+  rawClients.length = 0
 
   const clientIds = normalizedClients.map((row) => row.cod_pessoa)
   const shouldSkipClientHashDiff = clientIds.length > maxHashDiffIds
@@ -655,53 +814,75 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
     }
   }
 
-  // Only sync vehicles belonging to active 120d clients.
-  // Uses the freshly synced client set first, then falls back to DB lookup
-  // for vehicles whose clients arrived in a prior sync.
-  const vehicleClientIds = Array.from(new Set(normalizedVehiclesBase.map((row) => row.cod_pessoa)))
-  const missingFromBatch = vehicleClientIds.filter((id) => !activeClientCodPessoas.has(id))
+  const syncedClientCount = normalizedClients.length
+  normalizedClients.length = 0
 
-  const { data: vehicleClientRows } = missingFromBatch.length
-    ? await supabase
-      .from("erp_clients")
-      .select("cod_pessoa, is_active_120d")
-      .in("cod_pessoa", missingFromBatch)
-      .eq("is_active_120d", true)
-    : { data: [] as Array<{ cod_pessoa: number; is_active_120d: boolean }> }
+  const rawVehicles = scope === "clients"
+    ? []
+    : await fetchErpVehicles(mode, vehicleCursor?.checkpoint ?? state.last_successful_sync_at)
+  const vehiclesSourceTotal = rawVehicles.length
+  let vehiclesReceived = 0
+  const collectedVehicles: NormalizedVehicleRow[] = []
+  const partitionCount = vehicleCursor?.partitionCount ?? DEFAULT_VEHICLE_PARTITION_COUNT
 
-  // Merge: clients synced in this batch + active clients already in DB
-  const allActiveClientIds = new Set(activeClientCodPessoas)
+  for (const [index, item] of rawVehicles.entries()) {
+    const candidate = item && typeof item === "object"
+      ? item as Record<string, unknown>
+      : null
+    const plate = candidate ? normalizeText(candidate.num_placa) : ""
 
-  for (const row of vehicleClientRows ?? []) {
-    allActiveClientIds.add(Number(row.cod_pessoa))
-  }
-
-  const normalizedVehicles: NormalizedVehicleRow[] = []
-  let skippedInactiveVehicles = 0
-
-  for (const vehicle of normalizedVehiclesBase) {
-    if (!allActiveClientIds.has(vehicle.cod_pessoa)) {
-      skippedInactiveVehicles += 1
+    if (resolveVehiclePartitionIndex(plate, partitionCount) !== vehiclePartition) {
       continue
     }
 
-    normalizedVehicles.push({
+    vehiclesReceived += 1
+    const vehicle = normalizeVehicle(item, startedAt)
+
+    if (!vehicle) {
+      failedVehicleCount += 1
+      recordFailure("vehicle", index)
+      continue
+    }
+
+    collectedVehicles.push({
       ...vehicle,
       client_is_active_120d: true,
     })
   }
 
-  const vehicleIds = normalizedVehicles.map((row) => row.cod_veiculo)
-  const shouldSkipVehicleHashDiff = vehicleIds.length > maxHashDiffIds
-  const { data: existingVehicles } = !shouldSkipVehicleHashDiff && vehicleIds.length
+  rawVehicles.length = 0
+
+  const {
+    rows: uniqueVehicles,
+    collapsed: collapsedDuplicateVehicles,
+  } = deduplicateVehicles(collectedVehicles)
+  collectedVehicles.length = 0
+
+  const allActiveClientIds = await listActiveClientIds(
+    supabase,
+    uniqueVehicles.map((row) => row.cod_pessoa)
+  )
+  const normalizedVehicles = uniqueVehicles.filter((vehicle) => {
+    if (allActiveClientIds.has(vehicle.cod_pessoa)) {
+      return true
+    }
+
+    skippedInactiveVehicles += 1
+    return false
+  })
+  uniqueVehicles.length = 0
+
+  const vehiclePlates = normalizedVehicles.map((row) => row.num_placa)
+  const shouldSkipVehicleHashDiff = vehiclePlates.length > maxHashDiffIds
+  const { data: existingVehicles } = !shouldSkipVehicleHashDiff && vehiclePlates.length
     ? await supabase
       .from("erp_client_vehicles")
-      .select("cod_veiculo, source_hash")
-      .in("cod_veiculo", vehicleIds)
-    : { data: [] as Array<{ cod_veiculo: number; source_hash: string }> }
+      .select("num_placa, source_hash")
+      .in("num_placa", vehiclePlates)
+    : { data: [] as Array<{ num_placa: string; source_hash: string }> }
 
-  const existingVehicleHashById = new Map(
-    (existingVehicles ?? []).map((row) => [Number(row.cod_veiculo), String(row.source_hash)])
+  const existingVehicleHashByPlate = new Map(
+    (existingVehicles ?? []).map((row) => [String(row.num_placa), String(row.source_hash)])
   )
 
   const vehicleCounters = shouldSkipVehicleHashDiff
@@ -712,20 +893,24 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
     }
     : computeUpsertCounters(
       normalizedVehicles,
-      existingVehicleHashById,
-      (row) => row.cod_veiculo
+      existingVehicleHashByPlate,
+      (row) => row.num_placa
     )
 
   if (normalizedVehicles.length > 0) {
     try {
-      await upsertRowsInChunks(supabase, "erp_client_vehicles", normalizedVehicles, "cod_veiculo")
+      await upsertRowsInChunks(supabase, "erp_client_vehicles", normalizedVehicles, "num_placa")
     } catch (vehiclesUpsertError) {
       throw new Error("client_vehicles_upsert_failed", { cause: vehiclesUpsertError })
     }
   }
 
-  const hasFailures = failedItems.length > 0
-  const hasSuccessfulUpserts = normalizedClients.length > 0 || normalizedVehicles.length > 0
+  const syncedVehicleCount = normalizedVehicles.length
+  normalizedVehicles.length = 0
+
+  const totalFailed = failedClientCount + failedVehicleCount
+  const hasFailures = totalFailed > 0
+  const hasSuccessfulUpserts = syncedClientCount > 0 || syncedVehicleCount > 0
 
   const status: SyncStatus = !hasFailures
     ? "success"
@@ -740,7 +925,16 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
     Math.floor((finishedAtDate.getTime() - new Date(startedAt).getTime()) / 1000)
   )
 
-  const nextConsecutiveFailures = await saveSyncState(mode, status, startedAt)
+  const isFinalVehiclePartition = Boolean(
+    vehicleCursor && vehiclePartition === vehicleCursor.partitionCount - 1
+  )
+  let nextConsecutiveFailures = state.consecutive_failures
+
+  if (status === "failed") {
+    nextConsecutiveFailures = await saveSyncState(mode, status, startedAt)
+  } else if (isFinalVehiclePartition && vehicleCursor) {
+    nextConsecutiveFailures = 0
+  }
 
   const message =
     status === "success"
@@ -759,23 +953,30 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
       finished_at: finishedAt,
       duration_seconds: durationSeconds,
       message,
-      counters_clients_received: rawClients.length,
+      counters_clients_received: clientsReceived,
       counters_clients_created: clientCounters.created,
       counters_clients_updated: clientCounters.updated,
       counters_clients_unchanged: clientCounters.unchanged,
-      counters_clients_failed: failedItems.filter((item) => item.entity === "client").length,
-      counters_clients_skipped_inactive: skippedInactiveClients,
-      counters_vehicles_received: rawVehicles.length,
+      counters_clients_failed: failedClientCount,
+      counters_clients_rejected: skippedInactiveClients,
+      counters_vehicles_received: vehiclesReceived,
       counters_vehicles_created: vehicleCounters.created,
       counters_vehicles_updated: vehicleCounters.updated,
       counters_vehicles_unchanged: vehicleCounters.unchanged,
-      counters_vehicles_failed: failedItems.filter((item) => item.entity === "vehicle").length,
-      counters_vehicles_skipped_inactive: skippedInactiveVehicles,
+      counters_vehicles_failed: failedVehicleCount,
+      counters_vehicles_rejected: skippedInactiveVehicles,
       consecutive_failures: nextConsecutiveFailures,
+      source: "hubapi",
       requested_by: requestedBy,
       error_details: failedItems,
       metadata: {
+        collapsedDuplicateVehicles,
+        failureDetailsTruncated: totalFailed > failedItems.length,
+        partitionCount: scope === "vehicles" ? partitionCount : null,
+        partitionIndex: scope === "vehicles" ? vehiclePartition : null,
+        scope,
         source: "hubapi",
+        vehiclesSourceTotal,
       },
     })
     .select("id")
@@ -795,22 +996,55 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
     target: "client_sync",
     metadata: {
       mode,
+      scope,
       trigger,
       status,
       runId: run?.id,
-      clientsReceived: rawClients.length,
+      clientsReceived,
       clientsCreated: clientCounters.created,
       clientsUpdated: clientCounters.updated,
       clientsUnchanged: clientCounters.unchanged,
       clientsSkippedInactive: skippedInactiveClients,
-      vehiclesReceived: rawVehicles.length,
+      vehiclesReceived,
       vehiclesCreated: vehicleCounters.created,
       vehiclesUpdated: vehicleCounters.updated,
       vehiclesUnchanged: vehicleCounters.unchanged,
       vehiclesSkippedInactive: skippedInactiveVehicles,
-      failed: failedItems.length,
+      collapsedDuplicateVehicles,
+      failed: totalFailed,
+      partitionCount: scope === "vehicles" ? partitionCount : null,
+      partitionIndex: scope === "vehicles" ? vehiclePartition : null,
+      vehiclesSourceTotal,
     },
   }).catch((e) => console.error("[audit-fail]", e))
+
+  if (status !== "failed" && isFinalVehiclePartition && vehicleCursor) {
+    await saveSyncState(mode, status, vehicleCursor.batchStartedAt, true)
+  }
+
+  if (status !== "failed" && scope === "clients") {
+    await saveSyncCursor({
+      batchStartedAt: startedAt,
+      checkpoint: state.last_successful_sync_at,
+      kind: "vehicle_partitions",
+      mode,
+      nextPartition: 0,
+      partitionCount: DEFAULT_VEHICLE_PARTITION_COUNT,
+      requestedBy,
+      trigger,
+      version: 1,
+    })
+  } else if (
+    status !== "failed" &&
+    scope === "vehicles" &&
+    vehicleCursor &&
+    !isFinalVehiclePartition
+  ) {
+    await saveSyncCursor({
+      ...vehicleCursor,
+      nextPartition: vehiclePartition + 1,
+    })
+  }
 
   return {
     runId: String(run?.id ?? ""),
@@ -821,6 +1055,8 @@ async function runSync(mode: SyncMode, trigger: SyncTrigger, requestedBy: string
 
 async function registerFailedSyncRun(
   mode: SyncMode,
+  scope: SyncScope,
+  partitionIndex: number | null,
   trigger: SyncTrigger,
   requestedBy: string | null,
   reason: string
@@ -844,13 +1080,14 @@ async function registerFailedSyncRun(
         counters_clients_created: 0,
         counters_clients_updated: 0,
         counters_clients_unchanged: 0,
-        counters_clients_failed: 1,
+        counters_clients_failed: scope === "vehicles" ? 0 : 1,
         counters_vehicles_received: 0,
         counters_vehicles_created: 0,
         counters_vehicles_updated: 0,
         counters_vehicles_unchanged: 0,
-        counters_vehicles_failed: 1,
+        counters_vehicles_failed: scope === "clients" ? 0 : 1,
         consecutive_failures: nextConsecutiveFailures,
+        source: "hubapi",
         requested_by: requestedBy,
         error_details: [
           {
@@ -860,6 +1097,8 @@ async function registerFailedSyncRun(
         metadata: {
           source: "hubapi",
           registeredBy: "catch_handler",
+          partitionIndex,
+          scope,
         },
       })
       .select("id")
@@ -876,6 +1115,8 @@ async function registerFailedSyncRun(
       reason,
       metadata: {
         mode,
+        partitionIndex,
+        scope,
         trigger,
         status: "failed",
         runId: run?.id,
@@ -901,6 +1142,8 @@ Deno.serve(async (req) => {
   }
 
   let mode: SyncMode = "incremental"
+  let scope: SyncScope = "clients"
+  let requestedPartition: number | null = null
   let requestedTrigger: SyncTrigger = "manual"
   let trigger: SyncTrigger = "manual"
   let requestedBy: string | null = null
@@ -909,6 +1152,8 @@ Deno.serve(async (req) => {
   try {
     const body = (await req.json().catch(() => ({}))) as Record<string, unknown>
     mode = resolveSyncMode(body.mode)
+    scope = resolveSyncScope(body.scope)
+    requestedPartition = resolveRequestedPartition(body.partitionIndex)
     requestedTrigger = resolveSyncTrigger(body.trigger)
     const actor = await getAuthenticatedActor(req)
 
@@ -929,7 +1174,13 @@ Deno.serve(async (req) => {
       trigger = "automatic"
     }
 
-    lockAcquired = await tryAcquireSyncLock(mode, trigger, requestedBy)
+    lockAcquired = await tryAcquireSyncLock(
+      mode,
+      scope,
+      requestedPartition,
+      trigger,
+      requestedBy
+    )
 
     if (!lockAcquired) {
       return jsonResponse(
@@ -943,7 +1194,13 @@ Deno.serve(async (req) => {
       )
     }
 
-    const result = await runSync(mode, trigger, requestedBy)
+    const result = await runSync(
+      mode,
+      scope,
+      requestedPartition,
+      trigger,
+      requestedBy
+    )
 
     return jsonResponse(result, 200, req)
   } catch (caughtError) {
@@ -962,7 +1219,14 @@ Deno.serve(async (req) => {
       )
     }
 
-    await registerFailedSyncRun(mode, trigger || requestedTrigger, requestedBy, message)
+    await registerFailedSyncRun(
+      mode,
+      scope,
+      requestedPartition,
+      trigger || requestedTrigger,
+      requestedBy,
+      message
+    )
 
     const errorResponse = resolveSyncErrorResponse(message)
 

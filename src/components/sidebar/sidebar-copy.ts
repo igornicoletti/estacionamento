@@ -6,6 +6,9 @@ export const sidebarCopy = {
   header: {
     openNavigation: "Abrir navegação",
   },
+  navigation: {
+    landmark: "Navegação principal",
+  },
   profile: {
     fallbackName: "Usuário",
     fallbackRole: "Proprietário",

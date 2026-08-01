@@ -26,6 +26,7 @@ describe("users models", () => {
     vi.setSystemTime(new Date("2026-07-31T12:00:00.000Z"))
 
     expect(hasRecentUserAccess("2026-07-31T11:44:59.000Z")).toBe(false)
+    expect(hasRecentUserAccess("2026-07-31T12:00:01.000Z")).toBe(false)
     expect(hasRecentUserAccess("invalid-date")).toBe(false)
     expect(resolveRecentAccessLabel(null)).toBe(
       usersCopy.filters.noRecentAccessValue

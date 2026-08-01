@@ -49,4 +49,30 @@ describe("users gateway schemas", () => {
       }).success
     ).toBe(false)
   })
+
+  it("rejects malformed timestamps and fields outside the selected projection", () => {
+    const baseRow = {
+      app_user_units: null,
+      auth_user_id: authUserId,
+      cpf_display: null,
+      cpf_masked: "***.***.***-25",
+      email: null,
+      id: appUserId,
+      locked_until: null,
+      name: "Usuário Válido",
+      phone_display: null,
+      phone_masked: "(11) *****-7777",
+      role: "operator",
+      status: "active",
+    }
+
+    expect(
+      appUserRowsSchema.safeParse([
+        { ...baseRow, locked_until: "not-a-timestamp" },
+      ]).success
+    ).toBe(false)
+    expect(
+      appUserRowsSchema.safeParse([{ ...baseRow, unexpected: true }]).success
+    ).toBe(false)
+  })
 })

@@ -1,4 +1,4 @@
-import { auditCopy } from "../constants"
+import { auditCopy } from "../constants/audit-copy"
 import { type AuditEvent, type AuditSeverity } from "./audit-types"
 
 export function resolveAuditOutcomeVariant(event: AuditEvent) {
@@ -11,7 +11,7 @@ export function resolveAuditOutcomeVariant(event: AuditEvent) {
 
 export function resolveAuditSeverityVariant(severity: AuditSeverity) {
   if (severity === "critical") {
-    return "warning" as const
+    return "destructive" as const
   }
 
   if (severity === "warning") {

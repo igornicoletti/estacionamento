@@ -1,67 +1,66 @@
 import * as React from "react"
 
+import { auditCopy } from "../constants/audit-copy"
+import { type AuditSnapshot } from "../model/audit-types"
 import { listAuditEvents } from "../services/audit-service"
-import { type AuditEvent } from "../model"
 
-const auditLoadError = "Não foi possível carregar a trilha de auditoria."
+const emptyAuditSnapshot: AuditSnapshot = {
+  events: [],
+  isTruncated: false,
+}
 
 function toLoadError(caughtError: unknown) {
-  return caughtError instanceof Error ? caughtError : new Error(auditLoadError)
+  return caughtError instanceof Error
+    ? caughtError
+    : new Error(auditCopy.feedback.loadError)
 }
 
 export function useAudit() {
-  const [data, setData] = React.useState<AuditEvent[]>([])
+  const [snapshot, setSnapshot] =
+    React.useState<AuditSnapshot>(emptyAuditSnapshot)
   const [isLoading, setIsLoading] = React.useState(true)
   const [error, setError] = React.useState<Error | null>(null)
+  const loadGenerationRef = React.useRef(0)
 
-  const refetch = React.useCallback(async () => {
-    setIsLoading(true)
-    setError(null)
+  const loadAudit = React.useCallback(async () => {
+    const generation = ++loadGenerationRef.current
 
     try {
-      const events = await listAuditEvents()
+      setIsLoading(true)
+      setError(null)
 
-      setData(events)
+      const nextSnapshot = await listAuditEvents()
+
+      if (generation === loadGenerationRef.current) {
+        setSnapshot(nextSnapshot)
+      }
     } catch (caughtError) {
-      setError(toLoadError(caughtError))
+      if (generation === loadGenerationRef.current) {
+        setError(toLoadError(caughtError))
+      }
     } finally {
-      setIsLoading(false)
+      if (generation === loadGenerationRef.current) {
+        setIsLoading(false)
+      }
     }
   }, [])
 
   React.useEffect(() => {
-    let isMounted = true
-
-    async function loadInitialAudit() {
-      try {
-        const events = await listAuditEvents()
-
-        if (isMounted) {
-          setData(events)
-          setError(null)
-        }
-      } catch (caughtError) {
-        if (isMounted) {
-          setError(toLoadError(caughtError))
-        }
-      } finally {
-        if (isMounted) {
-          setIsLoading(false)
-        }
-      }
-    }
-
-    void loadInitialAudit()
+    const timeoutId = window.setTimeout(() => {
+      void loadAudit()
+    }, 0)
 
     return () => {
-      isMounted = false
+      window.clearTimeout(timeoutId)
+      loadGenerationRef.current += 1
     }
-  }, [])
+  }, [loadAudit])
 
   return {
-    data,
+    data: snapshot.events,
     error,
     isLoading,
-    refetch,
+    isTruncated: snapshot.isTruncated,
+    refetch: loadAudit,
   }
 }

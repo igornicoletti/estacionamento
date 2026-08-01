@@ -3,10 +3,7 @@ import * as React from "react"
 
 import { beforeEach, vi } from "vitest"
 
-import {
-  configureAuditGateway,
-  type RawAuditEventPayload,
-} from "@/features/audit"
+import { setAuditGateway } from "@/features/audit/gateways/audit-gateway"
 import {
   setNotificationsGateway,
   type NotificationRecord,
@@ -28,6 +25,10 @@ import { type UserRecord } from "@/features/users"
 
 import { createMemoryNotificationsGateway } from "./helpers/notifications-memory-gateway"
 import { createMemoryClientsGateway } from "./helpers/clients-memory-gateway"
+import {
+  createAuditEventRow,
+  createMemoryAuditGateway,
+} from "./helpers/audit-memory-gateway"
 import { createMemoryUsersGateway } from "./helpers/users-memory-gateway"
 
 if (!HTMLElement.prototype.hasPointerCapture) {
@@ -202,7 +203,7 @@ const seedUsers: UserRecord[] = [
     unitName: "Monte Carlo Centro",
   },
   {
-    authUserId: "03eb9a74-9507-41b6-9965-b5e106eb8d49",
+    authUserId: "4da46b34-0d68-40b8-92f1-da26a139bd43",
     cpf: "935.411.347-80",
     email: "operador.teste@example.com",
     id: "USR-002",
@@ -246,23 +247,7 @@ const seedNotifications: NotificationRecord[] = [
   },
 ]
 
-const seedAuditEvents: RawAuditEventPayload[] = [
-  {
-    actor: "Rede Monte Carlo",
-    actor_user_id: null,
-    event: "unit_sync",
-    id: "00000000-0000-4000-8000-000000000001",
-    metadata: { mode: "incremental" },
-    occurred_at: "2026-07-02T11:20:19Z",
-    reason: null,
-    request_id: "req-test",
-    scope: "system",
-    severity: "info",
-    success: true,
-    target: "Unidades",
-    target_user_id: null,
-  },
-]
+const seedAuditEvents = [createAuditEventRow()]
 
 const seedPermissionMatrix: PermissionMatrixRow[] = [
   {
@@ -326,9 +311,7 @@ vi.mock("@/components/ui/tooltip", async (importOriginal) => {
 
 beforeEach(() => {
   configureClientsGateway(createMemoryClientsGateway())
-  configureAuditGateway({
-    listEvents: () => Promise.resolve(seedAuditEvents),
-  })
+  setAuditGateway(createMemoryAuditGateway(seedAuditEvents))
   configurePermissionsGateway({
     listMatrix: () => Promise.resolve(seedPermissionMatrix),
   })

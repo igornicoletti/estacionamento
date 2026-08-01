@@ -25,7 +25,7 @@ export function resolveLastAccessLabel(lastAccessAt: string | null) {
   return formatDateTime(lastAccessAt, usersCopy.details.noAccess)
 }
 
-const ONLINE_THRESHOLD_MS = 15 * 60 * 1000
+const RECENT_ACCESS_WINDOW_MS = 15 * 60 * 1000
 
 export function hasRecentUserAccess(lastAccessAt: string | null) {
   if (!lastAccessAt) {
@@ -38,7 +38,11 @@ export function hasRecentUserAccess(lastAccessAt: string | null) {
     return false
   }
 
-  return Date.now() - lastAccess <= ONLINE_THRESHOLD_MS
+  const elapsedSinceAccess = Date.now() - lastAccess
+
+  return (
+    elapsedSinceAccess >= 0 && elapsedSinceAccess <= RECENT_ACCESS_WINDOW_MS
+  )
 }
 
 export function resolveRecentAccessLabel(lastAccessAt: string | null) {

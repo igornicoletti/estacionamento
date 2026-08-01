@@ -1,6 +1,6 @@
 # Usuários — auditoria forense e arquitetura
 
-Data da revisão: 31 de julho de 2026.
+Data da revisão: 1º de agosto de 2026.
 
 ## Escopo e resultado
 
@@ -8,7 +8,7 @@ Este documento registra a auditoria individual de todos os arquivos de produçã
 
 A implementação produtiva continua usando Supabase. Gateways em memória existem apenas no ambiente de teste por injeção explícita. A revisão removeu unidades fictícias da rota, duplicação de formulários e detalhes, ações administrativas invisíveis, validação enganosa de senha na edição, barrels internos e documentação obsoleta.
 
-Não houve migration, mudança remota, alteração de Edge Function ou modificação em `components/ui` nesta onda.
+Nenhum arquivo de `components/ui` foi alterado. A validação integrada no navegador revelou uma falha de permissão na RPC de perfil que impedia a sessão autenticada de carregar; ela foi corrigida por migration aditiva, sem ampliar privilégios públicos. A feature foi validada contra o Supabase local real com o usuário owner, e não apenas contra fixtures.
 
 ## Funcionalidades cobertas
 
@@ -104,7 +104,7 @@ Referências internas verificadas: [`supabase/config.toml`](../../../supabase/co
 ### Limites de segurança restantes
 
 - validação definitiva de payload, papel, unidade e estado precisa continuar nas Edge Functions; JavaScript do cliente pode ser contornado;
-- testes negativos das oito Edge Functions e das políticas RLS exigem ambiente Supabase local/resetado e estão fora do escopo deste diretório;
+- o reset local e os contratos de sessão/RLS passaram; testes negativos individualizados das oito Edge Functions administrativas continuam necessários para cobrir cada combinação de papel e alvo;
 - a telemetria do frontend ainda não oferece correlation/request ID. Não foram adicionados logs locais para evitar vazamento de PII;
 - a aba importada de `access-requests` é permissionada, mas mantém acoplamento de composição entre duas features;
 - a visibilidade de CPF/telefone deve ser revista sempre que a matriz de permissões mudar.
@@ -121,7 +121,7 @@ Referências internas verificadas: [`supabase/config.toml`](../../../supabase/co
 - SelectItem fica dentro de SelectGroup e o Combobox usa a composição shadcn instalada;
 - estados vazio, erro e carregamento usam componentes compartilhados e mantêm nomes acessíveis.
 
-Os testes atuais cobrem associação do erro e foco. Uma futura onda de validação visual deve acrescentar navegação completa por teclado, contraste e leitores de tela reais no navegador.
+Além dos testes de associação de erro e foco, a rota autenticada foi exercitada em navegador desktop e em viewport de 390 × 844. A varredura automatizada não encontrou violações de acessibilidade, o console ficou sem erros ou warnings da aplicação e o overflow permaneceu restrito ao container rolável da tabela. Leitor de tela humano e matriz completa de navegadores continuam como validação complementar.
 
 ## Desempenho e concorrência
 
@@ -170,18 +170,18 @@ A feature pressupõe browser moderno do aplicativo Vite. Datas inválidas degrad
 | `constants/users-api.ts` | Nomes estáticos de fontes, funções e selects | Novo; remove strings operacionais espalhadas. |
 | `constants/users-copy.ts` | Copy centralizada | Textos duplicados removidos dos componentes. Futuro i18n deve substituir este módulo, não voltar a strings locais. |
 | `constants/users-persistence.ts` | Chaves de tabela e tabs | Chaves de cache/form sem consumidor removidas. Vistoriado, sem achado pendente. |
-| `gateways/supabase-users-gateway.ts` | I/O produtivo e adapter Supabase → domínio | Separado de schemas/contratos; valida wire e paraleliza fontes. Candidato a separar leitura/escrita somente se crescer. |
+| `gateways/supabase-users-gateway.ts` | I/O produtivo e adapter Supabase → domínio | Separado de schemas/contratos; valida wire, converte respostas de mutação em identidades de domínio e paraleliza fontes. Candidato a separar leitura/escrita somente se crescer. |
 | `gateways/users-gateway-contracts.ts` | Portas e comandos de I/O | Novo; permite memory gateway apenas por injeção em testes. Vistoriado, sem achado pendente. |
 | `gateways/users-gateway.ts` | Seleção do gateway produtivo/teste | Pequeno composition root; padrão explícito sem fallback sintético em produção. |
 | `hooks/use-users.ts` | Estado assíncrono, concorrência e mutações React | Fluxos duplicados e erros misturados removidos; mutex e generation guard adicionados. |
 | `index.ts` | Único barrel público | Reduzido aos símbolos usados por `units` e testes; nested barrels excluídos. |
 | `model/users-admin-actions.ts` | Apresentação pura das ações | Novo; centraliza título, copy, tom e feedback. Vistoriado, sem achado pendente. |
 | `model/users-admin-policy.ts` | Política pura ator/alvo e papéis atribuíveis | Novo; espelha backend e é coberto por testes. Backend segue autoritativo. |
-| `model/users-models.ts` | Labels, detalhes, presença e escopo de unidade | Remove ID artificial e torna catálogo real a fonte canônica da unidade. |
+| `model/users-models.ts` | Labels, detalhes, presença e escopo de unidade | Remove ID artificial, torna catálogo real a fonte canônica da unidade e rejeita timestamps futuros como “acesso recente”. |
 | `model/users-types.ts` | Tipos de domínio e comandos públicos | Tipos/papéis/status duplicados agora reutilizam o contrato público de `auth`. |
 | `routes/users-route.tsx` | Controlador e composição da página | Reduzido de rota monolítica para autenticação, tabs e coordenação; UI duplicada removida. |
 | `schemas/users-form-schema.ts` | Schema de formulário/comando e mapeamento de erros | Extraído do gateway/model; preserva o primeiro erro por campo e separa create/edit. |
-| `schemas/users-gateway-schemas.ts` | Schemas de respostas externas | Novo; impede payload remoto inválido de contaminar o domínio. |
+| `schemas/users-gateway-schemas.ts` | Schemas de respostas externas | Contratos estritos para leitura e mutações; UUIDs, papéis, status, fatores e identidades inválidas falham de forma fechada. |
 | `services/users-service.ts` | Casos de uso, validação semântica e hidratação | Catálogo real, validação em profundidade e releitura autoritativa; nenhuma regra React/Supabase visual. |
 | `table/users-columns.tsx` | Colunas e células específicas | Ações antes inatingíveis corrigidas; acesso recente acessível e classes semânticas. `last_sign_in_at` não é apresentado como presença online real. |
 | `table/users-filter-options.ts` | Opções derivadas de filtros | Agora cobre papel, status, unidade e online sem listas fictícias. |
@@ -202,25 +202,30 @@ Arquivos removidos após confirmação de alcance: `constants/index.ts`, `model/
 | `users-row-actions.test.ts` | ações visíveis para alvo autorizado e não autorizado |
 | `users-models.test.ts` | janela de acesso recente, timestamp inválido e nomenclatura sem falsa presença |
 | `users-gateway-schemas.test.ts` | aceitação do wire esperado e rejeição de UUID/passkey inválidos |
+| `supabase-users-gateway.test.ts` | queries reais mockadas na fronteira, mapeamento wire → domínio e respostas de mutação |
+| `use-users.test.tsx` | concorrência, descarte de resposta obsoleta e estado de mutação do hook |
 
 Os gateways em memória ficam em `tests/helpers`, nunca no bundle produtivo. O setup global apenas injeta esses gateways durante Vitest.
 
-### Resultado dos gates em 31/07/2026
+### Resultado dos gates em 01/08/2026
 
 | Gate | Resultado |
 |---|---|
 | ESLint global | passou |
 | TypeScript da aplicação | passou |
 | TypeScript dos testes | passou |
-| Testes focados | 8 arquivos e 24 testes passaram |
-| Testes completos | 66 arquivos e 234 testes passaram em 347,95 s |
-| Build de produção | passou; chunk lazy de usuários com 34,00 kB, 10,03 kB gzip |
-| Orçamento de bundle | passou; 1.738.283 bytes de assets para limite de 2.097.152 |
+| Testes focados de `users` | 10 arquivos e 30 testes passaram; a execução combinada `users` + `audit` aprovou 16 arquivos / 50 testes |
+| Testes completos | 77 arquivos e 269 testes passaram em 445,26 s |
+| Build de produção | passou; 913 módulos e chunk lazy de usuários com 34,04 kB, 10,04 kB gzip |
+| Orçamento de bundle | passou; 1.741.693 bytes de assets para limite de 2.097.152 |
 | Auditoria de produção | passou; nenhuma vulnerabilidade conhecida |
+| Supabase local | reset integral, lint e contratos de segurança/cron passaram |
+| Supabase remoto | lint sem erro e 62 migrations pareadas com o repositório |
+| Navegador autenticado | rota real carregada, console sem erro e axe com zero violações |
 | `git diff --check` | passou |
-| `pnpm validate` | bloqueado por invariantes textuais obsoletos do script raiz |
+| `pnpm validate` | passou; 794 arquivos, 471 fontes e 62 migrations inventariados |
 
-O validador raiz ainda exige os identificadores antigos `newPasswordSchema` dentro do serviço, `onResetAccess` dentro da rota, `createUserOnlineFilterOptions` e flags de ação dentro de `users-columns`. As responsabilidades foram legitimamente movidas ou renomeadas. Alterar `scripts/validate-package.mjs` está fora do escopo desta auditoria; adicionar código morto apenas para satisfazer busca textual foi rejeitado.
+O validador raiz foi atualizado para verificar os contratos atuais em vez de procurar identificadores removidos em posições históricas. Nenhum shim ou código morto foi reintroduzido para satisfazer busca textual.
 
 Comandos de aceite:
 

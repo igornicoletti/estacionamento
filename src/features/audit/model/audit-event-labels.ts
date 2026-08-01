@@ -1,4 +1,4 @@
-import { auditEventLabels } from "../constants"
+import { auditEventLabels } from "../constants/audit-labels"
 
 export function humanizeAuditIdentifier(value: string) {
   const humanized = value

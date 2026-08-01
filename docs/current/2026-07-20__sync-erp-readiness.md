@@ -38,24 +38,32 @@ Revisão crítica dos fluxos de Unidades, Clientes/Veículos e sincronizações 
 
 ## Achados Forenses de Sincronização ERP
 
-### Crons atuais
+### Crons atuais — revisão de 01/08/2026
 
-- Incremental: `*/30 * * * *` (a cada 30 min)
-- Full: `0 3 * * *` (diária às 03:00)
-- Lock distribuído com TTL de 300s e sem sobreposição de execução.
+- Clientes incremental: `0 9,15,21 * * *`.
+- Clientes full: `0 3 * * *`.
+- Retomada de veículos: `*/5 * * * *`, somente quando `client_sync_state.last_cursor` contém uma partição pendente.
+- Unidades incremental/full: `0 9,15,21 * * *` e `0 3 * * *`.
+- Lock distribuído com TTL de 300s, cursor com validade de duas horas e checkpoint global somente após a última partição.
+- URL e segredos service-to-service ficam no Vault; `cron.job` contém apenas chamadas a helpers privados.
 
-### Riscos para escala (30k clientes ativos + veículos)
+### Evidência de escala real
 
-1. Upsert monolítico em arrays grandes pode causar timeout/memória excessiva.
-2. Consultas de diff por `IN (...)` com listas massivas podem estourar limite de payload/URL no PostgREST.
-3. Contadores de created/updated/unchanged podem degradar quando o diff exato é inviável em alto volume.
+- Fonte ERP: 236.453 registros de veículos no baseline full.
+- Destino após filtro/canonicalização: 28.552 clientes e 124.912 veículos ativos.
+- Resultado: IDs e placas sem duplicatas; oito partições de veículos entre 11 e 16 segundos cada.
+- A primeira tentativa monolítica reproduziu `546`; a versão particionada terminou com nove respostas HTTP 200 consecutivas.
+- Onze payloads inválidos foram registrados como warning com índice de origem, sem descartar ou mascarar a evidência do erro.
 
 ## Melhorias Robustas Aplicadas
 
 ### Edge Function `clients-sync`
 
-- Upsert em lotes (`chunk`) para `erp_clients` e `erp_client_vehicles`.
-- Fallback seguro para diffs massivos (acima de 5k IDs): pula comparação hash detalhada para preservar conclusão da sync.
+- Hash não criptográfico determinístico para change detection, evitando uma operação Web Crypto por linha.
+- Upsert em lotes de 500 e canonicalização determinística de placas repetidas.
+- Clientes e veículos são fases distintas; veículos usam oito partições estáveis por placa e cursor retomável.
+- Consultas de clientes ativos usam apenas os IDs da partição, em lotes, evitando varredura repetida do conjunto completo.
+- Contadores usam as colunas reais `*_rejected`; falha de histórico não é convertida em sucesso.
 
 ### Edge Function `units-sync`
 
@@ -66,24 +74,20 @@ Revisão crítica dos fluxos de Unidades, Clientes/Veículos e sincronizações 
 
 - Limite de lotes aumentado para suportar até 60k registros ativos com batch de 500.
 
-## Veredito Técnico (sem certificado ERP)
+## Veredito técnico atualizado
 
-### Pronto para homologação com ERP real
+### Homologação com ERP real
 
-- Sim, com robustez maior contra estouros de volume e timeout.
+- Concluída no projeto remoto com baseline full e dados produtivos.
 
-### Pronto para produção imediata
+### Operação produtiva
 
-- Condicional.
-- Recomendado validar em homologação com massa real e monitorar:
-  - duração por sync (P50/P95);
-  - taxa de warning/failed por janela;
-  - volume por lote e impacto em lock TTL;
-  - consistência dos históricos (`*_sync_runs`) e auditoria.
+- Fluxo habilitado com Vault, timeout explícito, retry por cursor, lock e cron configurados.
+- Monitorar P50/P95, warnings de qualidade do ERP, idade do cursor e falhas consecutivas; o baseline não substitui observação contínua.
 
 ## Próximos passos recomendados
 
-1. Adicionar paginação incremental no fetch ERP por cursor/updated_since por página (quando API do ERP suportar).
-2. Persistir checkpoints de processamento por bloco para retomada em falhas longas.
-3. Instrumentar métricas de cardinalidade por execução (clientes recebidos, ativos, veículos ativos, tempo por fase).
-4. Ajustar cron incremental para janela mais curta somente após medição de throughput real (evitar filas concorrentes).
+1. Negociar paginação/cursor na API do ERP para evitar baixar o payload completo em cada partição; o endpoint atual não documenta esse contrato.
+2. Criar alerta operacional para cursor próximo de duas horas e `consecutive_failures > 0`.
+3. Acompanhar os 11 registros inválidos na origem e formalizar a regra de correção, sem inventar defaults no destino.
+4. Ajustar frequência ou quantidade de partições somente após uma janela representativa de P50/P95.

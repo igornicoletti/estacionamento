@@ -3,21 +3,16 @@ export const auditCopy = {
     title: "Auditoria",
     subtitle: "Acompanhe os eventos de segurança e as ações realizadas no sistema.",
     truncatedSubtitle: (limit: number) =>
-      `Acompanhe os eventos de segurança e ações realizadas. Exibindo os ${limit} eventos mais recentes.`,
+      `Exibindo os ${limit} eventos mais recentes. Há registros anteriores que não estão carregados nesta visualização.`,
     searchPlaceholder: "Buscar na auditoria...",
   },
   feedback: {
     loadError: "Não foi possível carregar a trilha de auditoria.",
-    exportLoading: "Gerando exportação de auditoria...",
     exportSuccess: "Exportação de auditoria concluída.",
     exportError: "Não foi possível exportar a auditoria.",
-    exportEmptyError: "Não há eventos para exportar com os filtros atuais.",
   },
   actions: {
     details: "Detalhes",
-    exportAll: "Exportar tudo",
-    exportFiltered: "Exportar filtrados",
-    clearFilters: "Limpar filtros",
   },
   filters: {
     responsible: "Responsável",
@@ -25,6 +20,8 @@ export const auditCopy = {
     scopes: "Escopos",
   },
   table: {
+    ariaLabel: "Trilha de eventos de auditoria",
+    eventId: "ID do evento",
     occurredAt: "Data/hora",
     responsible: "Responsável",
     scope: "Escopo",
@@ -34,11 +31,21 @@ export const auditCopy = {
     severity: "Severidade",
   },
   details: {
+    eventId: "ID do evento",
+    requestId: "ID da solicitação",
     reason: "Motivo",
     emptyValue: "—",
     title: "Detalhes do evento",
     description: "Consulte as informações registradas para o evento selecionado.",
     fallbackDescription: "Sem informações adicionais.",
+  },
+  empty: {
+    title: "Nenhum evento de auditoria",
+    description: "Não há eventos disponíveis para o período carregado.",
+  },
+  filteredEmpty: {
+    title: "Nenhum evento corresponde aos filtros",
+    description: "Ajuste a busca ou remova um dos filtros aplicados.",
   },
   labels: {
     critical: "Crítico",

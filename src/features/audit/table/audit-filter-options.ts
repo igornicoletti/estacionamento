@@ -1,52 +1,28 @@
-import { type ColumnFiltersState } from "@tanstack/react-table"
-
 import {
   createDataTableFilterOptions,
   type DataTableFilterField,
 } from "@/components/data-table"
 
-import { auditCopy, auditScopeLabels } from "../constants"
+import { auditCopy } from "../constants/audit-copy"
 import {
-  filterAuditEvents,
-  removeAuditColumnFilter,
-  type AuditEvent,
-} from "../model"
+  auditScopeLabels,
+  auditSeverityLabels,
+} from "../constants/audit-labels"
+import { getAuditEventLabel } from "../model/audit-event-labels"
+import { getAuditEntityLabel } from "../model/audit-presentation"
+import { type AuditEvent } from "../model/audit-types"
 
-interface CreateAuditFilterFieldsOptions {
+export function createAuditFilterFields(
   events: readonly AuditEvent[]
-  columnFilters: ColumnFiltersState
-  globalFilter: string
-}
-
-export function createAuditFilterFields({
-  events,
-  columnFilters,
-  globalFilter,
-}: CreateAuditFilterFieldsOptions): DataTableFilterField<AuditEvent>[] {
-  const responsibleOptionEvents = filterAuditEvents(
-    events,
-    removeAuditColumnFilter(columnFilters, "actorName"),
-    globalFilter
-  )
-  const scopeOptionEvents = filterAuditEvents(
-    events,
-    removeAuditColumnFilter(columnFilters, "scope"),
-    globalFilter
-  )
-  const eventOptionEvents = filterAuditEvents(
-    events,
-    removeAuditColumnFilter(columnFilters, "event"),
-    globalFilter
-  )
-
+): readonly DataTableFilterField<AuditEvent>[] {
   return [
     {
-      id: "actorName",
+      id: "actor",
       title: auditCopy.filters.responsible,
       options: createDataTableFilterOptions(
-        responsibleOptionEvents,
-        (event) => event.actorName,
-        (event) => event.actorName
+        events,
+        (event) => getAuditEntityLabel(event.actor),
+        (event) => getAuditEntityLabel(event.actor)
       ),
       showCounts: true,
     },
@@ -54,7 +30,7 @@ export function createAuditFilterFields({
       id: "scope",
       title: auditCopy.filters.scopes,
       options: createDataTableFilterOptions(
-        scopeOptionEvents,
+        events,
         (event) => event.scope,
         (event) => auditScopeLabels[event.scope]
       ),
@@ -64,9 +40,19 @@ export function createAuditFilterFields({
       id: "event",
       title: auditCopy.filters.events,
       options: createDataTableFilterOptions(
-        eventOptionEvents,
-        (event) => event.event,
-        (event) => event.eventLabel
+        events,
+        (event) => getAuditEventLabel(event.event),
+        (event) => getAuditEventLabel(event.event)
+      ),
+      showCounts: true,
+    },
+    {
+      id: "severity",
+      title: auditCopy.table.severity,
+      options: createDataTableFilterOptions(
+        events,
+        (event) => event.severity,
+        (event) => auditSeverityLabels[event.severity]
       ),
       showCounts: true,
     },

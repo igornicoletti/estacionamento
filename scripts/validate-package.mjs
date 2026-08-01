@@ -414,19 +414,27 @@ for (const [file, needles] of [
   ],
   [
     "src/features/users/services/users-service.ts",
-    ["getUsersGateway", "normalizeUnitScope", "newPasswordSchema"],
+    ["getUsersGateway", "resolveCanonicalUnitId", "usersFormSchema"],
+  ],
+  [
+    "src/features/users/schemas/users-form-schema.ts",
+    ["newPasswordSchema", "usersFormSchema", "firstAccessPassword"],
   ],
   [
     "src/features/users/routes/users-route.tsx",
-    ["AppTabs", "AccessRequestsPanel", "onResetAccess"],
+    ["AppTabs", "AccessRequestsPanel", "onAdminAction"],
   ],
   [
     "src/features/users/table/users-filter-options.ts",
-    ["emptyOption", "createUserOnlineFilterOptions"],
+    ["emptyOption", "createUserRecentAccessFilterOptions"],
   ],
   [
     "src/features/users/table/users-columns.tsx",
-    ["canResetPasskey", "canRevokeSessions", "resolveLastAccessLabel", "passkeyStatus", "Passkey"],
+    ["createUserRowActions", "resolveLastAccessLabel", "passkeyStatus", "Passkey"],
+  ],
+  [
+    "src/features/users/table/users-row-actions.ts",
+    ["canManageUser", "onResetAccess", "onResetPasskey", "onRevokeSessions"],
   ],
   [
     "src/features/notifications/services/notifications-service.ts",

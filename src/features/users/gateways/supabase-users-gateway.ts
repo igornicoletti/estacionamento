@@ -69,7 +69,10 @@ async function invokeMutation(
     throw new Error(errorMessage, { cause: result.error })
   }
 
-  return result.data
+  return {
+    authUserId: result.data.authUserId,
+    id: result.data.id,
+  }
 }
 
 export function createSupabaseUsersGateway(): UsersGateway {
