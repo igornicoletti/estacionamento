@@ -3,12 +3,10 @@ import {
   CLIENT_SYNC_FAILED_STATUS,
   CLIENT_SYNC_RUN_MODES,
   CLIENT_SYNC_STATUSES,
-  CLIENT_SYNC_TRIGGERS,
 } from "../constants/clients-sync"
 import {
   type ClientSyncMode,
   type ClientSyncStatus,
-  type ClientSyncTrigger,
   type ErpClientPayload,
   type ErpClientVehiclePayload,
   type ParseIssue,
@@ -151,10 +149,6 @@ export function parseClientVehicleRows(value: unknown) {
 
 export function isClientSyncMode(value: unknown): value is ClientSyncMode {
   return (CLIENT_SYNC_RUN_MODES as readonly unknown[]).includes(value)
-}
-
-export function isClientSyncTrigger(value: unknown): value is ClientSyncTrigger {
-  return (CLIENT_SYNC_TRIGGERS as readonly unknown[]).includes(value)
 }
 
 export function isClientSyncStatus(value: unknown): value is ClientSyncStatus {

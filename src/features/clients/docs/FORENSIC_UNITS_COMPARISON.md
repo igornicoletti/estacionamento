@@ -1,5 +1,7 @@
 # Comparação forense — clients alinhado ao padrão de units
 
+> Documento histórico atualizado em 2026-07-31. As estruturas de histórico e UI de sync descritas como criadas na rodada original foram posteriormente removidas porque não possuíam consumidores.
+
 ## Base de comparação
 
 Arquivos de referência revisados em `src/features/units`:
@@ -11,11 +13,9 @@ Arquivos de referência revisados em `src/features/units`:
 - `constants/units-ui.ts`
 - `hooks/use-units-table-filters.ts`
 - `hooks/use-unit-users-table-filters.ts`
-- `hooks/use-unit-sync-history.ts`
 - `routes/units-route.tsx`
 - `routes/unit-users-route.tsx`
 - `services/unit-sync-service.ts`
-- `services/unit-sync-history-*`
 
 ## Divergências encontradas em clients antes da refatoração
 
@@ -23,8 +23,8 @@ Arquivos de referência revisados em `src/features/units`:
 |---|---|---|
 | Constantes | Persistência, chaves de tabela, batch e rotas estavam concentradas ou misturadas. | Criados `clients-persistence.ts`, `clients-routes.ts`, `clients-sync.ts` e `clients-ui.ts`. |
 | Filtros | Filtros ainda estavam acoplados à pasta `table`. | Criados hooks `useClientsTableFilters` e `useClientVehiclesTableFilters`, seguindo `useUnitsTableFilters`. |
-| Histórico de sync | Serviço lia Supabase diretamente, sem gateway por fonte. | Criados `client-sync-history-gateway`, `mock-gateway`, `supabase-gateway`, `normalization` e `types`. |
-| Mock de sync | Sincronização mock não registrava histórico de execução. | `triggerClientsSync` registra execução mock em localStorage via gateway, como `units`. |
+| Histórico de sync | Serviço lia Supabase diretamente, sem gateway por fonte. | A primeira rodada criou gateways; a onda de 2026-07-31 os removeu por ausência de consumidor. |
+| Mock de sync | Sincronização mock não registrava histórico de execução. | O fallback produtivo foi eliminado; testes usam doubles explícitos e o serviço real permanece sem sucesso sintético. |
 | Strings mágicas de sync | Função, status, trigger e erro de concorrência estavam inline. | Centralizado em `clients-sync.ts`. |
 | Tipagem | `ClientSyncCounters` aceitava índice genérico. | Removido índice genérico e mantidas chaves explícitas. |
 | UX de toast | Havia risco de loader via promessa. | Mantidos apenas toasts pós-operação; loader fica no botão/diálogo. |
@@ -32,17 +32,13 @@ Arquivos de referência revisados em `src/features/units`:
 | Resolução do cliente | `/clientes/:cod_pessoa` ainda carregava a lista completa de clientes para resolver título/subtítulo. | Criado `useClient` e `listClientById`, com consulta direta por `cod_pessoa`. |
 | Regras VIP | A tela de clientes dependia do hook genérico de regras comerciais, que selecionava colunas não estáveis em `commercial_rules`. | Criados `client-vip-rules-service`, `useClientVipRules` e modelo VIP local com select mínimo. |
 | Permissões | Histórico de sync podia ficar sem permissão granular. | Incluída permissão `clients.sync.read` e RLS por permissão efetiva. |
-| Dependência legada | O pacote anterior ainda importava componentes/runner de sync fora de `clients`. | Criados `ClientSyncBlockingDialog`, `ClientsSyncHistoryDialog` completo e `executeClientSyncWithRefresh` dentro de `clients`. |
+| Dependência legada | O pacote anterior ainda importava componentes/runner de sync fora de `clients`. | A cópia local e a feature genérica foram removidas depois que a análise de alcance confirmou ausência de consumidores. |
 | Visibilidade | Telefone de cliente e documento em veículos estavam ocultos por padrão. | Chaves de visibilidade foram versionadas e os campos sensíveis autorizados ficam visíveis por padrão. |
 
 ## Padrão final aplicado
 
 ```text
 src/features/clients/
-├── components/
-│   ├── client-sync-blocking-dialog.tsx
-│   ├── clients-sync-history-dialog.tsx
-│   └── index.ts
 ├── constants/
 │   ├── clients-copy.ts
 │   ├── clients-persistence.ts
@@ -52,24 +48,15 @@ src/features/clients/
 │   └── index.ts
 ├── docs/
 ├── hooks/
-│   ├── use-client-sync-history.ts
 │   ├── use-client-vehicles-table-filters.ts
 │   ├── use-client-vehicles.ts
 │   ├── use-client-vip-rules.ts
 │   ├── use-client.ts
 │   ├── use-clients-table-filters.ts
 │   ├── use-clients.ts
-│   └── index.ts
 ├── model/
 ├── routes/
 ├── services/
-│   ├── client-sync-history-gateway.ts
-│   ├── client-sync-history-mock-gateway.ts
-│   ├── client-sync-history-normalization.ts
-│   ├── client-sync-history-service.ts
-│   ├── client-sync-history-supabase-gateway.ts
-│   ├── client-sync-history-types.ts
-│   ├── client-sync-runner.ts
 │   ├── client-sync-service.ts
 │   ├── client-vip-rules-service.ts
 │   ├── clients-gateway.ts
@@ -85,7 +72,7 @@ O ZIP anterior foi aberto e auditado. Foram corrigidos dois problemas reais ante
 1. dependência residual de sincronização externa em `src/features/clients`;
 2. visibilidade padrão incompatível com o requisito de CPF/documento e telefone visíveis no frontend.
 
-O pacote revisado mantém o padrão estrutural de `units`, mas remove a dependência direta de uma feature de sincronização separada para evitar quebra caso `src/features/sync` seja removido do projeto.
+O pacote vigente mantém o disparo real de sincronização em cada domínio e não mantém UI/histórico antecipados. `src/features/sync` foi removido após a confirmação de que nenhum consumidor o alcançava.
 
 
 ## Correção forense pós-travamento da página de clientes

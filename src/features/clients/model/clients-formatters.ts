@@ -32,38 +32,6 @@ export function formatClientDate(value: string | null | undefined, fallback: str
   return new Intl.DateTimeFormat("pt-BR", { timeZone: "America/Sao_Paulo" }).format(date)
 }
 
-export function formatClientDateTime(value: string | null | undefined, fallback: string) {
-  if (!value) {
-    return fallback
-  }
-
-  const date = new Date(value)
-
-  if (Number.isNaN(date.getTime())) {
-    return value
-  }
-
-  return new Intl.DateTimeFormat("pt-BR", {
-    dateStyle: "short",
-    timeStyle: "short",
-    timeZone: "America/Sao_Paulo",
-  }).format(date)
-}
-
-export function formatDurationSeconds(value: number | null | undefined, fallback: string) {
-  if (typeof value !== "number" || !Number.isFinite(value)) {
-    return fallback
-  }
-
-  if (value < 60) {
-    return `${Math.max(0, Math.trunc(value))}s`
-  }
-
-  const minutes = Math.floor(value / 60)
-  const seconds = Math.trunc(value % 60)
-  return `${minutes}min ${seconds}s`
-}
-
 export function formatClientDocument(
   value: string | null | undefined,
   fallback: string

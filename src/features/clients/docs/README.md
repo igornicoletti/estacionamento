@@ -8,7 +8,6 @@ Feature responsável por consulta operacional de clientes ativos, veículos vinc
 
 ```text
 src/features/clients/
-├── components/
 ├── constants/
 ├── docs/
 ├── hooks/
@@ -19,7 +18,7 @@ src/features/clients/
 └── index.ts
 ```
 
-## Padrão alinhado a `src/features/units`
+## Organização vigente
 
 - `constants/clients-copy.ts` concentra textos de interface e erros.
 - `constants/clients-persistence.ts` concentra chaves de cache, visibilidade de colunas, limites e valores padrão persistidos.
@@ -27,8 +26,9 @@ src/features/clients/
 - `hooks/use-clients-table-filters.ts` e `hooks/use-client-vehicles-table-filters.ts` montam filtros derivados da tabela, no mesmo padrão de `useUnitsTableFilters`.
 - `routes` compõe tela, permissões, eventos e componentes reutilizáveis sem montar filtros inline.
 - `services/clients-gateway.ts` segue o gateway de `units`: validação com `zod`, Supabase browser client e erro explícito quando o serviço não está configurado.
-- `components/clients-sync-history-dialog.tsx` é autocontido e não depende de `src/features/sync`, mantendo a sincronização de clientes restrita à própria feature.
-- A raiz mantém apenas `index.ts`.
+- A raiz mantém apenas um `index.ts` público e estreito; código interno usa imports diretos.
+- O serviço real `client-sync-service.ts` e seus testes de concorrência permanecem como contrato do disparo da Edge Function.
+- UI, hooks, gateways de histórico e runners sem consumidor foram removidos em 2026-07-31. Uma nova interface de sincronização só deverá ser criada quando houver rota e requisito aprovados.
 
 ## Correções aplicadas
 
@@ -52,4 +52,4 @@ A rota de veículos também passou a carregar o cliente por `cod_pessoa`, sem bu
 
 - `clients-service.ts` importa explicitamente `sanitizeErpClientPayload`, corrigindo falha de build ao resolver cliente por `cod_pessoa`.
 - As chaves de cache de regras VIP foram movidas para `clients-persistence.ts`, mantendo o padrão de constantes técnicas centralizadas.
-- O barrel raiz passou a expor as constantes e serviços de sync/VIP de forma consistente com `src/features/units`.
+- O barrel raiz expõe apenas rotas, consultas e contratos com consumidores confirmados.

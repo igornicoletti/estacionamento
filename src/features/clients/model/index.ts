@@ -10,10 +10,8 @@ export {
 } from "./client-vip-rules"
 export {
   formatClientDate,
-  formatClientDateTime,
   formatClientDocument,
   formatClientPhone,
-  formatDurationSeconds,
   normalizeDisplayName,
   parseClientRouteId,
 } from "./clients-formatters"
@@ -22,7 +20,6 @@ export {
   clientVehiclePayloadKeys,
   isClientSyncMode,
   isClientSyncStatus,
-  isClientSyncTrigger,
   isRecord,
   parseClientRows,
   parseClientVehicleRows,
@@ -55,11 +52,8 @@ export {
 export type {
   Client,
   ClientStatus,
-  ClientSyncCounters,
-  ClientSyncHistoryEntry,
   ClientSyncMode,
   ClientSyncStatus,
-  ClientSyncTrigger,
   ClientsMockScenario,
   ClientsSnapshot,
   ClientTableRow,

@@ -15,7 +15,7 @@ const nulList = (value) => value.split("\0").filter(Boolean)
 const files = new Set(
   nulList(git("ls-files", "--cached", "--others", "--exclude-standard", "-z")).map(
     normalize
-  )
+  ).filter((file) => fs.existsSync(path.join(root, file)))
 )
 files.add(csvRelativePath)
 files.add(jsonRelativePath)

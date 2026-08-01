@@ -10,7 +10,7 @@ Garantir coerência de gates por perfil/permissão e estabilidade de sessão.
 
 ## Evidências executadas
 
-- Testes validados: `tests/auth/auth-validation.test.ts`, `tests/auth/authorization-policy.test.ts`, `tests/features/auth/auth-provider-inactivity.test.tsx`.
+- Testes validados: `tests/features/auth/auth-validation.test.ts`, `tests/features/auth/authorization-policy.test.ts`, `tests/features/auth/auth-provider-inactivity.test.tsx`.
 - Revisão de rotas protegidas via `route-registry` e permissões exigidas.
 
 ## Resultado

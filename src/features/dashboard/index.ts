@@ -1,6 +1,0 @@
-export { DashboardBentoGrid } from "./components"
-export { dashboardCopy } from "./constants/dashboard-copy"
-export { useDashboardSnapshot } from "./hooks/use-dashboard-snapshot"
-export { getAlertDetailItems, getVehicleMovementDetailItems } from "./model/dashboard-details"
-export { DashboardRoute } from "./routes/dashboard-route"
-export { createDashboardAlertsColumns, createDashboardMovementsColumns } from "./table"

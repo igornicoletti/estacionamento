@@ -178,6 +178,21 @@ function resolveImport(fromFile, specifier) {
   )
 }
 
+function resolveImportedIndex(fromFile, specifier) {
+  let base
+
+  if (specifier.startsWith("@/")) {
+    base = `src/${specifier.slice(2)}`
+  } else if (specifier.startsWith(".")) {
+    base = normalizePath(path.join(path.posix.dirname(fromFile), specifier))
+  } else {
+    return null
+  }
+
+  const indexFile = normalizePath(path.posix.join(base, "index.ts"))
+  return exists(indexFile) ? indexFile : null
+}
+
 const files = listProjectFiles()
 const srcCodeFiles = files.filter((file) => file.startsWith("src/") && /\.(ts|tsx)$/.test(file))
 const projectCodeFiles = files.filter(
@@ -192,9 +207,44 @@ const projectCodeFiles = files.filter(
 )
 const migrationFiles = files.filter((file) => file.startsWith("supabase/migrations/"))
 
+const looseDocs = files.filter(
+  (file) => file.startsWith("docs/") && file.split("/").length === 2 && file !== "docs/README.md"
+)
+
+if (looseDocs.length > 0) {
+  errors.push(`Documentation files must live in a named docs section: ${looseDocs.join(", ")}`)
+}
+
+const looseFeatureTests = files.filter(
+  (file) => /^tests\/features\/[^/]+\.test\.(ts|tsx)$/.test(file)
+)
+
+if (looseFeatureTests.length > 0) {
+  errors.push(`Feature tests must live in tests/features/<feature>/: ${looseFeatureTests.join(", ")}`)
+}
+
+const legacyAuthTests = files.filter((file) => file.startsWith("tests/auth/"))
+
+if (legacyAuthTests.length > 0) {
+  errors.push(`Auth tests must live in tests/features/auth/: ${legacyAuthTests.join(", ")}`)
+}
+
+const trackedRootArchives = files.filter(
+  (file) => !file.includes("/") && /\.(zip|tar|tgz|7z)$/i.test(file)
+)
+
+if (trackedRootArchives.length > 0) {
+  errors.push(`Generated archives must not be tracked at the project root: ${trackedRootArchives.join(", ")}`)
+}
+
 for (const requiredFile of [
   "README.md",
   "components.json",
+  "docs/README.md",
+  "docs/architecture/INDEX__architecture.md",
+  "docs/audits/INDEX__audits.md",
+  "docs/current/INDEX__current-docs.md",
+  "docs/reports/INDEX__flow-reports.md",
   "package.json",
   "src/App.tsx",
   "src/main.tsx",
@@ -268,6 +318,28 @@ for (const file of projectCodeFiles) {
       errors.push(`Broken import in ${file}: ${specifier}`)
     }
   }
+}
+
+const importedFeatureBarrels = new Set()
+
+for (const file of projectCodeFiles) {
+  const content = read(file)
+  const imports = content.matchAll(/(?:from\s+|import\(\s*)["']([^"']+)["']/g)
+
+  for (const match of imports) {
+    const importedIndex = resolveImportedIndex(file, match[1])
+    if (importedIndex?.startsWith("src/features/")) {
+      importedFeatureBarrels.add(importedIndex)
+    }
+  }
+}
+
+const unusedFeatureBarrels = files
+  .filter((file) => /^src\/features\/.+\/index\.ts$/.test(file))
+  .filter((file) => !importedFeatureBarrels.has(file))
+
+if (unusedFeatureBarrels.length > 0) {
+  errors.push(`Feature barrels without consumers must be removed: ${unusedFeatureBarrels.join(", ")}`)
 }
 
 const misplacedTests = files.filter((file) => file.startsWith("src/") && /\.test\.(ts|tsx)$/.test(file))

@@ -1,46 +1,41 @@
 # Validação — src/features/clients
 
-Validação executada sobre o pacote revisado:
+Validação vigente após a onda estrutural de 2026-07-31:
 
-- inspeção do ZIP gerado anteriormente;
-- checagem de sintaxe TypeScript/TSX por transpile;
-- busca por dependências residuais de sincronização legada;
+- inventário de consumidores por imports estáticos e dinâmicos;
+- checagem de sintaxe TypeScript/TSX;
 - busca por toast de carregamento via promessa;
 - busca por tipagem ampla nos arquivos de código;
-- validação de integridade do ZIP com `unzip -t`.
 
 Resultado aplicado no pacote revisado:
 
 - `src/features/clients` não importa mais a feature legada de sincronização;
 - `src/features/clients` não importa mais `@/features/rules` nem `useVipRules`;
-- `clients` possui diálogo bloqueante de sync local e runner local específico;
+- o serviço real de disparo permanece isolado e coberto por teste de concorrência;
 - telefone de cliente fica visível por padrão;
 - documento em veículos fica visível por padrão;
-- `ClientSyncCounters` mantém chaves explícitas;
 - filtros ficam em hooks, seguindo o padrão de `units`;
 - `/clientes/:cod_pessoa` usa consulta direta do cliente por ID;
 - leitura de VIP usa serviço local com select mínimo e não derruba a tabela quando falhar;
-- histórico de sincronização mantém gateway, mock, Supabase, normalização e types separados;
+- UI, hooks, gateways de histórico e runners sem consumidor foram removidos;
 - não há toast de carregamento por promessa em `src/features/clients`;
 - não há `any` nos arquivos `.ts` e `.tsx` entregues.
 
-Executar após aplicar no projeto real:
+Gates obrigatórios:
 
 ```bash
 pnpm typecheck
-pnpm exec eslint . --max-warnings=0
+pnpm typecheck:test
+pnpm lint
 pnpm test
 pnpm build
-supabase db push --dry-run
-supabase db push
+pnpm bundle:check
 ```
 
 Validar no navegador:
 
 - rota `/clientes`;
 - rota `/clientes/:cod_pessoa`;
-- sincronização manual;
-- histórico de sincronização;
 - filtros de status, VIP e placa;
 - CPF/CNPJ e telefone visíveis conforme permissão;
 - empty state inicial;

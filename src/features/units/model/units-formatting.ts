@@ -19,31 +19,6 @@ export function formatUnitSystemLabel(value: string) {
   return value.trim() ? unitsCopy.table.erpSystemLabel : unitsCopy.details.emptyValue
 }
 
-export function formatUnitDateTime(value: string | null, fallback = unitsCopy.details.emptyValue) {
-  if (!value) {
-    return fallback
-  }
-
-  const date = new Date(value)
-  return Number.isNaN(date.getTime())
-    ? fallback
-    : new Intl.DateTimeFormat("pt-BR", { dateStyle: "short", timeStyle: "short" }).format(date)
-}
-
-export function formatUnitDuration(value: number | null, fallback = unitsCopy.details.emptyValue) {
-  if (value === null || !Number.isFinite(value)) {
-    return fallback
-  }
-
-  if (value < 60) {
-    return `${Math.max(0, Math.trunc(value))}s`
-  }
-
-  const minutes = Math.floor(value / 60)
-  const seconds = Math.trunc(value % 60)
-  return `${minutes}min ${seconds}s`
-}
-
 export function createUnitMapHref(coordinates: string) {
   const value = coordinates.trim()
   return value ? `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(value)}` : null

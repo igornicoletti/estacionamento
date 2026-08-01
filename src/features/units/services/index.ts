@@ -1,11 +1,3 @@
-export {
-  configureUnitSyncHistoryGateway,
-  getUnitSyncHistoryGateway,
-  listUnitSyncHistory,
-  resetUnitSyncHistoryGateway,
-  type UnitSyncHistoryGateway
-} from "./unit-sync-history-service"
-export { executeUnitSyncWithRefresh } from "./unit-sync-runner"
 export { isUnitSyncInProgressError, triggerUnitsSync } from "./unit-sync-service"
 export {
   configureUnitUserStatsGateway,

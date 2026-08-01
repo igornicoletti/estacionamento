@@ -39,51 +39,6 @@ export const clientsCopy = {
     vehicleVip: "Veículo VIP",
   },
   sync: {
-    historyLoadError: "Não foi possível carregar o histórico de sincronização.",
-    runningTitle: "Sincronização em andamento",
-    runningDescription: "Aguarde enquanto os clientes e veículos são sincronizados com o ERP.",
-    retryLabel: "Recarregar histórico",
-    history: {
-      title: "Histórico de sincronização",
-      description: "Acompanhe as últimas execuções de sincronização de clientes e veículos.",
-      emptyTitle: "Ainda não há execuções registradas",
-      emptyDescription: "Nenhuma execução de sincronização foi registrada até o momento.",
-      loadErrorTitle: "Histórico indisponível",
-      details: {
-        duration: "Duração",
-        start: "Início",
-        end: "Fim",
-        mode: "Modo",
-        trigger: "Acionamento",
-      },
-      modes: {
-        full: "Completa",
-        incremental: "Incremental",
-      },
-      statuses: {
-        failed: "Falha",
-        success: "Sucesso",
-        warning: "Atenção",
-      },
-      triggers: {
-        automatic: "Automático",
-        manual: "Manual",
-      },
-      counters: {
-        clientsCreated: "Clientes novos",
-        clientsFailed: "Clientes com falha",
-        clientsReceived: "Clientes recebidos do ERP",
-        clientsRejected: "Clientes rejeitados",
-        clientsUnchanged: "Clientes sem alteração",
-        clientsUpdated: "Clientes atualizados",
-        vehiclesCreated: "Veículos novos",
-        vehiclesFailed: "Veículos com falha",
-        vehiclesReceived: "Veículos recebidos",
-        vehiclesRejected: "Veículos rejeitados",
-        vehiclesUnchanged: "Veículos sem alteração",
-        vehiclesUpdated: "Veículos atualizados",
-      },
-    },
     feedback: {
       success: "Sincronização concluída.",
       error: "Não foi possível sincronizar os clientes.",
@@ -148,7 +103,6 @@ export const clientsCopy = {
     clientsLoad: "Não foi possível carregar os clientes.",
     clientsUnavailable: "O serviço de clientes não está configurado.",
     invalidClientsResponse: "A resposta de clientes retornou em formato inválido.",
-    invalidSyncHistoryResponse: "A resposta do histórico de sincronização é inválida.",
     invalidVehiclesResponse: "A resposta de veículos retornou em formato inválido.",
     vipRulesLoad: "Não foi possível carregar as regras VIP de clientes.",
     vipRulesUnavailable: "O serviço de regras VIP de clientes não está configurado.",
@@ -158,6 +112,5 @@ export const clientsCopy = {
   },
   shared: {
     emptyValue: "—",
-    notFinished: "Em andamento",
   },
 } as const

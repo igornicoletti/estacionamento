@@ -6,7 +6,7 @@ Modo: implementação local, sem staging, commit, push, deploy, migration remota
 
 ## Resumo executivo
 
-A primeira onda do plano foi implementada. Os quatro fluxos que simulavam sucesso produtivo — clientes, auditoria, permissões e usuários — agora dependem de gateways Supabase/Edge reais. Gateways em memória existem apenas em `tests/` e são configurados explicitamente pelo setup. Dashboard, Relatórios e Pátio foram classificados como previews de desenvolvimento e deixaram o registro/navegação produtivos. A refatoração local da DataTable foi preservada e integrada sem customizar o Combobox gerado.
+A primeira onda de integridade produtiva e a segunda onda estrutural foram implementadas. Os quatro fluxos que simulavam sucesso produtivo — clientes, auditoria, permissões e usuários — agora dependem de gateways Supabase/Edge reais. Gateways em memória existem apenas em `tests/` e são configurados explicitamente pelo setup. Dashboard, Relatórios e Pátio foram classificados como previews de desenvolvimento e deixaram o registro/navegação produtivos. A refatoração local da DataTable foi preservada e integrada sem customizar o Combobox gerado.
 
 Também foram fixados pnpm, Node, Deno e ferramentas executadas por `npx`; `react-router` foi atualizado para 8.3.0; variáveis públicas foram separadas dos segredos; o domínio WebAuthn canônico passou a ser `estacionamento.redemontecarlo.com.br`; configurações TypeScript/ESLint e tokens globais foram saneados; utilitários e wrappers inequivocamente mortos foram removidos.
 
@@ -25,7 +25,7 @@ Cada arquivo de propriedade do projeto possui caminho, categoria, estado Git, st
 - Nenhuma exclusão de primitive shadcn ou dependência associada foi feita por resultado automático de Knip.
 - Nenhum segredo real foi lido ou registrado.
 - Nenhuma inspeção ou mutação remota foi executada.
-- A limpeza do snapshot binário `auth-phase-1-current-state.zip` permanece pendente de comparação do conteúdo; o arquivo não foi apagado.
+- O snapshot `auth-phase-1-current-state.zip` foi comparado por inventário com o código versionado e removido por ser um artefato histórico reproduzível, sem finalidade normativa. O conteúdo continua recuperável pelo histórico Git.
 
 ## Mudanças implementadas
 
@@ -68,8 +68,12 @@ Referências de composição: [Field](https://ui.shadcn.com/docs/components/radi
 - `public/favicon.svg` tornou-se a fonte canônica do símbolo da marca; a cópia byte a byte em `src/assets` foi removida e o sidebar referencia o asset público.
 - O ignore ESLint de `src/hooks/use-mobile.ts` foi removido e o arquivo passa no lint.
 - Prettier foi removido porque não havia configuração/política adotada; nenhuma reformatação massiva foi misturada às mudanças funcionais.
+- Vinte e cinco barrels sem consumidor foram removidos. O validador agora falha se um novo `index.ts` de feature não tiver alcance comprovado.
+- Testes soltos foram realocados para `tests/features/<feature>/`, e o validador impede regressões para `tests/auth/` ou para a raiz de `tests/features/`.
+- `docs/data-table-filter-refactor.md` foi movido para `docs/current/`; arquitetura, auditorias, documentação vigente e relatórios possuem índices próprios. A raiz de `docs/` aceita somente `README.md`.
+- A feature genérica `src/features/sync`, seus runners e a UI/histórico duplicados em clientes/unidades foram removidos após a confirmação de ausência de consumidores. Os serviços reais que disparam `clients-sync` e `units-sync` e seus testes foram preservados.
 
-Não foram removidos primitives shadcn nem o snapshot ZIP porque ainda é necessário validar catálogo/finalidade antes da exclusão.
+Não foram removidos primitives shadcn; o catálogo continua exigindo decisão conjunta antes de qualquer exclusão.
 
 ### Configuração e dependências
 
@@ -103,7 +107,7 @@ O update do React Router remove a dependência afetada pelo [GHSA-qwww-vcr4-c8h2
 | `reports` | mock-only e duplicado com dashboard | oculto em produção | convergir para read model operacional futuro |
 | `rules` | formulário grande e acoplamento de consulta | preservado | separar responsabilidades sem mover regra ao componente |
 | `security` | UI anuncia capacidades além do suporte efetivo | preservado | alinhar copy/capability e dividir card |
-| `sync` | infraestrutura genérica sem consumidor; clientes/unidades duplicam runners | não consolidado | extrair contratos compartilhados e migrar ambos antes de excluir |
+| `sync` | infraestrutura genérica e cópias por domínio não possuíam consumidores | código dormente removido; disparos reais preservados | criar UI somente quando houver rota, requisito e testes de fluxo aprovados |
 | `units` | backend real; normalização/sync misturados | preservado | separar model/schema e adotar runner compartilhado |
 | `users` | falsos sucessos e rota ampla | gateway corrigido | dividir tabs/panels/controllers mantendo chamadas reais |
 | `yard` | placeholder | oculto em produção | exigir contrato operacional e seleção real de unidade |
@@ -146,7 +150,7 @@ A configuração segue a distinção atual entre [autenticação de Edge Functio
 | TypeScript testes após adapters explícitos | passou |
 | ESLint completo | passou |
 | Vitest completo | passou: 61 arquivos e 217 testes, sem `skip`/`only` |
-| Tempo do Vitest completo final | 334,79 s; setup agregado 747,01 s entre workers |
+| Tempo do Vitest completo final | 352,97 s; setup agregado 755,94 s entre workers |
 | Build produtivo | passou; maior JS 283,86 kB, CSS 181,75 kB |
 | Previews no bundle produtivo | passou; sem chunks Dashboard, Reports ou Yard |
 | Deno check | passou nas 19 Edge Functions |
@@ -164,7 +168,7 @@ Para tornar a execução reproduzível no CI e evitar explosão de processos em 
 2. Corrigir a instabilidade do container `supabase_vector_estacionamento`, que impediu o CLI de encerrar o reset apesar de o schema ter sido aplicado.
 3. Fazer comparação remota somente leitura apenas com autorização específica, redigindo project refs e segredos.
 4. Perfilar o setup do Vitest: a suíte agora termina, mas o custo agregado de setup permanece alto.
-5. Separar grandes routes/forms e consolidar sync em commits por domínio; misturar essas mudanças com gateways críticos aumentaria o risco de regressão.
+5. Separar grandes routes/forms em ondas por domínio; a limpeza de sync sem consumidor foi concluída sem alterar os gateways críticos.
 6. Validar recadastro de passkeys ao migrar credenciais do domínio antigo para o canônico.
 7. Decidir o catálogo de primitives shadcn antes de remover dependências ou arquivos sem consumidor aparente.
 

@@ -1,14 +1,12 @@
 import {
   CLIENT_SYNC_RUN_MODES,
   CLIENT_SYNC_STATUSES,
-  CLIENT_SYNC_TRIGGERS,
 } from "../constants/clients-sync"
 
 export type ClientStatus = "ativo" | "inativo"
 export type VipFlag = "sim" | "nao"
 export type ClientSyncMode = (typeof CLIENT_SYNC_RUN_MODES)[number]
 export type ClientSyncStatus = (typeof CLIENT_SYNC_STATUSES)[number]
-export type ClientSyncTrigger = (typeof CLIENT_SYNC_TRIGGERS)[number]
 export type ClientsMockScenario =
   | "success"
   | "empty"
@@ -105,35 +103,6 @@ export interface ParseRowsResult<TPayload> {
   rejectedRows: number
   rows: TPayload[]
   issues: readonly ParseIssue[]
-}
-
-export interface ClientSyncCounters {
-  clientsCreated: number
-  clientsFailed: number
-  clientsReceived: number
-  clientsRejected: number
-  clientsUnchanged: number
-  clientsUpdated: number
-  vehiclesCreated: number
-  vehiclesFailed: number
-  vehiclesReceived: number
-  vehiclesRejected: number
-  vehiclesUnchanged: number
-  vehiclesUpdated: number
-}
-
-export interface ClientSyncHistoryEntry {
-  consecutiveFailures: number
-  counters: ClientSyncCounters
-  durationSeconds: number | null
-  errorDetails: readonly string[]
-  finishedAt: string | null
-  id: string
-  message: string
-  mode: ClientSyncMode
-  startedAt: string
-  status: ClientSyncStatus
-  trigger: ClientSyncTrigger
 }
 
 export interface TriggerClientsSyncResult {
