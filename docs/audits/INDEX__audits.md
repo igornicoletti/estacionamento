@@ -1,6 +1,6 @@
 # Índice de auditorias
 
-Data de atualização: 2026-07-31
+Data de atualização: 2026-08-01
 
 ## Auditoria vigente
 

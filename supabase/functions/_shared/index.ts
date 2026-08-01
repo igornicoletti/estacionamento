@@ -32,6 +32,7 @@ export {
   createAdminClient,
   createPasswordAuthClient
 } from "./auth-supabase-admin.ts"
+export { revokeAuthUserSessions } from "./auth-sessions.ts"
 export {
   adminCreateUserSchema,
   adminUpdateUserSchema,

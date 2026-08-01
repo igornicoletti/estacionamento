@@ -1,4 +1,5 @@
 import { completeAdminAction, createAdminActionContext, errorResponse, handleAdminCors } from "../_shared/admin-users.ts"
+import { revokeAuthUserSessions } from "../_shared/auth-sessions.ts"
 
 Deno.serve(async (request) => {
   const cors = handleAdminCors(request)
@@ -6,11 +7,7 @@ Deno.serve(async (request) => {
 
   try {
     const context = await createAdminActionContext(request)
-    const signOutResponse = await context.admin.auth.admin.signOut(context.target.auth_user_id, "global")
-
-    if (signOutResponse.error) {
-      throw new Error("Não foi possível revogar as sessões.")
-    }
+    await revokeAuthUserSessions(context.admin, context.target.auth_user_id)
 
     return completeAdminAction(context, "sessions_revoked")
   } catch (caughtError) {

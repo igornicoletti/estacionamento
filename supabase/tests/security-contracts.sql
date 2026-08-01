@@ -82,4 +82,40 @@ begin
 end;
 $$;
 
+do $$
+declare
+  private_function oid := to_regprocedure('private.revoke_auth_user_sessions(uuid)');
+  public_function oid := to_regprocedure('public.revoke_auth_user_sessions(uuid)');
+begin
+  if private_function is null or public_function is null then
+    raise exception 'Contrato de revogação de sessões ausente.';
+  end if;
+
+  if not exists (
+    select 1
+    from pg_proc
+    where oid = private_function
+      and prosecdef
+  ) then
+    raise exception 'Implementação privada de revogação deve usar security definer.';
+  end if;
+
+  if exists (
+    select 1
+    from pg_proc
+    where oid = public_function
+      and prosecdef
+  ) then
+    raise exception 'Wrapper público de revogação deve usar security invoker.';
+  end if;
+
+  if has_function_privilege('public', public_function, 'EXECUTE')
+    or has_function_privilege('anon', public_function, 'EXECUTE')
+    or has_function_privilege('authenticated', public_function, 'EXECUTE')
+    or not has_function_privilege('service_role', public_function, 'EXECUTE') then
+    raise exception 'RPC de revogação deve ser exclusiva do service_role.';
+  end if;
+end;
+$$;
+
 select 'security contracts passed' as result;

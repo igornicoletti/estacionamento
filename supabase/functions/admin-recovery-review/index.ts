@@ -6,6 +6,7 @@ import {
   handleCors,
   jsonResponse,
   newPasswordSchema,
+  revokeAuthUserSessions,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
@@ -126,7 +127,7 @@ Deno.serve(async (request) => {
         return authError("request_failed", 400, request)
       }
 
-      await supabase.auth.admin.signOut(target.auth_user_id, "global")
+      await revokeAuthUserSessions(supabase, target.auth_user_id)
     }
 
     if (decision === "denied" && target) {
@@ -145,7 +146,7 @@ Deno.serve(async (request) => {
         return authError("request_failed", 400, request)
       }
 
-      await supabase.auth.admin.signOut(target.auth_user_id, "global")
+      await revokeAuthUserSessions(supabase, target.auth_user_id)
     }
 
     const updateResponse = await supabase

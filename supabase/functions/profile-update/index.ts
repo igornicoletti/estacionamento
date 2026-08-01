@@ -8,6 +8,7 @@ import {
   maskPhone,
   normalizePhone,
   profileUpdateSchema,
+  revokeAuthUserSessions,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
@@ -202,7 +203,7 @@ Deno.serve(async (request) => {
         .eq("user_id", actor.authUserId)
         .eq("factor_type", "webauthn")
 
-      await supabase.auth.admin.signOut(actor.authUserId, "global")
+      await revokeAuthUserSessions(supabase, actor.authUserId)
     }
 
     await writeAuditEvent({

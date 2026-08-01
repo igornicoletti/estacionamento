@@ -6,6 +6,7 @@ import {
   handleCors,
   jsonResponse,
   profilePasswordSchema,
+  revokeAuthUserSessions,
   writeAuditEvent,
 } from "../_shared/index.ts"
 
@@ -59,7 +60,7 @@ Deno.serve(async (request) => {
       return genericAuthError(400, request)
     }
 
-    await supabase.auth.admin.signOut(actor.authUserId, "global")
+    await revokeAuthUserSessions(supabase, actor.authUserId)
 
     await writeAuditEvent({
       actor: actor.name,

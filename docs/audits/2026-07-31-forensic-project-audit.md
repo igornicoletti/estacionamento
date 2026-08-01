@@ -162,15 +162,25 @@ O comando `supabase db reset --local` aplicou as 54 migrations preexistentes, co
 
 Para tornar a execução reproduzível no CI e evitar explosão de processos em Windows/jsdom, o script `pnpm test` fixa quatro workers. O orçamento atual ainda é alto e deve ser reduzido, mas a suíte deixou de ser inconclusiva.
 
+## Adendo de publicação e autenticação — 2026-08-01
+
+- A onda estrutural foi publicada diretamente em `main` no commit `e9b00f7`, após autorização explícita para revisar e publicar todo o worktree.
+- A inspeção autorizada confirmou paridade das migrations locais e remotas. Duas migrations aditivas posteriores elevaram o estado final para 57 migrations: uma RPC protegida de revogação de sessões e uma notificação explícita de recarga do schema PostgREST.
+- Sete Edge Functions passavam UUID de usuário para `auth.admin.signOut`, cuja assinatura exige um JWT de sessão. Elas agora usam `public.revoke_auth_user_sessions(uuid)`, disponível somente para `service_role`, que delega a exclusão a uma função `private` com `security definer` e `search_path` fixo.
+- A configuração Auth remota foi alinhada ao domínio canônico `estacionamento.redemontecarlo.com.br`. O provedor interno de e-mail/senha foi habilitado porque o login por CPF autentica por e-mail técnico; o cadastro público global permanece desabilitado.
+- O usuário proprietário solicitado foi reconciliado de forma idempotente nos ambientes local e remoto. Nome, CPF exibível, telefone, e-mail, papel `owner`, bloqueios e tentativas foram conferidos; o estado final permanece `pending` para exigir troca de senha.
+- O fluxo `auth-password` retornou `set_new_password` nos dois ambientes. Os fluxos e sessões criados apenas para verificação foram removidos, sem concluir a troca de senha em nome do usuário.
+- Os gates pós-correção passaram: inventário de 762 arquivos/57 migrations, ESLint, dois typechecks, build e orçamento, 19 entradas Deno, lint/contratos SQL e Vitest completo com 61 arquivos/217 testes em 294,51 s.
+- Chaves administrativas, HMACs e senha temporária não são persistidos neste relatório nem em arquivos do repositório.
+
 ## Pendências que exigem ambiente ou onda própria
 
 1. Complementar `supabase/tests/security-contracts.sql` com atores/claims reais; os contratos estruturais passam, mas ainda não provam autorização ponta a ponta.
 2. Corrigir a instabilidade do container `supabase_vector_estacionamento`, que impediu o CLI de encerrar o reset apesar de o schema ter sido aplicado.
-3. Fazer comparação remota somente leitura apenas com autorização específica, redigindo project refs e segredos.
-4. Perfilar o setup do Vitest: a suíte agora termina, mas o custo agregado de setup permanece alto.
-5. Separar grandes routes/forms em ondas por domínio; a limpeza de sync sem consumidor foi concluída sem alterar os gateways críticos.
-6. Validar recadastro de passkeys ao migrar credenciais do domínio antigo para o canônico.
-7. Decidir o catálogo de primitives shadcn antes de remover dependências ou arquivos sem consumidor aparente.
+3. Perfilar o setup do Vitest: a suíte agora termina, mas o custo agregado de setup permanece alto.
+4. Separar grandes routes/forms em ondas por domínio; a limpeza de sync sem consumidor foi concluída sem alterar os gateways críticos.
+5. Validar recadastro de passkeys ao migrar credenciais do domínio antigo para o canônico.
+6. Decidir o catálogo de primitives shadcn antes de remover dependências ou arquivos sem consumidor aparente.
 
 ## Critérios de aceite remanescentes
 

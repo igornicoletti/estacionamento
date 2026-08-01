@@ -1,4 +1,8 @@
-import { createAdminClient, writeAuditEvent } from "../_shared/index.ts"
+import {
+  createAdminClient,
+  revokeAuthUserSessions,
+  writeAuditEvent,
+} from "../_shared/index.ts"
 
 const maxFailedAttempts = 5
 const lockMinutes = 15
@@ -76,9 +80,5 @@ export async function markPasswordReset(authUserId: string) {
 
 export async function revokeAllSessions(authUserId: string) {
   const admin = createAdminClient()
-  const signOutResponse = await admin.auth.admin.signOut(authUserId, "global")
-
-  if (signOutResponse.error) {
-    throw new Error("Não foi possível revogar as sessões anteriores.")
-  }
+  await revokeAuthUserSessions(admin, authUserId)
 }

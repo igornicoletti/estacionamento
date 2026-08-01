@@ -4,6 +4,7 @@ import {
   errorResponse,
   handleAdminCors,
 } from "../_shared/admin-users.ts"
+import { revokeAuthUserSessions } from "../_shared/auth-sessions.ts"
 
 Deno.serve(async (request) => {
   const cors = handleAdminCors(request)
@@ -31,11 +32,7 @@ Deno.serve(async (request) => {
       }
     }
 
-    const signOutResponse = await context.admin.auth.admin.signOut(userId, "global")
-
-    if (signOutResponse.error) {
-      throw new Error("Não foi possível revogar as sessões do usuário.")
-    }
+    await revokeAuthUserSessions(context.admin, userId)
 
     return completeAdminAction(context, "passkeys_removed")
   } catch (caughtError) {

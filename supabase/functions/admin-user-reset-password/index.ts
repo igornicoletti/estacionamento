@@ -1,4 +1,5 @@
 import { completeAdminAction, createAdminActionContext, errorResponse, handleAdminCors } from "../_shared/admin-users.ts"
+import { revokeAuthUserSessions } from "../_shared/auth-sessions.ts"
 
 Deno.serve(async (request) => {
   const cors = handleAdminCors(request)
@@ -15,7 +16,7 @@ Deno.serve(async (request) => {
       throw new Error("Não foi possível redefinir a autenticação.")
     }
 
-    await context.admin.auth.admin.signOut(context.target.auth_user_id, "global")
+    await revokeAuthUserSessions(context.admin, context.target.auth_user_id)
 
     return completeAdminAction(context, "password_reset_requested")
   } catch (caughtError) {
