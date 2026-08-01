@@ -80,7 +80,7 @@ A validação operacional também revelou débitos transversais que afetavam o c
 - a RPC de perfil chamava implementação privada sem o contrato de execução necessário; wrappers públicos invoker e implementação privada definer corrigiram o `403` sem abrir privilégios a `anon`/`public`;
 - crons de ERP continham contrato de segredo/timeout inadequado; segredos foram rotacionados e passaram ao Vault;
 - o sync de clientes/veículos excedia o limite do Edge Runtime e gravava nomes de contadores inexistentes; o fluxo passou a cliente + oito partições determinísticas de veículos, com cursor retomável e checkpoint apenas no fechamento;
-- o ciclo remoto final processou 28.552 clientes e 124.912 veículos ativos, sem duplicatas de ID/placa; a Edge Function v51 registrou nove respostas HTTP 200 consecutivas.
+- o ciclo remoto final processou 28.552 clientes e 124.912 veículos ativos, sem duplicatas de ID/placa; a validação registrou nove respostas HTTP 200 consecutivas e a implantação atualmente ativa é a v52.
 
 O Advisor de segurança mantém somente `auth_leaked_password_protection`. A organização foi confirmada no plano Free e o recurso exige plano pago; não foi habilitado sem autorização de custo. Os Advisors de performance retornam apenas `INFO` de índices sem uso. Nenhum índice foi excluído com base apenas em contadores recém-inicializados.
 
