@@ -43,6 +43,7 @@ export function SidebarBrand({ brand }: SidebarBrandProps) {
         <SidebarMenuButton
           asChild
           size="lg"
+          variant="outline"
           tooltip={brand.tooltip ?? brand.label}
           className="justify-center rounded-none bg-transparent px-0 hover:bg-transparent active:bg-transparent group-data-[collapsible=icon]:p-0!"
         >

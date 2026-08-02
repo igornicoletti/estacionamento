@@ -62,7 +62,7 @@ export function AppSidebar({
       variant={variant}
       className="group-data-[side=left]:border-r-0 group-data-[side=right]:border-l-0"
     >
-      <SidebarHeader className="sticky top-0 z-10 h-[var(--app-header-height,4rem)] shrink-0 justify-center overflow-hidden border-b bg-sidebar px-2 py-0 transition-[height] ease-linear group-data-[collapsible=icon]:h-[var(--app-header-height-collapsed,3rem)]">
+      <SidebarHeader className="sticky top-0 z-10 h-(--app-header-height,4rem) shrink-0 justify-center overflow-hidden bg-background px-2 py-0 transition-[height] ease-linear group-data-[collapsible=icon]:h-(--app-header-height-collapsed,3rem)">
         <div className="flex w-full items-center gap-2">
           <div className="min-w-0 flex-1">
             <SidebarBrand

@@ -1,11 +1,10 @@
-
 "use client"
 
 import { SidebarContent } from "@/components/ui/sidebar"
 
 import { SidebarNavigationGroup } from "./sidebar-navigation-group"
-import type { SidebarNavigationGroup as SidebarNavigationGroupData } from "./sidebar.types"
 import { validateSidebarGroups } from "./sidebar-validation"
+import type { SidebarNavigationGroup as SidebarNavigationGroupData } from "./sidebar.types"
 
 export type SidebarNavigationProps = {
   groups: readonly SidebarNavigationGroupData[]

@@ -10,13 +10,13 @@ import type { SidebarToggleLabels } from "./sidebar.types"
 
 export type SidebarResponsiveTriggerProps =
   | {
-      placement: "header"
-      labels: SidebarToggleLabels
-    }
+    placement: "header"
+    labels: SidebarToggleLabels
+  }
   | {
-      placement: "footer"
-      labels: SidebarToggleLabels
-    }
+    placement: "footer"
+    labels: SidebarToggleLabels
+  }
 
 export function SidebarResponsiveTrigger({
   placement,
@@ -44,7 +44,7 @@ export function SidebarResponsiveTrigger({
   const label = state === "collapsed" ? labels.expand : labels.collapse
 
   return (
-    <SidebarFooter className="sticky bottom-0 z-10 hidden shrink-0 bg-sidebar lg:flex group-data-[collapsible=icon]:items-center">
+    <SidebarFooter>
       <SidebarTrigger aria-label={label} title={label} />
     </SidebarFooter>
   )
