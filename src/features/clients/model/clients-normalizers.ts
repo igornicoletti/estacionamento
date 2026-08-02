@@ -6,10 +6,17 @@ import {
 } from "@/lib"
 
 import {
+  type ErpClientCatalogRow,
   type ErpClientRow,
+  type ErpClientVehicleCatalogRow,
   type ErpClientVehicleRow,
 } from "../schemas/clients-gateway-schemas"
-import { type Client, type ClientVehicle } from "./clients-types"
+import {
+  type Client,
+  type ClientCatalogItem,
+  type ClientVehicle,
+  type ClientVehicleCatalogItem,
+} from "./clients-types"
 
 const brazilianStates = new Set([
   "AC", "AL", "AP", "AM", "BA", "CE", "DF", "ES", "GO", "MA",
@@ -104,6 +111,31 @@ export function mapErpClientVehicle(
     des_veiculo: formatHumanReadableText(row.des_veiculo),
     nom_fantasia: formatHumanReadableText(row.nom_fantasia),
     nom_motorista: formatHumanReadableText(row.nom_motorista),
+    nom_pessoa: formatHumanReadableText(row.nom_pessoa),
+    num_cnpj_cpf: normalizeDocument(row.num_cnpj_cpf),
+    num_placa: row.num_placa,
+  }
+}
+
+export function mapErpClientCatalogItem(
+  row: ErpClientCatalogRow,
+): ClientCatalogItem {
+  return {
+    cod_pessoa: row.cod_pessoa,
+    nom_fantasia: formatHumanReadableText(row.nom_fantasia),
+    nom_pessoa: formatHumanReadableText(row.nom_pessoa),
+    num_cnpj_cpf: normalizeDocument(row.num_cnpj_cpf),
+  }
+}
+
+export function mapErpClientVehicleCatalogItem(
+  row: ErpClientVehicleCatalogRow,
+): ClientVehicleCatalogItem {
+  return {
+    cod_pessoa: row.cod_pessoa,
+    cod_veiculo: row.cod_veiculo,
+    des_veiculo: formatHumanReadableText(row.des_veiculo),
+    nom_fantasia: formatHumanReadableText(row.nom_fantasia),
     nom_pessoa: formatHumanReadableText(row.nom_pessoa),
     num_cnpj_cpf: normalizeDocument(row.num_cnpj_cpf),
     num_placa: row.num_placa,

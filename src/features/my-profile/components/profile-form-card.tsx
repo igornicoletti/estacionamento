@@ -224,7 +224,7 @@ function ProtectedProfileRow({
         <ItemDescription className="line-clamp-none">{myProfileCopy.profile.protectedDescription}</ItemDescription>
       </ItemContent>
       <ItemActions className="basis-full sm:ml-auto sm:basis-auto">
-        <Input className="w-full sm:min-w-[260px]" value={value} disabled readOnly />
+        <Input className="w-full sm:min-w-65" value={value} disabled readOnly />
       </ItemActions>
     </Item>
   )
@@ -247,7 +247,7 @@ function ProfileOverviewCard({
           </Avatar>
           <div className="grid min-w-0 gap-2">
             <div className="grid gap-1">
-              <h2 className="break-words text-lg font-semibold text-foreground">{profile.name}</h2>
+              <h2 className="wrap-break-word text-lg font-semibold text-foreground">{profile.name}</h2>
               <p className="break-all text-sm text-muted-foreground">{resolveProfileEmail(profile.email)}</p>
             </div>
             <div className="flex flex-wrap gap-2">

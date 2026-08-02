@@ -2,7 +2,12 @@ import { Building2Icon } from "lucide-react"
 import * as React from "react"
 
 import { AUTH_ROLE_KEY, useAuth } from "@/features/auth"
-import { useUnitYardConfigs, useUnits, type Unit } from "@/features/units"
+import {
+  formatUnitOptionLabel,
+  useUnitYardConfigs,
+  useUnits,
+  type Unit,
+} from "@/features/units"
 
 import {
   Combobox,
@@ -71,7 +76,7 @@ function resolveUnitNameById(units: readonly Unit[], unitId: string | null) {
 export function formatUnitSelectorOption(
   unit: Pick<Unit, "cod_empresa" | "nom_fantasia">,
 ) {
-  return `${unit.cod_empresa} — ${unit.nom_fantasia}`
+  return formatUnitOptionLabel(unit.cod_empresa, unit.nom_fantasia)
 }
 
 function createUnitSelectorOptions(

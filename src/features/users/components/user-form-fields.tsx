@@ -28,6 +28,7 @@ import {
   SelectValue,
 } from "@/components/ui/select"
 import { formatCpfInput } from "@/features/auth"
+import { formatUnitOptionLabel } from "@/features/units"
 import { formatPhone, onlyDigits } from "@/lib"
 
 import { usersCopy } from "../constants/users-copy"
@@ -265,8 +266,12 @@ export function UserFormFields({
             onValueChange("unitId", value?.id ?? "")
           }}
           isItemEqualToValue={(left, right) => left.id === right.id}
-          itemToStringLabel={(unit) => unit.name}
-          itemToStringValue={(unit) => `${unit.id} ${unit.name}`}
+          itemToStringLabel={(unit) =>
+            formatUnitOptionLabel(unit.id, unit.name)
+          }
+          itemToStringValue={(unit) =>
+            `${unit.id} ${formatUnitOptionLabel(unit.id, unit.name)}`
+          }
           disabled={isSaving || isGlobalScopeRole}
         >
           <ComboboxInput
@@ -297,7 +302,7 @@ export function UserFormFields({
               <ComboboxCollection>
                 {(unit: UnitCatalogItem) => (
                   <ComboboxItem key={unit.id} value={unit}>
-                    {unit.name}
+                    {formatUnitOptionLabel(unit.id, unit.name)}
                   </ComboboxItem>
                 )}
               </ComboboxCollection>

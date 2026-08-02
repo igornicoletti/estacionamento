@@ -1,7 +1,7 @@
 import { z } from "zod"
 
-const scopeSchema = z.enum(["global", "unit", "network"])
-const statusSchema = z.enum(["active", "inactive", "draft", "archived"])
+const scopeSchema = z.enum(["network", "unit"])
+const statusSchema = z.enum(["active", "inactive"])
 
 export const priceTableFormSchema = z
   .object({

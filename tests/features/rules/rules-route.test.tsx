@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/react"
+import { act, fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
 import {
   afterEach,
@@ -39,6 +39,9 @@ const {
   toggleClientVipMock: vi.fn(),
   toggleVehicleVipMock: vi.fn(),
 }))
+
+const searchClientsCatalogMock = vi.fn()
+const searchVehiclesCatalogMock = vi.fn()
 
 vi.mock("@/features/rules/services/vip-rules-service", () => ({
   listVipRules: listVipRulesMock,
@@ -117,6 +120,44 @@ function configureCatalogGateways() {
           sgl_estado: "SP",
         }
         : null
+    },
+    async searchClients(query, limit) {
+      searchClientsCatalogMock(query, limit)
+      await Promise.resolve()
+      return [
+        {
+          bloqueio_financeiro: "N",
+          cod_pessoa: 1001,
+          des_email_1: "contato@alfa.com.br",
+          dta_cadastro: "2024-01-15",
+          dta_ultima_compra: "2026-06-20",
+          ind_pessoa_ativa: "S",
+          is_active_120d: true,
+          nom_cidade: "Sao Paulo",
+          nom_fantasia: "Auto Center Alfa",
+          nom_pessoa: "Auto Center Alfa Ltda",
+          num_cnpj_cpf: "12.345.678/0001-10",
+          num_telefone_1: "(11) 3333-4444",
+          qtd_veiculos: 1,
+          sgl_estado: "SP",
+        },
+      ]
+    },
+    async searchVehicles(query, limit) {
+      searchVehiclesCatalogMock(query, limit)
+      await Promise.resolve()
+      return [
+        {
+          cod_pessoa: 1001,
+          cod_veiculo: 5001,
+          des_veiculo: "Fiat Strada 1.4",
+          nom_fantasia: "Auto Center Alfa",
+          nom_motorista: "Joao Carlos",
+          nom_pessoa: "Auto Center Alfa Ltda",
+          num_cnpj_cpf: "12.345.678/0001-10",
+          num_placa: "ABC1D23",
+        },
+      ]
     },
     async listVehiclesByClientId(clientId) {
       await Promise.resolve()
@@ -221,14 +262,35 @@ async function openCreateRuleDialog() {
 async function selectClient() {
   const clientField = screen.getByLabelText("Nome do cliente")
 
+  fireEvent.input(clientField, { target: { value: "Auto Center" } })
+  await waitFor(() => {
+    expect(searchClientsCatalogMock).toHaveBeenCalledWith("Auto Center", 50)
+  })
+  await act(async () => {
+    await Promise.resolve()
+    await Promise.resolve()
+  })
   fireEvent.keyDown(clientField, { key: "ArrowDown" })
-  fireEvent.click(await screen.findByRole("option", { name: "Auto Center Alfa" }))
+  fireEvent.click(
+    await screen.findByRole("option", {
+      name: /1001 — Auto Center Alfa/,
+    }),
+  )
+}
+
+async function selectRuleTarget(name: string) {
+  fireEvent.keyDown(screen.getByRole("combobox", { name: "Alvo" }), {
+    key: "ArrowDown",
+  })
+  fireEvent.click(await screen.findByRole("option", { name }))
 }
 
 describe("RulesRoute", () => {
   beforeEach(() => {
     clearAsyncSnapshotCache()
     configureCatalogGateways()
+    searchClientsCatalogMock.mockReset()
+    searchVehiclesCatalogMock.mockReset()
     listVipRulesMock.mockReset()
     saveVipRuleMock.mockReset()
     toggleClientVipMock.mockReset()
@@ -287,6 +349,79 @@ describe("RulesRoute", () => {
       expect(
         screen.queryByRole("heading", { name: "Adicionar regra" })
       ).not.toBeInTheDocument()
+    })
+  }, 15_000)
+
+  it("derives vehicle and client data from the searchable vehicle catalog", async () => {
+    render(
+      <MemoryRouter>
+        <RulesRoute />
+      </MemoryRouter>
+    )
+
+    await openCreateRuleDialog()
+    await selectRuleTarget("Veículo")
+
+    const vehicleField = screen.getByRole("combobox", { name: "Veículo" })
+    fireEvent.input(vehicleField, { target: { value: "ABC1D23" } })
+    await waitFor(() => {
+      expect(searchVehiclesCatalogMock).toHaveBeenCalledWith("ABC1D23", 50)
+    })
+    await act(async () => {
+      await Promise.resolve()
+      await Promise.resolve()
+    })
+    fireEvent.keyDown(vehicleField, { key: "ArrowDown" })
+    fireEvent.click(
+      await screen.findByRole("option", {
+        name: /ABC1D23 — Fiat Strada 1\.4.*Auto Center Alfa/,
+      }),
+    )
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
+
+    await waitFor(() => {
+      expect(saveVipRuleMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          clientId: 1001,
+          clientName: "Auto Center Alfa",
+          targetType: "vehicle",
+          vehicleId: 5001,
+          vehicleIds: [5001],
+          vehiclePlate: "ABC1D23",
+        }),
+      )
+    })
+  }, 15_000)
+
+  it("selects units by code and name without manual IDs", async () => {
+    render(
+      <MemoryRouter>
+        <RulesRoute />
+      </MemoryRouter>
+    )
+
+    await openCreateRuleDialog()
+    await selectClient()
+    fireEvent.click(screen.getByLabelText("Aplicar em todas as unidades"))
+
+    const saveButton = screen.getByRole("button", { name: "Salvar" })
+    const unitsField = screen.getByRole("combobox", { name: "Unidades" })
+    fireEvent.keyDown(unitsField, { key: "ArrowDown" })
+    fireEvent.click(
+      await screen.findByRole("option", {
+        name: "001 — Monte Carlo Centro",
+      }),
+    )
+    fireEvent.pointerDown(saveButton)
+    fireEvent.click(saveButton)
+
+    await waitFor(() => {
+      expect(saveVipRuleMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          appliesToAllUnits: false,
+          unitIds: ["1"],
+        }),
+      )
     })
   }, 15_000)
 

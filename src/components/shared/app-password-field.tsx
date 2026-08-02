@@ -55,7 +55,9 @@ export function AppPasswordField({
       <div className="flex items-center justify-between gap-3">
         <FieldLabel htmlFor={id}>
           {label}
-          {required ? <span className="text-destructive">*</span> : null}
+          {required ? (
+            <span aria-hidden="true" className="text-destructive">*</span>
+          ) : null}
         </FieldLabel>
 
         {labelAction ? (

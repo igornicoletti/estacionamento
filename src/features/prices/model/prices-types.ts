@@ -1,7 +1,7 @@
 export const priceScopeValues = ["global", "unit"] as const
 export type PriceScope = (typeof priceScopeValues)[number]
 
-export const priceStatusValues = ["active", "inactive", "draft", "archived"] as const
+export const priceStatusValues = ["active", "inactive"] as const
 export type PriceStatus = (typeof priceStatusValues)[number]
 
 export const priceScopeLabels: Record<PriceScope, string> = {
@@ -12,8 +12,6 @@ export const priceScopeLabels: Record<PriceScope, string> = {
 export const priceStatusLabels: Record<PriceStatus, string> = {
   active: "Ativa",
   inactive: "Inativa",
-  draft: "Rascunho",
-  archived: "Arquivada",
 }
 
 export interface PriceTableRecord {
@@ -36,7 +34,6 @@ export interface PriceTableRecord {
 
 export interface RawPriceTableRecord {
   id: unknown
-  name: unknown
   scope: unknown
   unit_id: unknown
   unit_name: unknown
@@ -54,7 +51,6 @@ export interface RawPriceTableRecord {
 
 export interface PriceTableFormValues {
   id?: string
-  name: string
   scope: PriceScope | ""
   unitId: string
   unitName: string
@@ -70,7 +66,6 @@ export interface PriceTableFormValues {
 
 export interface SavePriceTablePayload {
   id?: string
-  name: string
   scope: PriceScope
   unitId: string | null
   unitName: string | null

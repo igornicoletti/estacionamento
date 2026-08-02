@@ -1,37 +1,52 @@
-import { Link } from "react-router"
+"use client"
 
 import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from "@/components/ui/sidebar"
 
-import { sidebarBrand } from "./sidebar-config"
+import { renderSidebarLink } from "./sidebar-link"
+import type { SidebarBrandConfig } from "./sidebar.types"
 
-interface SidebarBrandProps {
-  homeHref: `/${string}`
+export type SidebarBrandProps = {
+  brand: SidebarBrandConfig
 }
 
-export function SidebarBrand({ homeHref }: SidebarBrandProps) {
+export function SidebarBrand({ brand }: SidebarBrandProps) {
+  const { isMobile, state, setOpenMobile } = useSidebar()
+  const logo = isMobile
+    ? (brand.mobileLogo ?? brand.expandedLogo)
+    : state === "collapsed"
+      ? brand.collapsedLogo
+      : brand.expandedLogo
+
+  const link = renderSidebarLink({
+    target: brand,
+    ariaLabel: brand.label,
+    onClick: () => {
+      if (isMobile) {
+        setOpenMobile(false)
+      }
+    },
+    children: (
+      <span aria-hidden="true" className="flex min-w-0 items-center">
+        {logo}
+      </span>
+    ),
+  })
+
   return (
     <SidebarMenu>
       <SidebarMenuItem>
         <SidebarMenuButton
           asChild
-          className="h-16 justify-center rounded-none bg-transparent! px-0 hover:bg-transparent! active:bg-transparent!"
+          size="lg"
+          tooltip={brand.tooltip ?? brand.label}
+          className="justify-center rounded-none bg-transparent px-0 hover:bg-transparent active:bg-transparent group-data-[collapsible=icon]:p-0!"
         >
-          <Link to={homeHref}>
-            <img
-              src={sidebarBrand.sidebarLogoUrl}
-              alt={sidebarBrand.name}
-              className="h-12 w-auto object-contain transition-none group-data-[collapsible=icon]:hidden"
-            />
-            <img
-              src={sidebarBrand.symbolLogoUrl}
-              alt={sidebarBrand.shortName}
-              className="hidden size-12 object-contain transition-none group-data-[collapsible=icon]:block"
-            />
-          </Link>
+          {link}
         </SidebarMenuButton>
       </SidebarMenuItem>
     </SidebarMenu>

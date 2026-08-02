@@ -63,6 +63,7 @@ export const rulesCopy = {
     clientName: "Nome do cliente",
     vehicleId: "Código do veículo",
     vehiclePlate: "Placa",
+    vehicle: "Veículo",
     appliesToAllUnits: "Aplicar em todas as unidades",
     unitIds: "Unidades",
     active: "Ativa",
@@ -71,7 +72,31 @@ export const rulesCopy = {
     yardOccupancyThreshold: "Ocupação mínima do pátio (%)",
     yardStaleVehicleHours: "Horas sem movimentação",
     notes: "Observações",
-    selectPlaceholder: "Selecione",
+    selectPlaceholder: "Selecione ou pesquise",
+    catalog: {
+      loading: "Carregando opções...",
+      minQuery: "Digite ao menos 2 caracteres para buscar.",
+      searchClients: "Busque por nome, código ou CPF/CNPJ",
+      searchVehicles: "Busque por placa, veículo ou cliente",
+      searchingClients: "Buscando clientes...",
+      searchingVehicles: "Buscando veículos...",
+      clientsEmpty: "Nenhum cliente encontrado.",
+      clientsUnavailable: "Não foi possível carregar os clientes.",
+      vehiclesEmpty: "Nenhum veículo encontrado.",
+      vehiclesUnavailable: "Não foi possível carregar os veículos.",
+      unitsEmpty: "Nenhuma unidade encontrada.",
+      unitsUnavailable: "Não foi possível carregar as unidades.",
+    },
+    help: {
+      fuelMinLiters:
+        "Volume mínimo abastecido para que a regra seja aplicada.",
+      benefitHours:
+        "Quantidade de horas concedidas ao cliente quando a regra for atendida.",
+      yardOccupancyThreshold:
+        "Percentual mínimo de ocupação que ativa a regra de limpeza do pátio.",
+      yardStaleVehicleHours:
+        "Tempo sem movimentação usado para identificar veículos parados no pátio.",
+    },
   },
   validation: {
     required: "Campo obrigatório.",

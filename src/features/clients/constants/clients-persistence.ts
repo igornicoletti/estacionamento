@@ -4,6 +4,7 @@ export const CLIENTS_CACHE_KEY = "clients:list:v4"
 export const CLIENT_VEHICLES_CACHE_KEY_PREFIX = "clients:vehicles:v4"
 export const CLIENTS_BATCH_SIZE = 500
 export const CLIENTS_MAX_BATCHES = 120
+export const CLIENT_CATALOG_SEARCH_LIMIT = 50
 
 export const DEFAULT_CLIENTS_COLUMN_VISIBILITY = {
   des_email_1: false,

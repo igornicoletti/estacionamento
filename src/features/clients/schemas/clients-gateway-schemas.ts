@@ -49,8 +49,36 @@ export const erpClientRowsSchema = z.array(erpClientRowSchema)
 export const erpClientVehicleRowsSchema = z.array(
   erpClientVehicleRowSchema
 )
+export const erpClientCatalogRowSchema = erpClientRowSchema.pick({
+  cod_pessoa: true,
+  nom_fantasia: true,
+  nom_pessoa: true,
+  num_cnpj_cpf: true,
+})
+export const erpClientCatalogRowsSchema = z.array(
+  erpClientCatalogRowSchema,
+)
+export const erpClientVehicleCatalogRowSchema =
+  erpClientVehicleRowSchema.pick({
+    cod_pessoa: true,
+    cod_veiculo: true,
+    des_veiculo: true,
+    nom_fantasia: true,
+    nom_pessoa: true,
+    num_cnpj_cpf: true,
+    num_placa: true,
+  })
+export const erpClientVehicleCatalogRowsSchema = z.array(
+  erpClientVehicleCatalogRowSchema,
+)
 
 export type ErpClientRow = z.infer<typeof erpClientRowSchema>
 export type ErpClientVehicleRow = z.infer<
   typeof erpClientVehicleRowSchema
+>
+export type ErpClientCatalogRow = z.infer<
+  typeof erpClientCatalogRowSchema
+>
+export type ErpClientVehicleCatalogRow = z.infer<
+  typeof erpClientVehicleCatalogRowSchema
 >

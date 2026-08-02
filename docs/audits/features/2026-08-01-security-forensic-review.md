@@ -2,7 +2,18 @@
 
 Data da revisão: 2026-08-01
 Escopo: 14 arquivos, teste direto, Auth/Notifications e Edge Function `profile-change-password`.
-Estado: auditoria concluída; implementação depende das correções de Auth/Notifications.
+Estado: auditoria concluída; correções principais implementadas e revalidadas em 2026-08-02.
+
+## Atualização de implementação — 2026-08-02
+
+- TOTP, revisão de logins e confiança de dispositivo possuem fluxos reais e persistidos.
+- A migration remota `20260802011559_security_posture_sessions` foi aplicada e seus grants/RPCs foram verificados.
+- O score usa RadialBar com domínio `0..100`, papel de progressbar e token de cor por faixa.
+- Cada medida pendente renderiza um Alert contextual; medidas concluídas não renderizam Alert.
+- Navegador real validado em 1000x800 e 390x844, sem overflow horizontal.
+- Whitespace de senha, passkey finalizada, RPCs protegidos e oito cenários de rota estão cobertos.
+
+Permanecem como riscos residuais os achados sobre evidência histórica de senha forte, verificação formal do contato de recuperação e atomicidade externa da troca de senha. Os achados abaixo devem ser lidos como registro da auditoria original, salvo quando substituídos por esta atualização.
 
 ## Parecer executivo
 
@@ -23,21 +34,21 @@ Além disso, a ação de passkey herda a falha já encontrada em Auth: o registr
 
 ### Média
 
-5. `SecuritySummaryCard` tem ~16 kB e reúne score, medidas, eventos, sessão, permissões e dialog. Separar componentes/presenters pequenos sem wrappers cosméticos.
-6. `getSession()` lê token local, não uma fonte server-side de “sessão atual”; `last_sign_in_at` pode ser a última autenticação global e IP em app metadata pode ser ausente/stale. Ajustar labels ou criar endpoint de sessão autorizado.
-7. Erros de `getSession` são ignorados e viram fallback sem estado parcial/indisponível.
-8. A rota mostra sempre mensagem de erro de passkey no Alert para qualquer `auth.error`, gerando diagnóstico incorreto.
-9. Senhas são submetidas com `.trim()`. Espaços podem ser caracteres legítimos; validação e envio devem preservar exatamente o segredo digitado.
-10. Service aceita mensagem retornada pela função em `SecurityServiceError`; UI hoje a substitui pelo toast genérico, mas contrato deve separar mensagem pública/código/cause sem risco de detalhes internos.
-11. Tipos de Security dependem do barrel amplo de Auth; Notifications também é dependência direta. Manter APIs públicas estreitas para evitar ciclos/acoplamento.
-12. Sem schema runtime para resumo da sessão; parsing manual é permissivo.
+1. `SecuritySummaryCard` tem ~16 kB e reúne score, medidas, eventos, sessão, permissões e dialog. Separar componentes/presenters pequenos sem wrappers cosméticos.
+2. `getSession()` lê token local, não uma fonte server-side de “sessão atual”; `last_sign_in_at` pode ser a última autenticação global e IP em app metadata pode ser ausente/stale. Ajustar labels ou criar endpoint de sessão autorizado.
+3. Erros de `getSession` são ignorados e viram fallback sem estado parcial/indisponível.
+4. A rota mostra sempre mensagem de erro de passkey no Alert para qualquer `auth.error`, gerando diagnóstico incorreto.
+5. Senhas são submetidas com `.trim()`. Espaços podem ser caracteres legítimos; validação e envio devem preservar exatamente o segredo digitado.
+6. Service aceita mensagem retornada pela função em `SecurityServiceError`; UI hoje a substitui pelo toast genérico, mas contrato deve separar mensagem pública/código/cause sem risco de detalhes internos.
+7. Tipos de Security dependem do barrel amplo de Auth; Notifications também é dependência direta. Manter APIs públicas estreitas para evitar ciclos/acoplamento.
+8. Sem schema runtime para resumo da sessão; parsing manual é permissivo.
 
 ### Baixa
 
-13. Ring usa `aria-label` em `div` sem papel/valores de progress; usar `role=progressbar` ou texto semântico equivalente.
-14. Ícones não aplicam `data-icon` consistentemente; o fallback de nome de passkey está hardcoded.
-15. `default export` da rota e nested barrels podem ser removidos.
-16. `VALIDATION.md` marca responsividade como aprovada sem evidência de navegador desta rodada.
+1. Ring usa `aria-label` em `div` sem papel/valores de progress; usar `role=progressbar` ou texto semântico equivalente.
+2. Ícones não aplicam `data-icon` consistentemente; o fallback de nome de passkey está hardcoded.
+3. `default export` da rota e nested barrels podem ser removidos.
+4. `VALIDATION.md` marca responsividade como aprovada sem evidência de navegador desta rodada.
 
 ## Segurança
 

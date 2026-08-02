@@ -49,7 +49,7 @@ export interface RawVipRuleRecord {
   vehicle_ids: unknown
   applies_to_all_units: unknown
   unit_ids: unknown
-  active: unknown
+  status: unknown
   fuel_min_liters: unknown
   benefit_hours: unknown
   yard_occupancy_threshold: unknown

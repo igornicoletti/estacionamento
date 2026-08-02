@@ -2,7 +2,19 @@
 
 Data da revisão: 2026-08-01
 Escopo: 25 arquivos da feature, 3 arquivos de testes, router, capabilities e migrations/RPCs comerciais.
-Estado: auditoria concluída; implementação pendente da etapa consolidada.
+Estado: auditoria concluída; contrato de leitura/escrita e seleção de unidade corrigidos em 2026-08-02.
+
+## Atualização de implementação — 2026-08-02
+
+- Leitura deixou de selecionar a coluna inexistente `name`; o rótulo é derivado do escopo/unidade.
+- O formulário não apresenta mais nome que seria descartado pelo RPC.
+- Adapter explícito converte `global` do produto para `network` no banco.
+- Status do produto foi limitado a `active | inactive`, conforme enum remoto.
+- Unidade é escolhida em Combobox sincronizado, preenchendo ID e nome juntos.
+- Calendar, Select popper e InputGroup com unidades/ajuda foram validados.
+- A rota produtiva carregou um registro normalizado sem erro PostgREST; 18 testes focados foram aprovados.
+
+Permanecem pendentes os achados de autorização visual, edição/versionamento e auditoria do update direto de status. Os achados abaixo são o registro original e podem estar superados por esta atualização.
 
 ## Parecer executivo
 
@@ -40,29 +52,29 @@ Decisão necessária: alinhar o produto ao contrato SQL (`network`, sem nome/sta
 
 ### Alta
 
-6. **Autorização visual divergente:** a rota exige somente `prices.read`, mas sempre exibe adicionar, editar e ativar/inativar. Mostrar ações apenas com `prices.manage`; backend continua sendo enforcement.
-7. **Capability inoperante para papéis esperados:** `prices.manage` está ausente do catálogo ativo auditado. Restaurar matriz aprovada antes de liberar escrita.
-8. **Rastreabilidade incompleta:** update direto de status não atualiza `updated_by` server-side e não registra audit event. A criação captura o ator, mas engole falha de auditoria com warning, permitindo alteração sem trilha completa.
-9. **Unidade livre e desnormalizada:** usuário digita `unitId`/`unitName`; não há seleção autorizada nem FK confirmada. Pode persistir unidade inexistente, nome divergente ou revelar identificador técnico. Consultar unidades permitidas e validar server-side.
+1. **Autorização visual divergente:** a rota exige somente `prices.read`, mas sempre exibe adicionar, editar e ativar/inativar. Mostrar ações apenas com `prices.manage`; backend continua sendo enforcement.
+2. **Capability inoperante para papéis esperados:** `prices.manage` está ausente do catálogo ativo auditado. Restaurar matriz aprovada antes de liberar escrita.
+3. **Rastreabilidade incompleta:** update direto de status não atualiza `updated_by` server-side e não registra audit event. A criação captura o ator, mas engole falha de auditoria com warning, permitindo alteração sem trilha completa.
+4. **Unidade livre e desnormalizada:** usuário digita `unitId`/`unitName`; não há seleção autorizada nem FK confirmada. Pode persistir unidade inexistente, nome divergente ou revelar identificador técnico. Consultar unidades permitidas e validar server-side.
 
 ### Média
 
-10. Normalização transforma dados inválidos em `0`, epoch, `global`, `inactive` ou registro sem nome, em vez de falhar. Isso pode exibir preço zero ou vigência 1970 como dado real.
-11. Hook contém compatibilidade de retorno array e campos legados; o serviço atual retorna objeto. Remover depois de confirmar todos os consumidores.
-12. Limite 500 sinaliza `isTruncated`, mas a rota ignora o sinal; usuário acredita ver o conjunto completo. Implementar estado parcial e paginação/filtros server-side.
-13. Sem gateway/schema de wire; service faz I/O, casting e composição. Separar `gateways/`, `schemas/`, domínio e formulário.
-14. Formulário de ~11 kB mistura adaptação de registro, estado, validação e todos os campos. Dividir por seções/controlador sem wrappers artificiais.
-15. Datas `datetime-local` usam `toISOString`/UTC e podem deslocar horário local ao editar. Definir timezone de negócio e conversores testados.
-16. `parseNumber` remove todos os pontos: `30.5` vira `305`; aceitar formato local com parser inequívoco ou input monetário controlado.
-17. `handleUpdatePriceTableStatus` não captura o `refetch` posterior; sucesso da mutação seguido de erro de leitura pode rejeitar o handler e manter diálogo/estado inconsistente.
-18. Barrels internos e raiz pública expõem quase toda a implementação e aliases legados usados apenas por testes.
+1. Normalização transforma dados inválidos em `0`, epoch, `global`, `inactive` ou registro sem nome, em vez de falhar. Isso pode exibir preço zero ou vigência 1970 como dado real.
+2. Hook contém compatibilidade de retorno array e campos legados; o serviço atual retorna objeto. Remover depois de confirmar todos os consumidores.
+3. Limite 500 sinaliza `isTruncated`, mas a rota ignora o sinal; usuário acredita ver o conjunto completo. Implementar estado parcial e paginação/filtros server-side.
+4. Sem gateway/schema de wire; service faz I/O, casting e composição. Separar `gateways/`, `schemas/`, domínio e formulário.
+5. Formulário de ~11 kB mistura adaptação de registro, estado, validação e todos os campos. Dividir por seções/controlador sem wrappers artificiais.
+6. Datas `datetime-local` usam `toISOString`/UTC e podem deslocar horário local ao editar. Definir timezone de negócio e conversores testados.
+7. `parseNumber` remove todos os pontos: `30.5` vira `305`; aceitar formato local com parser inequívoco ou input monetário controlado.
+8. `handleUpdatePriceTableStatus` não captura o `refetch` posterior; sucesso da mutação seguido de erro de leitura pode rejeitar o handler e manter diálogo/estado inconsistente.
+9. Barrels internos e raiz pública expõem quase toda a implementação e aliases legados usados apenas por testes.
 
 ### Baixa
 
-19. `default export` da rota é desnecessário; router usa named export.
-20. Copy do Sheet e label “Continuar” permanecem hardcoded.
-21. Botões com Lucide não aplicam `data-icon` consistentemente.
-22. `docs/VALIDATION.md` é uma checklist declarativa sem evidências/restrições reais.
+1. `default export` da rota é desnecessário; router usa named export.
+2. Copy do Sheet e label “Continuar” permanecem hardcoded.
+3. Botões com Lucide não aplicam `data-icon` consistentemente.
+4. `docs/VALIDATION.md` é uma checklist declarativa sem evidências/restrições reais.
 
 ## Segurança
 

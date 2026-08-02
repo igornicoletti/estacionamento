@@ -16,13 +16,18 @@ describe("clients route and sidebar integration", () => {
 
     expect(clientsRoute).toBeDefined()
     expect(clientsRoute?.path).toBe("clientes")
-    expect(clientsRoute?.requiredPermissions).toEqual([AUTH_PERMISSION.clientsRead])
+    expect(clientsRoute?.requiredPermissions).toEqual([
+      AUTH_PERMISSION.clientsRead,
+    ])
   })
 
   it("shows clients entry in sidebar navigation groups", () => {
     const hasClientsItem = navigationGroups.some((group) => {
       return group.items.some((item) => {
-        return item.id === appRouteIds.clients && item.href === appRoutePaths.clients
+        return (
+          item.id === appRouteIds.clients &&
+          item.href === appRoutePaths.clients
+        )
       })
     })
 

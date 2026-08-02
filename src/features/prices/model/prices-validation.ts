@@ -43,7 +43,6 @@ const priceTableValidationSchema = z
     cycleHours: z.number({ error: pricesCopy.validation.positiveInteger }).int({ error: pricesCopy.validation.positiveInteger }).positive({ error: pricesCopy.validation.positiveInteger }),
     endsAt: z.string({ error: pricesCopy.validation.invalidDate }).min(1, { error: pricesCopy.validation.invalidDate }).nullable(),
     graceMinutes: z.number({ error: pricesCopy.validation.nonNegativeInteger }).int({ error: pricesCopy.validation.nonNegativeInteger }).min(0, { error: pricesCopy.validation.nonNegativeInteger }),
-    name: z.string({ error: pricesCopy.validation.required }).trim().min(1, { error: pricesCopy.validation.required }),
     notes: z.string(),
     scope: z.string({ error: pricesCopy.validation.required }).refine(isPriceScope, { error: pricesCopy.validation.required }),
     startsAt: z.string({ error: pricesCopy.validation.invalidDate }).min(1, { error: pricesCopy.validation.invalidDate }),
@@ -86,7 +85,6 @@ export function createEmptyPriceTableFormValues(): PriceTableFormValues {
   const defaultStartsAt = new Date().toISOString().slice(0, 16)
 
   return {
-    name: "Tabela padrão",
     scope: "global",
     unitId: "",
     unitName: "",
@@ -112,7 +110,6 @@ export function validatePriceTableForm(values: PriceTableFormValues) {
     cycleHours: parseInteger(values.cycleHours),
     endsAt: values.endsAt ? toIso(values.endsAt) ?? "" : null,
     graceMinutes: parseInteger(values.graceMinutes),
-    name: values.name,
     notes: values.notes,
     scope: values.scope,
     startsAt: toIso(values.startsAt),
@@ -130,7 +127,6 @@ export function validatePriceTableForm(values: PriceTableFormValues) {
   const status = result.data.status
   const payload: SavePriceTablePayload = {
     id: result.data.id,
-    name: result.data.name,
     scope,
     unitId: scope === "unit" ? result.data.unitId.trim() : null,
     unitName: scope === "unit" ? result.data.unitName.trim() || null : null,

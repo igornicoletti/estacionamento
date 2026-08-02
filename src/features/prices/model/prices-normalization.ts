@@ -6,6 +6,7 @@ import {
   type PriceTableRecord,
   type RawPriceTableRecord,
 } from "./prices-types"
+import { pricesCopy } from "../constants"
 
 function isPriceScope(value: unknown): value is PriceScope {
   return typeof value === "string" && priceScopeValues.includes(value as PriceScope)
@@ -57,12 +58,17 @@ export function normalizePriceTableRecord(row: RawPriceTableRecord): PriceTableR
         ? row.scope
         : "global"
 
+  const unitName = asNullableText(row.unit_name)
+
   return {
     id: asText(row.id),
-    name: asText(row.name),
+    name:
+      resolvedScope === "unit"
+        ? unitName ?? pricesCopy.derived.unitTableName
+        : pricesCopy.derived.networkTableName,
     scope: resolvedScope,
     unitId: asNullableText(row.unit_id),
-    unitName: asNullableText(row.unit_name),
+    unitName,
     graceMinutes: asNumber(row.grace_minutes),
     toleranceMinutes: asNumber(row.tolerance_minutes),
     cycleHours: asNumber(row.cycle_hours),

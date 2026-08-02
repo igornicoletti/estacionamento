@@ -4,16 +4,27 @@ import * as React from "react"
 import { AppEmptyState } from "@/components/shared/app-empty-state"
 import { AppPage } from "@/components/shared/app-page"
 import { notify } from "@/components/toast"
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert"
 import { Button } from "@/components/ui/button"
 import { Spinner } from "@/components/ui/spinner"
-import { useNotifications } from "@/features/notifications"
 
-import { SecurityChangePasswordDialog, SecuritySummaryCard } from "../components"
+import {
+  SecurityChangePasswordDialog,
+  SecurityLoginsDialog,
+  SecurityMfaDialog,
+  SecuritySummaryCard,
+} from "../components"
 import { securityCopy } from "../constants/security-copy"
+import { useSecurityEvents } from "../hooks/use-security-events"
 import { useSecurityPasswordChange } from "../hooks/use-security-password-change"
 import { useSecurity } from "../hooks/use-security"
-import { getRecentSecurityEvents } from "../model"
+import {
+  cancelSecurityTotpEnrollment,
+  enrollSecurityTotp,
+  reviewRecentSecurityLogins,
+  trustCurrentSecurityDevice,
+  verifySecurityTotp,
+} from "../services/security-posture-service"
+import { type SecurityMfaEnrollment } from "../types/security-types"
 
 function CenteredState({ children }: { children: React.ReactNode }) {
   return (
@@ -24,17 +35,30 @@ function CenteredState({ children }: { children: React.ReactNode }) {
 }
 
 export function SecurityRoute() {
-  const { error, isLoading, profile, refreshProfile, registerPasskey, security } = useSecurity()
-  const notifications = useNotifications()
+  const {
+    error,
+    isLoading,
+    isPostureLoading,
+    postureError,
+    profile,
+    refreshProfile,
+    refreshSecurity,
+    registerPasskey,
+    security,
+  } = useSecurity()
+  const securityEvents = useSecurityEvents(profile?.authUserId)
   const { changePassword, isChangingPassword } = useSecurityPasswordChange()
   const [isRegisteringPasskey, setIsRegisteringPasskey] = React.useState(false)
+  const [isConfiguringMfa, setIsConfiguringMfa] = React.useState(false)
+  const [isReviewingLogins, setIsReviewingLogins] = React.useState(false)
+  const [isTrustingDevice, setIsTrustingDevice] = React.useState(false)
+  const [isMfaDialogOpen, setIsMfaDialogOpen] = React.useState(false)
   const [isPasswordDialogOpen, setIsPasswordDialogOpen] = React.useState(false)
+  const [isLoginsDialogOpen, setIsLoginsDialogOpen] = React.useState(false)
+  const [mfaEnrollment, setMfaEnrollment] =
+    React.useState<SecurityMfaEnrollment | null>(null)
+  const [mfaError, setMfaError] = React.useState<string | null>(null)
   const activeRegistrationRef = React.useRef<ReturnType<typeof registerPasskey> | null>(null)
-  const securityEvents = React.useMemo(
-    () => getRecentSecurityEvents(notifications.data),
-    [notifications.data]
-  )
-
   async function handleRegisterPasskey() {
     if (activeRegistrationRef.current) {
       return activeRegistrationRef.current
@@ -44,7 +68,12 @@ export function SecurityRoute() {
     activeRegistrationRef.current = notify.track(registerPasskey(), securityCopy.feedback.passkey)
 
     try {
-      return await activeRegistrationRef.current
+      const passkey = await activeRegistrationRef.current
+      await Promise.all([
+        refreshSecurity(),
+        securityEvents.refetch(),
+      ])
+      return passkey
     } finally {
       activeRegistrationRef.current = null
       setIsRegisteringPasskey(false)
@@ -56,7 +85,145 @@ export function SecurityRoute() {
     setIsPasswordDialogOpen(false)
   }
 
-  if (isLoading) {
+  function handleOpenMfa() {
+    setMfaError(null)
+    setIsMfaDialogOpen(true)
+  }
+
+  async function handleEnrollMfa() {
+    if (isConfiguringMfa) return false
+
+    setIsConfiguringMfa(true)
+    setMfaError(null)
+
+    try {
+      setMfaEnrollment(await enrollSecurityTotp())
+      return true
+    } catch (caughtError) {
+      notify.error(
+        caughtError instanceof Error
+          ? caughtError.message
+          : securityCopy.feedback.mfa.error
+      )
+      return false
+    } finally {
+      setIsConfiguringMfa(false)
+    }
+  }
+
+  async function handleResetMfa() {
+    if (isConfiguringMfa) return false
+
+    const enrollment = mfaEnrollment
+    setMfaError(null)
+
+    if (!enrollment) {
+      return true
+    }
+
+    setIsConfiguringMfa(true)
+
+    try {
+      await cancelSecurityTotpEnrollment(enrollment.factorId)
+      setMfaEnrollment(null)
+      return true
+    } catch (caughtError) {
+      notify.error(
+        caughtError instanceof Error
+          ? caughtError.message
+          : securityCopy.feedback.mfa.cancelError
+      )
+      return false
+    } finally {
+      setIsConfiguringMfa(false)
+    }
+  }
+
+  async function handleCloseMfa() {
+    if (await handleResetMfa()) {
+      setIsMfaDialogOpen(false)
+    }
+  }
+
+  async function handleVerifyMfa(code: string) {
+    if (!mfaEnrollment || isConfiguringMfa) return
+
+    setIsConfiguringMfa(true)
+    setMfaError(null)
+
+    try {
+      await verifySecurityTotp(mfaEnrollment.factorId, code)
+      await Promise.all([
+        refreshSecurity(),
+        securityEvents.refetch(),
+      ])
+      setMfaEnrollment(null)
+      setIsMfaDialogOpen(false)
+      notify.success(securityCopy.feedback.mfa.success)
+    } catch (caughtError) {
+      setMfaError(
+        caughtError instanceof Error
+          ? caughtError.message
+          : securityCopy.feedback.mfa.error
+      )
+    } finally {
+      setIsConfiguringMfa(false)
+    }
+  }
+
+  async function handleReviewLogins() {
+    if (isReviewingLogins) return
+
+    setIsReviewingLogins(true)
+
+    try {
+      await reviewRecentSecurityLogins()
+      await Promise.all([
+        refreshSecurity(),
+        securityEvents.refetch(),
+      ])
+      setIsLoginsDialogOpen(false)
+      notify.success(securityCopy.feedback.reviewLogins.success)
+    } catch (caughtError) {
+      notify.error(
+        caughtError instanceof Error
+          ? caughtError.message
+          : securityCopy.feedback.reviewLogins.error
+      )
+    } finally {
+      setIsReviewingLogins(false)
+    }
+  }
+
+  async function handleTrustDevice() {
+    if (isTrustingDevice) return
+
+    if (!security.posture.mfaConfigured) {
+      notify.info(securityCopy.feedback.trustDevice.mfaRequired)
+      return
+    }
+
+    setIsTrustingDevice(true)
+
+    try {
+      await trustCurrentSecurityDevice()
+      await Promise.all([
+        refreshSecurity(),
+        securityEvents.refetch(),
+      ])
+      notify.success(securityCopy.feedback.trustDevice.success)
+    } catch (caughtError) {
+      notify.error(
+        caughtError instanceof Error
+          ? caughtError.message
+          : securityCopy.feedback.trustDevice.error
+      )
+    } finally {
+      setIsTrustingDevice(false)
+    }
+  }
+
+  if (isLoading || isPostureLoading) {
     return (
       <AppPage title={securityCopy.page.title} subtitle={securityCopy.page.subtitle}>
         <CenteredState>
@@ -86,9 +253,34 @@ export function SecurityRoute() {
       <AppPage title={securityCopy.page.title} subtitle={securityCopy.page.subtitle}>
         <CenteredState>
           <AppEmptyState
+       media={<AlertTriangleIcon aria-hidden="true" />}
             title={securityCopy.empty.title}
             description={securityCopy.empty.description}
             actions={<Button type="button" variant="secondary" size="lg" onClick={() => { void refreshProfile() }}>{securityCopy.empty.action}</Button>}
+          />
+        </CenteredState>
+      </AppPage>
+    )
+  }
+
+  if (postureError) {
+    return (
+      <AppPage title={securityCopy.page.title} subtitle={securityCopy.page.subtitle}>
+        <CenteredState>
+          <AppEmptyState
+            media={<AlertTriangleIcon aria-hidden="true" />}
+            title={securityCopy.error.title}
+            description={postureError.message}
+            actions={(
+              <Button
+                type="button"
+                variant="secondary"
+                size="lg"
+                onClick={() => void refreshSecurity()}
+              >
+                {securityCopy.error.action}
+              </Button>
+            )}
           />
         </CenteredState>
       </AppPage>
@@ -101,25 +293,45 @@ export function SecurityRoute() {
       title={securityCopy.page.title}
       subtitle={securityCopy.page.subtitle}
     >
-      <div className="grid gap-4">
-        {error ? (
-          <Alert className="border-destructive/30 bg-destructive/5 text-foreground">
-            <AlertTriangleIcon className="text-destructive" aria-hidden="true" />
-            <AlertTitle>{securityCopy.error.noticeTitle}</AlertTitle>
-            <AlertDescription>{securityCopy.feedback.passkey.error}</AlertDescription>
-          </Alert>
-        ) : null}
+      <SecuritySummaryCard
+        security={security}
+        events={securityEvents.data}
+        eventsError={securityEvents.error}
+        isEventsLoading={securityEvents.isLoading}
+        isConfiguringMfa={isConfiguringMfa}
+        isRegisteringPasskey={isRegisteringPasskey}
+        isTrustingDevice={isTrustingDevice}
+        onOpenChangePassword={() => setIsPasswordDialogOpen(true)}
+        onOpenLogins={() => setIsLoginsDialogOpen(true)}
+        onOpenMfa={() => {
+          handleOpenMfa()
+        }}
+        onRegisterPasskey={() => {
+          void handleRegisterPasskey()
+        }}
+        onTrustDevice={handleTrustDevice}
+      />
 
-        <SecuritySummaryCard
-          security={security}
-          events={securityEvents}
-          eventsError={notifications.error}
-          isEventsLoading={notifications.isLoading}
-          isRegisteringPasskey={isRegisteringPasskey}
-          onOpenChangePassword={() => setIsPasswordDialogOpen(true)}
-          onRegisterPasskey={handleRegisterPasskey}
+      {isMfaDialogOpen ? (
+        <SecurityMfaDialog
+          open
+          enrollment={mfaEnrollment}
+          error={mfaError}
+          isSaving={isConfiguringMfa}
+          onClose={handleCloseMfa}
+          onEnroll={handleEnrollMfa}
+          onReset={handleResetMfa}
+          onVerify={handleVerifyMfa}
         />
-      </div>
+      ) : null}
+
+      <SecurityLoginsDialog
+        open={isLoginsDialogOpen}
+        sessions={security.posture.sessions}
+        isSaving={isReviewingLogins}
+        onOpenChange={setIsLoginsDialogOpen}
+        onReview={handleReviewLogins}
+      />
 
       <SecurityChangePasswordDialog
         open={isPasswordDialogOpen}

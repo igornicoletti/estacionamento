@@ -1,5 +1,6 @@
 import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import {
+  afterEach,
   beforeEach,
   describe,
   expect,
@@ -12,6 +13,10 @@ import {
   type PriceTable,
   type SavePriceTableInput,
 } from "@/features/prices"
+import {
+  resetUnitsGateway,
+  setUnitsGateway,
+} from "@/features/units/gateways/units-gateway"
 
 const {
   listPriceTablesMock,
@@ -56,12 +61,37 @@ describe("PricesRoute", () => {
   }
 
   beforeEach(() => {
+    setUnitsGateway({
+      findUnitById: () => Promise.resolve(null),
+      listUnits: () =>
+        Promise.resolve([
+          {
+            cod_bandeira: 10,
+            cod_cidade: 3550308,
+            cod_empresa: 1,
+            des_bandeira: "Shell",
+            des_coordenada_empresa: "-23.550520, -46.633308",
+            ip_rede: "192.168.0.10",
+            nom_banco_dados: "erp_iguatemi",
+            nom_cidade: "São Paulo",
+            nom_estado: "São Paulo",
+            nom_fantasia: "Iguatemi",
+            nom_razao_social: "Posto Iguatemi Ltda",
+            num_cnpj: "00.000.000/0001-00",
+            sgl_estado: "SP",
+          },
+        ]),
+    })
     listPriceTablesMock.mockReset()
     savePriceTableMock.mockReset()
     updatePriceTableStatusMock.mockReset()
     listPriceTablesMock.mockResolvedValue([activePrice])
     savePriceTableMock.mockResolvedValue(undefined)
     updatePriceTableStatusMock.mockResolvedValue(undefined)
+  })
+
+  afterEach(() => {
+    resetUnitsGateway()
   })
 
   it("renders price tables with reusable data table controls", async () => {
@@ -123,6 +153,40 @@ describe("PricesRoute", () => {
       expect(
         screen.queryByRole("heading", { name: "Adicionar tabela de preço" })
       ).not.toBeInTheDocument()
+    })
+  })
+
+  it("selects a synchronized unit by code and name", async () => {
+    render(<PricesRoute />)
+
+    await waitFor(() => {
+      expect(screen.getByText("Todas as unidades")).toBeInTheDocument()
+    })
+
+    fireEvent.click(screen.getByRole("button", { name: "Adicionar" }))
+    fireEvent.keyDown(screen.getByRole("combobox", { name: "Escopo" }), {
+      key: "ArrowDown",
+    })
+    fireEvent.click(await screen.findByRole("option", { name: "Unidade" }))
+
+    const unitField = screen.getByRole("combobox", { name: "Unidade" })
+    fireEvent.keyDown(unitField, { key: "ArrowDown" })
+    fireEvent.click(
+      await screen.findByRole("option", { name: "001 — Iguatemi" }),
+    )
+    fireEvent.change(screen.getByLabelText("Valor base"), {
+      target: { value: "30" },
+    })
+    fireEvent.click(screen.getByRole("button", { name: "Salvar" }))
+
+    await waitFor(() => {
+      expect(savePriceTableMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          scope: "unit",
+          unitId: "1",
+          unitName: "Iguatemi",
+        }),
+      )
     })
   })
 

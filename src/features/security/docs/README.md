@@ -1,38 +1,40 @@
-# Security
+# Segurança
 
 Feature responsável pelo painel de segurança da conta autenticada.
 
 ## Levantamento forense
 
 - O perfil autenticado vem de `get_current_auth_profile` e já expõe status de passkey, permissões, e-mail e telefone mascarado.
-- A política de senha forte é obrigatória no Supabase e nos schemas locais: 12+ caracteres com maiúscula, minúscula, número e símbolo.
+- A política de senha forte é obrigatória nos fluxos de criação e troca: 12+ caracteres com maiúscula, minúscula, número e símbolo.
 - A troca de senha usa a Edge Function `profile-change-password`, que valida a senha atual, atualiza a senha, revoga sessões globalmente e registra auditoria.
-- Eventos recentes da página usam notificações `type = "security"` entregues ao próprio usuário por RLS.
-- A rota não possui fonte suportada para lista real de dispositivos, localização de acessos, MFA/TOTP ou trusted devices.
+- Eventos recentes usam uma RPC user-scoped sobre `audit_events`, com allowlist fixa e sem expor ator, alvo, motivo ou metadata.
+- TOTP usa `mfa.enroll` e `mfa.challengeAndVerify` do Supabase Auth em três fases; SMS é exibido apenas como capacidade futura.
+- Sessões, revisão de logins e confiança da sessão atual vêm de RPCs `security definer` user-scoped; confiança exige AAL2.
 
 ## Estrutura
 
 - `constants/`: textos e labels.
 - `types/`: contratos da feature.
-- `model/`: derivação de score, medidas suportadas e eventos recentes.
-- `services/`: integração com sessão e troca de senha.
+- `model/`: derivação do score de seis medidas e eventos recentes.
+- `schemas/`: validação estrita da postura retornada pelo banco.
+- `services/`: sessão, postura, MFA e troca de senha.
 - `hooks/`: composição de estado e fluxo compartilhado de troca de senha.
 - `components/`: blocos de UI da feature.
 - `routes/`: entrypoint da rota.
 
 ## Controles suportados
 
-- Senha forte: exibida como medida concluída por política obrigatória do sistema.
-- Passkey: permite cadastrar ou gerar nova passkey via WebAuthn/Supabase Auth.
-- Contato de recuperação: considera telefone mascarado como sinal mínimo suportado.
-- Sessão atual: exibe navegador, sistema operacional, IP quando disponível e última autenticação.
-- Permissões efetivas: exibe wildcard ou lista de permissões recebidas pelo perfil.
-- Eventos recentes: lista até 4 notificações de segurança.
+- Autenticação de dois fatores: escolha do método, QR/chave copiável e verificação TOTP real com schema Zod.
+- Senha forte: política obrigatória e troca protegida sem alterar whitespace do segredo.
+- Chave de acesso: cadastro WebAuthn finalizado pela Edge Function antes do sucesso.
+- Recuperação: exige e-mail e telefone presentes no perfil.
+- Logins recentes: lista sessões ativas dos últimos 30 dias e persiste a revisão.
+- Dispositivos confiáveis: confia a sessão atual somente depois de autenticação AAL2.
+- Eventos recentes: mostra 2 registros da auditoria e expande localmente até o limite de 5.
 
 ## Fora do escopo atual
 
-- MFA/TOTP.
-- Trusted devices.
-- Histórico completo de logins ou geolocalização.
+- Geolocalização derivada de IP.
+- Confiança persistente além da duração da sessão autenticada.
 - Revogação self-service de sessões.
 - Exposição de CPF completo, tokens, metadata bruta ou detalhes técnicos de erro.

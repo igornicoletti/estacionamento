@@ -1,8 +1,13 @@
 # Validação de entrega — Rules
 
-- Estrutura sem arquivos soltos na raiz além de `index.ts`.
-- Textos e chaves movidos para `constants`.
-- Colunas e filtros isolados em `table`.
-- Formulário com validação local antes da requisição.
-- Serviço com fronteira explícita para Supabase e tratamento de erro.
-- Sem estado sendo alterado durante renderização.
+- [x] Cliente e veículo usam Combobox com busca remota debounceada.
+- [x] Busca exige dois caracteres, limita a 50 resultados e descarta respostas antigas.
+- [x] DTO de lookup não carrega e-mail, telefone ou dados operacionais desnecessários.
+- [x] Veículo selecionado deriva código, placa e cliente sem campos técnicos livres.
+- [x] Unidades usam Combobox múltiplo e rótulo `código — nome`.
+- [x] `status` do banco é normalizado para `active` no domínio.
+- [x] Adapters `fuel_benefit ↔ fuel` e `network ↔ global` são explícitos e testados.
+- [x] Rota produtiva carregada no navegador com oito registros e sem erro PostgREST.
+- [x] Busca real por cliente exibiu código, nome e CNPJ sem carregar o catálogo completo.
+
+Testes focados: 10 casos de rota/modelo e contrato de escrita aprovados.

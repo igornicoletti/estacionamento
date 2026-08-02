@@ -1,35 +1,51 @@
+import { SearchIcon } from "lucide-react"
 import * as React from "react"
 
 import { AppDialog } from "@/components/shared/app-dialog"
+import { AppInputHelp } from "@/components/shared/app-input-help"
 import { notify } from "@/components/toast"
 import { Button } from "@/components/ui/button"
 import { Checkbox } from "@/components/ui/checkbox"
 import {
   Combobox,
+  ComboboxChip,
+  ComboboxChips,
+  ComboboxChipsInput,
   ComboboxCollection,
   ComboboxContent,
   ComboboxEmpty,
   ComboboxInput,
   ComboboxItem,
   ComboboxList,
+  ComboboxValue,
 } from "@/components/ui/combobox"
 import { Field, FieldError, FieldGroup, FieldLabel } from "@/components/ui/field"
-import { Input } from "@/components/ui/input"
-import { InputGroupAddon } from "@/components/ui/input-group"
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupInput,
+  InputGroupText,
+} from "@/components/ui/input-group"
 import {
   Select,
   SelectContent,
+  SelectGroup,
   SelectItem,
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
 import { Spinner } from "@/components/ui/spinner"
 import { Textarea } from "@/components/ui/textarea"
-import { listClients } from "@/features/clients"
 import { preventDialogCloseOnFloatingLayerInteraction } from "@/lib/dialog-interactions"
 
 import { saveVipRule } from "@/features/rules/services/vip-rules-service"
 import { rulesCopy } from "../constants"
+import {
+  useVipRuleCatalogs,
+  type ClientOption,
+  type UnitOption,
+  type VehicleOption,
+} from "../hooks/use-vip-rule-catalogs"
 import {
   createEmptyVipRuleFormValues,
   createVipRuleFormValues,
@@ -52,14 +68,8 @@ interface VipRuleFormDialogProps {
   onSaved: () => void
 }
 
-interface ClientOption {
-  value: string
-  label: string
-  clientId: number
-}
-
 function RequiredMark() {
-  return <span className="text-destructive">*</span>
+  return <span aria-hidden="true" className="text-destructive">*</span>
 }
 
 function toFormValues(record: VipRuleRecord | null | undefined): VipRuleFormValues {
@@ -92,46 +102,55 @@ export function VipRuleFormDialog({
   onOpenChange,
   onSaved,
 }: VipRuleFormDialogProps) {
-  const dialogStateKey = record?.id ?? (open ? "create" : "closed")
   const [values, setValues] = React.useState(() => toFormValues(record))
   const [errors, setErrors] = React.useState<VipRuleFormErrors>({})
   const [isSaving, setIsSaving] = React.useState(false)
   const isSavingRef = React.useRef(false)
-  const [clientOptions, setClientOptions] = React.useState<readonly ClientOption[]>([])
+  const [clientQuery, setClientQuery] = React.useState("")
+  const [isClientCatalogOpen, setIsClientCatalogOpen] = React.useState(false)
+  const [vehicleQuery, setVehicleQuery] = React.useState("")
+  const [isVehicleCatalogOpen, setIsVehicleCatalogOpen] = React.useState(false)
+  const catalogs = useVipRuleCatalogs({
+    clientQuery,
+    open,
+    targetType: values.targetType,
+    vehicleQuery,
+  })
+  const clientOptions = catalogs.clients.options
+  const vehicleOptions = catalogs.vehicles.options
+  const unitOptions = catalogs.units.options
 
-  React.useEffect(() => {
-    let isMounted = true
-
-    async function loadClientOptions() {
-      try {
-        const clients = await listClients()
-
-        if (!isMounted) {
-          return
+  const selectedClientOption =
+    clientOptions.find((option) => option.value === values.clientId) ??
+    (values.clientId
+      ? {
+          clientId: Number(values.clientId),
+          document: null,
+          label: `${values.clientId} — ${values.clientName || "Cliente selecionado"}`,
+          name: values.clientName || "Cliente selecionado",
+          value: values.clientId,
         }
-
-        setClientOptions(
-          clients.map((client) => ({
-            value: String(client.cod_pessoa),
-            label: client.nom_fantasia,
-            clientId: client.cod_pessoa,
-          }))
-        )
-      } catch {
-        if (isMounted) {
-          setClientOptions([])
+      : null)
+  const selectedVehicleOption =
+    vehicleOptions.find((option) => option.value === values.vehicleId) ??
+    (values.vehicleId
+      ? {
+          clientId: Number(values.clientId),
+          clientName: values.clientName || "Cliente não informado",
+          label: values.vehiclePlate
+            ? `${values.vehiclePlate} — Veículo selecionado`
+            : `Veículo ${values.vehicleId}`,
+          plate: values.vehiclePlate,
+          value: values.vehicleId,
         }
-      }
-    }
+      : null)
 
-    if (open) {
-      void loadClientOptions()
-    }
-
-    return () => {
-      isMounted = false
-    }
-  }, [open])
+  const selectedUnitOptions = unitOptions.filter((unit) =>
+    values.unitIds
+      .split(",")
+      .map((unitId) => unitId.trim())
+      .includes(unit.value),
+  )
 
   function updateTextValue(key: keyof VipRuleFormValues) {
     return (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -180,7 +199,6 @@ export function VipRuleFormDialog({
 
   return (
     <AppDialog
-      key={dialogStateKey}
       open={open}
       onOpenChange={handleOpenChange}
       title={record ? rulesCopy.form.editTitle : rulesCopy.form.createTitle}
@@ -213,10 +231,12 @@ export function VipRuleFormDialog({
               <SelectTrigger id="rule-type" aria-invalid={Boolean(errors.type)}>
                 <SelectValue placeholder={rulesCopy.form.selectPlaceholder} />
               </SelectTrigger>
-              <SelectContent>
-                {ruleTypeValues.map((type) => (
-                  <SelectItem key={type} value={type}>{ruleTypeLabels[type]}</SelectItem>
-                ))}
+              <SelectContent position="popper">
+                <SelectGroup>
+                  {ruleTypeValues.map((type) => (
+                    <SelectItem key={type} value={type}>{ruleTypeLabels[type]}</SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
             {errors.type ? <FieldError>{errors.type}</FieldError> : null}
@@ -235,87 +255,189 @@ export function VipRuleFormDialog({
               <SelectTrigger id="rule-target-type" aria-invalid={Boolean(errors.targetType)}>
                 <SelectValue placeholder={rulesCopy.form.selectPlaceholder} />
               </SelectTrigger>
-              <SelectContent>
-                {ruleTargetTypeValues.map((targetType) => (
-                  <SelectItem key={targetType} value={targetType}>{ruleTargetTypeLabels[targetType]}</SelectItem>
-                ))}
+              <SelectContent position="popper">
+                <SelectGroup>
+                  {ruleTargetTypeValues.map((targetType) => (
+                    <SelectItem key={targetType} value={targetType}>{ruleTargetTypeLabels[targetType]}</SelectItem>
+                  ))}
+                </SelectGroup>
               </SelectContent>
             </Select>
             {errors.targetType ? <FieldError>{errors.targetType}</FieldError> : null}
           </Field>
 
           {values.targetType === "client" ? (
-            <>
-              <Field data-invalid={Boolean(errors.clientId)}>
-                <FieldLabel htmlFor="rule-client-name">
-                  {rulesCopy.form.clientName}
-                  <RequiredMark />
-                </FieldLabel>
-                <Combobox<ClientOption>
-                  items={clientOptions}
-                  value={clientOptions.find((option) => option.value === values.clientId) ?? null}
-                  onValueChange={(value: ClientOption | null) => {
-                    setValues((current) => ({
-                      ...current,
-                      clientId: value ? String(value.clientId) : "",
-                      clientName: value?.label ?? "",
-                    }))
-                    setErrors((current) => ({ ...current, clientId: undefined }))
-                  }}
-                  isItemEqualToValue={(a, b) => a.value === b.value}
-                  itemToStringLabel={(client: ClientOption) => client.label}
-                  itemToStringValue={(client: ClientOption) => `${client.value} ${client.label}`}
-                  disabled={isSaving}
+            <Field data-invalid={Boolean(errors.clientId)}>
+              <FieldLabel htmlFor="rule-client">
+                {rulesCopy.form.clientName}
+                <RequiredMark />
+              </FieldLabel>
+              <Combobox<ClientOption>
+                items={clientOptions}
+                value={selectedClientOption}
+                open={isClientCatalogOpen}
+                onOpenChange={setIsClientCatalogOpen}
+                onInputValueChange={(query, eventDetails) => {
+                  if (
+                    eventDetails.reason === "input-change" ||
+                    eventDetails.reason === "input-clear" ||
+                    eventDetails.reason === "clear-press"
+                  ) {
+                    setClientQuery(query)
+                    setIsClientCatalogOpen(true)
+                  }
+                }}
+                onValueChange={(client) => {
+                  setValues((current) => ({
+                    ...current,
+                    clientId: client ? String(client.clientId) : "",
+                    clientName: client?.name ?? "",
+                  }))
+                  setErrors((current) => ({ ...current, clientId: undefined }))
+                  setIsClientCatalogOpen(false)
+                }}
+                isItemEqualToValue={(left, right) => left.value === right.value}
+                itemToStringLabel={(client) => client.label}
+                itemToStringValue={(client) =>
+                  `${client.value} ${client.label} ${client.document ?? ""}`
+                }
+                disabled={isSaving}
+              >
+                <ComboboxInput
+                  id="rule-client"
+                  className="w-full"
+                  placeholder={
+                    catalogs.clients.isLoading
+                      ? rulesCopy.form.catalog.searchingClients
+                      : rulesCopy.form.catalog.searchClients
+                  }
+                  showClear={Boolean(values.clientId)}
+                  aria-label={rulesCopy.form.clientName}
+                  aria-invalid={Boolean(errors.clientId)}
                 >
-                  <ComboboxInput
-                    id="rule-client-name"
-                    className="h-9 w-full"
-                    placeholder={rulesCopy.form.selectPlaceholder}
-                    showClear={Boolean(values.clientId)}
-                    aria-label={rulesCopy.form.clientName}
-                    aria-invalid={Boolean(errors.clientId)}
-                  >
-                    <InputGroupAddon>
-                      <span className="text-xs text-muted-foreground">ID</span>
-                    </InputGroupAddon>
-                  </ComboboxInput>
-                  <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
-                    <ComboboxEmpty>Nenhum cliente encontrado.</ComboboxEmpty>
-                    <ComboboxList>
-                      <ComboboxCollection>
-                        {(client: ClientOption) => (
-                          <ComboboxItem key={client.value} value={client}>
-                            {client.label}
-                          </ComboboxItem>
-                        )}
-                      </ComboboxCollection>
-                    </ComboboxList>
-                  </ComboboxContent>
-                </Combobox>
-                {errors.clientId ? <FieldError>{errors.clientId}</FieldError> : null}
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="rule-client-id">{rulesCopy.form.clientId}</FieldLabel>
-                <Input id="rule-client-id" value={values.clientId} onChange={updateTextValue("clientId")} inputMode="numeric" disabled={isSaving} />
-              </Field>
-            </>
+                  <InputGroupAddon>
+                    {catalogs.clients.isLoading ? (
+                      <Spinner aria-hidden="true" />
+                    ) : (
+                      <SearchIcon data-icon="inline-start" aria-hidden="true" />
+                    )}
+                  </InputGroupAddon>
+                </ComboboxInput>
+                <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
+                  <ComboboxEmpty>
+                    {clientQuery.trim().length < 2
+                      ? rulesCopy.form.catalog.minQuery
+                      : catalogs.clients.isLoading
+                        ? rulesCopy.form.catalog.searchingClients
+                        : catalogs.clients.isUnavailable
+                          ? rulesCopy.form.catalog.clientsUnavailable
+                          : rulesCopy.form.catalog.clientsEmpty}
+                  </ComboboxEmpty>
+                  <ComboboxList>
+                    <ComboboxCollection>
+                      {(client: ClientOption) => (
+                        <ComboboxItem key={client.value} value={client}>
+                          <span className="min-w-0 flex-1 truncate">{client.label}</span>
+                          {client.document ? (
+                            <span className="shrink-0 text-xs text-muted-foreground">
+                              {client.document}
+                            </span>
+                          ) : null}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxCollection>
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+              {errors.clientId ? <FieldError>{errors.clientId}</FieldError> : null}
+            </Field>
           ) : null}
 
           {values.targetType === "vehicle" ? (
-            <>
-              <Field data-invalid={Boolean(errors.vehicleId)}>
-                <FieldLabel htmlFor="rule-vehicle-id">
-                  {rulesCopy.form.vehicleId}
-                  <RequiredMark />
-                </FieldLabel>
-                <Input id="rule-vehicle-id" value={values.vehicleId} onChange={updateTextValue("vehicleId")} inputMode="numeric" aria-invalid={Boolean(errors.vehicleId)} disabled={isSaving} />
-                {errors.vehicleId ? <FieldError>{errors.vehicleId}</FieldError> : null}
-              </Field>
-              <Field>
-                <FieldLabel htmlFor="rule-vehicle-plate">{rulesCopy.form.vehiclePlate}</FieldLabel>
-                <Input id="rule-vehicle-plate" value={values.vehiclePlate} onChange={updateTextValue("vehiclePlate")} disabled={isSaving} />
-              </Field>
-            </>
+            <Field data-invalid={Boolean(errors.vehicleId)}>
+              <FieldLabel htmlFor="rule-vehicle">
+                {rulesCopy.form.vehicle}
+                <RequiredMark />
+              </FieldLabel>
+              <Combobox<VehicleOption>
+                items={vehicleOptions}
+                value={selectedVehicleOption}
+                open={isVehicleCatalogOpen}
+                onOpenChange={setIsVehicleCatalogOpen}
+                onInputValueChange={(query, eventDetails) => {
+                  if (
+                    eventDetails.reason === "input-change" ||
+                    eventDetails.reason === "input-clear" ||
+                    eventDetails.reason === "clear-press"
+                  ) {
+                    setVehicleQuery(query)
+                    setIsVehicleCatalogOpen(true)
+                  }
+                }}
+                onValueChange={(vehicle) => {
+                  setValues((current) => ({
+                    ...current,
+                    clientId: vehicle ? String(vehicle.clientId) : "",
+                    clientName: vehicle?.clientName ?? "",
+                    vehicleId: vehicle?.value ?? "",
+                    vehiclePlate: vehicle?.plate ?? "",
+                  }))
+                  setErrors((current) => ({ ...current, vehicleId: undefined }))
+                  setIsVehicleCatalogOpen(false)
+                }}
+                isItemEqualToValue={(left, right) => left.value === right.value}
+                itemToStringLabel={(vehicle) => vehicle.label}
+                itemToStringValue={(vehicle) =>
+                  `${vehicle.value} ${vehicle.label} ${vehicle.clientName}`
+                }
+                disabled={isSaving}
+              >
+                <ComboboxInput
+                  id="rule-vehicle"
+                  className="w-full"
+                  placeholder={
+                    catalogs.vehicles.isLoading
+                      ? rulesCopy.form.catalog.searchingVehicles
+                      : rulesCopy.form.catalog.searchVehicles
+                  }
+                  showClear={Boolean(values.vehicleId)}
+                  aria-label={rulesCopy.form.vehicle}
+                  aria-invalid={Boolean(errors.vehicleId)}
+                >
+                  <InputGroupAddon>
+                    {catalogs.vehicles.isLoading ? (
+                      <Spinner aria-hidden="true" />
+                    ) : (
+                      <SearchIcon data-icon="inline-start" aria-hidden="true" />
+                    )}
+                  </InputGroupAddon>
+                </ComboboxInput>
+                <ComboboxContent className="w-(--anchor-width) min-w-(--anchor-width)">
+                  <ComboboxEmpty>
+                    {vehicleQuery.trim().length < 2
+                      ? rulesCopy.form.catalog.minQuery
+                      : catalogs.vehicles.isLoading
+                        ? rulesCopy.form.catalog.searchingVehicles
+                        : catalogs.vehicles.isUnavailable
+                          ? rulesCopy.form.catalog.vehiclesUnavailable
+                          : rulesCopy.form.catalog.vehiclesEmpty}
+                  </ComboboxEmpty>
+                  <ComboboxList>
+                    <ComboboxCollection>
+                      {(vehicle: VehicleOption) => (
+                        <ComboboxItem key={vehicle.value} value={vehicle}>
+                          <span className="min-w-0 flex-1 truncate">{vehicle.label}</span>
+                          <span className="shrink-0 text-xs text-muted-foreground">
+                            {vehicle.clientName}
+                          </span>
+                        </ComboboxItem>
+                      )}
+                    </ComboboxCollection>
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
+              {errors.vehicleId ? <FieldError>{errors.vehicleId}</FieldError> : null}
+            </Field>
           ) : null}
 
           <Field>
@@ -340,11 +462,69 @@ export function VipRuleFormDialog({
 
           {!values.appliesToAllUnits ? (
             <Field data-invalid={Boolean(errors.unitIds)}>
-              <FieldLabel htmlFor="rule-unit-ids">
+              <FieldLabel htmlFor="rule-units">
                 {rulesCopy.form.unitIds}
                 <RequiredMark />
               </FieldLabel>
-              <Input id="rule-unit-ids" value={values.unitIds} onChange={updateTextValue("unitIds")} aria-invalid={Boolean(errors.unitIds)} disabled={isSaving} />
+              <Combobox
+                items={unitOptions}
+                multiple
+                modal={false}
+                value={selectedUnitOptions}
+                onValueChange={(units: UnitOption[]) => {
+                  setValues((current) => ({
+                    ...current,
+                    unitIds: units.map((unit) => unit.value).join(", "),
+                  }))
+                  setErrors((current) => ({ ...current, unitIds: undefined }))
+                }}
+                isItemEqualToValue={(left: UnitOption, right: UnitOption) =>
+                  left.value === right.value
+                }
+                itemToStringLabel={(unit: UnitOption) => unit.label}
+                itemToStringValue={(unit: UnitOption) =>
+                  `${unit.value} ${unit.label}`
+                }
+                disabled={isSaving || catalogs.units.isLoading}
+              >
+                <ComboboxChips
+                  showClear={selectedUnitOptions.length > 0}
+                  disabled={isSaving || catalogs.units.isLoading}
+                >
+                  <ComboboxValue>
+                    {selectedUnitOptions.map((unit) => (
+                      <ComboboxChip key={unit.value}>{unit.label}</ComboboxChip>
+                    ))}
+                  </ComboboxValue>
+                  <ComboboxChipsInput
+                    id="rule-units"
+                    placeholder={
+                      catalogs.units.isLoading
+                        ? rulesCopy.form.catalog.loading
+                        : rulesCopy.form.selectPlaceholder
+                    }
+                    aria-label={rulesCopy.form.unitIds}
+                    aria-invalid={Boolean(errors.unitIds)}
+                    disabled={isSaving || catalogs.units.isLoading}
+                  />
+                </ComboboxChips>
+                <ComboboxContent>
+                  <ComboboxEmpty>
+                    {catalogs.units.isUnavailable
+                      ? rulesCopy.form.catalog.unitsUnavailable
+                      : rulesCopy.form.catalog.unitsEmpty}
+                  </ComboboxEmpty>
+                  <ComboboxList>
+                    <ComboboxCollection>
+                      {(unit: UnitOption) => (
+                        <ComboboxItem key={unit.value} value={unit}>
+                          {unit.label}
+                        </ComboboxItem>
+                      )}
+                    </ComboboxCollection>
+                  </ComboboxList>
+                </ComboboxContent>
+              </Combobox>
               {errors.unitIds ? <FieldError>{errors.unitIds}</FieldError> : null}
             </Field>
           ) : null}
@@ -355,7 +535,15 @@ export function VipRuleFormDialog({
                 {rulesCopy.form.fuelMinLiters}
                 <RequiredMark />
               </FieldLabel>
-              <Input id="rule-fuel-min-liters" value={values.fuelMinLiters} onChange={updateTextValue("fuelMinLiters")} inputMode="decimal" aria-invalid={Boolean(errors.fuelMinLiters)} disabled={isSaving} />
+              <InputGroup>
+                <InputGroupInput id="rule-fuel-min-liters" value={values.fuelMinLiters} onChange={updateTextValue("fuelMinLiters")} inputMode="decimal" aria-invalid={Boolean(errors.fuelMinLiters)} disabled={isSaving} />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>L</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupAddon align="inline-end">
+                  <AppInputHelp title={rulesCopy.form.fuelMinLiters} description={rulesCopy.form.help.fuelMinLiters} />
+                </InputGroupAddon>
+              </InputGroup>
               {errors.fuelMinLiters ? <FieldError>{errors.fuelMinLiters}</FieldError> : null}
             </Field>
           ) : null}
@@ -366,7 +554,15 @@ export function VipRuleFormDialog({
                 {rulesCopy.form.benefitHours}
                 <RequiredMark />
               </FieldLabel>
-              <Input id="rule-benefit-hours" value={values.benefitHours} onChange={updateTextValue("benefitHours")} inputMode="decimal" aria-invalid={Boolean(errors.benefitHours)} disabled={isSaving} />
+              <InputGroup>
+                <InputGroupInput id="rule-benefit-hours" value={values.benefitHours} onChange={updateTextValue("benefitHours")} inputMode="decimal" aria-invalid={Boolean(errors.benefitHours)} disabled={isSaving} />
+                <InputGroupAddon align="inline-end">
+                  <InputGroupText>h</InputGroupText>
+                </InputGroupAddon>
+                <InputGroupAddon align="inline-end">
+                  <AppInputHelp title={rulesCopy.form.benefitHours} description={rulesCopy.form.help.benefitHours} />
+                </InputGroupAddon>
+              </InputGroup>
               {errors.benefitHours ? <FieldError>{errors.benefitHours}</FieldError> : null}
             </Field>
           ) : null}
@@ -378,7 +574,15 @@ export function VipRuleFormDialog({
                   {rulesCopy.form.yardOccupancyThreshold}
                   <RequiredMark />
                 </FieldLabel>
-                <Input id="rule-yard-occupancy" value={values.yardOccupancyThreshold} onChange={updateTextValue("yardOccupancyThreshold")} inputMode="numeric" aria-invalid={Boolean(errors.yardOccupancyThreshold)} disabled={isSaving} />
+                <InputGroup>
+                  <InputGroupInput id="rule-yard-occupancy" value={values.yardOccupancyThreshold} onChange={updateTextValue("yardOccupancyThreshold")} inputMode="numeric" aria-invalid={Boolean(errors.yardOccupancyThreshold)} disabled={isSaving} />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText>%</InputGroupText>
+                  </InputGroupAddon>
+                  <InputGroupAddon align="inline-end">
+                    <AppInputHelp title={rulesCopy.form.yardOccupancyThreshold} description={rulesCopy.form.help.yardOccupancyThreshold} />
+                  </InputGroupAddon>
+                </InputGroup>
                 {errors.yardOccupancyThreshold ? <FieldError>{errors.yardOccupancyThreshold}</FieldError> : null}
               </Field>
               <Field data-invalid={Boolean(errors.yardStaleVehicleHours)}>
@@ -386,7 +590,15 @@ export function VipRuleFormDialog({
                   {rulesCopy.form.yardStaleVehicleHours}
                   <RequiredMark />
                 </FieldLabel>
-                <Input id="rule-yard-stale" value={values.yardStaleVehicleHours} onChange={updateTextValue("yardStaleVehicleHours")} inputMode="decimal" aria-invalid={Boolean(errors.yardStaleVehicleHours)} disabled={isSaving} />
+                <InputGroup>
+                  <InputGroupInput id="rule-yard-stale" value={values.yardStaleVehicleHours} onChange={updateTextValue("yardStaleVehicleHours")} inputMode="decimal" aria-invalid={Boolean(errors.yardStaleVehicleHours)} disabled={isSaving} />
+                  <InputGroupAddon align="inline-end">
+                    <InputGroupText>h</InputGroupText>
+                  </InputGroupAddon>
+                  <InputGroupAddon align="inline-end">
+                    <AppInputHelp title={rulesCopy.form.yardStaleVehicleHours} description={rulesCopy.form.help.yardStaleVehicleHours} />
+                  </InputGroupAddon>
+                </InputGroup>
                 {errors.yardStaleVehicleHours ? <FieldError>{errors.yardStaleVehicleHours}</FieldError> : null}
               </Field>
             </>

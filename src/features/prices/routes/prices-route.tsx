@@ -138,6 +138,7 @@ export function PricesRoute() {
       />
 
       <PriceTableFormDialog
+        key={`${isFormOpen ? "open" : "closed"}:${editingRecord?.id ?? "create"}`}
         open={isFormOpen}
         record={editingRecord}
         onOpenChange={setIsFormOpen}

@@ -2,9 +2,19 @@ import { render } from "@testing-library/react"
 import { MemoryRouter, Route, Routes } from "react-router"
 import { describe, expect, it, vi } from "vitest"
 
-vi.mock("@/components/sidebar", () => ({
+vi.mock("@/components/app-header", () => ({
   AppHeader: () => <header data-testid="app-header" />,
+}))
+
+vi.mock("@/components/sidebar", () => ({
   AppSidebar: () => <aside data-testid="app-sidebar" />,
+  SidebarLayoutProvider: ({ children }: { children: React.ReactNode }) => (
+    <div>{children}</div>
+  ),
+}))
+
+vi.mock("@/features/notifications", () => ({
+  useNotifications: () => ({ unreadCount: 0 }),
 }))
 
 describe("AuthenticatedLayout", () => {

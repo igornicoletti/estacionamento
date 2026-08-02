@@ -7,9 +7,13 @@ import {
   CLIENTS_MAX_BATCHES,
 } from "../constants/clients-persistence"
 import {
+  erpClientCatalogRowsSchema,
   erpClientRowsSchema,
+  erpClientVehicleCatalogRowsSchema,
   erpClientVehicleRowsSchema,
+  type ErpClientCatalogRow,
   type ErpClientRow,
+  type ErpClientVehicleCatalogRow,
   type ErpClientVehicleRow,
 } from "../schemas/clients-gateway-schemas"
 import { type ClientsGateway } from "./clients-gateway-contracts"
@@ -40,6 +44,23 @@ const vehicleColumns = [
   "num_placa",
   "des_veiculo",
   "nom_motorista",
+].join(",")
+
+const clientCatalogColumns = [
+  "cod_pessoa",
+  "nom_pessoa",
+  "nom_fantasia",
+  "num_cnpj_cpf",
+].join(",")
+
+const vehicleCatalogColumns = [
+  "cod_veiculo",
+  "cod_pessoa",
+  "nom_pessoa",
+  "nom_fantasia",
+  "num_cnpj_cpf",
+  "num_placa",
+  "des_veiculo",
 ].join(",")
 
 function getSupabaseOrThrow() {
@@ -78,13 +99,88 @@ function parseVehicleRows(
   return result.data
 }
 
+function parseClientCatalogRows(
+  value: unknown,
+): readonly ErpClientCatalogRow[] {
+  const result = erpClientCatalogRowsSchema.safeParse(value ?? [])
+
+  if (!result.success) {
+    throw new Error(clientsCopy.errors.invalidClientsResponse, {
+      cause: result.error,
+    })
+  }
+
+  return result.data
+}
+
+function parseVehicleCatalogRows(
+  value: unknown,
+): readonly ErpClientVehicleCatalogRow[] {
+  const result = erpClientVehicleCatalogRowsSchema.safeParse(value ?? [])
+
+  if (!result.success) {
+    throw new Error(clientsCopy.errors.invalidVehiclesResponse, {
+      cause: result.error,
+    })
+  }
+
+  return result.data
+}
+
+function normalizeCatalogSearchQuery(value: string) {
+  return value
+    .trim()
+    .slice(0, 80)
+    .replace(/[,()*%_"]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim()
+}
+
+function createCatalogSearchFilters(
+  query: string,
+  textColumns: readonly string[],
+  numericColumns: readonly string[],
+  compactColumns: readonly string[] = [],
+) {
+  const normalizedQuery = normalizeCatalogSearchQuery(query)
+
+  if (!normalizedQuery) {
+    return null
+  }
+
+  const filters = textColumns.map(
+    (column) => `${column}.ilike.*${normalizedQuery}*`,
+  )
+  const compactQuery = normalizedQuery.replace(/[^a-zA-Z0-9]/g, "")
+
+  if (compactQuery && compactQuery !== normalizedQuery) {
+    filters.push(
+      ...compactColumns.map(
+        (column) => `${column}.ilike.*${compactQuery}*`,
+      ),
+    )
+  }
+
+  if (/^\d+$/.test(normalizedQuery)) {
+    const numericValue = Number(normalizedQuery)
+
+    if (Number.isSafeInteger(numericValue) && numericValue > 0) {
+      filters.push(
+        ...numericColumns.map((column) => `${column}.eq.${numericValue}`),
+      )
+    }
+  }
+
+  return filters.join(",")
+}
+
 export function createSupabaseClientsGateway(): ClientsGateway {
   return {
     async findClientById(clientId) {
       const supabase = getSupabaseOrThrow()
       const { data, error } = await supabase
         .from("erp_clients")
-        .select(clientColumns)
+        .select(clientCatalogColumns)
         .eq("cod_pessoa", clientId)
         .eq("is_active_120d", true)
         .maybeSingle()
@@ -124,6 +220,67 @@ export function createSupabaseClientsGateway(): ClientsGateway {
           return parseClientRows(data)
         },
       })
+    },
+    async searchClients(query, limit) {
+      const filters = createCatalogSearchFilters(
+        query,
+        ["nom_pessoa", "nom_fantasia", "num_cnpj_cpf"],
+        ["cod_pessoa"],
+      )
+
+      if (!filters) {
+        return []
+      }
+
+      const supabase = getSupabaseOrThrow()
+      const { data, error } = await supabase
+        .from("erp_clients")
+        .select(clientColumns)
+        .eq("is_active_120d", true)
+        .or(filters)
+        .order("nom_fantasia", { ascending: true })
+        .order("cod_pessoa", { ascending: true })
+        .limit(limit)
+
+      if (error) {
+        throw new Error(clientsCopy.errors.clientsLoad, { cause: error })
+      }
+
+      return parseClientCatalogRows(data)
+    },
+    async searchVehicles(query, limit) {
+      const filters = createCatalogSearchFilters(
+        query,
+        [
+          "num_placa",
+          "des_veiculo",
+          "nom_pessoa",
+          "nom_fantasia",
+          "num_cnpj_cpf",
+        ],
+        ["cod_veiculo", "cod_pessoa"],
+        ["num_placa"],
+      )
+
+      if (!filters) {
+        return []
+      }
+
+      const supabase = getSupabaseOrThrow()
+      const { data, error } = await supabase
+        .from("erp_client_vehicles")
+        .select(vehicleCatalogColumns)
+        .eq("client_is_active_120d", true)
+        .or(filters)
+        .order("num_placa", { ascending: true })
+        .order("cod_veiculo", { ascending: true })
+        .limit(limit)
+
+      if (error) {
+        throw new Error(clientsCopy.errors.vehiclesLoad, { cause: error })
+      }
+
+      return parseVehicleCatalogRows(data)
     },
     async listVehiclesByClientId(clientId) {
       const supabase = getSupabaseOrThrow()

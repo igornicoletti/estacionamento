@@ -20,12 +20,29 @@ export interface ClientTableRow extends Client {
   status: ClientStatus
 }
 
+export interface ClientCatalogItem {
+  cod_pessoa: number
+  nom_fantasia: string
+  nom_pessoa: string
+  num_cnpj_cpf: string | null
+}
+
 export interface ClientVehicle {
   cod_pessoa: number
   cod_veiculo: number
   des_veiculo: string
   nom_fantasia: string
   nom_motorista: string
+  nom_pessoa: string
+  num_cnpj_cpf: string | null
+  num_placa: string
+}
+
+export interface ClientVehicleCatalogItem {
+  cod_pessoa: number
+  cod_veiculo: number
+  des_veiculo: string
+  nom_fantasia: string
   nom_pessoa: string
   num_cnpj_cpf: string | null
   num_placa: string

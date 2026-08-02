@@ -1,27 +1,45 @@
 import { ClockIcon } from "lucide-react"
 import { Outlet } from "react-router"
 
-import { appRoutePaths } from "@/app/router/route-registry"
+import {
+  appRouteIds,
+  appRoutePaths,
+} from "@/app/router/route-registry"
+import { AppHeader } from "@/components/app-header"
 import { AppAlertDialog } from "@/components/shared/app-alert-dialog"
-import { AppHeader, AppSidebar } from "@/components/sidebar"
+import { AppSidebar, SidebarLayoutProvider } from "@/components/sidebar"
 import { Button } from "@/components/ui/button"
-import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
+import { SidebarInset } from "@/components/ui/sidebar"
 import { authCopy, useAuth } from "@/features/auth"
+import { useNotifications } from "@/features/notifications"
 
 export function AuthenticatedLayout() {
   const auth = useAuth()
+  const { unreadCount } = useNotifications()
   const inactivity = auth.inactivity
   const copy = authCopy.inactivity
+  const sidebarBadge =
+    unreadCount > 0
+      ? {
+          [appRouteIds.notifications]: {
+            content: unreadCount > 99 ? "+99" : unreadCount,
+            ariaLabel: `${unreadCount} notificações não lidas`,
+          },
+        }
+      : undefined
 
   return (
     <>
-      <SidebarProvider className="min-w-0 overflow-x-clip">
-        <AppSidebar homeHref={appRoutePaths.home} />
-        <SidebarInset className="min-w-0 max-w-full overflow-x-clip">
+      <SidebarLayoutProvider>
+        <AppSidebar
+          homeHref={appRoutePaths.home}
+          {...(sidebarBadge ? { badgesByRouteId: sidebarBadge } : {})}
+        />
+        <SidebarInset className="min-w-0">
           <AppHeader />
           <Outlet />
         </SidebarInset>
-      </SidebarProvider>
+      </SidebarLayoutProvider>
 
       <AppAlertDialog
         open={inactivity.isWarningOpen}

@@ -18,58 +18,48 @@ import {
   appRouteIds,
   authenticatedRouteRegistry,
   navigationGroups as routeNavigationGroups,
-  type AppRouteGroupId,
-  type AppRouteRegistryItem,
 } from "@/app/router/route-registry"
 import montecarloLogo from "@/assets/brand/montecarlo-logo.webp"
 import type { AuthPermission } from "@/features/auth"
 
 const montecarloSymbol = "/favicon.svg"
 
-export interface SidebarNavigationItem {
+type AuthenticatedRoute = (typeof authenticatedRouteRegistry)[number]
+
+type NavigableRoute = Extract<
+  AuthenticatedRoute,
+  {
+    readonly href: `/${string}`
+    readonly navigation: {
+      readonly group: string
+      readonly order: number
+    }
+  }
+>
+
+export type SidebarProjectRoute = {
   id: string
   href: `/${string}`
   label: string
   requiredPermissions?: readonly AuthPermission[]
 }
 
-export interface SidebarNavigationGroup {
+export type SidebarProjectNavigationGroup = {
   id: string
-  label?: string
-  items: readonly SidebarNavigationItem[]
+  label: string
+  items: readonly SidebarProjectRoute[]
 }
 
-export interface SidebarNotification {
-  id: string
-  title: string
-  description: string
-  occurredAt: string
-  href?: `/${string}`
+function isNavigableRoute(route: AuthenticatedRoute): route is NavigableRoute {
+  return "navigation" in route && "href" in route
 }
 
-type NavigableRoute = AppRouteRegistryItem & {
-  href: `/${string}`
-  navigation: NonNullable<AppRouteRegistryItem["navigation"]>
-}
-
-function hasNavigationHref(route: AppRouteRegistryItem): route is NavigableRoute {
-  return "navigation" in route && "href" in route && Boolean(route.navigation && route.href)
-}
-
-function toSidebarNavigationItem(route: NavigableRoute): SidebarNavigationItem {
-  return {
-    href: route.href,
-    id: route.id,
-    label: route.label,
-    requiredPermissions: route.requiredPermissions,
-  }
-}
+const navigableRoutes = authenticatedRouteRegistry.filter(isNavigableRoute)
 
 export const sidebarBrand = {
-  shortName: "RMC",
   name: "Rede Monte Carlo",
-  sidebarLogoUrl: montecarloLogo,
-  symbolLogoUrl: montecarloSymbol,
+  expandedLogoUrl: montecarloLogo,
+  collapsedLogoUrl: montecarloSymbol,
 }
 
 export const routeIconById: Partial<Record<string, LucideIcon>> = {
@@ -88,29 +78,25 @@ export const routeIconById: Partial<Record<string, LucideIcon>> = {
   [appRouteIds.yard]: ParkingCircleIcon,
 }
 
-const navigableRoutes = authenticatedRouteRegistry.filter(
-  hasNavigationHref
-) as readonly NavigableRoute[]
+export const navigationGroups: readonly SidebarProjectNavigationGroup[] =
+  routeNavigationGroups
+    .map((group) => ({
+      id: group.id,
+      label: group.label,
+      items: navigableRoutes
+        .filter((route) => route.navigation.group === group.id)
+        .sort(
+          (first, second) =>
+            first.navigation.order - second.navigation.order
+        )
+        .map<SidebarProjectRoute>((route) => ({
+          id: route.id,
+          href: route.href,
+          label: route.label,
+          ...("requiredPermissions" in route && route.requiredPermissions
+            ? { requiredPermissions: route.requiredPermissions }
+            : {}),
+        })),
+    }))
+    .filter((group) => group.items.length > 0)
 
-const navigationItemsByGroup = navigableRoutes.reduce((groups, route) => {
-  const groupId = route.navigation.group
-  const items = groups.get(groupId) ?? []
-
-  groups.set(groupId, [...items, route])
-
-  return groups
-}, new Map<AppRouteGroupId, readonly NavigableRoute[]>())
-
-export const navigationGroups: readonly SidebarNavigationGroup[] = routeNavigationGroups
-  .map((group) => ({
-    id: group.id,
-    label: group.label,
-    items: [...(navigationItemsByGroup.get(group.id) ?? [])]
-      .sort((first, second) => {
-        return (first.navigation?.order ?? 0) - (second.navigation?.order ?? 0)
-      })
-      .map(toSidebarNavigationItem),
-  }))
-  .filter((group) => group.items.length > 0)
-
-export const notifications: readonly SidebarNotification[] = []

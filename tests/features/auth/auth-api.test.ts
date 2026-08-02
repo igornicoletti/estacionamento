@@ -49,6 +49,16 @@ function createSupabaseMock() {
       error: null
     }>
   >()
+  const registerPasskey = vi.fn<
+    () => Promise<{
+      data: {
+        created_at: string
+        friendly_name: string
+        id: string
+      }
+      error: null
+    }>
+  >()
   const setSession = vi.fn<
     (session: unknown) => Promise<{ error: null }>
   >(() => Promise.resolve({ error: null }))
@@ -58,6 +68,7 @@ function createSupabaseMock() {
   const supabase = {
     auth: {
       onAuthStateChange,
+      registerPasskey,
       setSession,
       signInWithPasskey,
     },
@@ -73,6 +84,7 @@ function createSupabaseMock() {
     functionsInvoke,
     getValidatedSupabaseAccessToken,
     onAuthStateChange,
+    registerPasskey,
     setSession,
     signInWithPasskey,
     supabase,
@@ -169,6 +181,29 @@ describe("auth api", () => {
 
     expect(mock.getValidatedSupabaseAccessToken).toHaveBeenCalledWith(mock.supabase)
     expect(mock.functionsInvoke).not.toHaveBeenCalled()
+  })
+
+  it("finalizes an authenticated passkey before reporting success", async () => {
+    const mock = createSupabaseMock()
+    mock.registerPasskey.mockResolvedValue({
+      data: {
+        created_at: "2026-08-01T20:00:00.000Z",
+        friendly_name: "Windows Hello",
+        id: "passkey-1",
+      },
+      error: null,
+    })
+    mock.getValidatedSupabaseAccessToken.mockResolvedValue("access-token")
+    const { registerAuthenticatedPasskey } = await importAuthApiWithSupabase(mock)
+
+    await expect(registerAuthenticatedPasskey()).resolves.toMatchObject({
+      friendlyName: "Windows Hello",
+      id: "passkey-1",
+    })
+    expect(mock.functionsInvoke).toHaveBeenCalledWith("auth-register-passkey", {
+      body: {},
+      headers: { Authorization: "Bearer access-token" },
+    })
   })
 
   it("defers profile loading until the auth event callback has returned", async () => {

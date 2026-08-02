@@ -1,6 +1,7 @@
 import * as React from "react"
 
 import { AppDialog } from "@/components/shared/app-dialog"
+import { AppInputHelp } from "@/components/shared/app-input-help"
 import { AppPasswordField } from "@/components/shared/app-password-field"
 import { Button } from "@/components/ui/button"
 import { FieldGroup } from "@/components/ui/field"
@@ -19,11 +20,11 @@ interface SecurityChangePasswordDialogProps {
 }
 
 function getPasswordError(value: string) {
-  if (!value.trim()) {
+  if (!value) {
     return null
   }
 
-  const result = newPasswordSchema.safeParse(value.trim())
+  const result = newPasswordSchema.safeParse(value)
   return result.success ? null : result.error.issues[0]?.message ?? null
 }
 
@@ -49,9 +50,9 @@ export function SecurityChangePasswordDialog({
     : null
 
   const canSubmit = Boolean(
-    currentPassword.trim() &&
-    newPassword.trim() &&
-    confirmPassword.trim() &&
+    currentPassword &&
+    newPassword &&
+    confirmPassword &&
     !newPasswordError &&
     !confirmError &&
     !sameAsCurrentError &&
@@ -88,8 +89,8 @@ export function SecurityChangePasswordDialog({
 
     try {
       await onSubmit({
-        currentPassword: currentPassword.trim(),
-        newPassword: newPassword.trim(),
+        currentPassword,
+        newPassword,
       })
       resetForm()
     } finally {
@@ -140,7 +141,12 @@ export function SecurityChangePasswordDialog({
             error={newPasswordError ?? sameAsCurrentError ?? undefined}
             disabled={isSaving}
             autoComplete="new-password"
-            description={copy.hint}
+            labelAction={(
+              <AppInputHelp
+                title={copy.newLabel}
+                description={copy.hint}
+              />
+            )}
             required
           />
           <AppPasswordField

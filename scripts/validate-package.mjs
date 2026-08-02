@@ -357,6 +357,31 @@ if (manualTableFiles.length > 0) {
   errors.push(`Manual table markup must use shared table components: ${manualTableFiles.join(", ")}`)
 }
 
+const selectContentWithoutPopper = srcCodeFiles
+  .filter((file) => file.endsWith(".tsx"))
+  .flatMap((file) => {
+    const tags = Array.from(read(file).matchAll(/<SelectContent\b[^>]*>/gs))
+
+    return tags.some((match) => !/position\s*=\s*["']popper["']/.test(match[0]))
+      ? [file]
+      : []
+  })
+
+if (selectContentWithoutPopper.length > 0) {
+  errors.push(
+    `SelectContent must use position="popper": ${selectContentWithoutPopper.join(", ")}`
+  )
+}
+
+const nativeDateTimeInputs = srcCodeFiles
+  .filter((file) => /type\s*=\s*["']datetime-local["']/.test(read(file)))
+
+if (nativeDateTimeInputs.length > 0) {
+  errors.push(
+    `Date-time fields must compose the shadcn Calendar: ${nativeDateTimeInputs.join(", ")}`
+  )
+}
+
 const frontendSecretLeaks = srcCodeFiles
   .filter((file) => file !== "src/config/env.ts")
   .filter((file) => /SUPABASE_SERVICE_ROLE_KEY|sb_secret_|service_role/.test(read(file)))
@@ -371,6 +396,11 @@ requireContent("vite.config.ts", "configDefaults.exclude", "Vitest default test 
 requireContent("src/index.css", "\"Inter Variable\"", "Inter Variable font token")
 requireContent("src/index.css", "--color-success", "semantic success color token")
 requireContent("src/index.css", "font-sans", "body sans font utility")
+requireContent(
+  "src/components/shared/app-date-time-picker.tsx",
+  "<Calendar",
+  "shadcn Calendar composition"
+)
 requireAuthInactivityTimeoutAlignment()
 requireContent(
   "src/features/auth/context/auth-provider.tsx",

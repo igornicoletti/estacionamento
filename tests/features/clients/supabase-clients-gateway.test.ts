@@ -37,6 +37,50 @@ describe("Supabase clients gateway", () => {
     expect(rows).toHaveLength(501)
   })
 
+  it("limits remote vehicle searches and sanitizes filter syntax", async () => {
+    const query = createListQuery()
+    query.limit.mockResolvedValueOnce({
+      data: [createVehicleRow()],
+      error: null,
+    })
+    supabaseMock.from.mockReturnValue(query)
+
+    const { createSupabaseClientsGateway } = await import(
+      "@/features/clients/gateways/supabase-clients-gateway"
+    )
+    const rows = await createSupabaseClientsGateway().searchVehicles(
+      "ABC1D23,*)",
+      50,
+    )
+
+    expect(query.eq).toHaveBeenCalledWith("client_is_active_120d", true)
+    expect(query.or).toHaveBeenCalledWith(
+      expect.stringContaining("num_placa.ilike.*ABC1D23*"),
+    )
+    expect(query.or.mock.calls[0]?.[0]).not.toMatch(/[,][*][)]/)
+    expect(query.limit).toHaveBeenCalledWith(50)
+    expect(rows).toHaveLength(1)
+  })
+
+  it("does not add vehicle-only fields to client searches", async () => {
+    const query = createListQuery()
+    query.limit.mockResolvedValueOnce({
+      data: [createClientRow()],
+      error: null,
+    })
+    supabaseMock.from.mockReturnValue(query)
+
+    const { createSupabaseClientsGateway } = await import(
+      "@/features/clients/gateways/supabase-clients-gateway"
+    )
+    await createSupabaseClientsGateway().searchClients("12.345", 50)
+
+    expect(query.or.mock.calls[0]?.[0]).toContain(
+      "num_cnpj_cpf.ilike.*12.345*",
+    )
+    expect(query.or.mock.calls[0]?.[0]).not.toContain("num_placa")
+  })
+
   it("queries one client by ID and fails closed on malformed data", async () => {
     const query = createListQuery()
     query.maybeSingle.mockResolvedValue({
@@ -63,12 +107,15 @@ function createListQuery() {
   const query = {
     eq: vi.fn(),
     maybeSingle: vi.fn(),
+    limit: vi.fn(),
+    or: vi.fn(),
     order: vi.fn(),
     range: vi.fn(),
     select: vi.fn(),
   }
   query.select.mockReturnValue(query)
   query.eq.mockReturnValue(query)
+  query.or.mockReturnValue(query)
   query.order.mockReturnValue(query)
   return query
 }
@@ -89,5 +136,18 @@ function createClientRow() {
     num_telefone_1: "(11) 3333-4444",
     qtd_veiculos: 2,
     sgl_estado: "SP",
+  }
+}
+
+function createVehicleRow() {
+  return {
+    cod_pessoa: 1001,
+    cod_veiculo: 5001,
+    des_veiculo: "Fiat Strada 1.4",
+    nom_fantasia: "Auto Center Alfa",
+    nom_motorista: "Joao Carlos",
+    nom_pessoa: "Auto Center Alfa Ltda",
+    num_cnpj_cpf: "12.345.678/0001-10",
+    num_placa: "ABC1D23",
   }
 }

@@ -58,11 +58,14 @@ export const pricesCopy = {
     endsAt: "Fim",
     status: "Status",
   },
+  derived: {
+    networkTableName: "Tabela da rede",
+    unitTableName: "Tabela da unidade",
+  },
   form: {
     createTitle: "Adicionar tabela de preço",
     editTitle: "Editar tabela de preço",
     description: "Defina escopo, valor, ciclo e período de vigência da tabela.",
-    name: "Nome",
     scope: "Escopo",
     unitId: "Código da unidade",
     unitName: "Unidade",
@@ -76,6 +79,13 @@ export const pricesCopy = {
     notes: "Observações",
     optional: "Opcional",
     selectPlaceholder: "Selecione",
+    help: {
+      amount: "Valor cobrado no primeiro ciclo da permanência.",
+      cycleHours: "Quantidade de horas que compõe cada ciclo de cobrança.",
+      graceMinutes: "Período inicial em que nenhuma cobrança é aplicada.",
+      toleranceMinutes:
+        "Margem adicional após o ciclo antes de iniciar uma nova cobrança.",
+    },
   },
   validation: {
     required: "Campo obrigatório.",

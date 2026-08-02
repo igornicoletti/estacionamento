@@ -1,8 +1,6 @@
 import type { BadgeTone } from "@/lib"
-import type { NotificationRecord } from "@/features/notifications"
 
 import type {
-  SecurityEventSummary,
   SecurityMeasureId,
   SecurityMeasureStatus,
   SecurityScore,
@@ -11,25 +9,30 @@ import type {
 
 export type SecurityMeasureStatuses = Record<SecurityMeasureId, SecurityMeasureStatus>
 
-const SECURITY_EVENT_LIMIT = 4
-
 function hasRecoveryContact(security: SecuritySummary) {
-  return Boolean(security.account.phoneMasked?.trim())
-}
-
-function getNotificationTimestamp(notification: Pick<NotificationRecord, "occurredAt" | "id">) {
-  const timestamp = Date.parse(notification.occurredAt)
-
-  return Number.isNaN(timestamp) ? 0 : timestamp
+  return Boolean(
+    security.account.email?.trim() && security.account.phoneMasked?.trim()
+  )
 }
 
 export function getSecurityMeasureStatuses(
   security: SecuritySummary
 ): SecurityMeasureStatuses {
   return {
+    "two-factor-authentication": security.posture.mfaConfigured
+      ? "completed"
+      : "action-required",
     "strong-password": "completed",
     passkey: security.passkeyStatus === "active" ? "completed" : "action-required",
-    "recovery-contact": hasRecoveryContact(security) ? "completed" : "action-required",
+    "recovery-options": hasRecoveryContact(security)
+      ? "completed"
+      : "action-required",
+    "recent-logins": security.posture.recentLoginsReviewed
+      ? "completed"
+      : "action-required",
+    "trusted-devices": security.posture.trustedDevicesConfigured
+      ? "completed"
+      : "action-required",
   }
 }
 
@@ -51,31 +54,7 @@ export function createSecurityScore(
 export function getSecurityScoreTone(
   score: SecurityScore
 ): Exclude<BadgeTone, "secondary"> {
-  if (score.value === 100) return "success"
-  if (score.value >= 67) return "info"
-  if (score.value >= 34) return "warning"
+  if (score.completed === score.total && score.total > 0) return "success"
+  if (score.completed >= 3) return "warning"
   return "error"
-}
-
-export function getRecentSecurityEvents(
-  notifications: readonly NotificationRecord[]
-): SecurityEventSummary[] {
-  return notifications
-    .filter((notification) => notification.type === "security")
-    .sort((current, next) => {
-      const timestampDiff =
-        getNotificationTimestamp(next) - getNotificationTimestamp(current)
-
-      return timestampDiff !== 0
-        ? timestampDiff
-        : next.id.localeCompare(current.id)
-    })
-    .slice(0, SECURITY_EVENT_LIMIT)
-    .map((notification) => ({
-      description: notification.description,
-      href: notification.href,
-      id: notification.id,
-      occurredAt: notification.occurredAt,
-      title: notification.title,
-    }))
 }

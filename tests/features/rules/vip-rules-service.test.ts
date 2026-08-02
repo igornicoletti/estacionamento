@@ -7,6 +7,7 @@ import {
   getVipRuleVehicleScopeLabel,
   isClientVipFromRules,
   isVehicleVipFromRules,
+  normalizeVipRuleRecord,
   type VipRule,
 } from "@/features/rules"
 
@@ -41,6 +42,45 @@ const vehicleRule: VipRule = {
 }
 
 describe("vip rules model", () => {
+  it("normalizes the database status into the domain active flag", () => {
+    const rawRule = {
+      active: undefined,
+      applies_to_all_units: true,
+      benefit_hours: 1,
+      client_id: 1001,
+      client_name: "Cliente VIP",
+      created_at: null,
+      fuel_min_liters: null,
+      id: "vip-client:1001",
+      notes: null,
+      status: "active",
+      target_type: "client",
+      type: "vip",
+      unit_ids: [],
+      updated_at: null,
+      vehicle_id: null,
+      vehicle_ids: [],
+      vehicle_plate: null,
+      yard_occupancy_threshold: null,
+      yard_stale_vehicle_hours: null,
+    }
+
+    expect(normalizeVipRuleRecord(rawRule).active).toBe(true)
+    expect(
+      normalizeVipRuleRecord({ ...rawRule, status: "inactive" }).active,
+    ).toBe(false)
+    expect(
+      normalizeVipRuleRecord({
+        ...rawRule,
+        type: "fuel_benefit",
+        target_type: "network",
+      }),
+    ).toMatchObject({
+      targetType: "global",
+      type: "fuel",
+    })
+  })
+
   it("resolves client and vehicle vip states from active rules", () => {
     expect(getClientVipStatus({ cod_pessoa: 1001 }, [clientRule])).toBe(true)
     expect(getVehicleVipStatus({ cod_pessoa: 1001, cod_veiculo: 2002 }, [clientRule])).toBe(true)

@@ -9,12 +9,12 @@ A feature passou a compor o histórico e a execução manual reais de Clientes e
 
 ```text
 ClientsRoute / UnitsRoute
-	-> SyncOperations
-	-> SyncHistorySheet | SyncDialog
-	-> useSyncHistory | useSyncController
-	-> sync-service
-	-> SyncGateway
-	-> Data API + clients-sync / units-sync
+-> SyncOperations
+-> SyncHistorySheet | SyncDialog
+-> useSyncHistory | useSyncController
+-> sync-service
+-> SyncGateway
+-> Data API + clients-sync / units-sync
 ```
 
 ## Contratos

@@ -72,6 +72,8 @@ vi.mock("@/features/auth", async () => {
 })
 
 vi.mock("@/features/units", () => ({
+  formatUnitOptionLabel: (code: number | string, name: string) =>
+    `${String(code).padStart(3, "0")} — ${name}`,
   useUnitYardConfigs: () => ({
     data: mocks.yardConfigs,
     isLoading: false,
@@ -88,7 +90,7 @@ describe("AppUnitSelector", () => {
   })
 
   it("formats unit options with code and name in a single line", () => {
-    expect(formatUnitSelectorOption(mocks.units[0])).toBe("24 — Iguatemi")
+    expect(formatUnitSelectorOption(mocks.units[0])).toBe("024 — Iguatemi")
   })
 
   it("renders a responsive h-9 combobox input with flat popup shell", async () => {
@@ -136,6 +138,6 @@ describe("AppUnitSelector", () => {
 
     expect(
       screen.getByRole("combobox", { name: "Selecionar unidade" }),
-    ).toHaveValue("24 — Iguatemi")
+    ).toHaveValue("024 — Iguatemi")
   })
 })

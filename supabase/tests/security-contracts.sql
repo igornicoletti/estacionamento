@@ -202,6 +202,53 @@ do $$
 declare
   function_oid oid;
 begin
+  function_oid := to_regprocedure('public.get_current_security_events()');
+
+  if function_oid is null
+    or not (select prosecdef from pg_proc where oid = function_oid)
+    or not has_function_privilege('authenticated', function_oid, 'EXECUTE')
+    or has_function_privilege('public', function_oid, 'EXECUTE')
+    or has_function_privilege('anon', function_oid, 'EXECUTE')
+    or has_function_privilege('service_role', function_oid, 'EXECUTE')
+    or position('auth.uid()' in (select prosrc from pg_proc where oid = function_oid)) = 0
+    or position('security_logins_reviewed' in (select prosrc from pg_proc where oid = function_oid)) = 0
+    or position('limit 5' in lower((select prosrc from pg_proc where oid = function_oid))) = 0 then
+    raise exception 'Feed self-service de auditoria possui contexto, allowlist, limite ou grants invalidos.';
+  end if;
+
+  function_oid := to_regprocedure('public.record_current_security_mfa_enabled()');
+
+  if function_oid is null
+    or not (select prosecdef from pg_proc where oid = function_oid)
+    or not has_function_privilege('authenticated', function_oid, 'EXECUTE')
+    or has_function_privilege('public', function_oid, 'EXECUTE')
+    or has_function_privilege('anon', function_oid, 'EXECUTE')
+    or has_function_privilege('service_role', function_oid, 'EXECUTE')
+    or position('verified_mfa_required' in (select prosrc from pg_proc where oid = function_oid)) = 0
+    or position('mfa_enabled' in (select prosrc from pg_proc where oid = function_oid)) = 0 then
+    raise exception 'Registro de MFA possui verificacao, auditoria ou grants invalidos.';
+  end if;
+
+  if position(
+    'security_logins_reviewed'
+    in (select prosrc from pg_proc where oid = to_regprocedure('public.review_current_security_logins()'))
+  ) = 0 then
+    raise exception 'Revisao de logins deve registrar auditoria.';
+  end if;
+
+  if position(
+    'security_device_trusted'
+    in (select prosrc from pg_proc where oid = to_regprocedure('public.trust_current_security_device()'))
+  ) = 0 then
+    raise exception 'Confianca de dispositivo deve registrar auditoria.';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  function_oid oid;
+begin
   function_oid := to_regprocedure('private.configure_units_sync_cron(text,text,text,text)');
 
   if function_oid is null
@@ -654,6 +701,63 @@ begin
   if position('updated_by' in (select prosrc from pg_proc where oid = fields_function)) = 0
     or position('auth.uid()' in (select prosrc from pg_proc where oid = fields_function)) = 0 then
     raise exception 'Trigger do pátio deve registrar autoria autenticada.';
+  end if;
+end;
+$$;
+
+do $$
+declare
+  posture_function oid := to_regprocedure('public.get_current_security_posture()');
+  review_function oid := to_regprocedure('public.review_current_security_logins()');
+  trust_function oid := to_regprocedure('public.trust_current_security_device()');
+  function_oid oid;
+begin
+  if posture_function is null or review_function is null or trust_function is null then
+    raise exception 'Funções da postura de segurança estão ausentes.';
+  end if;
+
+  if not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'app_session_activity'
+      and column_name = 'reviewed_at'
+  ) or not exists (
+    select 1
+    from information_schema.columns
+    where table_schema = 'public'
+      and table_name = 'app_session_activity'
+      and column_name = 'trusted_at'
+  ) then
+    raise exception 'Campos de revisão/confiança da sessão estão ausentes.';
+  end if;
+
+  foreach function_oid in array array[
+    posture_function,
+    review_function,
+    trust_function
+  ] loop
+    if not (select prosecdef from pg_proc where oid = function_oid)
+      or not exists (
+        select 1
+        from unnest(coalesce((select proconfig from pg_proc where oid = function_oid), array[]::text[])) setting
+        where setting = 'search_path=""'
+      )
+      or has_function_privilege('public', function_oid, 'EXECUTE')
+      or has_function_privilege('anon', function_oid, 'EXECUTE')
+      or has_function_privilege('service_role', function_oid, 'EXECUTE')
+      or not has_function_privilege('authenticated', function_oid, 'EXECUTE') then
+      raise exception 'Função da postura de segurança possui contexto ou grants inválidos: %', function_oid;
+    end if;
+  end loop;
+
+  if position('aal2' in (select prosrc from pg_proc where oid = trust_function)) = 0
+    or position('current_auth_session_id' in (select prosrc from pg_proc where oid = trust_function)) = 0 then
+    raise exception 'Confiança de dispositivo deve exigir sessão atual em AAL2.';
+  end if;
+
+  if position('30 days' in (select prosrc from pg_proc where oid = review_function)) = 0 then
+    raise exception 'Revisão de logins deve permanecer limitada aos últimos 30 dias.';
   end if;
 end;
 $$;

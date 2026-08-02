@@ -1,55 +1,32 @@
-import { useLocation } from "react-router"
 
-import { shouldBypassAuthInDev } from "@/config"
-import { useAuth, type AuthPermission } from "@/features/auth"
+"use client"
 
-import {
-  navigationGroups,
-  type SidebarNavigationItem,
-} from "./sidebar-config"
-import { SidebarNavGroup } from "./sidebar-nav-group"
+import { SidebarContent } from "@/components/ui/sidebar"
 
-function canAccessNavigationItem(
-  item: SidebarNavigationItem,
-  hasAllPermissions: (permissions: readonly AuthPermission[]) => boolean
-) {
-  if (shouldBypassAuthInDev()) {
-    return true
-  }
+import { SidebarNavigationGroup } from "./sidebar-navigation-group"
+import type { SidebarNavigationGroup as SidebarNavigationGroupData } from "./sidebar.types"
+import { validateSidebarGroups } from "./sidebar-validation"
 
-  if (!item.requiredPermissions || item.requiredPermissions.length === 0) {
-    return true
-  }
-
-  return hasAllPermissions(item.requiredPermissions)
+export type SidebarNavigationProps = {
+  groups: readonly SidebarNavigationGroupData[]
+  busy?: boolean
 }
 
-export function SidebarNavigation() {
-  const location = useLocation()
-  const auth = useAuth()
+export function SidebarNavigation({
+  groups,
+  busy = false,
+}: SidebarNavigationProps) {
+  if (import.meta.env.DEV) {
+    validateSidebarGroups(groups)
+  }
 
-  const visibleGroups = navigationGroups
-    .map((group) => {
-      return {
-        ...group,
-        items: group.items.filter((item) => {
-          return canAccessNavigationItem(item, auth.access.hasAllPermissions)
-        }),
-      }
-    })
-    .filter((group) => group.items.length > 0)
+  const busyProps = busy ? { "aria-busy": true as const } : {}
 
   return (
-    <>
-      {visibleGroups.map((group) => (
-        <SidebarNavGroup
-          key={group.id}
-          label={group.label}
-          items={group.items}
-          activePathname={location.pathname}
-          className={group.id === visibleGroups[0]?.id ? "mt-2" : "mt-0.5"}
-        />
+    <SidebarContent {...busyProps}>
+      {groups.map((group) => (
+        <SidebarNavigationGroup key={group.id} group={group} />
       ))}
-    </>
+    </SidebarContent>
   )
 }

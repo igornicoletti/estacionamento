@@ -2,7 +2,18 @@
 
 Data da revisão: 2026-08-01
 Escopo: 26 arquivos, 3 testes, integração com Clients/Units, capabilities, tabela/RLS e RPC versionada.
-Estado: auditoria concluída; implementação pendente da etapa consolidada.
+Estado: auditoria concluída; fronteiras de catálogo e adapters produtivos corrigidos em 2026-08-02.
+
+## Atualização de implementação — 2026-08-02
+
+- Leitura usa `status` e normaliza `active | inactive` para o domínio.
+- Adapters explícitos convertem `fuel_benefit ↔ fuel` e `network ↔ global`.
+- Cliente e veículo usam busca remota debounceada, limitada a 50 resultados e com DTO mínimo validado por Zod.
+- Unidade usa Combobox múltiplo; campos técnicos livres de cliente, veículo, placa e IDs de unidade foram removidos.
+- A rota produtiva carregou oito registros; busca real retornou código, nome e CNPJ sem catálogo integral.
+- Testes protegem payloads RPC, respostas fora de ordem, seleção de veículo e múltiplas unidades.
+
+Permanecem pendentes os achados de autorização visual por capability, invariantes server-side de referência/versionamento e partialidade da tabela principal. Os achados abaixo são o registro original e podem estar superados por esta atualização.
 
 ## Parecer executivo
 
@@ -41,30 +52,30 @@ Criar schemas wire/form únicos e adapters explícitos. Preferência: domínio p
 
 ### Alta
 
-6. **PII e escala no Combobox:** `listClients()` integral carrega CPF/CNPJ, telefone, e-mail e outros campos desnecessários, embora só sejam usados id/nome. Criar endpoint de lookup autorizado, paginado e minimizado.
-7. **Autorização visual:** rota exige `rules.read`, mas adicionar/editar/status aparecem para todos. Exigir `rules.manage` na UI, mantendo RLS/RPC como enforcement. A capability também está ausente do catálogo ativo local auditado.
-8. **Referências não validadas:** cliente/veículo/unidade podem ser digitados e o RPC não confirma existência nem acesso do ator. Resolver por endpoints autorizados e validação server-side.
-9. **Semântica de edição/status:** toda ação cria nova versão; `id` do payload não é enviado. Isso pode ser correto, mas deve preservar parent/version por identidade lógica e ser descrito como versionamento. Verificar corrida entre dois saves concorrentes com lock/constraint.
+1. **PII e escala no Combobox:** `listClients()` integral carrega CPF/CNPJ, telefone, e-mail e outros campos desnecessários, embora só sejam usados id/nome. Criar endpoint de lookup autorizado, paginado e minimizado.
+2. **Autorização visual:** rota exige `rules.read`, mas adicionar/editar/status aparecem para todos. Exigir `rules.manage` na UI, mantendo RLS/RPC como enforcement. A capability também está ausente do catálogo ativo local auditado.
+3. **Referências não validadas:** cliente/veículo/unidade podem ser digitados e o RPC não confirma existência nem acesso do ator. Resolver por endpoints autorizados e validação server-side.
+4. **Semântica de edição/status:** toda ação cria nova versão; `id` do payload não é enviado. Isso pode ser correto, mas deve preservar parent/version por identidade lógica e ser descrito como versionamento. Verificar corrida entre dois saves concorrentes com lock/constraint.
 
 ### Média
 
-10. Formulário de ~15,8 kB mistura catálogo, controller, mapeamento e campos; dividi-lo por seções e hooks nomeados.
-11. Para alvo veículo, não há seleção de cliente/veículo relacionada; `clientId` pode permanecer vazio e a validação exige apenas `vehicleId`, embora RPC VIP use ambos para localizar versão.
-12. Regra VIP exige `benefitHours` na UI, mas RPC/schema histórico de VIP não exige/usa benefício da mesma forma; validar requisito de negócio.
-13. `appliesToAllUnits` pode ser true com target `unit`; RPC decide por target/ids. Invariantes de target, units e yard cleaning precisam ser discriminated union real.
-14. Limite 500 e `isTruncated` são retornados pelo hook, mas ignorados pela rota. Adotar partialidade/paginação/filtros server-side.
-15. Normalização manual aceita floats/negativos em arrays, duplica IDs e converte corrupção em defaults.
-16. Duplicação: `rules-service`, `vip-rules-service` e `useVipRules` repetem toggles/adapters; remover camada compat após migrar consumidores em Clients.
-17. Deep import/export público amplo e seis barrels; `users` de referência usa fronteiras mais estreitas.
-18. Status update reutiliza payload completo derivado de dado possivelmente truncado/stale; oferecer comando server-side específico/idempotente por identidade/version.
-19. Erros públicos são genéricos (bom para sanitização), mas não há mapping de conflito/autorização/indisponibilidade nem correlation id.
+1. Formulário de ~15,8 kB mistura catálogo, controller, mapeamento e campos; dividi-lo por seções e hooks nomeados.
+2. Para alvo veículo, não há seleção de cliente/veículo relacionada; `clientId` pode permanecer vazio e a validação exige apenas `vehicleId`, embora RPC VIP use ambos para localizar versão.
+3. Regra VIP exige `benefitHours` na UI, mas RPC/schema histórico de VIP não exige/usa benefício da mesma forma; validar requisito de negócio.
+4. `appliesToAllUnits` pode ser true com target `unit`; RPC decide por target/ids. Invariantes de target, units e yard cleaning precisam ser discriminated union real.
+5. Limite 500 e `isTruncated` são retornados pelo hook, mas ignorados pela rota. Adotar partialidade/paginação/filtros server-side.
+6. Normalização manual aceita floats/negativos em arrays, duplica IDs e converte corrupção em defaults.
+7. Duplicação: `rules-service`, `vip-rules-service` e `useVipRules` repetem toggles/adapters; remover camada compat após migrar consumidores em Clients.
+8. Deep import/export público amplo e seis barrels; `users` de referência usa fronteiras mais estreitas.
+9. Status update reutiliza payload completo derivado de dado possivelmente truncado/stale; oferecer comando server-side específico/idempotente por identidade/version.
+10. Erros públicos são genéricos (bom para sanitização), mas não há mapping de conflito/autorização/indisponibilidade nem correlation id.
 
 ### Baixa
 
-20. Strings de Sheet, confirmação, empty do Combobox e helpers (`Todas as unidades`, `Todos os veículos`) estão hardcoded apesar da copy.
-21. `RequiredMark` não está marcado decorativo; Checkbox/label podem ser semanticamente aprimorados.
-22. `default export` da rota e nested barrels são desnecessários.
-23. README/VALIDATION afirmam proteção contra payload inesperado, quando normalização permissiva o mascara.
+1. Strings de Sheet, confirmação, empty do Combobox e helpers (`Todas as unidades`, `Todos os veículos`) estão hardcoded apesar da copy.
+2. `RequiredMark` não está marcado decorativo; Checkbox/label podem ser semanticamente aprimorados.
+3. `default export` da rota e nested barrels são desnecessários.
+4. README/VALIDATION afirmam proteção contra payload inesperado, quando normalização permissiva o mascara.
 
 ## Segurança e rastreabilidade
 

@@ -175,6 +175,7 @@ export function RulesRoute() {
       />
 
       <VipRuleFormDialog
+        key={`${isFormOpen ? "open" : "closed"}:${editingRecord?.id ?? "create"}`}
         open={isFormOpen}
         record={editingRecord}
         onOpenChange={setIsFormOpen}

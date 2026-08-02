@@ -51,6 +51,13 @@ if (!HTMLElement.prototype.scrollIntoView) {
   })
 }
 
+if (!document.elementFromPoint) {
+  Object.defineProperty(document, "elementFromPoint", {
+    configurable: true,
+    value: () => null,
+  })
+}
+
 if (!globalThis.ResizeObserver) {
   class TestResizeObserver implements ResizeObserver {
     readonly #callback: ResizeObserverCallback

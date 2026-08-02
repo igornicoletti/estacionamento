@@ -1,22 +1,13 @@
-import {
-  fireEvent,
-  render,
-  screen,
-  waitFor,
-} from "@testing-library/react"
+import { fireEvent, render, screen, waitFor } from "@testing-library/react"
 import { MemoryRouter } from "react-router"
-import {
-  describe,
-  expect,
-  it,
-} from "vitest"
+import { describe, expect, it } from "vitest"
 
-import { NotificationsPopover } from "@/components/sidebar/sidebar-notifications-popover"
+import { NotificationsPopover } from "@/components/notifications"
 import { NotificationsProvider } from "@/features/notifications/context/notifications-provider"
 import { formatDateTime } from "@/lib"
 
 describe("NotificationsPopover", () => {
-  it("abre o popover e exibe as acoes principais de notificacoes", async () => {
+  it("abre o popover e exibe as ações principais", async () => {
     render(
       <MemoryRouter>
         <NotificationsProvider>
@@ -25,7 +16,9 @@ describe("NotificationsPopover", () => {
       </MemoryRouter>
     )
 
-    fireEvent.click(screen.getByRole("button", { name: "Abrir painel de notificações" }))
+    fireEvent.click(
+      screen.getByRole("button", { name: /Abrir painel de notificações/ })
+    )
 
     await waitFor(() => {
       expect(screen.getByText("Notificações")).toBeInTheDocument()
@@ -37,7 +30,6 @@ describe("NotificationsPopover", () => {
     expect(
       screen.getByText(formatDateTime("2026-07-01T08:25:00.000Z"))
     ).toBeInTheDocument()
-
     expect(
       screen.getByRole("button", { name: "Marcar todas como lidas" })
     ).toBeInTheDocument()
@@ -47,9 +39,6 @@ describe("NotificationsPopover", () => {
     expect(
       document.querySelector('[data-notification-type-icon="security"]')
     ).toBeInTheDocument()
-
-    expect(
-      screen.getByRole("link", { name: "Ver todas" })
-    ).toBeInTheDocument()
+    expect(screen.getByRole("link", { name: "Ver todas" })).toBeInTheDocument()
   })
 })

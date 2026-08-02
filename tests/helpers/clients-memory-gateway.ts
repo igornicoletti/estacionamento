@@ -41,6 +41,26 @@ export function createMemoryClientsGateway(): ClientsGateway {
     findClientById: (clientId) =>
       Promise.resolve(seedClients.find((client) => client.cod_pessoa === clientId) ?? null),
     listClients: () => Promise.resolve(seedClients),
+    searchClients: (query, limit) =>
+      Promise.resolve(
+        seedClients
+          .filter((client) =>
+            JSON.stringify(client).toLocaleLowerCase("pt-BR").includes(
+              query.toLocaleLowerCase("pt-BR"),
+            ),
+          )
+          .slice(0, limit),
+      ),
+    searchVehicles: (query, limit) =>
+      Promise.resolve(
+        seedVehicles
+          .filter((vehicle) =>
+            JSON.stringify(vehicle).toLocaleLowerCase("pt-BR").includes(
+              query.toLocaleLowerCase("pt-BR"),
+            ),
+          )
+          .slice(0, limit),
+      ),
     listVehiclesByClientId: (clientId) =>
       Promise.resolve(
         seedVehicles.filter((vehicle) => vehicle.cod_pessoa === clientId)

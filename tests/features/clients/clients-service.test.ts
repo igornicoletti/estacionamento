@@ -8,6 +8,8 @@ import {
   findClientById,
   listClients,
   listClientVehiclesByClientId,
+  searchClients,
+  searchClientVehicles,
 } from "@/features/clients/services/clients-service"
 
 describe("clients-service", () => {
@@ -16,6 +18,8 @@ describe("clients-service", () => {
       findClientById: (clientId) =>
         Promise.resolve(clientId === 1001 ? clientPayload : null),
       listClients: () => Promise.resolve([clientPayload]),
+      searchClients: () => Promise.resolve([clientPayload]),
+      searchVehicles: () => Promise.resolve(vehiclePayload),
       listVehiclesByClientId: (clientId) =>
         Promise.resolve(
           vehiclePayload.filter((vehicle) => vehicle.cod_pessoa === clientId)
@@ -51,6 +55,8 @@ describe("clients-service", () => {
             nom_pessoa: "AUTO CENTER ALFA LTDA",
           },
         ]),
+      searchClients: () => Promise.resolve([]),
+      searchVehicles: () => Promise.resolve([]),
       listVehiclesByClientId: () => Promise.resolve([]),
     })
 
@@ -72,6 +78,13 @@ describe("clients-service", () => {
       cod_pessoa: 1001,
       num_placa: "ABC1D23",
     })
+  })
+
+  it("searches synchronized client and vehicle catalogs", async () => {
+    await expect(searchClients("Auto Center")).resolves.toHaveLength(1)
+    await expect(searchClientVehicles("ABC1D23")).resolves.toHaveLength(1)
+    await expect(searchClients("A")).resolves.toEqual([])
+    await expect(searchClientVehicles("A")).resolves.toEqual([])
   })
 
   it("returns one client through the direct lookup contract", async () => {

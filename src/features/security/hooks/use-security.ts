@@ -1,16 +1,41 @@
 import * as React from "react"
 
 import { useAuth } from "@/features/auth"
+import { useAsyncSnapshot } from "@/hooks/use-async-snapshot"
 
+import { getSecurityPosture } from "../services/security-posture-service"
 import {
   getCurrentSecuritySession,
   getLocalSecuritySessionSummary,
 } from "../services/security-session-service"
 import type { SecuritySnapshot } from "../types/security-types"
 
+const emptyPosture = {
+  currentLevel: "aal1",
+  currentSessionTrusted: false,
+  mfaConfigured: false,
+  recentLoginsReviewed: false,
+  sessions: [],
+  trustedDevicesConfigured: false,
+} as const
+
 export function useSecurity(): SecuritySnapshot {
   const auth = useAuth()
   const [session, setSession] = React.useState(getLocalSecuritySessionSummary)
+  const loadPosture = React.useCallback(
+    () => auth.isAuthenticated
+      ? getSecurityPosture()
+      : Promise.resolve({ ...emptyPosture, sessions: [] }),
+    [auth.isAuthenticated]
+  )
+  const postureSnapshot = useAsyncSnapshot({
+    cacheKey: auth.profile?.authUserId
+      ? `security:posture:${auth.profile.authUserId}`
+      : undefined,
+    errorMessage: "Não foi possível carregar as configurações de segurança.",
+    initialData: { ...emptyPosture, sessions: [] },
+    loadData: loadPosture,
+  })
 
   React.useEffect(() => {
     let cancelled = false
@@ -41,6 +66,7 @@ export function useSecurity(): SecuritySnapshot {
       isAuthenticated: auth.isAuthenticated,
       passkeyStatus: auth.profile?.passkeyStatus ?? "inactive",
       permissions: auth.access.permissions,
+      posture: postureSnapshot.data,
       session,
     }),
     [
@@ -50,6 +76,7 @@ export function useSecurity(): SecuritySnapshot {
       auth.profile?.passkeyStatus,
       auth.profile?.phoneMasked,
       auth.profile?.status,
+      postureSnapshot.data,
       session,
     ]
   )
@@ -59,6 +86,9 @@ export function useSecurity(): SecuritySnapshot {
     error: auth.error,
     profile: auth.profile,
     security,
+    isPostureLoading: postureSnapshot.isLoading,
+    postureError: postureSnapshot.error,
+    refreshSecurity: postureSnapshot.refetch,
     refreshProfile: auth.actions.refreshProfile,
     registerPasskey: auth.actions.registerProfilePasskey,
     logout: auth.actions.logoutAsync,

@@ -14,7 +14,7 @@ Consulta clientes ativos e os veículos vinculados que foram persistidos pelo fl
 - `services`: casos de uso sem dependência de React.
 - `table`: definição declarativa das colunas.
 
-`index.ts` é o único contrato entre features e expõe somente o catálogo de clientes necessário às regras comerciais. Rotas e testes internos usam imports diretos.
+`index.ts` é o único contrato entre features e expõe buscas mínimas de clientes e veículos para regras comerciais. Rotas e testes internos usam imports diretos.
 
 ## Fluxo de dados
 
@@ -23,12 +23,14 @@ Consulta clientes ativos e os veículos vinculados que foram persistidos pelo fl
 3. O serviço converte o formato ERP em valores seguros e anuláveis.
 4. Os hooks usam controle de geração do `useAsyncSnapshot`, impedindo que uma resposta antiga sobrescreva uma atualização mais recente.
 5. A rota de veículos consulta o cliente e seus veículos diretamente por `cod_pessoa`; não baixa os catálogos completos.
+6. Comboboxes comerciais pesquisam no servidor a partir de dois caracteres e recebem no máximo 50 DTOs mínimos por consulta.
 
 As consultas paginadas possuem limite explícito. Excedê-lo gera erro visível em vez de truncamento silencioso.
 
 ## Segurança e acessibilidade
 
 - `erp_clients` e `erp_client_vehicles` dependem respectivamente de `clients.read` e `client_vehicles.read` no banco.
+- Lookups não selecionam e-mail, telefone, cidade ou campos operacionais que o controle não exibe.
 - CPF/CNPJ e telefone usam o componente compartilhado de conteúdo sensível; e-mail fica oculto por padrão.
 - React escapa todo texto do ERP; URLs de mapa não fazem parte desta feature.
 - Estados de carregamento, erro, vazio e vazio filtrado usam os contratos compartilhados da DataTable.

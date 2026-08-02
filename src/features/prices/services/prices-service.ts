@@ -11,7 +11,6 @@ import {
 
 const PRICE_TABLES_SELECT = [
   "id",
-  "name",
   "scope",
   "unit_id",
   "unit_name",
@@ -67,7 +66,7 @@ export async function savePriceTable(payload: SavePriceTablePayload) {
   }
 
   const { error } = await supabase.rpc("create_commercial_price_table", {
-    p_scope: payload.scope,
+    p_scope: payload.scope === "global" ? "network" : payload.scope,
     p_unit_id: payload.unitId,
     p_unit_name: payload.unitName,
     p_grace_minutes: payload.graceMinutes,

@@ -17,9 +17,8 @@ describe("prices model normalization", () => {
       ends_at: null,
       grace_minutes: "15",
       id: "price-global",
-      name: "Tabela base",
       notes: "Observacao",
-      scope: "global",
+      scope: "network",
       starts_at: "2026-07-01T12:00:00.000Z",
       status: "active",
       tolerance_minutes: "10",
@@ -31,6 +30,7 @@ describe("prices model normalization", () => {
     const normalized = normalizePriceTableRecord(raw)
 
     expect(normalized.id).toBe("price-global")
+    expect(normalized.name).toBe("Tabela da rede")
     expect(normalized.scope).toBe("global")
     expect(normalized.amount).toBe(25.5)
     expect(normalized.cycleHours).toBe(24)
@@ -46,9 +46,8 @@ describe("prices model normalization", () => {
         ends_at: null,
         grace_minutes: 0,
         id: "older",
-        name: "Tabela antiga",
         notes: null,
-        scope: "global",
+        scope: "network",
         starts_at: "2026-07-01T12:00:00.000Z",
         status: "active",
         tolerance_minutes: 0,
@@ -63,9 +62,8 @@ describe("prices model normalization", () => {
         ends_at: null,
         grace_minutes: 0,
         id: "newer",
-        name: "Tabela nova",
         notes: null,
-        scope: "global",
+        scope: "network",
         starts_at: "2026-07-03T12:00:00.000Z",
         status: "active",
         tolerance_minutes: 0,

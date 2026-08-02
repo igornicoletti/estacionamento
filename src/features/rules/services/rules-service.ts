@@ -19,7 +19,7 @@ const RULES_SELECT = [
   "vehicle_ids",
   "applies_to_all_units",
   "unit_ids",
-  "active",
+  "status",
   "fuel_min_liters",
   "benefit_hours",
   "yard_occupancy_threshold",
@@ -69,8 +69,8 @@ export async function saveVipRule(payload: SaveVipRulePayload) {
   }
 
   const { error } = await supabase.rpc("save_commercial_rule_version", {
-    p_type: payload.type,
-    p_target_type: payload.targetType,
+    p_type: payload.type === "fuel" ? "fuel_benefit" : payload.type,
+    p_target_type: payload.targetType === "global" ? "network" : payload.targetType,
     p_client_id: payload.clientId,
     p_client_name: payload.clientName,
     p_vehicle_id: payload.vehicleId,

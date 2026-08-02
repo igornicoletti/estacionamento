@@ -52,6 +52,8 @@ describe("Clients routes", () => {
     setClientsGateway({
       findClientById: () => Promise.resolve(null),
       listClients: () => Promise.resolve([]),
+      searchClients: () => Promise.resolve([]),
+      searchVehicles: () => Promise.resolve([]),
       listVehiclesByClientId: () => Promise.resolve([]),
     })
 

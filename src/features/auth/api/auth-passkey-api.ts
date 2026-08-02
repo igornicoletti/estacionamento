@@ -58,5 +58,25 @@ export async function registerAuthenticatedPasskey() {
     throw new AuthApiError(authCopy.errors.passkeyRegistrationFailed)
   }
 
+  const accessToken = await getValidatedSupabaseAccessToken(supabase)
+
+  if (!accessToken) {
+    throw new AuthApiError(authCopy.errors.passkeyRegistrationFailed)
+  }
+
+  const finalizeResponse = await supabase.functions.invoke(
+    AUTH_FUNCTIONS.registerPasskey,
+    {
+      body: {},
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    }
+  )
+
+  if (finalizeResponse.error) {
+    throw new AuthApiError(authCopy.errors.passkeyRegistrationFailed)
+  }
+
   return mapPasskeyRegistrationResult(response.data)
 }

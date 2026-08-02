@@ -1,431 +1,240 @@
 import {
-  AlertTriangleIcon,
-  BellIcon,
-  CheckCircle2Icon,
   ChevronRightIcon,
+  FingerprintIcon,
   KeyRoundIcon,
   LockKeyholeIcon,
+  MonitorSmartphoneIcon,
   ShieldCheckIcon,
   SmartphoneIcon,
 } from "lucide-react"
-import type { ReactNode } from "react"
-import * as React from "react"
 import { Link } from "react-router"
 
 import { appRoutePaths } from "@/app/router/route-registry"
-import { AppDialog } from "@/components/shared/app-dialog"
-import { Badge } from "@/components/ui/badge"
+import { AppStatusBadge } from "@/components/shared/app-status-badge"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import {
-  Item,
-  ItemActions,
-  ItemContent,
-  ItemDescription,
-  ItemGroup,
-  ItemMedia,
-  ItemSeparator,
-  ItemTitle,
-} from "@/components/ui/item"
+import { Card, CardContent } from "@/components/ui/card"
+import { ItemGroup } from "@/components/ui/item"
 import { Separator } from "@/components/ui/separator"
-import { Skeleton } from "@/components/ui/skeleton"
 import { Spinner } from "@/components/ui/spinner"
-import { cn, formatDateTime, getBadgeToneClassName } from "@/lib"
 
 import { securityCopy } from "../constants/security-copy"
 import {
   createSecurityScore,
   getSecurityMeasureStatuses,
   getSecurityScoreTone,
-} from "../model"
-import type {
-  SecurityEventSummary,
-  SecurityMeasureId,
-  SecurityMeasureStatus,
-  SecurityScore,
-  SecuritySnapshot,
-  SecuritySummary,
+} from "../model/security-models"
+import {
+  type SecurityEventSummary,
+  type SecurityMeasureId,
+  type SecuritySummary,
 } from "../types/security-types"
+import { SecurityEventsList } from "./security-events-list"
+import { SecurityMeasureRow } from "./security-measure-row"
+import { SecurityScoreChart } from "./security-score-chart"
 
 interface SecuritySummaryCardProps {
   events: readonly SecurityEventSummary[]
   eventsError?: Error | null
   isEventsLoading?: boolean
-  isRegisteringPasskey?: boolean
+  isConfiguringMfa: boolean
+  isRegisteringPasskey: boolean
+  isTrustingDevice: boolean
   onOpenChangePassword: () => void
-  onRegisterPasskey: SecuritySnapshot["registerPasskey"]
+  onOpenLogins: () => void
+  onOpenMfa: () => void
+  onRegisterPasskey: () => void | Promise<void>
+  onTrustDevice: () => void | Promise<void>
   security: SecuritySummary
 }
 
-interface SecurityMeasureRowProps {
-  action?: ReactNode
-  description: string
-  icon: ReactNode
-  status: SecurityMeasureStatus
-  title: string
-}
-
-function SecurityScoreRing({ score }: { score: SecurityScore }) {
-  const tone = getSecurityScoreTone(score)
-  const circumference = 2 * Math.PI * 42
-  const dashOffset = circumference - (score.value / 100) * circumference
-  const ringClassName = {
-    error: "text-error",
-    info: "text-primary",
-    success: "text-success",
-    warning: "text-warning",
-  }[tone]
-
-  return (
-    <div className="relative size-24 shrink-0" aria-label={`${score.value} de 100`}>
-      <svg className="-rotate-90 text-muted" viewBox="0 0 100 100" aria-hidden="true">
-        <circle
-          cx="50"
-          cy="50"
-          r="42"
-          fill="none"
-          stroke="currentColor"
-          strokeWidth="6"
-        />
-        <circle
-          className={cn("transition-all duration-300", ringClassName)}
-          cx="50"
-          cy="50"
-          r="42"
-          fill="none"
-          stroke="currentColor"
-          strokeLinecap="round"
-          strokeWidth="6"
-          strokeDasharray={circumference}
-          strokeDashoffset={dashOffset}
-        />
-      </svg>
-      <div className="absolute inset-0 flex flex-col items-center justify-center">
-        <span className="text-xl font-semibold tabular-nums text-foreground">{score.value}</span>
-        <span className="text-[0.6875rem] text-muted-foreground">/ 100</span>
-      </div>
-    </div>
-  )
-}
-
-function SecurityStatusBadge({ status }: { status: SecurityMeasureStatus }) {
-  const isCompleted = status === "completed"
-
-  return (
-    <Badge
-      variant="secondary"
-      className={getBadgeToneClassName(isCompleted ? "success" : "warning")}
-    >
-      {isCompleted ? securityCopy.status.completed : securityCopy.status.actionRequired}
-    </Badge>
-  )
-}
-
-function SecurityMeasureRow({
-  action,
-  description,
-  icon,
-  status,
-  title,
-}: SecurityMeasureRowProps) {
-  const isCompleted = status === "completed"
-
-  return (
-    <Item variant="default" className="items-start gap-3 px-0 py-0">
-      <ItemMedia variant="icon" className={cn("mt-0.5", isCompleted ? "text-success" : "text-warning")}>
-        {isCompleted ? <CheckCircle2Icon aria-hidden="true" /> : <AlertTriangleIcon aria-hidden="true" />}
-      </ItemMedia>
-      <ItemMedia variant="icon" className="mt-0.5 text-muted-foreground">
-        {icon}
-      </ItemMedia>
-      <ItemContent className="min-w-0">
-        <ItemTitle className="line-clamp-none">{title}</ItemTitle>
-        <ItemDescription className="line-clamp-none">{description}</ItemDescription>
-      </ItemContent>
-      <ItemActions className="basis-full flex-wrap justify-start sm:ml-auto sm:basis-auto sm:justify-end *:data-[slot=badge]:w-fit [&>a]:w-full [&>button]:w-full sm:[&>a]:w-auto sm:[&>button]:w-auto">
-        {action ?? <SecurityStatusBadge status={status} />}
-      </ItemActions>
-    </Item>
-  )
-}
-
-function DetailRow({ label, value }: { label: string; value: ReactNode }) {
-  return (
-    <div className="grid gap-1">
-      <p className="text-xs text-muted-foreground">{label}</p>
-      <p className="text-sm text-foreground">{value}</p>
-    </div>
-  )
-}
-
-function EventSkeletons() {
-  return (
-    <div className="grid gap-3" aria-label={securityCopy.events.loading}>
-      <Skeleton className="h-10 w-full" />
-      <Skeleton className="h-10 w-full" />
-    </div>
-  )
-}
-
-function SecurityEventsList({
-  events,
-  eventsError,
-  isEventsLoading,
+function ActionButton({
+  ariaLabel,
+  isPending = false,
+  label,
+  onClick,
 }: {
-  events: readonly SecurityEventSummary[]
-  eventsError?: Error | null
-  isEventsLoading?: boolean
+  ariaLabel?: string
+  isPending?: boolean
+  label: string
+  onClick: () => void | Promise<void>
 }) {
-  if (isEventsLoading) {
-    return <EventSkeletons />
-  }
-
-  if (eventsError) {
-    return (
-      <p className="text-sm text-muted-foreground">{securityCopy.events.error}</p>
-    )
-  }
-
-  if (events.length === 0) {
-    return (
-      <div className="grid gap-1 text-sm">
-        <p className="font-medium text-foreground">{securityCopy.events.emptyTitle}</p>
-        <p className="text-muted-foreground">{securityCopy.events.emptyDescription}</p>
-      </div>
-    )
-  }
-
   return (
-    <ItemGroup className="gap-3">
-      {events.map((event, index) => (
-        <React.Fragment key={event.id}>
-          <Item variant="default" className="items-start gap-3 px-0 py-0">
-            <ItemMedia variant="icon" className="mt-1 text-primary">
-              <BellIcon aria-hidden="true" />
-            </ItemMedia>
-            <ItemContent className="min-w-0">
-              <ItemTitle className="line-clamp-none">{event.title}</ItemTitle>
-              <ItemDescription className="line-clamp-none">{event.description}</ItemDescription>
-            </ItemContent>
-            <ItemActions className="basis-full justify-start text-xs text-muted-foreground sm:ml-auto sm:basis-auto sm:justify-end">
-              {formatDateTime(event.occurredAt)}
-            </ItemActions>
-          </Item>
-          {index < events.length - 1 ? <ItemSeparator className="my-0" /> : null}
-        </React.Fragment>
-      ))}
-    </ItemGroup>
+    <Button
+      type="button"
+      variant="ghost"
+      size="xs"
+      aria-label={ariaLabel}
+      disabled={isPending}
+      onClick={() => void onClick()}
+    >
+      {isPending ? <Spinner data-icon="inline-start" /> : null}
+      {label}
+      {!isPending ? (
+        <ChevronRightIcon data-icon="inline-end" aria-hidden="true" />
+      ) : null}
+    </Button>
   )
-}
-
-function resolveMeasureStatus(
-  statuses: Record<SecurityMeasureId, SecurityMeasureStatus>,
-  id: SecurityMeasureId
-) {
-  return statuses[id]
 }
 
 export function SecuritySummaryCard({
   events,
   eventsError = null,
   isEventsLoading = false,
-  isRegisteringPasskey = false,
+  isConfiguringMfa,
+  isRegisteringPasskey,
+  isTrustingDevice,
   onOpenChangePassword,
+  onOpenLogins,
+  onOpenMfa,
   onRegisterPasskey,
+  onTrustDevice,
   security,
 }: SecuritySummaryCardProps) {
   const statuses = getSecurityMeasureStatuses(security)
   const score = createSecurityScore(statuses)
   const scoreTone = getSecurityScoreTone(score)
-  const hasPasskey = security.passkeyStatus === "active"
-  const hasWildcardPermission = security.permissions.includes("*")
-  const [registeredPasskey, setRegisteredPasskey] = React.useState<Awaited<ReturnType<SecuritySnapshot["registerPasskey"]>> | null>(null)
-
-  async function handleRegisterPasskey() {
-    const passkey = await onRegisterPasskey()
-    setRegisteredPasskey(passkey)
-  }
+  const status = (id: SecurityMeasureId) => statuses[id]
 
   return (
-    <>
-      <div className="grid gap-4">
-        <Card>
-          <CardContent className="grid gap-5 sm:grid-cols-[auto_1fr] sm:items-start">
-            <div className="justify-self-center sm:justify-self-start">
-              <SecurityScoreRing score={score} />
+    <Card>
+      <CardContent className="flex flex-col gap-5">
+        <section className="grid gap-4 sm:grid-cols-[auto_minmax(0,1fr)] sm:items-center">
+          <div className="justify-self-center sm:justify-self-start">
+            <SecurityScoreChart score={score} />
+          </div>
+          <div className="flex min-w-0 flex-col gap-1 text-center sm:text-left">
+            <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
+              <h2 className="text-base font-semibold">
+                {securityCopy.score.title}
+              </h2>
+              <AppStatusBadge tone={scoreTone}>
+                {securityCopy.score.labels[scoreTone]}
+              </AppStatusBadge>
             </div>
-            <div className="grid min-w-0 gap-2 pt-1 text-center sm:text-left">
-              <div className="flex flex-wrap items-center justify-center gap-2 sm:justify-start">
-                <h2 className="text-base font-semibold text-foreground">{securityCopy.score.title}</h2>
-                <Badge variant="secondary" className={getBadgeToneClassName(scoreTone)}>
-                  {securityCopy.score.labels[scoreTone]}
-                </Badge>
-              </div>
-              <p className="text-sm text-muted-foreground">{securityCopy.score.completed(score)}</p>
-              <p className="text-sm text-foreground">{securityCopy.score.remaining(score)}</p>
-            </div>
-          </CardContent>
-        </Card>
+            <p className="text-sm text-muted-foreground">
+              {securityCopy.score.completed(score)}
+            </p>
+            <p className="text-sm">{securityCopy.score.remaining(score)}</p>
+          </div>
+        </section>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>{securityCopy.controls.title}</CardTitle>
-            <CardDescription>{securityCopy.controls.description}</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ItemGroup className="gap-5">
-              <SecurityMeasureRow
-                title={securityCopy.measures.strongPassword.title}
-                description={securityCopy.measures.strongPassword.description}
-                icon={<LockKeyholeIcon aria-hidden="true" />}
-                status={resolveMeasureStatus(statuses, "strong-password")}
-                action={(
-                  <>
-                    <SecurityStatusBadge status={resolveMeasureStatus(statuses, "strong-password")} />
-                    <Button type="button" variant="secondary" size="sm" onClick={onOpenChangePassword}>
-                      <LockKeyholeIcon aria-hidden="true" />
-                      {securityCopy.measures.strongPassword.action}
-                    </Button>
-                  </>
-                )}
+        <Separator />
+
+        <ItemGroup className="gap-5!" data-security-list="measures">
+          <SecurityMeasureRow
+            title={securityCopy.measures.twoFactorAuthentication.title}
+            description={securityCopy.measures.twoFactorAuthentication.description}
+            guidance={securityCopy.measures.twoFactorAuthentication.guidance}
+            icon={SmartphoneIcon}
+            status={status("two-factor-authentication")}
+            action={
+              status("two-factor-authentication") === "action-required" ? (
+                <ActionButton
+                  ariaLabel={securityCopy.measures.twoFactorAuthentication.actionLabel}
+                  isPending={isConfiguringMfa}
+                  label={securityCopy.measures.twoFactorAuthentication.action}
+                  onClick={onOpenMfa}
+                />
+              ) : undefined
+            }
+          />
+
+          <SecurityMeasureRow
+            title={securityCopy.measures.strongPassword.title}
+            description={securityCopy.measures.strongPassword.description}
+            guidance={securityCopy.measures.strongPassword.guidance}
+            icon={LockKeyholeIcon}
+            status={status("strong-password")}
+            action={(
+              <ActionButton
+                ariaLabel={securityCopy.measures.strongPassword.actionLabel}
+                label={securityCopy.measures.strongPassword.action}
+                onClick={onOpenChangePassword}
               />
+            )}
+          />
 
-              <ItemSeparator className="my-0" />
-
-              <SecurityMeasureRow
-                title={securityCopy.measures.passkey.title}
-                description={hasPasskey ? securityCopy.measures.passkey.activeDescription : securityCopy.measures.passkey.inactiveDescription}
-                icon={<KeyRoundIcon aria-hidden="true" />}
-                status={resolveMeasureStatus(statuses, "passkey")}
-                action={(
-                  <>
-                    {hasPasskey ? <SecurityStatusBadge status={resolveMeasureStatus(statuses, "passkey")} /> : null}
-                    <Button
-                      type="button"
-                      variant={hasPasskey ? "secondary" : "default"}
-                      size="sm"
-                      disabled={isRegisteringPasskey}
-                      onClick={() => { void handleRegisterPasskey() }}
-                    >
-                      {isRegisteringPasskey ? <Spinner data-icon="inline-start" /> : <KeyRoundIcon aria-hidden="true" />}
-                      {isRegisteringPasskey
-                        ? securityCopy.measures.passkey.activating
-                        : hasPasskey
-                          ? securityCopy.measures.passkey.rotateAction
-                          : securityCopy.measures.passkey.addAction}
-                    </Button>
-                  </>
-                )}
+          <SecurityMeasureRow
+            title={securityCopy.measures.passkey.title}
+            description={securityCopy.measures.passkey.activeDescription}
+            guidance={securityCopy.measures.passkey.guidance}
+            icon={FingerprintIcon}
+            status={status("passkey")}
+            action={(
+              <ActionButton
+                ariaLabel={securityCopy.measures.passkey.actionLabel}
+                isPending={isRegisteringPasskey}
+                label={securityCopy.measures.passkey.addAction}
+                onClick={onRegisterPasskey}
               />
+            )}
+          />
 
-              <ItemSeparator className="my-0" />
+          <SecurityMeasureRow
+            title={securityCopy.measures.recoveryOptions.title}
+            description={securityCopy.measures.recoveryOptions.description}
+            guidance={securityCopy.measures.recoveryOptions.guidance}
+            icon={KeyRoundIcon}
+            status={status("recovery-options")}
+            action={
+              status("recovery-options") === "action-required" ? (
+                <Button asChild variant="ghost" size="xs">
+                  <Link
+                    to={appRoutePaths.profile}
+                    aria-label={securityCopy.measures.recoveryOptions.actionLabel}
+                  >
+                    {securityCopy.measures.recoveryOptions.action}
+                    <ChevronRightIcon data-icon="inline-end" aria-hidden="true" />
+                  </Link>
+                </Button>
+              ) : undefined
+            }
+          />
 
-              <SecurityMeasureRow
-                title={securityCopy.measures.recoveryContact.title}
-                description={resolveMeasureStatus(statuses, "recovery-contact") === "completed"
-                  ? securityCopy.measures.recoveryContact.configuredDescription
-                  : securityCopy.measures.recoveryContact.missingDescription}
-                icon={<SmartphoneIcon aria-hidden="true" />}
-                status={resolveMeasureStatus(statuses, "recovery-contact")}
-                action={resolveMeasureStatus(statuses, "recovery-contact") === "completed" ? undefined : (
-                  <>
-                    <SecurityStatusBadge status={resolveMeasureStatus(statuses, "recovery-contact")} />
-                    <Button asChild variant="secondary" size="sm">
-                      <Link to={appRoutePaths.profile}>
-                        {securityCopy.measures.recoveryContact.updateAction}
-                        <ChevronRightIcon aria-hidden="true" />
-                      </Link>
-                    </Button>
-                  </>
-                )}
+          <SecurityMeasureRow
+            title={securityCopy.measures.recentLogins.title}
+            description={securityCopy.measures.recentLogins.description}
+            guidance={securityCopy.measures.recentLogins.guidance}
+            icon={MonitorSmartphoneIcon}
+            status={status("recent-logins")}
+            action={(
+              <ActionButton
+                ariaLabel={securityCopy.measures.recentLogins.actionLabel}
+                label={securityCopy.measures.recentLogins.action}
+                onClick={onOpenLogins}
               />
-            </ItemGroup>
-          </CardContent>
-        </Card>
+            )}
+          />
 
-        <Card>
-          <CardHeader className="gap-3 sm:grid-cols-[1fr_auto]">
-            <div className="grid min-w-0 gap-1">
-              <CardTitle>{securityCopy.events.title}</CardTitle>
-              <CardDescription>{securityCopy.events.description}</CardDescription>
-            </div>
-            <Button asChild variant="ghost" size="sm" className="w-full justify-self-start sm:w-auto sm:justify-self-end">
-              <Link to={appRoutePaths.notifications}>
-                {securityCopy.events.viewAll}
-                <ChevronRightIcon aria-hidden="true" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            <SecurityEventsList
-              events={events}
-              eventsError={eventsError}
-              isEventsLoading={isEventsLoading}
-            />
-          </CardContent>
-        </Card>
+          <SecurityMeasureRow
+            title={securityCopy.measures.trustedDevices.title}
+            description={securityCopy.measures.trustedDevices.description}
+            guidance={securityCopy.measures.trustedDevices.guidance}
+            icon={ShieldCheckIcon}
+            status={status("trusted-devices")}
+            action={
+              status("trusted-devices") === "action-required" ? (
+                <ActionButton
+                  ariaLabel={securityCopy.measures.trustedDevices.actionLabel}
+                  isPending={isTrustingDevice}
+                  label={isTrustingDevice
+                    ? securityCopy.measures.trustedDevices.saving
+                    : securityCopy.measures.trustedDevices.action}
+                  onClick={onTrustDevice}
+                />
+              ) : undefined
+            }
+          />
+        </ItemGroup>
 
-        <div className="grid gap-4 lg:grid-cols-2">
-          <Card>
-            <CardHeader>
-              <CardTitle>{securityCopy.session.title}</CardTitle>
-              <CardDescription>{securityCopy.session.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3 sm:grid-cols-2 sm:*:min-w-0">
-              <DetailRow label={securityCopy.session.browser} value={security.session.browser} />
-              <DetailRow label={securityCopy.session.operatingSystem} value={security.session.operatingSystem} />
-              <DetailRow label={securityCopy.session.ip} value={security.session.ipAddress ?? securityCopy.session.unavailable} />
-              <DetailRow label={securityCopy.session.authenticatedAt} value={security.session.authenticatedAt ? formatDateTime(security.session.authenticatedAt) : securityCopy.session.unavailable} />
-            </CardContent>
-          </Card>
+        <Separator />
 
-          <Card>
-            <CardHeader>
-              <CardTitle>{securityCopy.permissions.title}</CardTitle>
-              <CardDescription>{securityCopy.permissions.description}</CardDescription>
-            </CardHeader>
-            <CardContent className="grid gap-3">
-              {hasWildcardPermission ? (
-                <Badge variant="secondary" className={cn("w-fit", getBadgeToneClassName("success"))}>
-                  <ShieldCheckIcon aria-hidden="true" />
-                  {securityCopy.permissions.wildcard}
-                </Badge>
-              ) : security.permissions.length === 0 ? (
-                <p className="text-sm text-muted-foreground">{securityCopy.permissions.none}</p>
-              ) : (
-                <>
-                  <Badge variant="secondary" className="w-fit">{securityCopy.permissions.count(security.permissions.length)}</Badge>
-                  <Separator />
-                  <div className="flex flex-wrap gap-1.5">
-                    {security.permissions.map((permission) => (
-                      <code key={permission} className="rounded-md border border-border/60 bg-muted px-2 py-1 text-xs text-foreground">
-                        {permission}
-                      </code>
-                    ))}
-                  </div>
-                </>
-              )}
-            </CardContent>
-          </Card>
-        </div>
-      </div>
-
-      <AppDialog
-        open={Boolean(registeredPasskey)}
-        onOpenChange={(open) => {
-          if (!open) {
-            setRegisteredPasskey(null)
-          }
-        }}
-        title={securityCopy.measures.passkey.dialogTitle}
-        description={securityCopy.measures.passkey.dialogDescription}
-        footer={<Button type="button" size="lg" onClick={() => setRegisteredPasskey(null)}>{securityCopy.measures.passkey.dialogClose}</Button>}
-      >
-        <div className="grid gap-3">
-          <DetailRow label={securityCopy.measures.passkey.name} value={registeredPasskey?.friendlyName || "Passkey do dispositivo"} />
-          <DetailRow label={securityCopy.measures.passkey.createdAt} value={formatDateTime(registeredPasskey?.createdAt)} />
-        </div>
-      </AppDialog>
-    </>
+        <SecurityEventsList
+          events={events}
+          error={eventsError}
+          isLoading={isEventsLoading}
+        />
+      </CardContent>
+    </Card>
   )
 }

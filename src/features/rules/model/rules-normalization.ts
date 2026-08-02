@@ -7,12 +7,31 @@ import {
   type VipRuleRecord,
 } from "./rules-types"
 
-function isRuleType(value: unknown): value is RuleType {
+function normalizeRuleType(value: unknown): RuleType {
+  if (value === "fuel_benefit") {
+    return "fuel"
+  }
+
+  if (
+    value === "yard_cleaning_occupancy" ||
+    value === "yard_cleaning_stale_vehicle"
+  ) {
+    return "yard_cleaning"
+  }
+
   return typeof value === "string" && ruleTypeValues.includes(value as RuleType)
+    ? value as RuleType
+    : "vip"
 }
 
-function isRuleTargetType(value: unknown): value is RuleTargetType {
+function normalizeRuleTargetType(value: unknown): RuleTargetType {
+  if (value === "network") {
+    return "global"
+  }
+
   return typeof value === "string" && ruleTargetTypeValues.includes(value as RuleTargetType)
+    ? value as RuleTargetType
+    : "global"
 }
 
 function asText(value: unknown) {
@@ -67,8 +86,8 @@ function asNullableIsoDate(value: unknown) {
 export function normalizeVipRuleRecord(row: RawVipRuleRecord): VipRuleRecord {
   return {
     id: asText(row.id),
-    type: isRuleType(row.type) ? row.type : "vip",
-    targetType: isRuleTargetType(row.target_type) ? row.target_type : "global",
+    type: normalizeRuleType(row.type),
+    targetType: normalizeRuleTargetType(row.target_type),
     clientId: asNullableNumber(row.client_id),
     clientName: asNullableText(row.client_name),
     vehicleId: asNullableNumber(row.vehicle_id),
@@ -76,7 +95,7 @@ export function normalizeVipRuleRecord(row: RawVipRuleRecord): VipRuleRecord {
     vehicleIds: asNumberArray(row.vehicle_ids),
     appliesToAllUnits: row.applies_to_all_units === true,
     unitIds: asStringArray(row.unit_ids),
-    active: row.active === true,
+    active: row.status === "active",
     fuelMinLiters: asNullableNumber(row.fuel_min_liters),
     benefitHours: asNullableNumber(row.benefit_hours),
     yardOccupancyThreshold: asNullableNumber(row.yard_occupancy_threshold),

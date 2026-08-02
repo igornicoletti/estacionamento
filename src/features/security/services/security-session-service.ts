@@ -2,7 +2,7 @@ import { getSupabaseBrowserClient } from "@/lib/supabase-browser"
 
 import type { SecuritySessionSummary } from "../types/security-types"
 
-function getBrowserName(userAgent: string) {
+export function getBrowserName(userAgent: string) {
   if (/Edg\//.test(userAgent)) return "Microsoft Edge"
   if (/Chrome\//.test(userAgent) && !/Edg\//.test(userAgent)) return "Google Chrome"
   if (/Firefox\//.test(userAgent)) return "Mozilla Firefox"
@@ -10,7 +10,7 @@ function getBrowserName(userAgent: string) {
   return "Navegador não identificado"
 }
 
-function getOperatingSystem(userAgent: string) {
+export function getOperatingSystem(userAgent: string) {
   if (/Windows/i.test(userAgent)) return "Windows"
   if (/Android/i.test(userAgent)) return "Android"
   if (/iPhone|iPad|iPod/i.test(userAgent)) return "iOS"
